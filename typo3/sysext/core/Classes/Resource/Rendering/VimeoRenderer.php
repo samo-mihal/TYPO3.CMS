@@ -144,6 +144,9 @@ class VimeoRenderer implements FileRendererInterface
         if (!empty($options['background'])) {
             $urlParams[] = 'background=1';
         }
+        if (!empty($options['muted'])) {
+            $urlParams[] = 'muted=1';
+        }
         if (!empty($options['no-cookie'])) {
             $urlParams[] = 'dnt=1';
         }
