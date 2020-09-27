@@ -16,6 +16,7 @@ namespace TYPO3\CMS\Core\Resource\Rendering;
 
 use TYPO3\CMS\Core\Resource\FileInterface;
 use TYPO3\CMS\Core\Resource\FileReference;
+use TYPO3\CMS\Core\Service\LinkService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -124,7 +125,11 @@ class VideoTagRenderer implements FileRendererInterface
         return sprintf(
             '<video%s><source src="%s" type="%s"></video>',
             empty($attributes) ? '' : ' ' . implode(' ', $attributes),
-            htmlspecialchars($file->getPublicUrl($usedPathsRelativeToCurrentScript)),
+            htmlspecialchars(
+                LinkService::getLink($file->getPublicUrl($usedPathsRelativeToCurrentScript), [
+                    'absolute' => true,
+                ])['url']
+            ),
             $file->getMimeType()
         );
     }
