@@ -16,7 +16,6 @@ namespace TYPO3\CMS\Core\Resource\Rendering;
 
 use TYPO3\CMS\Core\Resource\FileInterface;
 use TYPO3\CMS\Core\Resource\FileReference;
-use TYPO3\CMS\Core\Service\LinkService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -108,11 +107,7 @@ class AudioTagRenderer implements FileRendererInterface
         return sprintf(
             '<audio%s><source src="%s" type="%s"></audio>',
             empty($additionalAttributes) ? '' : ' ' . implode(' ', $additionalAttributes),
-            htmlspecialchars(
-                LinkService::getLink($file->getPublicUrl($usedPathsRelativeToCurrentScript), [
-                    'absolute' => true,
-                ])['url']
-            ),
+            htmlspecialchars($file->getPublicUrl($usedPathsRelativeToCurrentScript)),
             $file->getMimeType()
         );
     }
