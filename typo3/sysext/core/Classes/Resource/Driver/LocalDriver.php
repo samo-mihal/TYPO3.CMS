@@ -643,12 +643,6 @@ class LocalDriver extends AbstractHierarchicalFilesystemDriver {
 	 */
 	public function addFile($localFilePath, $targetFolderIdentifier, $newFileName = '', $removeOriginal = TRUE) {
 		$localFilePath = $this->canonicalizeAndCheckFilePath($localFilePath);
-		// as for the "virtual storage" for backwards-compatibility, this check always fails, as the file probably lies under PATH_site
-		// thus, it is not checked here
-		// @ todo is check in storage
-		if (GeneralUtility::isFirstPartOfStr($localFilePath, $this->absoluteBasePath) && $this->storageUid > 0) {
-			throw new \InvalidArgumentException('Cannot add a file that is already part of this storage.', 1314778269);
-		}
 		$newFileName = $this->sanitizeFileName($newFileName !== '' ? $newFileName : PathUtility::basename($localFilePath));
 		$newFileIdentifier = $this->canonicalizeAndCheckFolderIdentifier($targetFolderIdentifier) . $newFileName;
 		$targetPath = $this->getAbsolutePath($newFileIdentifier);
