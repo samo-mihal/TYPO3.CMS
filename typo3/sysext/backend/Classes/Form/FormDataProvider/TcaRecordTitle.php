@@ -49,6 +49,7 @@ class TcaRecordTitle implements FormDataProviderInterface
                 'table' => $result['tableName'],
                 'row' => $result['databaseRow'],
                 'title' => '',
+                'defaultTitle' => $this->getRecordTitleByLabelProperties($result)['recordTitle'],
                 'isOnSymmetricSide' => $result['isOnSymmetricSide'],
                 'options' => $result['processedTca']['ctrl']['formattedLabel_userFunc_options'] ?? [],
                 'parent' => [
