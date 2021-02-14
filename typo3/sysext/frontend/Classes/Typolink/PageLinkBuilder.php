@@ -146,9 +146,6 @@ class PageLinkBuilder extends AbstractTypolinkBuilder
                 if (empty($page) || $maxLoopCount === 0) {
                     // We revert if shortcut is broken or maximum number of loops is exceeded (indicates endless loop)
                     $page = $page2;
-                } else {
-                    // Replace Page title with Shortcut title
-                    $page['title'] = $page2['title'];
                 }
             }
         }
