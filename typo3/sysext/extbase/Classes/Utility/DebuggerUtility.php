@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Extbase\Utility;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,22 @@ namespace TYPO3\CMS\Extbase\Utility;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Extbase\Utility;
+
+use TYPO3\CMS\Core\SingletonInterface;
+use TYPO3\CMS\Extbase\DomainObject\AbstractDomainObject;
+use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
+use TYPO3\CMS\Extbase\DomainObject\AbstractValueObject;
+use TYPO3\CMS\Extbase\DomainObject\DomainObjectInterface;
+use TYPO3\CMS\Extbase\Object\ObjectManager;
+use TYPO3\CMS\Extbase\Persistence\Generic\LazyLoadingProxy;
+use TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapper;
+use TYPO3\CMS\Extbase\Persistence\Generic\PersistenceManager;
+use TYPO3\CMS\Extbase\Persistence\Generic\Qom\QueryObjectModelFactory;
+use TYPO3\CMS\Extbase\Persistence\ObjectStorage;
+use TYPO3\CMS\Extbase\Reflection\ReflectionService;
+use TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
 
 /**
  * This class is a backport of the corresponding class of TYPO3 Flow.
@@ -39,12 +54,12 @@ class DebuggerUtility
      */
     protected static $blacklistedClassNames = [
         'PHPUnit_Framework_MockObject_InvocationMocker',
-        \TYPO3\CMS\Extbase\Reflection\ReflectionService::class,
-        \TYPO3\CMS\Extbase\Object\ObjectManager::class,
-        \TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapper::class,
-        \TYPO3\CMS\Extbase\Persistence\Generic\PersistenceManager::class,
-        \TYPO3\CMS\Extbase\Persistence\Generic\Qom\QueryObjectModelFactory::class,
-        \TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer::class
+        ReflectionService::class,
+        ObjectManager::class,
+        DataMapper::class,
+        PersistenceManager::class,
+        QueryObjectModelFactory::class,
+        ContentObjectRenderer::class
     ];
 
     /**
@@ -73,7 +88,7 @@ class DebuggerUtility
      */
     protected static function clearState(): void
     {
-        self::$renderedObjects = new \TYPO3\CMS\Extbase\Persistence\ObjectStorage();
+        self::$renderedObjects = new ObjectStorage();
     }
 
     /**
@@ -168,7 +183,7 @@ class DebuggerUtility
      */
     protected static function renderObject(object $object, int $level, bool $plainText = false, bool $ansiColors = false): string
     {
-        if ($object instanceof \TYPO3\CMS\Extbase\Persistence\Generic\LazyLoadingProxy) {
+        if ($object instanceof LazyLoadingProxy) {
             $object = $object->_loadRealInstance();
             if (!is_object($object)) {
                 return gettype($object);
@@ -257,7 +272,7 @@ class DebuggerUtility
             $dump .= '<span class="extbase-debug-type">' . htmlspecialchars($className, ENT_COMPAT) . '</span>';
         }
         if (!$object instanceof \Closure) {
-            if ($object instanceof \TYPO3\CMS\Core\SingletonInterface) {
+            if ($object instanceof SingletonInterface) {
                 $scope = 'singleton';
             } else {
                 $scope = 'prototype';
@@ -267,7 +282,7 @@ class DebuggerUtility
             } else {
                 $dump .= '<span class="extbase-debug-scope">' . $scope . '</span>';
             }
-            if ($object instanceof \TYPO3\CMS\Extbase\DomainObject\AbstractDomainObject) {
+            if ($object instanceof AbstractDomainObject) {
                 if ($object->_isDirty()) {
                     $persistenceType = 'modified';
                 } elseif ($object->_isNew()) {
@@ -276,12 +291,12 @@ class DebuggerUtility
                     $persistenceType = 'persistent';
                 }
             }
-            if ($object instanceof \TYPO3\CMS\Extbase\Persistence\ObjectStorage && $object->_isDirty()) {
+            if ($object instanceof ObjectStorage && $object->_isDirty()) {
                 $persistenceType = 'modified';
             }
-            if ($object instanceof \TYPO3\CMS\Extbase\DomainObject\AbstractEntity) {
+            if ($object instanceof AbstractEntity) {
                 $domainObjectType = 'entity';
-            } elseif ($object instanceof \TYPO3\CMS\Extbase\DomainObject\AbstractValueObject) {
+            } elseif ($object instanceof AbstractValueObject) {
                 $domainObjectType = 'valueobject';
             } else {
                 $domainObjectType = 'object';
@@ -321,7 +336,7 @@ class DebuggerUtility
         if ($object instanceof \DateTimeInterface) {
             $dump .= ' (' . $object->format(\DateTimeInterface::RFC3339) . ', ' . $object->getTimestamp() . ')';
         }
-        if ($object instanceof \TYPO3\CMS\Extbase\DomainObject\DomainObjectInterface && !$object->_isNew()) {
+        if ($object instanceof DomainObjectInterface && !$object->_isNew()) {
             $dump .= ' (uid=' . $object->getUid() . ', pid=' . $object->getPid() . ')';
         }
         return $dump;
@@ -435,7 +450,7 @@ class DebuggerUtility
                         $dump .= '<span class="extbase-debug-visibility">' . $visibility . '</span>';
                     }
                     $dump .= self::renderDump($property->getValue($object), $level, $plainText, $ansiColors);
-                    if ($object instanceof \TYPO3\CMS\Extbase\DomainObject\AbstractDomainObject && !$object->_isNew() && $object->_isDirty($property->getName())) {
+                    if ($object instanceof AbstractDomainObject && !$object->_isNew() && $object->_isDirty($property->getName())) {
                         if ($plainText) {
                             $dump .= ' ' . self::ansiEscapeWrap('modified', '43;30', $ansiColors);
                         } else {

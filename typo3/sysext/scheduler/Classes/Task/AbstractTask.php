@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Scheduler\Task;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Scheduler\Task;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Scheduler\Task;
+
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use TYPO3\CMS\Core\Core\Environment;
@@ -23,6 +24,7 @@ use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Scheduler\Execution;
+use TYPO3\CMS\Scheduler\Scheduler;
 
 /**
  * This is the base class for all Scheduler tasks
@@ -97,31 +99,9 @@ abstract class AbstractTask implements LoggerAwareInterface
      */
     public function __construct()
     {
-        $this->setScheduler();
+        // Using makeInstance instead of setScheduler() here as the logger is injected due to LoggerAwareTrait
+        $this->scheduler = GeneralUtility::makeInstance(Scheduler::class);
         $this->execution = GeneralUtility::makeInstance(Execution::class);
-    }
-
-    /**
-     * Restore logger after save to database
-     */
-    public function __wakeup()
-    {
-        if ($this->logger === null) {
-            $this->logger = GeneralUtility::makeInstance(LogManager::class)->getLogger(__CLASS__);
-        }
-    }
-
-    /**
-     * Prevent several objects from being serialized.
-     * Logger does not need to be saved to task
-     * @return array
-     */
-    public function __sleep()
-    {
-        $vars = get_object_vars($this);
-        unset($vars['logger']);
-
-        return array_keys($vars);
     }
 
     /**
@@ -304,20 +284,24 @@ abstract class AbstractTask implements LoggerAwareInterface
 
     /**
      * Sets the internal reference to the singleton instance of the Scheduler
+     * and the logger instance in case it was unserialized
      */
     public function setScheduler()
     {
-        $this->scheduler = GeneralUtility::makeInstance(\TYPO3\CMS\Scheduler\Scheduler::class);
+        $this->scheduler = GeneralUtility::makeInstance(Scheduler::class);
+        $this->logger = GeneralUtility::makeInstance(LogManager::class)->getLogger(__CLASS__);
     }
 
     /**
      * Unsets the internal reference to the singleton instance of the Scheduler
+     * and the logger instance.
      * This is done before a task is serialized, so that the scheduler instance
-     * is not saved to the database too
+     * and the logger instance are not saved to the database
      */
     public function unsetScheduler()
     {
-        unset($this->scheduler);
+        $this->scheduler = null;
+        $this->logger = null;
     }
 
     /**

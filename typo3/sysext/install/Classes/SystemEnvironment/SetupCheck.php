@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Install\SystemEnvironment;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Install\SystemEnvironment;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Install\SystemEnvironment;
 
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
@@ -119,7 +120,7 @@ class SetupCheck implements CheckInterface
      */
     protected function checkSystemLocale()
     {
-        $currentLocale = setlocale(LC_CTYPE, 0);
+        $currentLocale = (string)setlocale(LC_CTYPE, '0');
 
         // On Windows an empty locale value uses the regional settings from the Control Panel
         if ($GLOBALS['TYPO3_CONF_VARS']['SYS']['systemLocale'] === '' && !Environment::isWindows()) {
@@ -161,7 +162,7 @@ class SetupCheck implements CheckInterface
                 ));
             } else {
                 $testString = 'ÖöĄĆŻĘĆćążąęó.jpg';
-                $currentLocale = setlocale(LC_CTYPE, 0);
+                $currentLocale = (string)setlocale(LC_CTYPE, '0');
                 $quote = Environment::isWindows() ? '"' : '\'';
                 setlocale(LC_CTYPE, $GLOBALS['TYPO3_CONF_VARS']['SYS']['systemLocale']);
                 if (escapeshellarg($testString) === $quote . $testString . $quote) {
@@ -191,8 +192,6 @@ class SetupCheck implements CheckInterface
      */
     protected function checkSomePhpOpcodeCacheIsLoaded()
     {
-        // Link to our wiki page, so we can update opcode cache issue information independent of TYPO3 CMS releases.
-        $wikiLink = 'For more information take a look in our wiki ' . TYPO3_URL_WIKI_OPCODECACHE . '.';
         $opcodeCaches = GeneralUtility::makeInstance(OpcodeCacheService::class)->getAllActive();
         if (empty($opcodeCaches)) {
             // Set status to notice. It needs to be notice so email won't be triggered.
@@ -201,8 +200,7 @@ class SetupCheck implements CheckInterface
                     . ' memory and do not require to recompile a script each time it is accessed.'
                     . ' This can be a massive performance improvement and can reduce the load on a'
                     . ' server in general. A parse time reduction by factor three for fully cached'
-                    . ' pages can be achieved easily if using an opcode cache.'
-                    . LF . $wikiLink,
+                    . ' pages can be achieved easily if using an opcode cache.',
                 'No PHP opcode cache loaded',
                 FlashMessage::NOTICE
             ));
@@ -212,24 +210,17 @@ class SetupCheck implements CheckInterface
             foreach ($opcodeCaches as $opcodeCache => $properties) {
                 $message .= 'Name: ' . $opcodeCache . ' Version: ' . $properties['version'];
                 $message .= LF;
-                if ($properties['error']) {
-                    $status = FlashMessage::ERROR;
-                    $message .= ' This opcode cache is marked as malfunctioning by the TYPO3 CMS Team.';
-                } elseif ($properties['canInvalidate']) {
-                    $message .= ' This opcode cache should work correctly and has good performance.';
+                if ($properties['warning']) {
+                    $status = FlashMessage::WARNING;
+                    $message .= ' ' . $properties['warning'];
                 } else {
-                    // Set status to notice if not already error set. It needs to be notice so email won't be triggered.
-                    if ($status !== FlashMessage::ERROR) {
-                        $status = FlashMessage::NOTICE;
-                    }
-                    $message .= ' This opcode cache may work correctly but has medium performance.';
+                    $message .= ' This opcode cache should work correctly and has good performance.';
                 }
                 $message .= LF;
             }
-            $message .= $wikiLink;
             // Set title of status depending on severity
             switch ($status) {
-                case FlashMessage::ERROR:
+                case FlashMessage::WARNING:
                     $title = 'A possibly malfunctioning PHP opcode cache is loaded';
                     break;
                 case FlashMessage::OK:

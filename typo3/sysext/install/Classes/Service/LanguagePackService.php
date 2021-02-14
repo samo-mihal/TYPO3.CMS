@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Install\Service;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,10 +15,14 @@ namespace TYPO3\CMS\Install\Service;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Install\Service;
+
 use Psr\EventDispatcher\EventDispatcherInterface;
+use Psr\Log\LoggerAwareInterface;
+use Psr\Log\LoggerAwareTrait;
 use Symfony\Component\Finder\Finder;
-use TYPO3\CMS\Core\Configuration\Features;
 use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\Http\RequestFactory;
 use TYPO3\CMS\Core\Http\Uri;
 use TYPO3\CMS\Core\Localization\Locales;
 use TYPO3\CMS\Core\Package\PackageManager;
@@ -27,6 +31,7 @@ use TYPO3\CMS\Core\Service\Archive\ZipService;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\PathUtility;
+use TYPO3\CMS\Install\Service\Event\ModifyLanguagePackRemoteBaseUrlEvent;
 
 /**
  * Service class handling language pack details
@@ -34,8 +39,10 @@ use TYPO3\CMS\Core\Utility\PathUtility;
  *
  * @internal This class is only meant to be used within EXT:install and is not part of the TYPO3 Core API.
  */
-class LanguagePackService
+class LanguagePackService implements LoggerAwareInterface
 {
+    use LoggerAwareTrait;
+
     /**
      * @var Locales
      */
@@ -51,14 +58,24 @@ class LanguagePackService
      */
     protected $eventDispatcher;
 
-    private const DEFAULT_LANGUAGE_PACK_URL = 'https://typo3.org/fileadmin/ter/';
-    private const BETA_LANGUAGE_PACK_URL = 'https://beta-translation.typo3.org/fileadmin/ter/';
+    /**
+     * @var RequestFactory
+     */
+    protected $requestFactory;
 
-    public function __construct(EventDispatcherInterface $eventDispatcher = null)
+    private const OLD_LANGUAGE_PACK_URLS = [
+        'https://typo3.org/fileadmin/ter/',
+        'https://beta-translation.typo3.org/fileadmin/ter/',
+        'https://localize.typo3.org/fileadmin/ter/'
+    ];
+    private const LANGUAGE_PACK_URL = 'https://localize.typo3.org/xliff/';
+
+    public function __construct(EventDispatcherInterface $eventDispatcher, RequestFactory $requestFactory)
     {
-        $this->eventDispatcher = $eventDispatcher ?? GeneralUtility::getContainer()->get(EventDispatcherInterface::class);
+        $this->eventDispatcher = $eventDispatcher;
         $this->locales = GeneralUtility::makeInstance(Locales::class);
         $this->registry = GeneralUtility::makeInstance(Registry::class);
+        $this->requestFactory = $requestFactory;
     }
 
     /**
@@ -148,12 +165,19 @@ class LanguagePackService
                 $EM_CONF = [];
                 include $path . 'ext_emconf.php';
                 $title = $EM_CONF[$key]['title'] ?? $title;
+
+                $state = $EM_CONF[$key]['state'] ?? '';
+                if ($state === 'excludeFromUpdates') {
+                    continue;
+                }
             }
             $extension = [
                 'key' => $key,
                 'title' => $title,
-                'icon' => PathUtility::stripPathSitePrefix(ExtensionManagementUtility::getExtensionIcon($path, true)),
             ];
+            if (!empty(ExtensionManagementUtility::getExtensionIcon($path, false))) {
+                $extension['icon'] = PathUtility::stripPathSitePrefix(ExtensionManagementUtility::getExtensionIcon($path, true));
+            }
             $extension['packs'] = [];
             foreach ($activeLanguages as $iso) {
                 $isLanguagePackDownloaded = is_dir(Environment::getLabelsPath() . '/' . $iso . '/' . $key . '/');
@@ -184,19 +208,30 @@ class LanguagePackService
      */
     public function updateMirrorBaseUrl(): string
     {
+        $repositoryUrl = 'https://repositories.typo3.org/mirrors.xml.gz';
         $downloadBaseUrl = false;
         try {
-            $xmlContent = GeneralUtility::getUrl('https://repositories.typo3.org/mirrors.xml.gz');
-            $xmlContent = GeneralUtility::xml2array(@gzdecode($xmlContent));
-            if (!empty($xmlContent['mirror']['host']) && !empty($xmlContent['mirror']['path'])) {
-                $downloadBaseUrl = 'https://' . $xmlContent['mirror']['host'] . $xmlContent['mirror']['path'];
+            $response = $this->requestFactory->request($repositoryUrl);
+            if ($response->getStatusCode() === 200) {
+                $xmlContent = @gzdecode($response->getBody()->getContents());
+                if (!empty($xmlContent['mirror']['host']) && !empty($xmlContent['mirror']['path'])) {
+                    $downloadBaseUrl = 'https://' . $xmlContent['mirror']['host'] . $xmlContent['mirror']['path'];
+                }
+            } else {
+                $this->logger->warning(sprintf(
+                    'Requesting %s was not successful, got status code %d (%s)',
+                    $repositoryUrl,
+                    $response->getStatusCode(),
+                    $response->getReasonPhrase()
+                ));
             }
         } catch (\Exception $e) {
             // Catch generic exception, fallback handled below
+            $this->logger->error('Failed to download list of mirrors', ['exception' => $e]);
         }
         if (empty($downloadBaseUrl)) {
             // Hard coded fallback if something went wrong fetching & parsing mirror list
-            $downloadBaseUrl = self::DEFAULT_LANGUAGE_PACK_URL;
+            $downloadBaseUrl = self::LANGUAGE_PACK_URL;
         }
         $this->registry->set('languagePacks', 'baseUrl', $downloadBaseUrl);
         return $downloadBaseUrl;
@@ -236,23 +271,22 @@ class LanguagePackService
             throw new \RuntimeException('Language pack baseUrl not found', 1520169691);
         }
 
-        if ($languagePackBaseUrl === self::DEFAULT_LANGUAGE_PACK_URL
-            && GeneralUtility::makeInstance(Features::class)->isFeatureEnabled('betaTranslationServer')) {
-            $languagePackBaseUrl = self::BETA_LANGUAGE_PACK_URL;
+        if (in_array($languagePackBaseUrl, self::OLD_LANGUAGE_PACK_URLS, true)) {
+            $languagePackBaseUrl = self::LANGUAGE_PACK_URL;
         }
 
         // Allow to modify the base url on the fly
-        $event = $this->eventDispatcher->dispatch(new Event\ModifyLanguagePackRemoteBaseUrlEvent(new Uri($languagePackBaseUrl), $key));
+        $event = $this->eventDispatcher->dispatch(new ModifyLanguagePackRemoteBaseUrlEvent(new Uri($languagePackBaseUrl), $key));
         $languagePackBaseUrl = $event->getBaseUrl();
         $path = ExtensionManagementUtility::extPath($key);
         $majorVersion = explode('.', TYPO3_branch)[0];
         if (strpos($path, '/sysext/') !== false) {
             // This is a system extension and the package URL should be adapted to have different packs per core major version
-            // https://typo3.org/fileadmin/ter/b/a/backend-l10n/backend-l10n-fr.v9.zip
+            // https://localize.typo3.org/xliff/b/a/backend-l10n/backend-l10n-fr.v9.zip
             $packageUrl = $key[0] . '/' . $key[1] . '/' . $key . '-l10n/' . $key . '-l10n-' . $iso . '.v' . $majorVersion . '.zip';
         } else {
             // Typical non sysext path, Hungarian:
-            // https://typo3.org/fileadmin/ter/a/n/anextension-l10n/anextension-l10n-hu.zip
+            // https://localize.typo3.org/xliff/a/n/anextension-l10n/anextension-l10n-hu.zip
             $packageUrl = $key[0] . '/' . $key[1] . '/' . $key . '-l10n/' . $key . '-l10n-' . $iso . '.zip';
         }
 
@@ -266,20 +300,30 @@ class LanguagePackService
 
         $operationResult = false;
         try {
-            $languagePackContent = GeneralUtility::getUrl($languagePackBaseUrl . $packageUrl);
-            if (!empty($languagePackContent)) {
-                $operationResult = true;
-                if ($packExists) {
-                    $operationResult = GeneralUtility::rmdir($absoluteExtractionPath, true);
+            $response = $this->requestFactory->request($languagePackBaseUrl . $packageUrl);
+            if ($response->getStatusCode() === 200) {
+                $languagePackContent = $response->getBody()->getContents();
+                if (!empty($languagePackContent)) {
+                    $operationResult = true;
+                    if ($packExists) {
+                        $operationResult = GeneralUtility::rmdir($absoluteExtractionPath, true);
+                    }
+                    if ($operationResult) {
+                        GeneralUtility::mkdir_deep(Environment::getVarPath() . '/transient/');
+                        $operationResult = GeneralUtility::writeFileToTypo3tempDir($absolutePathToZipFile, $languagePackContent) === null;
+                    }
+                    $this->unzipTranslationFile($absolutePathToZipFile, $absoluteLanguagePath);
+                    if ($operationResult) {
+                        $operationResult = unlink($absolutePathToZipFile);
+                    }
                 }
-                if ($operationResult) {
-                    GeneralUtility::mkdir_deep(Environment::getVarPath() . '/transient/');
-                    $operationResult = GeneralUtility::writeFileToTypo3tempDir($absolutePathToZipFile, $languagePackContent) === null;
-                }
-                $this->unzipTranslationFile($absolutePathToZipFile, $absoluteLanguagePath);
-                if ($operationResult) {
-                    $operationResult = unlink($absolutePathToZipFile);
-                }
+            } else {
+                $this->logger->warning(sprintf(
+                    'Requesting %s was not successful, got status code %d (%s)',
+                    $languagePackBaseUrl . $packageUrl,
+                    $response->getStatusCode(),
+                    $response->getReasonPhrase()
+                ));
             }
         } catch (\Exception $e) {
             $operationResult = false;

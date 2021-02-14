@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Tests\Unit\Cache\Backend;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\Cache\Backend;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\Cache\Backend;
 
 use org\bovigo\vfs\vfsStreamDirectory;
 use org\bovigo\vfs\vfsStreamWrapper;
@@ -495,14 +496,19 @@ class FileBackendTest extends UnitTestCase
         self::assertFileExists($pathAndFilename);
 
         $backend->remove($entryIdentifier);
-        self::assertFileNotExists($pathAndFilename);
+        // @todo remove condition and else branch as soon as phpunit v8 goes out of support
+        if (method_exists($this, 'assertFileDoesNotExist')) {
+            self::assertFileDoesNotExist($pathAndFilename);
+        } else {
+            self::assertFileNotExists($pathAndFilename);
+        }
     }
 
     public function invalidEntryIdentifiers(): array
     {
         return [
-            'trailing slash' => ['/myIdentifer'],
-            'trailing dot and slash' => ['./myIdentifer'],
+            'trailing slash' => ['/myIdentifier'],
+            'trailing dot and slash' => ['./myIdentifier'],
             'trailing two dots and slash' => ['../myIdentifier'],
             'trailing with multiple dots and slashes' => ['.././../myIdentifier'],
             'slash in middle part' => ['my/Identifier'],
@@ -848,8 +854,14 @@ class FileBackendTest extends UnitTestCase
 
         $backend->flush();
 
-        self::assertFileNotExists('vfs://Foo/cache/data/UnitTestCache/BackendFileTest1');
-        self::assertFileNotExists('vfs://Foo/cache/data/UnitTestCache/BackendFileTest2');
+        // @todo remove condition and else branch as soon as phpunit v8 goes out of support
+        if (method_exists($this, 'assertFileDoesNotExist')) {
+            self::assertFileDoesNotExist('vfs://Foo/cache/data/UnitTestCache/BackendFileTest1');
+            self::assertFileDoesNotExist('vfs://Foo/cache/data/UnitTestCache/BackendFileTest2');
+        } else {
+            self::assertFileNotExists('vfs://Foo/cache/data/UnitTestCache/BackendFileTest1');
+            self::assertFileNotExists('vfs://Foo/cache/data/UnitTestCache/BackendFileTest2');
+        }
     }
 
     /**
@@ -887,9 +899,7 @@ class FileBackendTest extends UnitTestCase
             'bar',
             'baz'
         ]);
-        $backend->expects(self::at(1))->method('remove')->with('foo');
-        $backend->expects(self::at(2))->method('remove')->with('bar');
-        $backend->expects(self::at(3))->method('remove')->with('baz');
+        $backend->expects(self::exactly(3))->method('remove')->withConsecutive(['foo'], ['bar'], ['baz']);
 
         $backend->flushByTag('UnitTestTag%special');
     }
@@ -922,7 +932,14 @@ class FileBackendTest extends UnitTestCase
         self::assertFileExists('vfs://Foo/cache/data/UnitTestCache/BackendFileTest2');
 
         $backend->collectGarbage();
-        self::assertFileNotExists('vfs://Foo/cache/data/UnitTestCache/BackendFileTest1');
+
+        // @todo remove condition and else branch as soon as phpunit v8 goes out of support
+        if (method_exists($this, 'assertFileDoesNotExist')) {
+            self::assertFileDoesNotExist('vfs://Foo/cache/data/UnitTestCache/BackendFileTest1');
+        } else {
+            self::assertFileNotExists('vfs://Foo/cache/data/UnitTestCache/BackendFileTest1');
+        }
+
         self::assertFileExists('vfs://Foo/cache/data/UnitTestCache/BackendFileTest2');
     }
 

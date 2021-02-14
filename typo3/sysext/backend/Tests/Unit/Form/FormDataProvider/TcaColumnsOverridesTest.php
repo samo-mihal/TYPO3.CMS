@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
 
 use TYPO3\CMS\Backend\Form\FormDataProvider\TcaColumnsOverrides;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
@@ -39,6 +40,8 @@ class TcaColumnsOverridesTest extends UnitTestCase
     public function addDataRemovesGivenColumnsOverrides()
     {
         $input = [
+            'command' => 'new',
+            'tableName' => 'aTable',
             'recordTypeValue' => 'foo',
             'processedTca' => [
                 'columns' => [],
@@ -63,6 +66,8 @@ class TcaColumnsOverridesTest extends UnitTestCase
     public function addDataMergesColumnsOverridesIntoColumns()
     {
         $input = [
+            'command' => 'new',
+            'tableName' => 'aTable',
             'recordTypeValue' => 'foo',
             'processedTca' => [
                 'columns' => [
@@ -86,6 +91,48 @@ class TcaColumnsOverridesTest extends UnitTestCase
 
         $expected = $input;
         $expected['processedTca']['columns']['aField']['aConfig'] = 'aDifferentValue';
+        unset($expected['processedTca']['types']['foo']['columnsOverrides']);
+
+        self::assertEquals($expected, $this->subject->addData($input));
+    }
+
+    /**
+     * @test
+     */
+    public function addDataMergesColumnsOverridesDefaultValueIntoDatabaseRow()
+    {
+        $input = [
+            'command' => 'new',
+            'tableName' => 'aTable',
+            'vanillaUid' => 12,
+            'databaseRow' => [
+                'uid' => 42,
+            ],
+            'recordTypeValue' => 'foo',
+            'processedTca' => [
+                'columns' => [
+                    'aField' => [
+                        'aConfig' => 'aValue'
+                    ],
+                ],
+                'types' => [
+                    'foo' => [
+                        'showitem' => [],
+                        'columnsOverrides' => [
+                            'aField' => [
+                                'config' => [
+                                    'default' => 'aDefault'
+                                ]
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $expected = $input;
+        $expected['databaseRow']['aField'] = 'aDefault';
+        $expected['processedTca']['columns']['aField']['config']['default'] = 'aDefault';
         unset($expected['processedTca']['types']['foo']['columnsOverrides']);
 
         self::assertEquals($expected, $this->subject->addData($input));

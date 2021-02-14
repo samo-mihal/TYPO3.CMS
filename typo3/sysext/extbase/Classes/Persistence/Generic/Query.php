@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Persistence\Generic;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,7 +13,23 @@ namespace TYPO3\CMS\Extbase\Persistence\Generic;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Persistence\Generic;
+
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Extbase\Object\ObjectManager;
+use TYPO3\CMS\Extbase\Object\ObjectManagerInterface;
+use TYPO3\CMS\Extbase\Persistence\Generic\Exception\InvalidNumberOfConstraintsException;
+use TYPO3\CMS\Extbase\Persistence\Generic\Exception\NotImplementedException;
+use TYPO3\CMS\Extbase\Persistence\Generic\Exception\UnexpectedTypeException;
+use TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapFactory;
+use TYPO3\CMS\Extbase\Persistence\Generic\Qom\ConstraintInterface;
+use TYPO3\CMS\Extbase\Persistence\Generic\Qom\QueryObjectModelFactory;
+use TYPO3\CMS\Extbase\Persistence\Generic\Qom\SelectorInterface;
+use TYPO3\CMS\Extbase\Persistence\Generic\Qom\SourceInterface;
+use TYPO3\CMS\Extbase\Persistence\PersistenceManagerInterface;
 use TYPO3\CMS\Extbase\Persistence\QueryInterface;
+use TYPO3\CMS\Extbase\Persistence\QueryResultInterface;
+use TYPO3\CMS\Extbase\Utility\TypeHandlingUtility;
 
 /**
  * The Query class used to run queries against the database
@@ -82,7 +97,7 @@ class Query implements QueryInterface
     protected $statement;
 
     /**
-     * @var int
+     * @var int[]
      */
     protected $orderings = [];
 
@@ -104,7 +119,7 @@ class Query implements QueryInterface
     protected $querySettings;
 
     /**
-     * @var ?QueryInterface
+     * @var QueryInterface|null
      * @internal
      */
     protected $parentQuery;
@@ -112,7 +127,7 @@ class Query implements QueryInterface
     /**
      * @param \TYPO3\CMS\Extbase\Object\ObjectManagerInterface $objectManager
      */
-    public function injectObjectManager(\TYPO3\CMS\Extbase\Object\ObjectManagerInterface $objectManager)
+    public function injectObjectManager(ObjectManagerInterface $objectManager)
     {
         $this->objectManager = $objectManager;
     }
@@ -120,7 +135,7 @@ class Query implements QueryInterface
     /**
      * @param \TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapFactory $dataMapFactory
      */
-    public function injectDataMapFactory(\TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapFactory $dataMapFactory)
+    public function injectDataMapFactory(DataMapFactory $dataMapFactory)
     {
         $this->dataMapFactory = $dataMapFactory;
     }
@@ -128,7 +143,7 @@ class Query implements QueryInterface
     /**
      * @param \TYPO3\CMS\Extbase\Persistence\PersistenceManagerInterface $persistenceManager
      */
-    public function injectPersistenceManager(\TYPO3\CMS\Extbase\Persistence\PersistenceManagerInterface $persistenceManager)
+    public function injectPersistenceManager(PersistenceManagerInterface $persistenceManager)
     {
         $this->persistenceManager = $persistenceManager;
     }
@@ -136,7 +151,7 @@ class Query implements QueryInterface
     /**
      * @param \TYPO3\CMS\Extbase\Persistence\Generic\Qom\QueryObjectModelFactory $qomFactory
      */
-    public function injectQomFactory(\TYPO3\CMS\Extbase\Persistence\Generic\Qom\QueryObjectModelFactory $qomFactory)
+    public function injectQomFactory(QueryObjectModelFactory $qomFactory)
     {
         $this->qomFactory = $qomFactory;
     }
@@ -189,7 +204,7 @@ class Query implements QueryInterface
     public function getQuerySettings()
     {
         if (!$this->querySettings instanceof QuerySettingsInterface) {
-            throw new \TYPO3\CMS\Extbase\Persistence\Generic\Exception('Tried to get the query settings without seting them before.', 1248689115);
+            throw new Exception('Tried to get the query settings without setting them before.', 1248689115);
         }
         return $this->querySettings;
     }
@@ -209,7 +224,7 @@ class Query implements QueryInterface
      *
      * @param \TYPO3\CMS\Extbase\Persistence\Generic\Qom\SourceInterface $source
      */
-    public function setSource(\TYPO3\CMS\Extbase\Persistence\Generic\Qom\SourceInterface $source)
+    public function setSource(SourceInterface $source)
     {
         $this->source = $source;
     }
@@ -223,7 +238,7 @@ class Query implements QueryInterface
     protected function getSelectorName()
     {
         $source = $this->getSource();
-        if ($source instanceof \TYPO3\CMS\Extbase\Persistence\Generic\Qom\SelectorInterface) {
+        if ($source instanceof SelectorInterface) {
             return $source->getSelectorName();
         }
         return '';
@@ -253,7 +268,7 @@ class Query implements QueryInterface
         if ($returnRawQueryResult) {
             return $this->persistenceManager->getObjectDataByQuery($this);
         }
-        return $this->objectManager->get(\TYPO3\CMS\Extbase\Persistence\QueryResultInterface::class, $this);
+        return $this->objectManager->get(QueryResultInterface::class, $this);
     }
 
     /**
@@ -418,7 +433,7 @@ class Query implements QueryInterface
             $resultingConstraint = array_shift($constraints);
         }
         if ($resultingConstraint === null) {
-            throw new \TYPO3\CMS\Extbase\Persistence\Generic\Exception\InvalidNumberOfConstraintsException('There must be at least one constraint or a non-empty array of constraints given.', 1268056288);
+            throw new InvalidNumberOfConstraintsException('There must be at least one constraint or a non-empty array of constraints given.', 1268056288);
         }
         foreach ($constraints as $constraint) {
             $resultingConstraint = $this->qomFactory->_and($resultingConstraint, $constraint);
@@ -443,7 +458,7 @@ class Query implements QueryInterface
             $resultingConstraint = array_shift($constraints);
         }
         if ($resultingConstraint === null) {
-            throw new \TYPO3\CMS\Extbase\Persistence\Generic\Exception\InvalidNumberOfConstraintsException('There must be at least one constraint or a non-empty array of constraints given.', 1268056289);
+            throw new InvalidNumberOfConstraintsException('There must be at least one constraint or a non-empty array of constraints given.', 1268056289);
         }
         foreach ($constraints as $constraint) {
             $resultingConstraint = $this->qomFactory->_or($resultingConstraint, $constraint);
@@ -458,7 +473,7 @@ class Query implements QueryInterface
      * @throws \RuntimeException
      * @return \TYPO3\CMS\Extbase\Persistence\Generic\Qom\NotInterface
      */
-    public function logicalNot(\TYPO3\CMS\Extbase\Persistence\Generic\Qom\ConstraintInterface $constraint)
+    public function logicalNot(ConstraintInterface $constraint)
     {
         return $this->qomFactory->not($constraint);
     }
@@ -529,8 +544,8 @@ class Query implements QueryInterface
      */
     public function in($propertyName, $operand)
     {
-        if (!\TYPO3\CMS\Extbase\Utility\TypeHandlingUtility::isValidTypeForMultiValueComparison($operand)) {
-            throw new \TYPO3\CMS\Extbase\Persistence\Generic\Exception\UnexpectedTypeException('The "in" operator must be given a multivalued operand (array, ArrayAccess, Traversable).', 1264678095);
+        if (!TypeHandlingUtility::isValidTypeForMultiValueComparison($operand)) {
+            throw new UnexpectedTypeException('The "in" operator must be given a multivalued operand (array, ArrayAccess, Traversable).', 1264678095);
         }
         return $this->qomFactory->comparison($this->qomFactory->propertyValue($propertyName, $this->getSelectorName()), QueryInterface::OPERATOR_IN, $operand);
     }
@@ -605,10 +620,10 @@ class Query implements QueryInterface
      */
     public function __wakeup()
     {
-        $this->objectManager = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Extbase\Object\ObjectManager::class);
-        $this->persistenceManager = $this->objectManager->get(\TYPO3\CMS\Extbase\Persistence\PersistenceManagerInterface::class);
-        $this->dataMapFactory = $this->objectManager->get(\TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapFactory::class);
-        $this->qomFactory = $this->objectManager->get(\TYPO3\CMS\Extbase\Persistence\Generic\Qom\QueryObjectModelFactory::class);
+        $this->objectManager = GeneralUtility::makeInstance(ObjectManager::class);
+        $this->persistenceManager = $this->objectManager->get(PersistenceManagerInterface::class);
+        $this->dataMapFactory = $this->objectManager->get(DataMapFactory::class);
+        $this->qomFactory = $this->objectManager->get(QueryObjectModelFactory::class);
     }
 
     /**
@@ -639,6 +654,6 @@ class Query implements QueryInterface
      */
     public function isEmpty($propertyName)
     {
-        throw new \TYPO3\CMS\Extbase\Persistence\Generic\Exception\NotImplementedException(__METHOD__, 1476122265);
+        throw new NotImplementedException(__METHOD__, 1476122265);
     }
 }

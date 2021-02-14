@@ -11,8 +11,8 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import * as $ from 'jquery';
-import 'TYPO3/CMS/Core/Contrib/jquery.autocomplete';
+import $ from 'jquery';
+import 'jquery/autocomplete';
 import FormEngine = require('TYPO3/CMS/Backend/FormEngine');
 
 // data structure returned by SuggestWizardDefaultReceiver::queryTable()

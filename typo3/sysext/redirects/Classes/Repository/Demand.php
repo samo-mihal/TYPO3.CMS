@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Redirects\Repository;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Redirects\Repository;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Redirects\Repository;
 
 use Psr\Http\Message\ServerRequestInterface;
 
@@ -85,7 +87,7 @@ class Demand
         }
         $sourceHost = $demand['source_host'] ?? '';
         $sourcePath = $demand['source_path'] ?? '';
-        $statusCode = (int)$demand['target_statuscode'] ?? 0;
+        $statusCode = (int)($demand['target_statuscode'] ?? 0);
         $target = $demand['target'] ?? '';
         return new self($page, $sourceHost, $sourcePath, $target, $statusCode);
     }
@@ -199,16 +201,16 @@ class Demand
     {
         $parameters = [];
         if ($this->hasSourcePath()) {
-            $parameters['source_path'] = $this->sourcePath;
+            $parameters['source_path'] = $this->getSourcePath();
         }
         if ($this->hasSourceHost()) {
-            $parameters['source_host'] = $this->sourceHost;
+            $parameters['source_host'] = $this->getSourceHost();
         }
         if ($this->hasTarget()) {
-            $parameters['target'] = $this->target;
+            $parameters['target'] = $this->getTarget();
         }
         if ($this->hasStatusCode()) {
-            $parameters['target_statuscode'] = $this->target;
+            $parameters['target_statuscode'] = $this->getStatusCode();
         }
         return $parameters;
     }

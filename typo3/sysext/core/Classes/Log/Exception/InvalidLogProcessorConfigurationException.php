@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Log\Exception;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,9 +13,13 @@ namespace TYPO3\CMS\Core\Log\Exception;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Log\Exception;
+
+use TYPO3\CMS\Core\Log\Exception;
+
 /**
  * An exception when something is wrong with the configuration for a LogProcessor
  */
-class InvalidLogProcessorConfigurationException extends \TYPO3\CMS\Core\Log\Exception
+class InvalidLogProcessorConfigurationException extends Exception
 {
 }

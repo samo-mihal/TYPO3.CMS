@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Redirects\Service;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Redirects\Service;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Redirects\Service;
 
 use Doctrine\DBAL\Connection;
 use Psr\Log\LoggerAwareInterface;
@@ -36,6 +38,7 @@ use TYPO3\CMS\Core\Page\PageRenderer;
 use TYPO3\CMS\Core\Site\Entity\SiteInterface;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Redirects\Hooks\DataHandlerSlugUpdateHook;
 
 /**
  * @internal Due to some possible refactorings in TYPO3 v10
@@ -75,12 +78,12 @@ class SlugService implements LoggerAwareInterface
     protected $pageRepository;
 
     /**
-     * @var CorrelationId
+     * @var CorrelationId|string
      */
     protected $correlationIdRedirectCreation = '';
 
     /**
-     * @var CorrelationId
+     * @var CorrelationId|string
      */
     protected $correlationIdSlugUpdate = '';
 
@@ -115,7 +118,11 @@ class SlugService implements LoggerAwareInterface
     public function rebuildSlugsForSlugChange(int $pageId, string $currentSlug, string $newSlug, CorrelationId $correlationId): void
     {
         $currentPageRecord = BackendUtility::getRecord('pages', $pageId);
-        $this->initializeSettings($pageId);
+        if ($currentPageRecord === null) {
+            return;
+        }
+        $defaultPageId = (int)$currentPageRecord['sys_language_uid'] > 0 ? (int)$currentPageRecord['l10n_parent'] : $pageId;
+        $this->initializeSettings($defaultPageId);
         if ($this->autoUpdateSlugs || $this->autoCreateRedirects) {
             $this->createCorrelationIds($pageId, $correlationId);
             if ($this->autoCreateRedirects) {
@@ -282,6 +289,7 @@ class SlugService implements LoggerAwareInterface
     protected function persistNewSlug(int $uid, string $newSlug): void
     {
         $this->disableHook();
+        $data = [];
         $data['pages'][$uid]['slug'] = $newSlug;
         $dataHandler = GeneralUtility::makeInstance(DataHandler::class);
         $dataHandler->start($data, []);
@@ -337,7 +345,7 @@ class SlugService implements LoggerAwareInterface
     protected function enabledHook(): void
     {
         $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processDatamapClass']['redirects'] =
-            \TYPO3\CMS\Redirects\Hooks\DataHandlerSlugUpdateHook::class;
+            DataHandlerSlugUpdateHook::class;
     }
 
     protected function disableHook(): void

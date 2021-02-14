@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Resource\Exception;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,11 +13,15 @@ namespace TYPO3\CMS\Core\Resource\Exception;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Resource\Exception;
+
+use TYPO3\CMS\Core\Resource\Exception;
+
 /**
  * An exception when something is wrong with fetching the permissions for a file or a folder.
  *
  * Extending \RuntimeException for backwards compatibility.
  */
-class ResourcePermissionsUnavailableException extends \TYPO3\CMS\Core\Resource\Exception
+class ResourcePermissionsUnavailableException extends Exception
 {
 }

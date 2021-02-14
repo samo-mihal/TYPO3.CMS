@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Backend\Controller\Wizard;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,8 +15,11 @@ namespace TYPO3\CMS\Backend\Controller\Wizard;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Controller\Wizard;
+
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Core\Configuration\FlexForm\FlexFormTools;
 use TYPO3\CMS\Core\Database\RelationHandler;
 use TYPO3\CMS\Core\Http\HtmlResponse;
@@ -116,7 +119,7 @@ class EditController extends AbstractWizardController
             }
         }
 
-        $uriBuilder = GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Routing\UriBuilder::class);
+        $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
         $urlParameters = [
             'returnUrl' => (string)$uriBuilder->buildUriFromRoute('wizard_edit', ['doClose' => 1])
         ];
@@ -149,11 +152,10 @@ class EditController extends AbstractWizardController
             // MULTIPLE VALUES:
             // Init settings:
             $allowedTables = $config['type'] === 'group' ? $config['allowed'] : $config['foreign_table'];
-            $prependName = 1;
             // Selecting selected values into an array:
             $relationHandler = GeneralUtility::makeInstance(RelationHandler::class);
             $relationHandler->start($this->P['currentSelectedValues'], $allowedTables);
-            $value = $relationHandler->getValueArray($prependName);
+            $value = $relationHandler->getValueArray(true);
             // Traverse that array and make parameters for FormEngine
             foreach ($value as $rec) {
                 $recTableUidParts = GeneralUtility::revExplode('_', $rec, 2);

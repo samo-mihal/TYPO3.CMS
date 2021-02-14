@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\DataHandling\Localization;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\DataHandling\Localization;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\DataHandling\Localization;
 
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -413,7 +414,7 @@ class DataMapItem
             return $idValue;
         }
         // @todo Handle if $tableName does not match $this->tableName
-        list($tableName, $id) = BackendUtility::splitTable_Uid($idValue);
+        [$tableName, $id] = BackendUtility::splitTable_Uid($idValue);
         return $id;
     }
 

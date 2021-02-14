@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\FrontendLogin\Event;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,38 +15,12 @@ namespace TYPO3\CMS\FrontendLogin\Event;
  * The TYPO3 project - inspiring people to share!
  */
 
-use TYPO3\CMS\Extbase\Mvc\View\ViewInterface;
-use TYPO3\CMS\FrontendLogin\Controller\LoginController;
+namespace TYPO3\CMS\FrontendLogin\Event;
 
 /**
  * A notification when a log in has successfully arrived at the plugin, via the view and the controller, multiple
  * information can be overridden in Event Listeners.
  */
-final class LoginConfirmedEvent
+final class LoginConfirmedEvent extends AbstractConfirmedEvent
 {
-    /**
-     * @var LoginController
-     */
-    private $controller;
-
-    /**
-     * @var ViewInterface
-     */
-    private $view;
-
-    public function __construct(LoginController $controller, ViewInterface $view)
-    {
-        $this->controller = $controller;
-        $this->view = $view;
-    }
-
-    public function getController(): LoginController
-    {
-        return $this->controller;
-    }
-
-    public function getView(): ViewInterface
-    {
-        return $this->view;
-    }
 }

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Persistence\Generic\Qom;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Extbase\Persistence\Generic\Qom;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Extbase\Persistence\Generic\Qom;
 
 /**
  * Performs a logical disjunction of two other constraints.
@@ -48,7 +49,7 @@ class LogicalOr implements OrInterface
     /**
      * Fills an array with the names of all bound variables in the constraints
      *
-     * @param array &$boundVariables
+     * @param array $boundVariables
      */
     public function collectBoundVariableNames(&$boundVariables)
     {

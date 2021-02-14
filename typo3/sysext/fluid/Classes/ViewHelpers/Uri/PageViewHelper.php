@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\ViewHelpers\Uri;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Fluid\ViewHelpers\Uri;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Fluid\ViewHelpers\Uri;
 
 use TYPO3\CMS\Core\Utility\MathUtility;
 use TYPO3\CMS\Extbase\Mvc\Web\Routing\UriBuilder;
@@ -72,6 +73,7 @@ class PageViewHelper extends AbstractViewHelper
         $this->registerArgument('additionalParams', 'array', 'query parameters to be attached to the resulting URI', false, []);
         $this->registerArgument('pageType', 'int', 'type of the target page. See typolink.parameter', false, 0);
         $this->registerArgument('noCache', 'bool', 'set this to disable caching for the target page. You should not need this.', false, false);
+        $this->registerArgument('language', 'string', 'link to a specific language - defaults to the current language, use a language ID or "current" to enforce a specific language', false, null);
         // @deprecated
         $this->registerArgument('noCacheHash', 'bool', 'Deprecated: Set this to suppress the cHash query parameter created by TypoLink. You should not need this.', false, null);
         $this->registerArgument('section', 'string', 'the anchor to be added to the URI', false, '');
@@ -98,6 +100,7 @@ class PageViewHelper extends AbstractViewHelper
             trigger_error('Using the argument "noCacheHash" in <f:uri.page> ViewHelper has no effect anymore. Remove the argument in your fluid template, as it will result in a fatal error.', E_USER_DEPRECATED);
         }
         $section = $arguments['section'];
+        $language = $arguments['language'] ?? null;
         $linkAccessRestrictedPages = $arguments['linkAccessRestrictedPages'];
         $absolute = $arguments['absolute'];
         $addQueryString = $arguments['addQueryString'];
@@ -111,6 +114,7 @@ class PageViewHelper extends AbstractViewHelper
             ->setTargetPageType($pageType)
             ->setNoCache($noCache)
             ->setSection($section)
+            ->setLanguage($language)
             ->setLinkAccessRestrictedPages($linkAccessRestrictedPages)
             ->setArguments($additionalParams)
             ->setCreateAbsoluteUri($absolute)

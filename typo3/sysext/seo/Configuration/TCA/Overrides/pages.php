@@ -76,7 +76,7 @@ $tca = [
             'exclude' => true,
             'l10n_mode' => 'exclude',
             'onChange' => 'reload',
-            'label' => 'LLL:EXT:seo/Resources/Private/Language/locallang_tca.xlf:pages.no_index',
+            'label' => 'LLL:EXT:seo/Resources/Private/Language/locallang_tca.xlf:pages.no_index_formlabel',
             'config' => [
                 'type' => 'check',
                 'renderType' => 'checkboxToggle',
@@ -92,7 +92,7 @@ $tca = [
         'no_follow' => [
             'exclude' => true,
             'l10n_mode' => 'exclude',
-            'label' => 'LLL:EXT:seo/Resources/Private/Language/locallang_tca.xlf:pages.no_follow',
+            'label' => 'LLL:EXT:seo/Resources/Private/Language/locallang_tca.xlf:pages.no_follow_formlabel',
             'config' => [
                 'type' => 'check',
                 'renderType' => 'checkboxToggle',
@@ -129,6 +129,7 @@ $tca = [
             'config' => [
                 'type' => 'select',
                 'renderType' => 'selectSingle',
+                'default' => '0.5',
                 'items' => [
                     ['0.0', '0.0'],
                     ['0.1', '0.1'],

@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Adminpanel\Modules\Debug;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Adminpanel\Modules\Debug;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Adminpanel\Modules\Debug;
 
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Adminpanel\Log\DoctrineSqlLogger;
@@ -97,7 +98,12 @@ class QueryInformation extends AbstractSubModule implements DataProviderInterfac
     {
         $groupedQueries = [];
         foreach ($queries as $query) {
-            $identifier = sha1($query['sql']) . sha1(implode(',', $query['backtrace']));
+            $backtraceString = json_encode($query['backtrace']);
+            if ($backtraceString === false) {
+                // skip entry if it can't be encoded
+                continue;
+            }
+            $identifier = sha1($query['sql']) . sha1($backtraceString);
             if (is_array($query['params'])) {
                 foreach ($query['params'] as $k => $param) {
                     if (is_array($param)) {
@@ -122,7 +128,7 @@ class QueryInformation extends AbstractSubModule implements DataProviderInterfac
         }
         uasort(
             $groupedQueries,
-            function ($a, $b) {
+            static function ($a, $b) {
                 return $b['time'] <=> $a['time'];
             }
         );

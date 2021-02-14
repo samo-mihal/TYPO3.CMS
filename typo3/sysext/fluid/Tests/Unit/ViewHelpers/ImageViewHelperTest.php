@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\Tests\Unit\ViewHelpers;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,12 +13,15 @@ namespace TYPO3\CMS\Fluid\Tests\Unit\ViewHelpers;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Fluid\Tests\Unit\ViewHelpers;
+
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\FileReference;
 use TYPO3\CMS\Core\Resource\ProcessedFile;
 use TYPO3\CMS\Extbase\Service\ImageService;
 use TYPO3\CMS\Fluid\ViewHelpers\ImageViewHelper;
 use TYPO3\TestingFramework\Fluid\Unit\ViewHelpers\ViewHelperBaseTestcase;
+use TYPO3Fluid\Fluid\Core\ViewHelper\Exception;
 use TYPO3Fluid\Fluid\Core\ViewHelper\TagBuilder;
 
 /**
@@ -66,7 +68,7 @@ class ImageViewHelperTest extends ViewHelperBaseTestcase
     {
         $this->setArgumentsUnderTest($this->viewHelper, $arguments);
 
-        $this->expectException(\TYPO3Fluid\Fluid\Core\ViewHelper\Exception::class);
+        $this->expectException(Exception::class);
         $this->expectExceptionCode(1382284106);
 
         $this->viewHelper->render();
@@ -116,6 +118,26 @@ class ImageViewHelperTest extends ViewHelperBaseTestcase
                     'title' => 'title'
                 ]
             ],
+            [
+                [
+                    'src' => 'test',
+                    'width' => 100,
+                    'height' => 200,
+                    'minWidth' => 300,
+                    'maxWidth' => 400,
+                    'minHeight' => 500,
+                    'maxHeight' => 600,
+                    'crop' => null,
+                    'fileExtension' => 'jpg'
+                ],
+                [
+                    'src' => 'test.jpg',
+                    'width' => '100',
+                    'height' => '200',
+                    'alt' => 'alternative',
+                    'title' => 'title'
+                ]
+            ],
         ];
     }
 
@@ -157,21 +179,38 @@ class ImageViewHelperTest extends ViewHelperBaseTestcase
         $imageService = $this->createMock(ImageService::class);
         $imageService->expects(self::once())->method('getImage')->willReturn($image);
         $imageService->expects(self::once())->method('applyProcessingInstructions')->with($image, self::anything())->willReturn($processedFile);
-        $imageService->expects(self::once())->method('getImageUri')->with($processedFile)->willReturn('test.png');
+        $imageService->expects(self::once())->method('getImageUri')->with($processedFile)->willReturn($expected['src']);
 
         $this->viewHelper->injectImageService($imageService);
 
         $tagBuilder = $this->getMockBuilder(TagBuilder::class)
             ->setMethods(['addAttribute', 'render'])
             ->getMock();
-        $index = -1;
-        foreach ($expected as $expectedAttribute => $expectedValue) {
-            $tagBuilder->expects(self::at(++ $index))->method('addAttribute')->with($expectedAttribute, $expectedValue);
-        }
+
+        $tagBuilder->expects(self::exactly(count($expected)))
+                ->method('addAttribute')
+                ->withConsecutive(
+                    ...$this->formatCallParameterExpectations($expected)
+                );
         $tagBuilder->expects(self::once())->method('render');
         $this->viewHelper->setTagBuilder($tagBuilder);
 
         $this->viewHelper->render();
+    }
+
+    /**
+     * Helper method to feed variable expectations to a single assertion
+     *
+     * @param array $expectations
+     * @return array
+     */
+    private function formatCallParameterExpectations(array $expectations): array
+    {
+        $callParameters = [];
+        foreach ($expectations as $expectedAttribute => $expectedValue) {
+            $callParameters[] = [$expectedAttribute, $expectedValue];
+        }
+        return $callParameters;
     }
 
     /**
@@ -261,10 +300,11 @@ class ImageViewHelperTest extends ViewHelperBaseTestcase
         $tagBuilder = $this->getMockBuilder(TagBuilder::class)
             ->setMethods(['addAttribute', 'render'])
             ->getMock();
-        $index = -1;
-        foreach ($expected as $expectedAttribute => $expectedValue) {
-            $tagBuilder->expects(self::at(++ $index))->method('addAttribute')->with($expectedAttribute, $expectedValue);
-        }
+        $tagBuilder->expects(self::exactly(count($expected)))
+            ->method('addAttribute')
+            ->withConsecutive(
+                ...$this->formatCallParameterExpectations($expected)
+            );
         $tagBuilder->expects(self::once())->method('render');
         $this->viewHelper->setTagBuilder($tagBuilder);
 

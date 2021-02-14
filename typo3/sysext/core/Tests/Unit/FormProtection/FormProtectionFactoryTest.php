@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Unit\FormProtection;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\FormProtection;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\FormProtection;
 
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\FormProtection\BackendFormProtection;
@@ -65,7 +66,7 @@ class FormProtectionFactoryTest extends UnitTestCase
     public function getForTypeBackEndWithExistingBackEndReturnsBackEndFormProtection()
     {
         $userMock = $this->createMock(BackendUserAuthentication::class);
-        $userMock->user = ['uid' => $this->getUniqueId()];
+        $userMock->user = ['uid' => 4711];
         self::assertInstanceOf(
             BackendFormProtection::class,
             FormProtectionFactory::get(
@@ -82,7 +83,7 @@ class FormProtectionFactoryTest extends UnitTestCase
     public function getForTypeBackEndCalledTwoTimesReturnsTheSameInstance()
     {
         $userMock = $this->createMock(BackendUserAuthentication::class);
-        $userMock->user = ['uid' => $this->getUniqueId()];
+        $userMock->user = ['uid' => 4711];
         $arguments = [
             BackendFormProtection::class,
             $userMock,

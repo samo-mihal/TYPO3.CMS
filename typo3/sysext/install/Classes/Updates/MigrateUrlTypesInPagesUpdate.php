@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Install\Updates;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,8 @@ namespace TYPO3\CMS\Install\Updates;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Install\Updates;
+
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -24,7 +26,14 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  */
 class MigrateUrlTypesInPagesUpdate implements UpgradeWizardInterface
 {
+    /**
+     * @var string[]
+     */
     private $databaseTables = ['pages', 'pages_language_overlay'];
+
+    /**
+     * @var string[]
+     */
     private $urltypes = ['', 'http://', 'ftp://', 'mailto:', 'https://'];
 
     /**

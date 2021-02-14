@@ -1,17 +1,25 @@
 <?php
-declare(strict_types = 1);
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the TYPO3 CMS project.
+ *
+ * It is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License, either version 2
+ * of the License, or any later version.
+ *
+ * For the full copyright and license information, please read the
+ * LICENSE.txt file that was distributed with this source code.
+ *
+ * The TYPO3 project - inspiring people to share!
+ */
 
 namespace TYPO3\CMS\Extbase\Utility;
 
-/*                                                                        *
- * This script belongs to the TYPO3 Flow framework.                       *
- *                                                                        *
- * It is free software; you can redistribute it and/or modify it under    *
- * the terms of the GNU Lesser General Public License, either version 3   *
- * of the License, or (at your option) any later version.                 *
- *                                                                        *
- * The TYPO3 project - inspiring people to share!                         *
- *                                                                        */
+use TYPO3\CMS\Core\Type\TypeInterface;
+use TYPO3\CMS\Extbase\Persistence\ObjectStorage;
+use TYPO3\CMS\Extbase\Utility\Exception\InvalidTypeException;
 
 /**
  * PHP type handling functions
@@ -32,7 +40,7 @@ class TypeHandlingUtility
     /**
      * @var array
      */
-    protected static $collectionTypes = ['array', \ArrayObject::class, \SplObjectStorage::class, \TYPO3\CMS\Extbase\Persistence\ObjectStorage::class];
+    protected static $collectionTypes = ['array', \ArrayObject::class, \SplObjectStorage::class, ObjectStorage::class];
 
     /**
      * Returns an array with type information, including element type for
@@ -50,7 +58,7 @@ class TypeHandlingUtility
             $elementType = isset($matches['elementType']) ? self::normalizeType($matches['elementType']) : null;
 
             if ($elementType !== null && !self::isCollectionType($type)) {
-                throw new \TYPO3\CMS\Extbase\Utility\Exception\InvalidTypeException('Found an invalid element type declaration in %s. Type "' . $type . '" must not have an element type hint (' . $elementType . ').', 1264093642);
+                throw new InvalidTypeException('Found an invalid element type declaration in %s. Type "' . $type . '" must not have an element type hint (' . $elementType . ').', 1264093642);
             }
 
             return [
@@ -58,7 +66,7 @@ class TypeHandlingUtility
                 'elementType' => $elementType
             ];
         }
-        throw new \TYPO3\CMS\Extbase\Utility\Exception\InvalidTypeException('Found an invalid element type declaration in %s. A type "' . var_export($type, true) . '" does not exist.', 1264093630);
+        throw new InvalidTypeException('Found an invalid element type declaration in %s. A type "' . var_export($type, true) . '" does not exist.', 1264093630);
     }
 
     /**
@@ -116,7 +124,7 @@ class TypeHandlingUtility
      */
     public static function isCoreType($type): bool
     {
-        return is_subclass_of($type, \TYPO3\CMS\Core\Type\TypeInterface::class);
+        return is_subclass_of($type, TypeInterface::class);
     }
 
     /**
@@ -150,7 +158,7 @@ class TypeHandlingUtility
      */
     public static function isValidTypeForMultiValueComparison($value): bool
     {
-        return is_array($value) || $value instanceof \Traversable;
+        return is_iterable($value);
     }
 
     /**

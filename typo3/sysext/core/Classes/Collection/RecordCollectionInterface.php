@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Collection;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,12 @@ namespace TYPO3\CMS\Core\Collection;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Collection;
+
 /**
  * Collection for handling records from a single database-table.
  */
-interface RecordCollectionInterface extends \TYPO3\CMS\Core\Collection\CollectionInterface, \TYPO3\CMS\Core\Collection\NameableCollectionInterface
+interface RecordCollectionInterface extends CollectionInterface, NameableCollectionInterface
 {
     /**
      * Setter for the name of the data-source table

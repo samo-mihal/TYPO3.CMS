@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Tree\View;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Backend\Tree\View;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Tree\View;
+
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconFactory;
@@ -24,6 +25,7 @@ use TYPO3\CMS\Core\Resource\Folder;
 use TYPO3\CMS\Core\Resource\FolderInterface;
 use TYPO3\CMS\Core\Resource\InaccessibleFolder;
 use TYPO3\CMS\Core\Resource\ResourceStorage;
+use TYPO3\CMS\Core\Resource\Utility\ListUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -111,7 +113,7 @@ class FolderTreeView extends AbstractTreeView
     {
         $icon = '';
         if ($nextCount) {
-            $cmd = $this->generateExpandCollapseParameter($this->bank, !$isExpanded, $folderObject);
+            $cmd = $this->generateExpandCollapseParameter((string)$this->bank, !$isExpanded, $folderObject);
             $icon = $this->PMiconATagWrap($icon, $cmd, !$isExpanded);
         }
         return $icon;
@@ -137,7 +139,7 @@ class FolderTreeView extends AbstractTreeView
 
         if ($this->thisScript) {
             // Activates dynamic AJAX based tree
-            $scopeData = serialize($this->scope);
+            $scopeData = (string)json_encode($this->scope);
             $scopeHash = GeneralUtility::hmac($scopeData);
             $js = htmlspecialchars('Tree.load(' . GeneralUtility::quoteJSvalue($cmd) . ', ' . (int)$isExpand . ', this, ' . GeneralUtility::quoteJSvalue($scopeData) . ', ' . GeneralUtility::quoteJSvalue($scopeHash) . ');');
             return '<a class="list-tree-control' . (!$isExpand ? ' list-tree-control-open' : ' list-tree-control-closed') . '" onclick="' . $js . '"><i class="fa"></i></a>';
@@ -201,8 +203,8 @@ class FolderTreeView extends AbstractTreeView
         }
         $aOnClick = 'return jumpTo(' . GeneralUtility::quoteJSvalue($this->getJumpToParam($folderObject)) . ', this, ' . GeneralUtility::quoteJSvalue($this->domIdPrefix . $this->getId($folderObject)) . ', ' . $bank . ');';
         $tableName = $this->getTableNameForClickMenu($folderObject);
+        /** @var array $clickMenuParts */
         $clickMenuParts = BackendUtility::wrapClickMenuOnIcon('', $tableName, $folderObject->getCombinedIdentifier(), 'tree', '', '', true);
-
         return '<a href="#" title="' . htmlspecialchars(strip_tags($title)) . '" onclick="' . htmlspecialchars($aOnClick) . '" ' . GeneralUtility::implodeAttributes($clickMenuParts) . '>' . $title . '</a>';
     }
 
@@ -314,7 +316,7 @@ class FolderTreeView extends AbstractTreeView
             $this->bank = $storageHashNumber;
             $isOpen = $this->stored[$storageHashNumber][$folderHashSpecUID] || $this->expandFirst;
             // Set PM icon:
-            $cmd = $this->generateExpandCollapseParameter($this->bank, !$isOpen, $rootLevelFolder);
+            $cmd = $this->generateExpandCollapseParameter((string)$this->bank, !$isOpen, $rootLevelFolder);
             // Only show and link icon if storage is browseable
             if (!$storageObject->isBrowsable() || $this->getNumberOfSubfolders($rootLevelFolder) === 0) {
                 $firstHtml = '';
@@ -372,7 +374,7 @@ class FolderTreeView extends AbstractTreeView
             $subFolders = [];
         } else {
             $subFolders = $folderObject->getSubfolders();
-            $subFolders = \TYPO3\CMS\Core\Resource\Utility\ListUtility::resolveSpecialFolderNames($subFolders);
+            $subFolders = ListUtility::resolveSpecialFolderNames($subFolders);
             uksort($subFolders, 'strnatcasecmp');
         }
 
@@ -401,11 +403,11 @@ class FolderTreeView extends AbstractTreeView
             if (!$isLocked && $depth > 1 && $this->expandNext($specUID)) {
                 $nextCount = $this->getFolderTree($subFolder, $depth - 1, $type);
                 // Set "did expand" flag
-                $isOpen = 1;
+                $isOpen = true;
             } else {
                 $nextCount = $isLocked ? 0 : $this->getNumberOfSubfolders($subFolder);
                 // Clear "did expand" flag
-                $isOpen = 0;
+                $isOpen = false;
             }
             // Set HTML-icons, if any:
             if ($this->makeHTML) {
@@ -417,7 +419,7 @@ class FolderTreeView extends AbstractTreeView
                     $row['_title'] = '<strong>' . $subFolderName . '</strong>';
                 }
                 $icon = '<span title="' . htmlspecialchars($subFolderName) . '">'
-                    . $this->iconFactory->getIconForResource($subFolder, Icon::SIZE_SMALL, null, ['folder-open' => (bool)$isOpen])
+                    . $this->iconFactory->getIconForResource($subFolder, Icon::SIZE_SMALL, null, ['folder-open' => $isOpen])
                     . '</span>';
                 $HTML .= $this->wrapIcon($icon, $subFolder);
             }
@@ -474,7 +476,7 @@ class FolderTreeView extends AbstractTreeView
         $out = '<ul class="list-tree list-tree-root">';
         // Evaluate AJAX request
         if (TYPO3_REQUESTTYPE & TYPO3_REQUESTTYPE_AJAX) {
-            list(, $expandCollapseCommand, $expandedFolderHash, ) = $this->evaluateExpandCollapseParameter();
+            [, $expandCollapseCommand, $expandedFolderHash, ] = $this->evaluateExpandCollapseParameter();
             if ($expandCollapseCommand == 1) {
                 $doExpand = true;
             } else {
@@ -594,7 +596,7 @@ class FolderTreeView extends AbstractTreeView
         // (If a plus/minus icon has been clicked,
         // the PM GET var is sent and we must update the stored positions in the tree):
         // 0: mount key, 1: set/clear boolean, 2: item ID (cannot contain "_"), 3: treeName
-        list($storageHashNumber, $doExpand, $numericFolderHash, $treeName) = $this->evaluateExpandCollapseParameter();
+        [$storageHashNumber, $doExpand, $numericFolderHash, $treeName] = $this->evaluateExpandCollapseParameter();
         if ($treeName && $treeName == $this->treeName) {
             if (in_array($storageHashNumber, $this->storageHashNumbers)) {
                 if ($doExpand == 1) {
@@ -625,12 +627,12 @@ class FolderTreeView extends AbstractTreeView
                 $fileMounts = $storage->getFileMounts();
                 if (!empty($fileMounts)) {
                     foreach ($fileMounts as $fileMount) {
-                        $nkey = hexdec(substr(GeneralUtility::md5int($fileMount['folder']->getCombinedIdentifier()), 0, 4));
+                        $nkey = hexdec(substr((string)GeneralUtility::md5int($fileMount['folder']->getCombinedIdentifier()), 0, 4));
                         $this->storageHashNumbers[$storageUid . $fileMount['folder']->getCombinedIdentifier()] = $nkey;
                     }
                 } else {
                     $folder = $storage->getRootLevelFolder();
-                    $nkey = hexdec(substr(GeneralUtility::md5int($folder->getCombinedIdentifier()), 0, 4));
+                    $nkey = hexdec(substr((string)GeneralUtility::md5int($folder->getCombinedIdentifier()), 0, 4));
                     $this->storageHashNumbers[$storageUid . $folder->getCombinedIdentifier()] = $nkey;
                 }
             }
@@ -665,9 +667,9 @@ class FolderTreeView extends AbstractTreeView
             }
         }
         // Take the first three parameters
-        list($mountKey, $doExpand, $folderIdentifier) = array_pad(explode('_', $PM, 3), 3, null);
+        [$mountKey, $doExpand, $folderIdentifier] = array_pad(explode('_', $PM, 3), 3, null);
         // In case the folder identifier contains "_", we just need to get the fourth/last parameter
-        list($folderIdentifier, $treeName) = array_pad(GeneralUtility::revExplode('_', $folderIdentifier, 2), 2, null);
+        [$folderIdentifier, $treeName] = array_pad(GeneralUtility::revExplode('_', $folderIdentifier, 2), 2, null);
         return [
             $mountKey,
             $doExpand,

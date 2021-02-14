@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Functional\DataHandling\FlexformIrre;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Tests\Functional\DataHandling\FlexformIrre;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Functional\DataHandling\FlexformIrre;
 
 use TYPO3\CMS\Core\Tests\Functional\DataHandling\AbstractDataHandlerActionTestCase;
 
@@ -33,6 +34,12 @@ class ActionTest extends AbstractDataHandlerActionTestCase
      * @var string
      */
     protected $scenarioDataSetDirectory = 'typo3/sysext/core/Tests/Functional/DataHandling/FlexformIrre/DataSet/';
+
+    /**
+     * @var bool
+     * @todo: Test setup should be updated to have true here
+     */
+    protected $assertCleanReferenceIndex = false;
 
     /**
      * @test

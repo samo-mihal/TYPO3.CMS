@@ -1,16 +1,18 @@
 {
     "compilerOptions": {
-        "target": "es6",
+        "target": "es2017",
         "lib": [
             "dom",
             "scripthost",
-            "es6",
-            "es7",
             "es2017",
             "es2018",
             "es2019"
         ],
+        "esModuleInterop": true,
+        "incremental": true,
+        "tsBuildInfoFile": "./.cache/tsconfig.tsbuildinfo",
         "module": "amd",
+        "moduleResolution": "node",
         "sourceMap": false,
         "removeComments": false,
         "alwaysStrict": true,
@@ -37,6 +39,10 @@
             "TYPO3/CMS/Core/*": [
                 "../typo3/sysext/core/Resources/Public/JavaScript/*",
                 "core/Resources/Public/TypeScript/*"
+            ],
+            "TYPO3/CMS/Dashboard/*": [
+                "../typo3/sysext/dashboard/Resources/Public/JavaScript/*",
+                "dashboard/Resources/Public/TypeScript/*"
             ],
             "TYPO3/CMS/Extensionmanager/*": [
                 "../typo3/sysext/extensionmanager/Resources/Public/JavaScript/*",
@@ -93,6 +99,10 @@
             "TYPO3/CMS/Scheduler/*": [
                 "../typo3/sysext/scheduler/Resources/Public/JavaScript/*",
                 "scheduler/Resources/Public/TypeScript/*"
+            ],
+            "TYPO3/CMS/Setup/*": [
+                "../typo3/sysext/setup/Resources/Public/JavaScript/*",
+                "setup/Resources/Public/TypeScript/*"
             ],
             "TYPO3/CMS/T3editor/*": [
                 "../typo3/sysext/t3editor/Resources/Public/JavaScript/*",

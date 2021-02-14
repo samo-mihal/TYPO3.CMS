@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Form\Element;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Form\Element;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Form\Element;
 
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -156,7 +157,7 @@ class SelectTreeElement extends AbstractFormElement
         $html[] =                       ' data-flexformcontainername="' . htmlspecialchars($flexFormContainerName) . '"';
         $html[] =                       ' data-flexformcontaineridentifier="' . htmlspecialchars($flexFormContainerIdentifier) . '"';
         $html[] =                       ' data-flexformcontainerfieldname="' . htmlspecialchars($flexFormContainerFieldName) . '"';
-        $html[] =                       ' data-flexformsectioncontainerisnew="' . htmlspecialchars($flexFormSectionContainerIsNew) . '"';
+        $html[] =                       ' data-flexformsectioncontainerisnew="' . htmlspecialchars((string)$flexFormSectionContainerIsNew) . '"';
         $html[] =                       ' data-command="' . htmlspecialchars($this->data['command']) . '"';
         $html[] =                       ' data-read-only="' . $readOnly . '"';
         $html[] =                       ' data-tree-exclusive-keys="' . htmlspecialchars($exclusiveKeys) . '"';

@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\Tests\Functional\Hooks;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Form\Tests\Functional\Hooks;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Form\Tests\Functional\Hooks;
 
 use Doctrine\DBAL\FetchMode;
 use Symfony\Component\Console\Output\NullOutput;
@@ -79,7 +81,7 @@ class FormFileExtensionUpdateTest extends FunctionalTestCase
         Bootstrap::initializeLanguageObject();
 
         $folderIdentifier = 'form_definitions';
-        $storage = ResourceFactory::getInstance()->getStorageObject(1);
+        $storage = GeneralUtility::makeInstance(ResourceFactory::class)->getStorageObject(1);
 
         if ($storage->hasFolder($folderIdentifier)) {
             $storage->getFolder($folderIdentifier)->delete(true);

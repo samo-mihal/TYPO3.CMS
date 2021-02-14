@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Form\Tests\Unit\Mvc\Configuration;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Form\Tests\Unit\Mvc\Configuration;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Form\Tests\Unit\Mvc\Configuration;
 
 use TYPO3\CMS\Form\Mvc\Configuration\TypoScriptService;
 use TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
@@ -36,7 +37,7 @@ class TypoScriptServiceTest extends UnitTestCase
             ContentObjectRenderer::class
         )->getMock();
 
-        $fakeTypoScriptFrontendController = new \stdClass;
+        $fakeTypoScriptFrontendController = new \stdClass();
         $fakeTypoScriptFrontendController->cObj = $mockContentObjectRenderer;
 
         $mockContentObjectRenderer

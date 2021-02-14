@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Install\Updates;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Install\Updates;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Install\Updates;
 
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -145,6 +146,6 @@ class BackendUserConfigurationUpdate implements UpgradeWizardInterface
     private function updateBackendUser(int $userId, array $userConfig): void
     {
         $connection = GeneralUtility::makeInstance(ConnectionPool::class)->getConnectionForTable('be_users');
-        $connection->update('be_users', ['uc' => serialize($userConfig)], ['uid' => $userId]);
+        $connection->update('be_users', ['uc' => serialize($userConfig)], ['uid' => $userId], [\PDO::PARAM_LOB, \PDO::PARAM_INT]);
     }
 }

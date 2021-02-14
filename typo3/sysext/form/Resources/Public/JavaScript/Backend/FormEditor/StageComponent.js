@@ -112,7 +112,7 @@ define(['jquery',
     var _stageDomElement = null;
 
     /* *************************************************************
-     * Private Methodes
+     * Private Methods
      * ************************************************************/
 
     /**
@@ -418,7 +418,7 @@ define(['jquery',
     };
 
     /* *************************************************************
-     * Public Methodes
+     * Public Methods
      * ************************************************************/
 
     /**
@@ -826,7 +826,7 @@ define(['jquery',
         ) {
           $(this).tooltip({
             title: 'identifier: ' + formElement.get('identifier') + ' (type: ' + formElement.get('type') + ')',
-            placement: 'rigth'
+            placement: 'right'
           });
         } else if (
           !getFormElementDefinition(formElement, '_isTopLevelFormElement')
@@ -916,7 +916,7 @@ define(['jquery',
         null,
         Icons.states.default,
         Icons.markupIdentifiers.inline
-      ).done(function(icon) {
+      ).then(function(icon) {
         $(getHelper().getDomElementDataIdentifierSelector('formElementIcon'), template)
           .append($(icon).addClass(getHelper().getDomElementClassName('icon')));
       });
@@ -983,7 +983,7 @@ define(['jquery',
               null,
               Icons.states.default,
               Icons.markupIdentifiers.inline
-            ).done(function(icon) {
+            ).then(function(icon) {
               $(getHelper().getDomElementDataIdentifierSelector('validatorIcon'), $(template))
                 .append($(icon).addClass(getHelper().getDomElementClassName('icon')));
             });

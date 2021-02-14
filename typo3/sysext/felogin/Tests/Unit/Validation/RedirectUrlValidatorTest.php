@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\FrontendLogin\Tests\Unit\Validation;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\FrontendLogin\Tests\Unit\Validation;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\FrontendLogin\Tests\Unit\Validation;
 
 use Psr\Log\NullLogger;
 use TYPO3\CMS\Core\Core\Environment;
@@ -57,13 +58,14 @@ class RedirectUrlValidatorTest extends UnitTestCase
     {
         parent::setUp();
 
-        $site = new Site('dummy', 1, ['base' => 'http://sub.domainhostname.tld/path/']);
-        $mockedSiteFinder = $this->getAccessibleMock(SiteFinder::class, ['getSiteByPageId'], [], '', false, false);
-        $mockedSiteFinder->method('getSiteByPageId')->willReturn($site);
+        $site1 = new Site('dummy', 1, ['base' => 'http://sub.domainhostname.tld/path/']);
+        $site2 = new Site('dummy', 1, ['base' => 'http://sub2.domainhostname.tld/']);
+        $mockedSiteFinder = $this->getAccessibleMock(SiteFinder::class, ['getAllSites'], [], '', false, false);
+        $mockedSiteFinder->method('getAllSites')->willReturn([$site1, $site2]);
 
         $this->testHostName = 'hostname.tld';
         $this->testSitePath = '/';
-        $this->accessibleFixture = $this->getAccessibleMock(RedirectUrlValidator::class, ['dummy'], [$mockedSiteFinder, 1]);
+        $this->accessibleFixture = $this->getAccessibleMock(RedirectUrlValidator::class, ['dummy'], [$mockedSiteFinder]);
         $this->accessibleFixture->setLogger(new NullLogger());
         $this->setUpFakeSitePathAndHost();
     }
@@ -235,7 +237,7 @@ class RedirectUrlValidatorTest extends UnitTestCase
     }
 
     /**************************************************
-     * Tests concerning isInLocalDomain
+     * Tests concerning isInCurrentDomain
      **************************************************/
 
     /**
@@ -321,5 +323,21 @@ class RedirectUrlValidatorTest extends UnitTestCase
     {
         $_SERVER['HTTP_HOST'] = $host;
         self::assertFalse($this->accessibleFixture->_call('isInCurrentDomain', $url));
+    }
+
+    /**************************************************
+     * Tests concerning isInLocalDomain
+     **************************************************/
+
+    /**
+     * @test
+     */
+    public function isInLocalDomainValidatesSites()
+    {
+        $url = 'http://example.com';
+        self::assertFalse($this->accessibleFixture->_call('isInLocalDomain', $url));
+
+        $url = 'http://sub2.domainhostname.tld/some/path';
+        self::assertTrue($this->accessibleFixture->_call('isInLocalDomain', $url));
     }
 }

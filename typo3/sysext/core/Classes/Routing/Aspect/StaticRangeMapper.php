@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Routing\Aspect;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Core\Routing\Aspect;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Routing\Aspect;
 
 /**
  * Very useful for e.g. pagination or static range like "2011 ... 2030" for years.
@@ -82,7 +83,7 @@ class StaticRangeMapper implements StaticMappableAspectInterface, \Countable
         $this->settings = $settings;
         $this->start = $start;
         $this->end = $end;
-        $this->range = $this->buildRange();
+        $this->range = $this->applyNumericPrefix($this->buildRange());
     }
 
     /**
@@ -142,6 +143,30 @@ class StaticRangeMapper implements StaticMappableAspectInterface, \Countable
                 1537696771
             );
         }
+        return $range;
+    }
+
+    /**
+     * @param array $range
+     * @return string[]
+     */
+    protected function applyNumericPrefix(array $range): array
+    {
+        if (!preg_match('#^\d+$#', $this->start)
+            || !preg_match('#^\d+$#', $this->end)
+            || $this->start === '0' || $this->end === '0'
+            || $this->start[0] !== '0' && $this->end[0] !== '0'
+        ) {
+            return $range;
+        }
+
+        $length = strlen(max($this->start, $this->end));
+        $range = array_map(
+            function ($value) use ($length) {
+                return str_pad($value, $length, '0', STR_PAD_LEFT);
+            },
+            $range
+        );
         return $range;
     }
 }

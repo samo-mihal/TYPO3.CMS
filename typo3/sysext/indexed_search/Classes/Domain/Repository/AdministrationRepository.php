@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\IndexedSearch\Domain\Repository;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,9 @@ namespace TYPO3\CMS\IndexedSearch\Domain\Repository;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\IndexedSearch\Domain\Repository;
+
 use TYPO3\CMS\Backend\Tree\View\PageTreeView;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
@@ -405,6 +407,7 @@ class AdministrationRepository
                 )
             )
             ->groupBy('word')
+            ->orderBy('c', 'desc')
             ->setMaxResults((int)$max);
 
         if (!empty($additionalWhere)) {
@@ -413,6 +416,7 @@ class AdministrationRepository
 
         $result = $queryBuilder->execute();
         $countQueryBuilder = clone $queryBuilder;
+        $countQueryBuilder->resetQueryPart('orderBy');
         $count = (int)$countQueryBuilder
             ->count('uid')
             ->execute()
@@ -690,7 +694,7 @@ class AdministrationRepository
                 $pageIds[] = (int)$row['uid'];
             }
             if ($depth > 1) {
-                $pageIds[] = array_merge($pageIds, $this->getPageTreeIds((int)$row['uid'], $depth - 1, $begin - 1));
+                $pageIds = array_merge($pageIds, $this->getPageTreeIds((int)$row['uid'], $depth - 1, $begin - 1));
             }
         }
         return $pageIds;

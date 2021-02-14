@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Install\Controller;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,13 +15,14 @@ namespace TYPO3\CMS\Install\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Install\Controller;
+
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Http\HtmlResponse;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Imaging\IconRegistry;
 use TYPO3\CMS\Core\Type\Icon\IconState;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Controller for icon handling
@@ -39,13 +40,10 @@ class IconController extends AbstractController
      */
     protected $iconFactory;
 
-    /**
-     * Set up dependencies
-     */
-    public function __construct()
+    public function __construct(IconRegistry $iconRegistry, IconFactory $iconFactory)
     {
-        $this->iconRegistry = GeneralUtility::makeInstance(IconRegistry::class);
-        $this->iconFactory = GeneralUtility::makeInstance(IconFactory::class);
+        $this->iconRegistry = $iconRegistry;
+        $this->iconFactory = $iconFactory;
     }
 
     /**
@@ -68,7 +66,7 @@ class IconController extends AbstractController
         $queryParams = $request->getQueryParams();
         $requestedIcon = json_decode($parsedBody['icon'] ?? $queryParams['icon'], true);
 
-        list($identifier, $size, $overlayIdentifier, $iconState, $alternativeMarkupIdentifier) = $requestedIcon;
+        [$identifier, $size, $overlayIdentifier, $iconState, $alternativeMarkupIdentifier] = $requestedIcon;
 
         if (empty($overlayIdentifier)) {
             $overlayIdentifier = null;

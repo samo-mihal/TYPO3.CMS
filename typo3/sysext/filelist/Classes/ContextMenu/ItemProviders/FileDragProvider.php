@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Filelist\ContextMenu\ItemProviders;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,13 +15,16 @@ namespace TYPO3\CMS\Filelist\ContextMenu\ItemProviders;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Filelist\ContextMenu\ItemProviders;
+
+use TYPO3\CMS\Backend\ContextMenu\ItemProviders\AbstractProvider;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Drag drop menu provider for legacy tree (used in filelist folder tree)
  * @internal this is a concrete TYPO3 hook implementation and solely used for EXT:filelist and not part of TYPO3's Core API.
  */
-class FileDragProvider extends \TYPO3\CMS\Backend\ContextMenu\ItemProviders\AbstractProvider
+class FileDragProvider extends AbstractProvider
 {
     /**
      * @var array

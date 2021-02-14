@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Http;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Http;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Http;
 
 use Psr\Http\Message\StreamInterface;
 use Psr\Http\Message\UploadedFileFactoryInterface;
@@ -30,8 +32,8 @@ class UploadedFileFactory implements UploadedFileFactoryInterface
      * If a size is not provided it will be determined by checking the size of
      * the file.
      *
-     * @see http://php.net/manual/features.file-upload.post-method.php
-     * @see http://php.net/manual/features.file-upload.errors.php
+     * @see https://php.net/manual/features.file-upload.post-method.php
+     * @see https://php.net/manual/features.file-upload.errors.php
      *
      * @param StreamInterface $stream Underlying stream representing the uploaded file content.
      * @param int $size in bytes

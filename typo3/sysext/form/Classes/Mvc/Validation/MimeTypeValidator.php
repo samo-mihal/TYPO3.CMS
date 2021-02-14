@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\Mvc\Validation;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Form\Mvc\Validation;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Form\Mvc\Validation;
 
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Extbase\Domain\Model\FileReference;
@@ -53,7 +55,7 @@ class MimeTypeValidator extends AbstractValidator
                 $this->translateErrorMessage(
                     'validation.error.1471708997',
                     'form'
-                ),
+                ) ?? '',
                 1471708997
             );
             return;
@@ -66,7 +68,7 @@ class MimeTypeValidator extends AbstractValidator
                     'validation.error.1471708998',
                     'form',
                     [$resource->getMimeType()]
-                ),
+                ) ?? '',
                 1471708998,
                 [$resource->getMimeType()]
             );

@@ -1,7 +1,5 @@
 <?php
 
-namespace ExtbaseTeam\BlogExample\Domain\Model;
-
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -15,9 +13,13 @@ namespace ExtbaseTeam\BlogExample\Domain\Model;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace ExtbaseTeam\BlogExample\Domain\Model;
+
+use TYPO3\CMS\Extbase\Domain\Model\FrontendUser;
+
 /**
  * An Administrator of a Blog
  */
-class Administrator extends \TYPO3\CMS\Extbase\Domain\Model\FrontendUser
+class Administrator extends FrontendUser
 {
 }

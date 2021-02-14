@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Form\FormDataProvider;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Form\FormDataProvider;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Form\FormDataProvider;
 
 use TYPO3\CMS\Backend\Form\FormDataProviderInterface;
 use TYPO3\CMS\Core\Configuration\FlexForm\Exception\InvalidIdentifierException;
@@ -82,11 +83,8 @@ class TcaFlexPrepare implements FormDataProviderInterface
                     $result['databaseRow']
                 );
                 $dataStructureArray = $flexFormTools->parseDataStructureByIdentifier($dataStructureIdentifier);
-            } catch (InvalidParentRowException $e) {
-            } catch (InvalidParentRowLoopException $e) {
-            } catch (InvalidParentRowRootException $e) {
-            } catch (InvalidPointerFieldValueException $e) {
-            } catch (InvalidIdentifierException $e) {
+            } catch (InvalidParentRowException|InvalidParentRowLoopException|InvalidParentRowRootException|InvalidPointerFieldValueException|InvalidIdentifierException $e) {
+                $dataStructureIdentifier = null;
             } finally {
                 // Add the identifier to TCA to use it later during rendering
                 $result['processedTca']['columns'][$fieldName]['config']['dataStructureIdentifier'] = $dataStructureIdentifier;

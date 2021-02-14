@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Backend\Controller\File;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,15 +15,19 @@ namespace TYPO3\CMS\Backend\Controller\File;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Controller\File;
+
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use TYPO3\CMS\Core\Http\Response;
-use TYPO3\CMS\Core\Imaging\IconRegistry;
-use TYPO3\CMS\Core\Resource\File;
+use TYPO3\CMS\Core\Http\HtmlResponse;
+use TYPO3\CMS\Core\Http\RedirectResponse;
+use TYPO3\CMS\Core\Imaging\IconFactory;
+use TYPO3\CMS\Core\Resource\Exception;
 use TYPO3\CMS\Core\Resource\ProcessedFile;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\Utility\ArrayUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\PathUtility;
 
 /**
  * @internal This class is a specific Backend controller implementation and is not considered part of the Public TYPO3 API.
@@ -51,7 +55,7 @@ class ThumbnailController
                 $parameters['fileId'] ?? null,
                 $parameters['configuration'] ?? []
             );
-        } catch (\TYPO3\CMS\Core\Resource\Exception $exception) {
+        } catch (Exception $exception) {
             // catch and handle only resource related exceptions
             $response = $this->generateNotFoundResponse();
         }
@@ -82,12 +86,12 @@ class ThumbnailController
     /**
      * @param mixed|int $fileId
      * @param array $configuration
-     * @return Response
+     * @return ResponseInterface
      * @throws \TYPO3\CMS\Core\Resource\Exception\FileDoesNotExistException
      */
     protected function generateThumbnail($fileId, array $configuration): ResponseInterface
     {
-        $file = ResourceFactory::getInstance()->getFileObject($fileId);
+        $file = GeneralUtility::makeInstance(ResourceFactory::class)->getFileObject($fileId);
         if ($file === null || $file->isMissing()) {
             return $this->generateNotFoundResponse();
         }
@@ -105,21 +109,20 @@ class ThumbnailController
             $context,
             $processingConfiguration
         );
-        if (strpos($processedImage->getMimeType(), 'image') === 0) {
-            $filePath = $processedImage->getForLocalProcessing(false);
-            return new Response($filePath, 200, [
-                'Content-Type' => $processedImage->getMimeType()
-            ]);
+        if ($processedImage->isImage()) {
+            return new RedirectResponse(
+                GeneralUtility::locationHeaderUrl($processedImage->getPublicUrl(true) ?? '')
+            );
         }
 
-        $mimeIdentifier = GeneralUtility::trimExplode('/', $file->getMimeType())[0] . '/*';
-        $fileTypeIdentifier = GeneralUtility::makeInstance(IconRegistry::class)
-            ->getIconIdentifierForMimeType($mimeIdentifier);
-        $file = GeneralUtility::getFileAbsFileName('EXT:core/Resources/Public/Icons/T3Icons/mimetypes/' . $fileTypeIdentifier . '.svg');
+        $iconIdentifier = GeneralUtility::makeInstance(IconFactory::class)
+            ->getIconForResource($processedImage->getOriginalFile())->getIdentifier();
+        $fileName = 'EXT:core/Resources/Public/Icons/T3Icons/mimetypes/' . $iconIdentifier . '.svg';
+        $file = GeneralUtility::getFileAbsFileName($fileName);
         if (file_exists($file)) {
-            return new Response($file, 200, [
-                'Content-Type' => 'image/svg+xml'
-            ]);
+            return new RedirectResponse(
+                GeneralUtility::locationHeaderUrl(PathUtility::getAbsoluteWebPath($file))
+            );
         }
 
         return $this->generateNotFoundResponse();
@@ -130,6 +133,6 @@ class ThumbnailController
      */
     protected function generateNotFoundResponse(): ResponseInterface
     {
-        return new Response('', 404);
+        return new HtmlResponse('', 404);
     }
 }

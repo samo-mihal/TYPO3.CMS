@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\RteCKEditor\Controller;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\RteCKEditor\Controller;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\RteCKEditor\Controller;
 
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Configuration\Richtext;
@@ -37,7 +39,7 @@ class BrowseLinksController extends AbstractLinkBrowserController
     /**
      * TYPO3 language code of the content language
      *
-     * @var int
+     * @var string
      */
     protected $contentsLanguage;
 
@@ -104,7 +106,6 @@ class BrowseLinksController extends AbstractLinkBrowserController
     protected function init()
     {
         parent::init();
-
         $this->contentLanguageService = GeneralUtility::makeInstance(LanguageService::class);
     }
 
@@ -122,9 +123,8 @@ class BrowseLinksController extends AbstractLinkBrowserController
         $this->currentLinkParts = $queryParameters['P']['curUrl'] ?? [];
         $this->editorId = $queryParameters['editorId'];
         $this->contentsLanguage = $queryParameters['contentsLanguage'];
-        $this->RTEtsConfigParams = $queryParameters['RTEtsConfigParams'] ?? null;
 
-        $this->contentLanguageService->init($this->contentsLanguage);
+        $this->contentLanguageService = LanguageService::create($this->contentsLanguage);
 
         $tcaFieldConf = ['enableRichtext' => true];
         if (!empty($queryParameters['P']['richtextConfigurationName'])) {
@@ -143,13 +143,9 @@ class BrowseLinksController extends AbstractLinkBrowserController
         $this->buttonConfig = $this->thisConfig['buttons']['link'] ?? [];
     }
 
-    /**
-     * Initialize document template object
-     */
     protected function initDocumentTemplate()
     {
         parent::initDocumentTemplate();
-
         $pageRenderer = GeneralUtility::makeInstance(PageRenderer::class);
         $pageRenderer->loadRequireJsModule(
             'TYPO3/CMS/RteCkeditor/RteLinkBrowser',
@@ -198,6 +194,7 @@ class BrowseLinksController extends AbstractLinkBrowserController
             ];
 
             if (is_array($this->thisConfig['classesAnchor'])) {
+                $readOnlyTitle = $this->isReadonlyTitle();
                 foreach ($this->thisConfig['classesAnchor'] as $label => $conf) {
                     if (in_array($conf['class'], $classesAnchorArray, true)) {
                         $classesAnchor['all'][] = $conf['class'];
@@ -213,7 +210,7 @@ class BrowseLinksController extends AbstractLinkBrowserController
                                 }
                             }
                         }
-                        if ($conf['titleText']) {
+                        if ($readOnlyTitle && $conf['titleText']) {
                             $this->classesAnchorClassTitle[$conf['class']] = ($this->classesAnchorDefaultTitle[$conf['type']] = $this->contentLanguageService->sL(trim($conf['titleText'])));
                         }
                     }
@@ -233,7 +230,7 @@ class BrowseLinksController extends AbstractLinkBrowserController
                         $selected = 'selected="selected"';
                     }
                     $classLabel = !empty($this->thisConfig['classes'][$class]['name'])
-                        ? $this->getPageConfigLabel($this->thisConfig['classes'][$class]['name'], 0)
+                        ? $this->getPageConfigLabel($this->thisConfig['classes'][$class]['name'], false)
                         : $class;
                     $classStyle = !empty($this->thisConfig['classes'][$class]['value'])
                         ? $this->thisConfig['classes'][$class]['value']
@@ -288,19 +285,10 @@ class BrowseLinksController extends AbstractLinkBrowserController
         return $JScharCode ? GeneralUtility::quoteJSvalue($label) : $label;
     }
 
-    /**
-     * @return string
-     */
     protected function renderCurrentUrl()
     {
-        $removeLink = ' <a href="#" class="t3js-removeCurrentLink">' . htmlspecialchars($this->getLanguageService()->getLL('removeLink')) . '</a>';
-        return '
-            <div class="element-browser-panel element-browser-title">' .
-                htmlspecialchars($this->getLanguageService()->getLL('currentLink')) .
-                ': ' .
-                htmlspecialchars($this->currentLinkHandler->formatCurrentUrl()) .
-                '<span class="pull-right">' . $removeLink . '</span>' .
-            '</div>';
+        $this->moduleTemplate->getView()->assign('removeCurrentLink', true);
+        parent::renderCurrentUrl();
     }
 
     /**
@@ -446,22 +434,14 @@ class BrowseLinksController extends AbstractLinkBrowserController
         } else {
             $title = $this->classesAnchorDefaultTitle[$this->displayedLinkHandlerId] ?: '';
         }
-        if (isset($this->buttonConfig[$this->displayedLinkHandlerId]['properties']['title']['readOnly'])) {
-            $readOnly = (bool)$this->buttonConfig[$this->displayedLinkHandlerId]['properties']['title']['readOnly'];
-        } else {
-            $readOnly = isset($this->buttonConfig['properties']['title']['readOnly'])
-                ? (bool)$this->buttonConfig['properties']['title']['readOnly']
-                : false;
-        }
+        $readOnlyTitle = $this->isReadonlyTitle();
 
-        if ($readOnly) {
+        if ($readOnlyTitle) {
             $currentClass = $this->linkAttributeFields['class'];
             if (!$currentClass) {
                 $currentClass = empty($this->classesAnchorDefault[$this->displayedLinkHandlerId]) ? '' : $this->classesAnchorDefault[$this->displayedLinkHandlerId];
             }
-            $title = $currentClass
-                ? $this->classesAnchorClassTitle[$currentClass]
-                : ($this->classesAnchorDefaultTitle[$this->displayedLinkHandlerId] ?? '');
+            $title = $this->classesAnchorClassTitle[$currentClass] ?? $this->classesAnchorDefaultTitle[$this->displayedLinkHandlerId] ?? '';
         }
         return '
                 <form action="" name="ltitleform" id="ltitleform" class="t3js-dummyform form-horizontal">
@@ -470,7 +450,7 @@ class BrowseLinksController extends AbstractLinkBrowserController
                             ' . htmlspecialchars($this->getLanguageService()->getLL('title')) . '
                          </label>
                          <div class="col-xs-8">
-                                <input ' . ($readOnly ? 'disabled' : '') . ' type="text" name="ltitle" class="form-control t3js-linkTitle"
+                                <input ' . ($readOnlyTitle ? 'disabled' : '') . ' type="text" name="ltitle" class="form-control t3js-linkTitle"
                                         value="' . htmlspecialchars($title) . '" />
                         </div>
                     </div>
@@ -553,5 +533,14 @@ class BrowseLinksController extends AbstractLinkBrowserController
             'editorId' => $this->editorId,
             'contentsLanguage' => $this->contentsLanguage
         ];
+    }
+
+    protected function isReadonlyTitle(): bool
+    {
+        if (isset($this->buttonConfig[$this->displayedLinkHandlerId]['properties']['title']['readOnly'])) {
+            return (bool)$this->buttonConfig[$this->displayedLinkHandlerId]['properties']['title']['readOnly'];
+        }
+
+        return (bool)($this->buttonConfig['properties']['title']['readOnly'] ?? false);
     }
 }

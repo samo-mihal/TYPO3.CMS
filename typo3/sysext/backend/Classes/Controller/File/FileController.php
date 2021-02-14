@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Backend\Controller\File;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Backend\Controller\File;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Controller\File;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -246,8 +248,7 @@ class FileController
      */
     protected function getFileEditRedirect(File $file): ?string
     {
-        $textFileExtensionList = $GLOBALS['TYPO3_CONF_VARS']['SYS']['textfile_ext'] ?? '';
-        if (!GeneralUtility::inList($textFileExtensionList, $file->getExtension())) {
+        if (!$file->isTextFile()) {
             return null;
         }
         $properties = $file->getProperties();
@@ -279,7 +280,7 @@ class FileController
     {
         if ($result instanceof File) {
             $thumbUrl = '';
-            if (GeneralUtility::inList($GLOBALS['TYPO3_CONF_VARS']['GFX']['imagefile_ext'], $result->getExtension())) {
+            if ($result->isImage()) {
                 $processedFile = $result->process(ProcessedFile::CONTEXT_IMAGEPREVIEW, []);
                 if ($processedFile) {
                     $thumbUrl = $processedFile->getPublicUrl(true);

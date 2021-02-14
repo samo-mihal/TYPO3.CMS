@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Controller;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,12 +15,13 @@ namespace TYPO3\CMS\Core\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Controller;
+
 use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\Information\Typo3Information;
 use TYPO3\CMS\Core\Messaging\AbstractMessage;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\PathUtility;
-use TYPO3Fluid\Fluid\Core\Rendering\RenderingContext;
-use TYPO3Fluid\Fluid\View\TemplatePaths;
 use TYPO3Fluid\Fluid\View\TemplateView;
 
 /**
@@ -47,14 +48,11 @@ class ErrorPageController
     public function __construct()
     {
         $this->view = GeneralUtility::makeInstance(TemplateView::class);
-        $context = new RenderingContext($this->view);
-        $context->setControllerName('ErrorPage');
-        $context->setTemplatePaths(new TemplatePaths([
-            'templateRootPaths' => [
-                Environment::getFrameworkBasePath() . '/core/Resources/Private/Templates/ErrorPage/'
-            ]
-        ]));
-        $this->view->setRenderingContext($context);
+        $this->view->getRenderingContext()
+            ->getTemplatePaths()
+            ->setTemplatePathAndFilename(
+                Environment::getFrameworkBasePath() . '/core/Resources/Private/Templates/ErrorPage/Error.html'
+            );
     }
 
     /**
@@ -84,11 +82,11 @@ class ErrorPageController
         $this->view->assign('severity', $this->severity);
         $this->view->assign('message', $message);
         $this->view->assign('title', $title);
-        $this->view->assign('errorCodeUrlPrefix', TYPO3_URL_EXCEPTION);
+        $this->view->assign('errorCodeUrlPrefix', Typo3Information::URL_EXCEPTION);
         $this->view->assign('errorCode', $errorCode);
         $this->view->assign('logo', PathUtility::getAbsoluteWebPath(Environment::getFrameworkBasePath() . '/backend/Resources/Public/Images/typo3_orange.svg'));
         $this->view->assign('cssFile', PathUtility::getAbsoluteWebPath(Environment::getFrameworkBasePath() . '/core/Resources/Public/Css/errorpage.css'));
-        $this->view->assign('copyrightYear', TYPO3_copyright_year);
-        return $this->view->render('Error');
+        $this->view->assign('copyrightYear', GeneralUtility::makeInstance(Typo3Information::class)->getCopyrightYear());
+        return $this->view->render();
     }
 }

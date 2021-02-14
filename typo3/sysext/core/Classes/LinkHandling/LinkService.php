@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\LinkHandling;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,8 +15,13 @@ namespace TYPO3\CMS\Core\LinkHandling;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\LinkHandling;
+
+use TYPO3\CMS\Core\LinkHandling\Exception\UnknownLinkHandlerException;
+use TYPO3\CMS\Core\LinkHandling\Exception\UnknownUrnException;
 use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\StringUtility;
 
 /**
  * Class LinkService, responsible to find what kind of resource (type) is used
@@ -77,14 +82,14 @@ class LinkService implements SingletonInterface
         try {
             // Check if the new syntax with "t3://" is used
             return $this->resolveByStringRepresentation($linkParameter);
-        } catch (Exception\UnknownUrnException $e) {
+        } catch (UnknownUrnException $e) {
             $legacyLinkNotationConverter = GeneralUtility::makeInstance(LegacyLinkNotationConverter::class);
             return $legacyLinkNotationConverter->resolve($linkParameter);
         }
     }
 
     /**
-     * Returns an array with data interpretation of the link target, something like t3:blabla.
+     * Returns an array with data interpretation of the link target, something like t3://page?uid=23.
      *
      * @param string $urn
      * @return array
@@ -109,13 +114,13 @@ class LinkService implements SingletonInterface
                 $result = $this->handlers[$type]->resolveHandlerData($data);
                 $result['type'] = $type;
             } else {
-                throw new Exception\UnknownLinkHandlerException('LinkHandler for ' . $type . ' was not registered', 1460581769);
+                throw new UnknownLinkHandlerException('LinkHandler for ' . $type . ' was not registered', 1460581769);
             }
             // this was historically named "section"
             if ($fragment) {
                 $result['fragment'] = $fragment;
             }
-        } elseif (strpos($urn, '://') && $this->handlers[self::TYPE_URL]) {
+        } elseif ((strpos($urn, '://') || StringUtility::beginsWith($urn, '//')) && $this->handlers[self::TYPE_URL]) {
             $result = $this->handlers[self::TYPE_URL]->resolveHandlerData(['url' => $urn]);
             $result['type'] = self::TYPE_URL;
         } elseif (stripos($urn, 'mailto:') === 0 && $this->handlers[self::TYPE_EMAIL]) {
@@ -129,12 +134,12 @@ class LinkService implements SingletonInterface
             if (is_array($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['Link']['resolveByStringRepresentation'] ?? null)) {
                 $params = ['urn' => $urn, 'result' => &$result];
                 foreach ($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['Link']['resolveByStringRepresentation'] as $hookMethod) {
-                    $fakeThis = false;
+                    $fakeThis = null;
                     GeneralUtility::callUserFunction($hookMethod, $params, $fakeThis);
                 }
             }
             if (empty($result) || empty($result['type'])) {
-                throw new Exception\UnknownUrnException('No valid URN to resolve found', 1457177667);
+                throw new UnknownUrnException('No valid URN to resolve found', 1457177667);
             }
         }
 
@@ -156,7 +161,8 @@ class LinkService implements SingletonInterface
      */
     public function asString(array $parameters): string
     {
-        if (is_object($this->handlers[$parameters['type']])) {
+        $linkHandler = $this->handlers[$parameters['type']] ?? null;
+        if ($linkHandler !== null) {
             return $this->handlers[$parameters['type']]->asString($parameters);
         }
         if (isset($parameters['url']) && !empty($parameters['url'])) {
@@ -164,6 +170,6 @@ class LinkService implements SingletonInterface
             // legacy link service could resolve at least something
             return $parameters['url'];
         }
-        throw new Exception\UnknownLinkHandlerException('No valid handlers found for type: ' . $parameters['type'], 1460629247);
+        throw new UnknownLinkHandlerException('No valid handlers found for type: ' . $parameters['type'], 1460629247);
     }
 }

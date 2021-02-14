@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Validation\Validator;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,10 @@ namespace TYPO3\CMS\Extbase\Validation\Validator;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Extbase\Validation\Validator;
+
+use TYPO3\CMS\Extbase\Validation\Exception\InvalidValidationOptionsException;
 
 /**
  * Validator based on regular expressions.
@@ -40,12 +43,12 @@ class RegularExpressionValidator extends AbstractValidator
                 $this->translateErrorMessage(
                     'validator.regularexpression.nomatch',
                     'extbase'
-                ),
+                ) ?? '',
                 1221565130
             );
         }
         if ($result === false) {
-            throw new \TYPO3\CMS\Extbase\Validation\Exception\InvalidValidationOptionsException('regularExpression "' . $this->options['regularExpression'] . '" in RegularExpressionValidator contained an error.', 1298273089);
+            throw new InvalidValidationOptionsException('regularExpression "' . $this->options['regularExpression'] . '" in RegularExpressionValidator contained an error.', 1298273089);
         }
     }
 }

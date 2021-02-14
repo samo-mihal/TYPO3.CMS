@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Adminpanel\Modules\Info;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,12 +15,15 @@ namespace TYPO3\CMS\Adminpanel\Modules\Info;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Adminpanel\Modules\Info;
+
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Adminpanel\ModuleApi\AbstractSubModule;
 use TYPO3\CMS\Adminpanel\ModuleApi\DataProviderInterface;
 use TYPO3\CMS\Adminpanel\ModuleApi\ModuleData;
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Context\UserAspect;
+use TYPO3\CMS\Core\Page\AssetCollector;
 use TYPO3\CMS\Core\TimeTracker\TimeTracker;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Fluid\View\StandaloneView;
@@ -128,17 +130,15 @@ class GeneralInformation extends AbstractSubModule implements DataProviderInterf
 
         $count = 0;
         $totalImageSize = 0;
-        if (!empty($this->getTypoScriptFrontendController()->imagesOnPage)) {
-            foreach ($this->getTypoScriptFrontendController()->imagesOnPage as $file) {
-                $fileSize = @filesize($file);
-                $imagesOnPage['files'][] = [
-                    'name' => $file,
-                    'size' => $fileSize,
-                    'sizeHuman' => GeneralUtility::formatSize($fileSize),
-                ];
-                $totalImageSize += $fileSize;
-                $count++;
-            }
+        foreach (GeneralUtility::makeInstance(AssetCollector::class)->getMedia() as $file => $information) {
+            $fileSize = (int)@filesize($file);
+            $imagesOnPage['files'][] = [
+                'name' => $file,
+                'size' => $fileSize,
+                'sizeHuman' => GeneralUtility::formatSize($fileSize),
+            ];
+            $totalImageSize += $fileSize;
+            $count++;
         }
         $imagesOnPage['totalSize'] = GeneralUtility::formatSize($totalImageSize);
         $imagesOnPage['total'] = $count;

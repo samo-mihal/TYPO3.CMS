@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Mail;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,8 @@ namespace TYPO3\CMS\Core\Mail;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Mail;
+
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Symfony\Component\Mailer\Transport;
@@ -22,7 +24,9 @@ use Symfony\Component\Mailer\Transport\NullTransport;
 use Symfony\Component\Mailer\Transport\SendmailTransport;
 use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
 use Symfony\Component\Mailer\Transport\TransportInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\Exception;
+use TYPO3\CMS\Core\Log\LogManagerInterface;
 use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -33,8 +37,24 @@ class TransportFactory implements SingletonInterface, LoggerAwareInterface
 {
     use LoggerAwareTrait;
 
-    const SPOOL_MEMORY = 'memory';
-    const SPOOL_FILE = 'file';
+    public const SPOOL_MEMORY = 'memory';
+    public const SPOOL_FILE = 'file';
+
+    /**
+     * @var EventDispatcherInterface
+     */
+    protected $dispatcher;
+
+    /**
+     * @var LogManagerInterface
+     */
+    protected $logManager;
+
+    public function __construct(EventDispatcherInterface $dispatcher, LogManagerInterface $logManager)
+    {
+        $this->dispatcher = $dispatcher;
+        $this->logManager = $logManager;
+    }
 
     /**
      * Gets a transport from settings.
@@ -54,7 +74,9 @@ class TransportFactory implements SingletonInterface, LoggerAwareInterface
         }
 
         $transport = null;
-        $transportType = isset($mailSettings['transport_spool_type']) && !empty($mailSettings['transport_spool_type']) ? 'spool' : $mailSettings['transport'];
+        $transportType = isset($mailSettings['transport_spool_type'])
+            && !empty($mailSettings['transport_spool_type'])
+            ? 'spool' : $mailSettings['transport'];
 
         switch ($transportType) {
             case 'spool':
@@ -62,12 +84,15 @@ class TransportFactory implements SingletonInterface, LoggerAwareInterface
                 break;
             case 'smtp':
                 // Get settings to be used when constructing the transport object
-                if (isset($mailSettings['transport_smtp_server']) && strpos($mailSettings['transport_smtp_server'], ':') > 0) {
+                if (
+                    isset($mailSettings['transport_smtp_server'])
+                    && strpos($mailSettings['transport_smtp_server'], ':') > 0
+                ) {
                     $parts = GeneralUtility::trimExplode(':', $mailSettings['transport_smtp_server'], true);
                     $host = $parts[0];
                     $port = $parts[1] ?? null;
                 } else {
-                    $host = (string)$mailSettings['transport_smtp_server'] ?? '';
+                    $host = (string)($mailSettings['transport_smtp_server'] ?? '');
                     $port = null;
                 }
 
@@ -79,9 +104,15 @@ class TransportFactory implements SingletonInterface, LoggerAwareInterface
                 } else {
                     $port = (int)$port;
                 }
-                $useEncryption = ($mailSettings['transport_smtp_encrypt'] ?? '') ?: null;
+                $useEncryption = (bool)($mailSettings['transport_smtp_encrypt'] ?? false) ?: null;
                 // Create transport
-                $transport = new EsmtpTransport($host, $port, $useEncryption);
+                $transport = new EsmtpTransport(
+                    $host,
+                    $port,
+                    $useEncryption,
+                    $this->dispatcher,
+                    $this->logManager->getLogger(EsmtpTransport::class)
+                );
                 // Need authentication?
                 $username = (string)($mailSettings['transport_smtp_username'] ?? '');
                 if ($username !== '') {
@@ -99,7 +130,11 @@ class TransportFactory implements SingletonInterface, LoggerAwareInterface
                     $this->logger->warning('Mailer transport "sendmail" was chosen without a specific command, using "' . $sendmailCommand . '"');
                 }
                 // Create transport
-                $transport = new SendmailTransport($sendmailCommand);
+                $transport = new SendmailTransport(
+                    $sendmailCommand,
+                    $this->dispatcher,
+                    $this->logManager->getLogger(SendmailTransport::class)
+                );
                 break;
             case 'mbox':
                 $mboxFile = $mailSettings['transport_mbox_file'];
@@ -107,16 +142,29 @@ class TransportFactory implements SingletonInterface, LoggerAwareInterface
                     throw new Exception('$GLOBALS[\'TYPO3_CONF_VARS\'][\'MAIL\'][\'transport_mbox_file\'] needs to be set when transport is set to "mbox".', 1294586645);
                 }
                 // Create our transport
-                $transport = GeneralUtility::makeInstance(MboxTransport::class, $mboxFile);
+                $transport = GeneralUtility::makeInstance(
+                    MboxTransport::class,
+                    $mboxFile,
+                    $this->dispatcher,
+                    $this->logManager->getLogger(MboxTransport::class)
+                );
                 break;
-                // Used for testing purposes
+            // Used for testing purposes
             case 'null':
             case NullTransport::class:
-                $transport = new NullTransport();
+                $transport = new NullTransport(
+                    $this->dispatcher,
+                    $this->logManager->getLogger(NullTransport::class)
+                );
                 break;
-                // Used by Symfony's Transport Factory
+            // Used by Symfony's Transport Factory
             case !empty($mailSettings['dsn']):
-                $transport = Transport::fromDsn($mailSettings['dsn']);
+                $transport = Transport::fromDsn(
+                    $mailSettings['dsn'],
+                    $this->dispatcher,
+                    null,
+                    $this->logManager->getLogger(Transport::class)
+                );
                 break;
             default:
                 // Custom mail transport
@@ -142,13 +190,22 @@ class TransportFactory implements SingletonInterface, LoggerAwareInterface
         switch ($mailSettings['transport_spool_type']) {
             case self::SPOOL_FILE:
                 $path = GeneralUtility::getFileAbsFileName($mailSettings['transport_spool_filepath']);
-                if (empty($path) || !file_exists($path) || !is_writable($path)) {
-                    throw new \RuntimeException('The Spool Type filepath must be available and writeable for TYPO3 in order to be used. Be sure that it\'s not accessible via the web.', 1518558797);
+                if (empty($path)) {
+                    throw new \RuntimeException('The Spool Type filepath must be configured for TYPO3 in order to be used. Be sure that it\'s not accessible via the web.', 1518558797);
                 }
-                $spool = GeneralUtility::makeInstance(FileSpool::class, $path);
+                $spool = GeneralUtility::makeInstance(
+                    FileSpool::class,
+                    $path,
+                    $this->dispatcher,
+                    $this->logManager->getLogger(FileSpool::class)
+                );
                 break;
             case self::SPOOL_MEMORY:
-                $spool = GeneralUtility::makeInstance(MemorySpool::class);
+                $spool = GeneralUtility::makeInstance(
+                    MemorySpool::class,
+                    $this->dispatcher,
+                    $this->logManager->getLogger(MemorySpool::class)
+                );
                 break;
             default:
                 $spool = GeneralUtility::makeInstance($mailSettings['transport_spool_type'], $mailSettings);

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\IndexedSearch\Utility;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,10 @@ namespace TYPO3\CMS\IndexedSearch\Utility;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\IndexedSearch\Utility;
+
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Class with common methods used across various classes in the indexed search.
@@ -32,7 +35,7 @@ class IndexedSearchUtility
     public static function isTableUsed($tableName)
     {
         $tableList = $GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['indexed_search']['use_tables'];
-        return \TYPO3\CMS\Core\Utility\GeneralUtility::inList($tableList, $tableName);
+        return GeneralUtility::inList($tableList, $tableName);
     }
 
     /**
@@ -101,18 +104,18 @@ class IndexedSearchUtility
             // There was a double-quote and we will then look for the ending quote.
             if (preg_match('/^"/', $sword)) {
                 // Removes first double-quote
-                $sword = preg_replace('/^"/', '', $sword);
+                $sword = (string)preg_replace('/^"/', '', $sword);
                 // Removes everything till next double-quote
                 preg_match('/^[^"]*/', $sword, $reg);
                 // reg[0] is the value, should not be trimmed
                 $value[] = $reg[0];
-                $sword = preg_replace('/^' . preg_quote($reg[0], '/') . '/', '', $sword);
+                $sword = (string)preg_replace('/^' . preg_quote($reg[0], '/') . '/', '', $sword);
                 // Removes last double-quote
-                $sword = trim(preg_replace('/^"/', '', $sword));
+                $sword = trim((string)preg_replace('/^"/', '', $sword));
             } elseif (preg_match('/^' . $specs . '/', $sword, $reg)) {
                 $value[] = $reg[0];
                 // Removes = sign
-                $sword = trim(preg_replace('/^' . $specs . '/', '', $sword));
+                $sword = trim((string)preg_replace('/^' . $specs . '/', '', $sword));
             } elseif (preg_match('/[\\+\\-]/', $sword)) {
                 // Check if $sword contains + or -
                 // + and - shall only be interpreted as $specchars when there's whitespace before it
@@ -120,7 +123,7 @@ class IndexedSearchUtility
                 // explode $sword to single words
                 $a_sword = explode(' ', $sword);
                 // get first word
-                $word = array_shift($a_sword);
+                $word = (string)array_shift($a_sword);
                 // Delete $delchars at end of string
                 $word = rtrim($word, $delchars);
                 // add searchword to values
@@ -133,7 +136,7 @@ class IndexedSearchUtility
                 // Delete $delchars at end of string
                 $word = rtrim(trim($reg[0]), $delchars);
                 $value[] = $word;
-                $sword = trim(preg_replace('/^' . preg_quote($reg[0], '/') . '/', '', $sword));
+                $sword = trim((string)preg_replace('/^' . preg_quote($reg[0], '/') . '/', '', $sword));
             }
         }
         return $value;
@@ -144,7 +147,7 @@ class IndexedSearchUtility
      *
      * @param string $operator The possible operator to find in the internal operator array.
      * @param array $operatorTranslateTable an array of possible operators
-     * @return string If found, the SQL operator for the localized input operator.
+     * @return string|null If found, the SQL operator for the localized input operator.
      */
     protected static function getOperator($operator, $operatorTranslateTable)
     {
@@ -160,5 +163,17 @@ class IndexedSearchUtility
                 return $operatorTranslateTable[$key][1];
             }
         }
+
+        return null;
+    }
+
+    /**
+     * Gets the unixtime as milliseconds.
+     *
+     * @return int The unixtime as milliseconds
+     */
+    public static function milliseconds()
+    {
+        return round(microtime(true) * 1000);
     }
 }

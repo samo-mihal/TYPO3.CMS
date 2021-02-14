@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Workspaces\Dependency;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Workspaces\Dependency;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Workspaces\Dependency;
 
 /**
  * Object to hold information on a callback to a defined object and method.
@@ -59,6 +60,10 @@ class EventCallback
      */
     public function execute(array $callerArguments = [], $caller, $eventName)
     {
-        return call_user_func_array([$this->object, $this->method], [$callerArguments, $this->targetArguments, $caller, $eventName]);
+        $callable = [$this->object, $this->method];
+        if (is_callable($callable)) {
+            return $callable($callerArguments, $this->targetArguments, $caller, $eventName);
+        }
+        return null;
     }
 }

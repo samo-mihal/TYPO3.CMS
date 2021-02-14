@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Redirects\Tests\Unit\Service;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Redirects\Tests\Unit\Service;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Redirects\Tests\Unit\Service;
 
 use Prophecy\Argument;
 use Prophecy\Prophecy\ObjectProphecy;
@@ -85,8 +87,10 @@ class RedirectServiceTest extends UnitTestCase
 
     /**
      * @test
+     * @dataProvider matchRedirectReturnsRedirectOnFlatMatchDataProvider
+     * @param string $path
      */
-    public function matchRedirectReturnsRedirectOnFlatMatch()
+    public function matchRedirectReturnsRedirectOnFlatMatch(string $path = '')
     {
         $row = [
             'target' => 'https://example.com',
@@ -101,7 +105,7 @@ class RedirectServiceTest extends UnitTestCase
             [
                 'example.com' => [
                     'flat' => [
-                        'foo/' => [
+                        $path . '/' => [
                             1 => $row,
                         ],
                     ],
@@ -109,9 +113,33 @@ class RedirectServiceTest extends UnitTestCase
             ]
         );
 
-        $result = $this->redirectService->matchRedirect('example.com', 'foo');
+        $result = $this->redirectService->matchRedirect('example.com', rawurlencode($path));
 
         self::assertSame($row, $result);
+    }
+
+    /**
+     * @return array
+     */
+    public function matchRedirectReturnsRedirectOnFlatMatchDataProvider(): array
+    {
+        return [
+            'default case' => [
+                'foo'
+            ],
+            'umlauts' => [
+                'äöü'
+            ],
+            'various special chars' => [
+                'special-chars-«-∑-€-®-†-Ω-¨-ø-π-å-‚-∂-ƒ-©-ª-º-∆-@-¥-≈-ç-√-∫-~-µ-∞-…-–'
+            ],
+            'chinese' => [
+                '应用'
+            ],
+            'hindi' => [
+                'कंपनी'
+            ],
+        ];
     }
 
     /**
@@ -416,7 +444,7 @@ class RedirectServiceTest extends UnitTestCase
     {
         $this->linkServiceProphecy->resolve(Argument::any())->willThrow(new InvalidPathException('', 1516531195));
 
-        $result = $this->redirectService->getTargetUrl(['target' => 'invalid'], [], new FrontendUserAuthentication(), new Site('dummy', 13, []));
+        $result = $this->redirectService->getTargetUrl(['target' => 'invalid'], [], new FrontendUserAuthentication(), new Uri(), new Site('dummy', 13, []));
 
         self::assertNull($result);
     }
@@ -437,7 +465,8 @@ class RedirectServiceTest extends UnitTestCase
         ];
         $this->linkServiceProphecy->resolve($redirectTargetMatch['target'])->willReturn($linkDetails);
 
-        $result = $this->redirectService->getTargetUrl($redirectTargetMatch, [], new FrontendUserAuthentication(), new Site('dummy', 13, []));
+        $source = new Uri('https://example.com');
+        $result = $this->redirectService->getTargetUrl($redirectTargetMatch, [], new FrontendUserAuthentication(), $source, new Site('dummy', 13, []));
 
         $uri = new Uri('https://example.com/');
         self::assertEquals($uri, $result);
@@ -461,7 +490,8 @@ class RedirectServiceTest extends UnitTestCase
         ];
         $this->linkServiceProphecy->resolve($redirectTargetMatch['target'])->willReturn($linkDetails);
 
-        $result = $this->redirectService->getTargetUrl($redirectTargetMatch, [], new FrontendUserAuthentication(), new Site('dummy', 13, []));
+        $source = new Uri('https://example.com');
+        $result = $this->redirectService->getTargetUrl($redirectTargetMatch, [], new FrontendUserAuthentication(), $source, new Site('dummy', 13, []));
 
         $uri = new Uri('https://example.com/file.txt');
         self::assertEquals($uri, $result);
@@ -486,7 +516,8 @@ class RedirectServiceTest extends UnitTestCase
         ];
         $this->linkServiceProphecy->resolve($redirectTargetMatch['target'])->willReturn($linkDetails);
 
-        $result = $this->redirectService->getTargetUrl($redirectTargetMatch, [], new FrontendUserAuthentication(), new Site('dummy', 13, []));
+        $source = new Uri('https://example.com/');
+        $result = $this->redirectService->getTargetUrl($redirectTargetMatch, [], new FrontendUserAuthentication(), $source, new Site('dummy', 13, []));
 
         $uri = new Uri('https://example.com/folder/');
         self::assertEquals($uri, $result);
@@ -508,7 +539,8 @@ class RedirectServiceTest extends UnitTestCase
         ];
         $this->linkServiceProphecy->resolve($redirectTargetMatch['target'])->willReturn($linkDetails);
 
-        $result = $this->redirectService->getTargetUrl($redirectTargetMatch, [], new FrontendUserAuthentication(), new Site('dummy', 13, []));
+        $source = new Uri('https://example.com');
+        $result = $this->redirectService->getTargetUrl($redirectTargetMatch, [], new FrontendUserAuthentication(), $source, new Site('dummy', 13, []));
 
         $uri = new Uri('https://example.com');
         self::assertEquals($uri, $result);
@@ -530,7 +562,8 @@ class RedirectServiceTest extends UnitTestCase
         ];
         $this->linkServiceProphecy->resolve($redirectTargetMatch['target'])->willReturn($linkDetails);
 
-        $result = $this->redirectService->getTargetUrl($redirectTargetMatch, ['bar' => 3, 'baz' => 4], new FrontendUserAuthentication(), new Site('dummy', 13, []));
+        $source = new Uri('https://example.com/?bar=2&baz=4&foo=1');
+        $result = $this->redirectService->getTargetUrl($redirectTargetMatch, ['bar' => 3, 'baz' => 4], new FrontendUserAuthentication(), $source, new Site('dummy', 13, []));
 
         $uri = new Uri('https://example.com/?bar=2&baz=4&foo=1');
         self::assertEquals($uri, $result);
@@ -566,6 +599,7 @@ class RedirectServiceTest extends UnitTestCase
         ];
         $this->linkServiceProphecy->resolve($pageRecord)->willReturn($linkDetails);
 
+        $queryParams = [];
         $queryParams['foo'] = 'bar';
         $uri = new Uri('/page?foo=bar');
 
@@ -574,8 +608,33 @@ class RedirectServiceTest extends UnitTestCase
         $redirectService->expects(self::once())->method('getUriFromCustomLinkDetails')
             ->with($redirectTargetMatch, $frontendUserAuthentication, $site, $linkDetails, $queryParams)
             ->willReturn($uri);
-        $result = $redirectService->getTargetUrl($redirectTargetMatch, [], $frontendUserAuthentication, $site);
+        $result = $redirectService->getTargetUrl($redirectTargetMatch, [], $frontendUserAuthentication, $uri, $site);
 
+        self::assertEquals($uri, $result);
+    }
+
+    /**
+     * @test
+     */
+    public function getTargetUrlReplaceRegExpCaptureGroup()
+    {
+        $redirectTargetMatch = [
+            'source_path' => '#^/foo/(.*)#',
+            'target' => 'https://anotherdomain.com/$1',
+            'force_https' => '0',
+            'keep_query_parameters' => '1',
+            'is_regexp' => 1
+        ];
+        $linkDetails = [
+            'type' => LinkService::TYPE_URL,
+            'url' => 'https://anotherdomain.com/$1'
+        ];
+        $this->linkServiceProphecy->resolve($redirectTargetMatch['target'])->willReturn($linkDetails);
+
+        $source = new Uri('https://example.com/foo/bar');
+        $result = $this->redirectService->getTargetUrl($redirectTargetMatch, [], new FrontendUserAuthentication(), $source, new Site('dummy', 13, []));
+
+        $uri = new Uri('https://anotherdomain.com/bar');
         self::assertEquals($uri, $result);
     }
 }

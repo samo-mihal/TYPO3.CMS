@@ -258,31 +258,32 @@ define(
           return;
         }
         e.preventDefault();
+        var parentDomNode = e.target.parentNode;
         switch (e.keyCode) {
           case keyTypesEnum.END:
             // scroll to end, select last node
-            var parent = e.target.parentNode;
             this.scrollTop = this.wrapper[0].lastElementChild.scrollHeight + this.settings.nodeHeight - this.viewportHeight;
             this.wrapper.scrollTop(this.scrollTop);
             this.updateScrollPosition();
             this.update();
-            this.switchFocus(parent.lastElementChild);
+            this.switchFocus(parentDomNode.lastElementChild);
             break;
           case keyTypesEnum.HOME:
             // scroll to top, select first node
-            var parent = e.target.parentNode;
             this.scrollTop = this.nodes[0].y;
             this.wrapper.scrollTop(this.scrollTop);
             this.update();
-            this.switchFocus(parent.firstElementChild);
+            this.switchFocus(parentDomNode.firstElementChild);
             break;
           case keyTypesEnum.LEFT:
             if (currentNode.expanded) {
-              // collapse node
-              this.hideChildren(currentNode);
-              this.prepareDataForVisibleNodes();
-              this.update();
-            } else {
+              // collapse node if collapsible
+              if (currentNode.canToggle) {
+                this.hideChildren(currentNode);
+                this.prepareDataForVisibleNodes();
+                this.update();
+              }
+            } else if (currentNode.parents.length > 0) {
               // go to parent node
               var parentNode = this.nodes[currentNode.parents[0]];
               this.scrollNodeIntoVisibleArea(parentNode, 'up');
@@ -396,7 +397,7 @@ define(
        * Set svg wrapper height
        */
       setWrapperHeight: function() {
-        var treeWrapperHeight = ($('#typo3-pagetree').height() - $('#svg-toolbar').height());
+        var treeWrapperHeight = ($('body').height() - $('#svg-toolbar').outerHeight() - $('.scaffold-topbar').height());
         $('#typo3-pagetree-tree').height(treeWrapperHeight);
       },
 
@@ -604,13 +605,8 @@ define(
             identifier: iconName,
             icon: ''
           };
-          Icons.getIcon(iconName, Icons.sizes.small, null, null, 'inline').done(function(icon) {
+          Icons.getIcon(iconName, Icons.sizes.small, null, null, 'inline').then(function(icon) {
             var result = icon.match(/<svg[\s\S]*<\/svg>/i);
-
-            // Check if the icon is from the Bitmap Icon Provider (see PHP class for the inline rendering)
-            if (!result) {
-              result = icon.match(/<image[\s\S]*\/>/i);
-            }
 
             if (result) {
               _this.data.icons[iconName].icon = result[0];
@@ -1386,9 +1382,10 @@ define(
        * @param {Node} node
        */
       setExpandedState: function(node) {
-        document
-          .getElementById('identifier-' + this.getNodeStateIdentifier(node))
-          .setAttribute('aria-expanded', (node.hasChildren ? node.expanded : null));
+        var nodeElement = document.getElementById('identifier-' + this.getNodeStateIdentifier(node));
+        if (nodeElement) {
+          nodeElement.setAttribute('aria-expanded', (node.hasChildren ? node.expanded : null));
+        }
       },
 
       /**

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extensionmanager\Utility;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Extensionmanager\Utility;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extensionmanager\Utility;
+
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Extensionmanager\Domain\Model\Extension;
@@ -27,13 +28,18 @@ class EmConfUtility implements SingletonInterface
     /**
      * Returns the $EM_CONF array from an extensions ext_emconf.php file
      *
+     * @param string $extensionKey the extension name
      * @param array $extension Extension information array
      * @return array|bool EMconf array values or false if no ext_emconf.php found.
      */
-    public function includeEmConf(array $extension)
+    public function includeEmConf(string $extensionKey, array $extension)
     {
-        $_EXTKEY = $extension['key'];
-        $path = Environment::getPublicPath() . '/' . $extension['siteRelPath'] . 'ext_emconf.php';
+        $_EXTKEY = $extensionKey;
+        if (!empty($extension['packagePath'])) {
+            $path = $extension['packagePath'] . 'ext_emconf.php';
+        } else {
+            $path = Environment::getPublicPath() . '/' . $extension['siteRelPath'] . 'ext_emconf.php';
+        }
         $EM_CONF = null;
         if (file_exists($path)) {
             include $path;
@@ -84,7 +90,7 @@ $EM_CONF[$_EXTKEY] = ' . $emConf . ';
      * @param array $emConf
      * @return array
      */
-    public function fixEmConf(array $emConf)
+    protected function fixEmConf(array $emConf)
     {
         if (
             !isset($emConf['constraints']) || !isset($emConf['constraints']['depends'])
@@ -140,7 +146,7 @@ $EM_CONF[$_EXTKEY] = ' . $emConf . ';
      * @param mixed $dependency Either a string or an array listing dependencies.
      * @return array A simple dependency list for display
      */
-    public function stringToDependency($dependency)
+    protected function stringToDependency($dependency)
     {
         $constraint = [];
         if (is_string($dependency) && $dependency !== '') {

@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Backend\Form\Element;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Backend\Form\Element;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Form\Element;
 
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
@@ -59,7 +61,7 @@ class UserSysFileStorageIsPublicElement extends AbstractFormElement
             $flashMessageService = GeneralUtility::makeInstance(FlashMessageService::class);
             $defaultFlashMessageQueue = $flashMessageService->getMessageQueueByIdentifier();
             try {
-                $storage = ResourceFactory::getInstance()->getStorageObject((int)$row['uid']);
+                $storage = GeneralUtility::makeInstance(ResourceFactory::class)->getStorageObject((int)$row['uid']);
                 $storageRecord = $storage->getStorageRecord();
                 $isPublic = $storage->isPublic() && $storageRecord['is_public'];
 
@@ -84,11 +86,12 @@ class UserSysFileStorageIsPublicElement extends AbstractFormElement
             }
         }
 
+        $isPublicAsString = $isPublic ? '1' : '0';
         $fieldInformationResult = $this->renderFieldInformation();
         $fieldInformationHtml = $fieldInformationResult['html'];
         $resultArray = $this->mergeChildReturnIntoExistingResult($this->initializeResultArray(), $fieldInformationResult, false);
 
-        $checkboxParameters = $this->checkBoxParams($parameterArray['itemFormElName'], $isPublic, 0, 1, implode('', $parameterArray['fieldChangeFunc']));
+        $checkboxParameters = $this->checkBoxParams($parameterArray['itemFormElName'], $isPublic ? 1 : 0, 0, 1, implode('', $parameterArray['fieldChangeFunc']));
         $checkboxId = $parameterArray['itemFormElID'] . '_1';
         $html = [];
         $html[] = '<div class="formengine-field-item t3js-formengine-field-item">';
@@ -99,17 +102,17 @@ class UserSysFileStorageIsPublicElement extends AbstractFormElement
         $html[] =               '<input type="checkbox"';
         $html[] =                   ' class="checkbox-input"';
         $html[] =                   ' value="1"';
-        $html[] =                   ' data-formengine-input-name="' . htmlspecialchars($parameterArray['itemFormElName']) . '"';
-        $html[] =                   ' id="' . htmlspecialchars($checkboxId) . '"';
+        $html[] =                   ' data-formengine-input-name="' . htmlspecialchars($parameterArray['itemFormElName'], ENT_QUOTES) . '"';
+        $html[] =                   ' id="' . htmlspecialchars($checkboxId, ENT_QUOTES) . '"';
         $html[] =                   $checkboxParameters;
         $html[] =                   $isPublic ? ' checked="checked"' : '';
         $html[] =               '/>';
-        $html[] =               '<label class="checkbox-label" for="' . htmlspecialchars($checkboxId) . '">';
-        $html[] =                   '<span class="checkbox-label-text">' . $this->appendValueToLabelInDebugMode('&nbsp;', $isPublic ? '1' : '0') . '</span>';
+        $html[] =               '<label class="checkbox-label" for="' . htmlspecialchars($checkboxId, ENT_QUOTES) . '">';
+        $html[] =                   '<span class="checkbox-label-text">' . $this->appendValueToLabelInDebugMode('&nbsp;', $isPublicAsString) . '</span>';
         $html[] =               '</label>';
         $html[] =               '<input type="hidden"';
-        $html[] =                   ' name="' . htmlspecialchars($parameterArray['itemFormElName']) . '"';
-        $html[] =                   ' value="' . htmlspecialchars((string)$isPublic) . '"';
+        $html[] =                   ' name="' . htmlspecialchars($parameterArray['itemFormElName'], ENT_QUOTES) . '"';
+        $html[] =                   ' value="' . $isPublicAsString . '"';
         $html[] =               ' />';
         $html[] =           '</div>';
         $html[] =       '</div>';

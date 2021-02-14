@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Mail\Event;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,7 +15,9 @@ namespace TYPO3\CMS\Core\Mail\Event;
  * The TYPO3 project - inspiring people to share!
  */
 
-use TYPO3\CMS\Core\Mail\Mailer;
+namespace TYPO3\CMS\Core\Mail\Event;
+
+use Symfony\Component\Mailer\MailerInterface;
 
 /**
  * This event is fired once a new Mailer is instantiated with specific transport settings.
@@ -25,16 +26,16 @@ use TYPO3\CMS\Core\Mail\Mailer;
 final class AfterMailerInitializationEvent
 {
     /**
-     * @var Mailer
+     * @var MailerInterface
      */
     private $mailer;
 
-    public function __construct(Mailer $mailer)
+    public function __construct(MailerInterface $mailer)
     {
         $this->mailer = $mailer;
     }
 
-    public function getMailer(): Mailer
+    public function getMailer(): MailerInterface
     {
         return $this->mailer;
     }

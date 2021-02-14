@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Extbase\Tests\Unit\Persistence\Fixture\Domain\Model;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,6 +15,10 @@ namespace TYPO3\CMS\Extbase\Tests\Unit\Persistence\Fixture\Domain\Model;
  * The TYPO3 project - inspiring people to share!
  */
 
-class Entity extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity
+namespace TYPO3\CMS\Extbase\Tests\Unit\Persistence\Fixture\Domain\Model;
+
+use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
+
+class Entity extends AbstractEntity
 {
 }

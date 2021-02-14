@@ -1,4 +1,5 @@
 <?php
+
 return [
     'ctrl' => [
         'label' => 'username',
@@ -19,9 +20,6 @@ return [
         ],
         'useColumnsForDefaultValues' => 'usergroup,lockToDomain,disable,starttime,endtime',
         'searchFields' => 'username,name,first_name,last_name,middle_name,address,telephone,fax,email,title,zip,city,country,company,description'
-    ],
-    'interface' => [
-        'showRecordFieldList' => 'username,password,usergroup,lockToDomain,name,first_name,middle_name,last_name,title,company,address,zip,city,country,email,www,telephone,fax,disable,starttime,endtime,lastlogin,description'
     ],
     'columns' => [
         'username' => [

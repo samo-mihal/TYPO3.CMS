@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Authentication;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Core\Authentication;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Authentication;
 
 use TYPO3\CMS\Core\Utility\MathUtility;
 
@@ -64,7 +65,7 @@ class IpLocker
             return true;
         }
 
-        $ipToCompare = $this->isIpv6Address($sessionIpLock)
+        $ipToCompare = $this->isIpv6Address($ipAddress)
             ? $this->getIpLockPartForIpv6Address($ipAddress)
             : $this->getIpLockPartForIpv4Address($ipAddress);
         return $ipToCompare === $sessionIpLock;
@@ -78,6 +79,9 @@ class IpLocker
 
         $numberOfParts = MathUtility::forceIntegerInRange($numberOfParts, 1, $maxParts);
         $ipParts = explode($delimiter, $ipAddress);
+        if ($ipParts === false) {
+            return $ipAddress;
+        }
         for ($a = $maxParts; $a > $numberOfParts; $a--) {
             $ipPartValue = $delimiter === '.' ? '0' : str_pad('', strlen($ipParts[$a - 1]), '0');
             $ipParts[$a - 1] = $ipPartValue;
@@ -102,7 +106,8 @@ class IpLocker
         }
 
         // inet_pton also takes care of IPv4-mapped addresses (see https://en.wikipedia.org/wiki/IPv6_address#Representation)
-        $expandedAddress = rtrim(chunk_split(unpack('H*hex', inet_pton($ipAddress))['hex'], 4, ':'), ':');
+        $unpacked = unpack('H*hex', (string)inet_pton($ipAddress)) ?: [];
+        $expandedAddress = rtrim(chunk_split($unpacked['hex'] ?? '', 4, ':'), ':');
         return $this->getIpLockPart($expandedAddress, $this->lockIPv6PartCount, 8, ':');
     }
 

@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Acceptance\Backend\Template;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Acceptance\Backend\Template;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Acceptance\Backend\Template;
 
 use TYPO3\CMS\Core\Tests\Acceptance\Support\BackendTester;
 
@@ -103,7 +105,7 @@ class TemplateCest
         $I->waitForElementNotVisible('#t3js-ui-block');
 
         $I->wantTo('change the setup, save the template and close the form');
-        // grap and fill setup textarea
+        // grab and fill setup textarea
         $config = $I->grabTextFrom('//textarea[@data-formengine-input-name="data[sys_template][1][config]"]');
         $config = str_replace('HELLO WORLD!', 'Hello Acceptance Test!', $config);
         $I->fillField('//textarea[@data-formengine-input-name="data[sys_template][1][config]"]', $config);

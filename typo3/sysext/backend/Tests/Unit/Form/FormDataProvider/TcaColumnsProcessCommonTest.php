@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
 
 use TYPO3\CMS\Backend\Form\FormDataProvider\TcaColumnsProcessCommon;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
@@ -39,7 +40,7 @@ class TcaColumnsProcessCommonTest extends UnitTestCase
 
         $expected = $input;
         $expected['columnsToProcess'] = ['t3_origuid'];
-        self::assertSame($expected, (new TcaColumnsProcessCommon)->addData($input));
+        self::assertSame($expected, (new TcaColumnsProcessCommon())->addData($input));
     }
 
     /**
@@ -59,7 +60,7 @@ class TcaColumnsProcessCommonTest extends UnitTestCase
 
         $expected = $input;
         $expected['columnsToProcess'] = ['doktype'];
-        self::assertSame($expected, (new TcaColumnsProcessCommon)->addData($input));
+        self::assertSame($expected, (new TcaColumnsProcessCommon())->addData($input));
     }
 
     /**
@@ -79,7 +80,7 @@ class TcaColumnsProcessCommonTest extends UnitTestCase
 
         $expected = $input;
         $expected['columnsToProcess'] = ['relation_field'];
-        self::assertSame($expected, (new TcaColumnsProcessCommon)->addData($input));
+        self::assertSame($expected, (new TcaColumnsProcessCommon())->addData($input));
     }
 
     /**
@@ -99,7 +100,7 @@ class TcaColumnsProcessCommonTest extends UnitTestCase
 
         $expected = $input;
         $expected['columnsToProcess'] = ['sys_language_uid'];
-        self::assertSame($expected, (new TcaColumnsProcessCommon)->addData($input));
+        self::assertSame($expected, (new TcaColumnsProcessCommon())->addData($input));
     }
 
     /**
@@ -119,7 +120,7 @@ class TcaColumnsProcessCommonTest extends UnitTestCase
 
         $expected = $input;
         $expected['columnsToProcess'] = ['l10n_parent'];
-        self::assertSame($expected, (new TcaColumnsProcessCommon)->addData($input));
+        self::assertSame($expected, (new TcaColumnsProcessCommon())->addData($input));
     }
 
     /**
@@ -139,7 +140,7 @@ class TcaColumnsProcessCommonTest extends UnitTestCase
 
         $expected = $input;
         $expected['columnsToProcess'] = ['l18n_diffsource'];
-        self::assertSame($expected, (new TcaColumnsProcessCommon)->addData($input));
+        self::assertSame($expected, (new TcaColumnsProcessCommon())->addData($input));
     }
 
     /**
@@ -168,7 +169,7 @@ class TcaColumnsProcessCommonTest extends UnitTestCase
 
         $expected = $input;
         $expected['columnsToProcess'] = ['aField'];
-        self::assertSame($expected, (new TcaColumnsProcessCommon)->addData($input));
+        self::assertSame($expected, (new TcaColumnsProcessCommon())->addData($input));
     }
 
     /**
@@ -197,6 +198,6 @@ class TcaColumnsProcessCommonTest extends UnitTestCase
 
         $expected = $input;
         $expected['columnsToProcess'] = ['aField', 'bField'];
-        self::assertSame($expected, (new TcaColumnsProcessCommon)->addData($input));
+        self::assertSame($expected, (new TcaColumnsProcessCommon())->addData($input));
     }
 }

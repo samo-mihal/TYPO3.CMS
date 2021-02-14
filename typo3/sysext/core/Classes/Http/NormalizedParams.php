@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Http;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Http;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Http;
 
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Core\Environment;
@@ -632,7 +634,17 @@ class NormalizedParams
         bool $isHttps,
         bool $isBehindReverseProxy
     ): string {
-        $scriptName = ($serverParams['ORIG_SCRIPT_NAME'] ?? '') ?: ($serverParams['SCRIPT_NAME'] ?? '');
+        // see https://forge.typo3.org/issues/89312
+        // When using a CGI wrapper to dispatch the PHP process `ORIG_SCRIPT_NAME`
+        // contains the name of the wrapper script (which is most probably outside
+        // the TYPO3's project root) and leads to invalid prefixes, e.g. resolving
+        // the `siteUrl` incorrectly as `http://ip10.local/fcgi/` instead of
+        // actual `http://ip10.local/`
+        $possiblePathInfo = ($serverParams['ORIG_PATH_INFO'] ?? '') ?: ($serverParams['PATH_INFO'] ?? '');
+        $possibleScriptName = ($serverParams['ORIG_SCRIPT_NAME'] ?? '') ?: ($serverParams['SCRIPT_NAME'] ?? '');
+        $scriptName = Environment::isRunningOnCgiServer() && $possiblePathInfo
+            ? $possiblePathInfo
+            : $possibleScriptName;
         if ($isBehindReverseProxy) {
             // Add a prefix if TYPO3 is behind a proxy: ext-domain.com => int-server.com/prefix
             if ($isHttps && !empty($configuration['reverseProxyPrefixSSL'])) {
@@ -667,7 +679,7 @@ class NormalizedParams
             // This is for URL rewriter that store the original URI in a server
             // variable (e.g. ISAPI Rewriter for IIS: HTTP_X_REWRITE_URL), a config then looks like:
             // requestURIvar = '_SERVER|HTTP_X_REWRITE_URL' which will access $GLOBALS['_SERVER']['HTTP_X_REWRITE_URL']
-            list($firstLevel, $secondLevel) = GeneralUtility::trimExplode('|', $configuration['requestURIvar'], true);
+            [$firstLevel, $secondLevel] = GeneralUtility::trimExplode('|', $configuration['requestURIvar'], true);
             $requestUri = $GLOBALS[$firstLevel][$secondLevel];
         } elseif (empty($serverParams['REQUEST_URI'])) {
             // This is for ISS/CGI which does not have the REQUEST_URI available.
@@ -708,9 +720,9 @@ class NormalizedParams
             // Choose which IP in list to use
             $configuredReverseProxyHeaderMultiValue = trim($configuration['reverseProxyHeaderMultiValue'] ?? '');
             if (!empty($ip) && $configuredReverseProxyHeaderMultiValue === 'last') {
-                $ip = array_pop($ip);
+                $ip = (string)array_pop($ip);
             } elseif (!empty($ip) && $configuredReverseProxyHeaderMultiValue === 'first') {
-                $ip = array_shift($ip);
+                $ip = (string)array_shift($ip);
             } else {
                 $ip = '';
             }
@@ -807,15 +819,10 @@ class NormalizedParams
      */
     protected static function determineSiteUrl(string $requestDir, string $pathThisScript, string $pathSite): string
     {
-        if (defined('TYPO3_PATH_WEB')) {
-            // This can only be set by external entry scripts
-            $siteUrl = $requestDir;
-        } else {
-            $pathThisScriptDir = substr(dirname($pathThisScript), strlen($pathSite)) . '/';
-            $siteUrl = substr($requestDir, 0, -strlen($pathThisScriptDir));
-            $siteUrl = rtrim($siteUrl, '/') . '/';
-        }
-        return $siteUrl;
+        $pathThisScriptDir = substr(dirname($pathThisScript), strlen($pathSite)) . '/';
+        $siteUrl = substr($requestDir, 0, -strlen($pathThisScriptDir));
+
+        return rtrim($siteUrl, '/') . '/';
     }
 
     /**

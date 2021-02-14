@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Unit\Mail;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,14 +15,24 @@ namespace TYPO3\CMS\Core\Tests\Unit\Mail;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\Mail;
+
+use Prophecy\Argument;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
+use Symfony\Component\Mailer\Transport\NullTransport;
 use Symfony\Component\Mailer\Transport\TransportInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\Log\LogManagerInterface;
 use TYPO3\CMS\Core\Mail\DelayedTransportInterface;
 use TYPO3\CMS\Core\Mail\FileSpool;
+use TYPO3\CMS\Core\Mail\MailMessage;
 use TYPO3\CMS\Core\Mail\MemorySpool;
 use TYPO3\CMS\Core\Mail\TransportFactory;
 use TYPO3\CMS\Core\Tests\Unit\Mail\Fixtures\FakeFileSpoolFixture;
 use TYPO3\CMS\Core\Tests\Unit\Mail\Fixtures\FakeInvalidSpoolFixture;
+use TYPO3\CMS\Core\Tests\Unit\Mail\Fixtures\FakeMemorySpoolFixture;
 use TYPO3\CMS\Core\Tests\Unit\Mail\Fixtures\FakeValidSpoolFixture;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
@@ -35,6 +45,23 @@ class TransportFactoryTest extends UnitTestCase
      * @var bool Reset singletons created by subject
      */
     protected $resetSingletonInstances = true;
+
+    protected function getSubject(&$eventDispatcher): TransportFactory
+    {
+        $eventDispatcher = $this->prophesize(EventDispatcherInterface::class);
+        $eventDispatcher->dispatch(Argument::any())->willReturn(Argument::any());
+
+        $logger = $this->prophesize(LoggerInterface::class);
+
+        $logManager = $this->prophesize(LogManagerInterface::class);
+        $logManager->getLogger(Argument::any())->willReturn($logger->reveal());
+        $logManager->getLogger()->willReturn($logger->reveal());
+
+        $transportFactory = new TransportFactory($eventDispatcher->reveal(), $logManager->reveal());
+        $transportFactory->setLogger($logger->reveal());
+
+        return $transportFactory;
+    }
 
     /**
      * @test
@@ -56,9 +83,9 @@ class TransportFactoryTest extends UnitTestCase
         ];
 
         // Register fixture class
-        $GLOBALS['TYPO3_CONF_VARS']['SYS']['Objects'][FileSpool::class]['className'] = Fixtures\FakeFileSpoolFixture::class;
+        $GLOBALS['TYPO3_CONF_VARS']['SYS']['Objects'][FileSpool::class]['className'] = FakeFileSpoolFixture::class;
 
-        $transport = (new TransportFactory())->get($mailSettings);
+        $transport = $this->getSubject($eventDispatcher)->get($mailSettings);
         self::assertInstanceOf(DelayedTransportInterface::class, $transport);
         self::assertInstanceOf(FakeFileSpoolFixture::class, $transport);
 
@@ -86,9 +113,9 @@ class TransportFactoryTest extends UnitTestCase
         ];
 
         // Register fixture class
-        $GLOBALS['TYPO3_CONF_VARS']['SYS']['Objects'][MemorySpool::class]['className'] = Fixtures\FakeMemorySpoolFixture::class;
+        $GLOBALS['TYPO3_CONF_VARS']['SYS']['Objects'][MemorySpool::class]['className'] = FakeMemorySpoolFixture::class;
 
-        $transport = (new TransportFactory())->get($mailSettings);
+        $transport = $this->getSubject($eventDispatcher)->get($mailSettings);
         self::assertInstanceOf(DelayedTransportInterface::class, $transport);
         self::assertInstanceOf(MemorySpool::class, $transport);
     }
@@ -112,9 +139,9 @@ class TransportFactoryTest extends UnitTestCase
             'transport_spool_filepath' => Environment::getVarPath() . '/messages/',
         ];
 
-        $transport = (new TransportFactory())->get($mailSettings);
+        $transport = $this->getSubject($eventDispatcher)->get($mailSettings);
         self::assertInstanceOf(DelayedTransportInterface::class, $transport);
-        self::assertInstanceOf(Fixtures\FakeValidSpoolFixture::class, $transport);
+        self::assertInstanceOf(FakeValidSpoolFixture::class, $transport);
 
         self::assertSame($mailSettings, $transport->getSettings());
     }
@@ -140,7 +167,7 @@ class TransportFactoryTest extends UnitTestCase
             'transport_spool_filepath' => Environment::getVarPath() . '/messages/',
         ];
 
-        (new TransportFactory())->get($mailSettings);
+        $this->getSubject($eventDispatcher)->get($mailSettings);
     }
 
     /**
@@ -162,7 +189,100 @@ class TransportFactoryTest extends UnitTestCase
             'transport_spool_filepath' => Environment::getVarPath() . '/messages/',
         ];
 
-        $transport = (new TransportFactory())->get($mailSettings);
+        $transport = $this->getSubject($eventDispatcher)->get($mailSettings);
         self::assertInstanceOf(TransportInterface::class, $transport);
+    }
+
+    /**
+     * @test
+     */
+    public function smtpTransportCallsDispatchOfDispatcher(): void
+    {
+        $mailSettings = [
+            'transport' => 'smtp',
+            'transport_smtp_server' => 'localhost:25',
+            'transport_smtp_encrypt' => '',
+            'transport_smtp_username' => '',
+            'transport_smtp_password' => '',
+            'transport_sendmail_command' => '',
+            'transport_mbox_file' => '',
+            'defaultMailFromAddress' => '',
+            'defaultMailFromName' => '',
+        ];
+
+        $transport = $this->getSubject($eventDispatcher)->get($mailSettings);
+
+        $message = new MailMessage();
+        $message->setTo(['foo@bar.com'])
+            ->text('foo')
+            ->from('bar@foo.com')
+        ;
+        try {
+            $transport->send($message);
+        } catch (TransportExceptionInterface $exception) {
+            // connection is not valid in tests, so we just catch the exception here.
+        }
+
+        $eventDispatcher->dispatch(Argument::any())->shouldHaveBeenCalledOnce();
+    }
+
+    /**
+     * @test
+     */
+    public function sendmailTransportCallsDispatchOfDispatcher(): void
+    {
+        $mailSettings = [
+            'transport' => 'sendmail',
+            'transport_smtp_server' => 'localhost:25',
+            'transport_smtp_encrypt' => '',
+            'transport_smtp_username' => '',
+            'transport_smtp_password' => '',
+            'transport_sendmail_command' => '',
+            'transport_mbox_file' => '',
+            'defaultMailFromAddress' => '',
+            'defaultMailFromName' => '',
+        ];
+
+        $transport = $this->getSubject($eventDispatcher)->get($mailSettings);
+        $message = new MailMessage();
+        $message->setTo(['foo@bar.com'])
+            ->text('foo')
+            ->from('bar@foo.com')
+        ;
+        try {
+            $transport->send($message);
+        } catch (TransportExceptionInterface $exception) {
+            // connection is not valid in tests, so we just catch the exception here.
+        }
+
+        $eventDispatcher->dispatch(Argument::any())->shouldHaveBeenCalledOnce();
+    }
+
+    /**
+     * @test
+     */
+    public function nullTransportCallsDispatchOfDispatcher(): void
+    {
+        $mailSettings = [
+            'transport' => NullTransport::class,
+            'transport_smtp_server' => 'localhost:25',
+            'transport_smtp_encrypt' => '',
+            'transport_smtp_username' => '',
+            'transport_smtp_password' => '',
+            'transport_sendmail_command' => '',
+            'transport_mbox_file' => '',
+            'defaultMailFromAddress' => '',
+            'defaultMailFromName' => '',
+        ];
+
+        $transport = $this->getSubject($eventDispatcher)->get($mailSettings);
+        $message = new MailMessage();
+        $message->setTo(['foo@bar.com'])
+            ->text('foo')
+            ->from('bar@foo.com')
+        ;
+        $transport->send($message);
+
+        $eventDispatcher->dispatch(Argument::any())->shouldHaveBeenCalledOnce();
     }
 }

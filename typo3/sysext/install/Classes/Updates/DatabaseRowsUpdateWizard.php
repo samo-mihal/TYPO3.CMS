@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Install\Updates;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,10 +15,15 @@ namespace TYPO3\CMS\Install\Updates;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Install\Updates;
+
+use Doctrine\DBAL\Platforms\SQLServerPlatform;
+use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Registry;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Install\Updates\RowUpdater\RowUpdaterInterface;
+use TYPO3\CMS\Install\Updates\RowUpdater\WorkspaceVersionRecordsMigration;
 
 /**
  * This is a generic updater to migrate content of TCA rows.
@@ -44,7 +49,17 @@ class DatabaseRowsUpdateWizard implements UpgradeWizardInterface, RepeatableInte
      * @var array Single classes that may update rows
      */
     protected $rowUpdater = [
+        WorkspaceVersionRecordsMigration::class,
     ];
+
+    /**
+     * @internal
+     * @return string[]
+     */
+    public function getAvailableRowUpdater(): array
+    {
+        return $this->rowUpdater;
+    }
 
     /**
      * @return string Unique identifier of this updater
@@ -136,6 +151,7 @@ class DatabaseRowsUpdateWizard implements UpgradeWizardInterface, RepeatableInte
 
         // Scope of the row updater is to update all rows that have TCA,
         // our list of tables is just the list of loaded TCA tables.
+        /** @var string[] $listOfAllTables */
         $listOfAllTables = array_keys($GLOBALS['TCA']);
 
         // In case the PHP ended for whatever reason, fetch the last position from registry
@@ -205,26 +221,19 @@ class DatabaseRowsUpdateWizard implements UpgradeWizardInterface, RepeatableInte
                         'table' => $table,
                         'uid' => $rowBefore['uid'],
                     ];
-                    if ($connectionForSysRegistry === $connectionForTable) {
-                        // Target table and sys_registry table are on the same connection, use a transaction
+                    if ($connectionForSysRegistry === $connectionForTable
+                        && !($connectionForSysRegistry->getDatabasePlatform() instanceof SQLServerPlatform)
+                    ) {
+                        // Target table and sys_registry table are on the same connection and not mssql, use a transaction
                         $connectionForTable->beginTransaction();
                         try {
-                            $connectionForTable->update(
+                            $this->updateOrDeleteRow(
+                                $connectionForTable,
+                                $connectionForTable,
                                 $table,
+                                (int)$rowBefore['uid'],
                                 $updatedFields,
-                                [
-                                    'uid' => $rowBefore['uid'],
-                                ]
-                            );
-                            $connectionForTable->update(
-                                'sys_registry',
-                                [
-                                    'entry_value' => serialize($startPosition),
-                                ],
-                                [
-                                    'entry_namespace' => 'installUpdateRows',
-                                    'entry_key' => 'rowUpdatePosition',
-                                ]
+                                $startPosition
                             );
                             $connectionForTable->commit();
                         } catch (\Exception $up) {
@@ -232,24 +241,17 @@ class DatabaseRowsUpdateWizard implements UpgradeWizardInterface, RepeatableInte
                             throw $up;
                         }
                     } else {
-                        // Different connections for table and sys_registry -> execute two
-                        // distinct queries and hope for the best.
-                        $connectionForTable->update(
+                        // Either different connections for table and sys_registry, or mssql.
+                        // SqlServer can not run a transaction for a table if the same table is queried
+                        // currently - our above ->fetch() main loop.
+                        // So, execute two distinct queries and hope for the best.
+                        $this->updateOrDeleteRow(
+                            $connectionForTable,
+                            $connectionForSysRegistry,
                             $table,
+                            (int)$rowBefore['uid'],
                             $updatedFields,
-                            [
-                                'uid' => $rowBefore['uid'],
-                            ]
-                        );
-                        $connectionForSysRegistry->update(
-                            'sys_registry',
-                            [
-                                'entry_value' => serialize($startPosition),
-                            ],
-                            [
-                                'entry_namespace' => 'installUpdateRows',
-                                'entry_key' => 'rowUpdatePosition',
-                            ]
+                            $startPosition
                         );
                     }
                 }
@@ -309,5 +311,50 @@ class DatabaseRowsUpdateWizard implements UpgradeWizardInterface, RepeatableInte
             $registry->set('installUpdateRows', 'rowUpdatePosition', $startPosition);
         }
         return $startPosition;
+    }
+
+    /**
+     * @param Connection $connectionForTable
+     * @param string $table
+     * @param array $updatedFields
+     * @param int $uid
+     * @param Connection $connectionForSysRegistry
+     * @param array $startPosition
+     */
+    protected function updateOrDeleteRow(Connection $connectionForTable, Connection $connectionForSysRegistry, string $table, int $uid, array $updatedFields, array $startPosition): void
+    {
+        $deleteField = $GLOBALS['TCA'][$table]['ctrl']['delete'] ?? null;
+        if ($deleteField === null && $updatedFields['deleted'] === 1) {
+            $connectionForTable->delete(
+                $table,
+                [
+                    'uid' => $uid,
+                ]
+            );
+        } else {
+            $connectionForTable->update(
+                $table,
+                $updatedFields,
+                [
+                    'uid' => $uid,
+                ]
+            );
+        }
+        $connectionForSysRegistry->update(
+            'sys_registry',
+            [
+                'entry_value' => serialize($startPosition),
+            ],
+            [
+                'entry_namespace' => 'installUpdateRows',
+                'entry_key' => 'rowUpdatePosition',
+            ],
+            [
+                // Needs to be declared LOB, so MSSQL can handle the conversion from string (nvarchar) to blob (varbinary)
+                'entry_value' => \PDO::PARAM_LOB,
+                'entry_namespace' => \PDO::PARAM_STR,
+                'entry_key' => \PDO::PARAM_STR,
+            ]
+        );
     }
 }

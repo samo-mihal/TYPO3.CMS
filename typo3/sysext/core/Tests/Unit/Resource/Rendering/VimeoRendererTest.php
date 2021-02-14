@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Unit\Resource\Rendering;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\Resource\Rendering;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\Resource\Rendering;
 
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\FileReference;
@@ -147,7 +149,7 @@ class VimeoRendererTest extends UnitTestCase
     /**
      * @test
      */
-    public function renderOutputWithAutoplayAndWithoutControllsIsCorrect()
+    public function renderOutputWithAutoplayAndWithoutControlsIsCorrect()
     {
         /** @var File|\PHPUnit\Framework\MockObject\MockObject $fileResourceMock */
         $fileResourceMock = $this->createMock(File::class);
@@ -281,6 +283,20 @@ class VimeoRendererTest extends UnitTestCase
         self::assertSame(
             '<iframe src="https://player.vimeo.com/video/7331?api=1&amp;title=0&amp;byline=0&amp;portrait=0" allowfullscreen width="300" height="200" allow="fullscreen"></iframe>',
             $this->subject->render($fileResourceMock, '300m', '200', ['api' => 1])
+        );
+    }
+
+    /**
+     * @test
+     */
+    public function renderOutputWithDisabledNoCookieIsCorrect()
+    {
+        /** @var File|\PHPUnit_Framework_MockObject_MockObject $fileResourceMock */
+        $fileResourceMock = $this->createMock(File::class);
+
+        self::assertSame(
+            '<iframe src="https://player.vimeo.com/video/7331?api=1&amp;dnt=1&amp;title=0&amp;byline=0&amp;portrait=0" allowfullscreen width="300" height="200" allow="fullscreen"></iframe>',
+            $this->subject->render($fileResourceMock, '300m', '200', ['api' => 1, 'no-cookie' => 1])
         );
     }
 }

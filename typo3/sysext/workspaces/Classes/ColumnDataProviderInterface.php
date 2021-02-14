@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Workspaces;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,10 @@ namespace TYPO3\CMS\Workspaces;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Workspaces;
+
+use TYPO3\CMS\Workspaces\Domain\Model\CombinedRecord;
 
 /**
  * Interface for (additional) columns.
@@ -28,5 +31,5 @@ interface ColumnDataProviderInterface
      * @param Domain\Model\CombinedRecord $combinedRecord
      * @return string|int|array
      */
-    public function getData(\TYPO3\CMS\Workspaces\Domain\Model\CombinedRecord $combinedRecord);
+    public function getData(CombinedRecord $combinedRecord);
 }

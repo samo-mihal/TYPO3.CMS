@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Persistence\Generic\Qom;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Extbase\Persistence\Generic\Qom;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Persistence\Generic\Qom;
+
 /**
  * Performs a logical disjunction of two other constraints.
  *
@@ -27,14 +28,14 @@ interface OrInterface extends ConstraintInterface
     /**
      * Gets the first constraint.
      *
-     * @return ConstraintInterface the constraint; non-null
+     * @return ConstraintInterface the constraint
      */
     public function getConstraint1();
 
     /**
      * Gets the second constraint.
      *
-     * @return ConstraintInterface the constraint; non-null
+     * @return ConstraintInterface the constraint
      */
     public function getConstraint2();
 }

@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\T3editor\Tests\Unit\Registry;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,8 @@ namespace TYPO3\CMS\T3editor\Tests\Unit\Registry;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\T3editor\Tests\Unit\Registry;
+
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\T3editor\Addon;
 use TYPO3\CMS\T3editor\Registry\AddonRegistry;
@@ -26,20 +28,20 @@ use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 class AddonRegistryTest extends UnitTestCase
 {
     /**
-     * @var AddonRegistry|\PHPUnit\Framework\MockObject\MockObject|\TYPO3\TestingFramework\Core\AccessibleObjectInterface
+     * @var AddonRegistry
      */
     protected $subject;
 
     protected function setUp(): void
     {
-        $this->subject = $this->getAccessibleMock(AddonRegistry::class, ['dummy'], [], '', false);
+        $this->subject = new AddonRegistry();
         $this->registerAddons();
     }
 
     /**
      * Register addons for tests
      */
-    protected function registerAddons()
+    protected function registerAddons(): void
     {
         $this->subject
             ->register(GeneralUtility::makeInstance(Addon::class, 'addon/global'))
@@ -72,7 +74,7 @@ class AddonRegistryTest extends UnitTestCase
     /**
      * @test
      */
-    public function globalAddonsGetReturned()
+    public function globalAddonsGetReturned(): void
     {
         $expected = [
             'addon/global',
@@ -92,7 +94,7 @@ class AddonRegistryTest extends UnitTestCase
     /**
      * @test
      */
-    public function globalAndModeAddonsGetReturned()
+    public function globalAndModeAddonsGetReturned(): void
     {
         $expected = [
             'addon/global',
@@ -113,7 +115,7 @@ class AddonRegistryTest extends UnitTestCase
     /**
      * @test
      */
-    public function settingsAreProperlyCompiled()
+    public function settingsAreProperlyCompiled(): void
     {
         $expected = [
             'foobar' => false,

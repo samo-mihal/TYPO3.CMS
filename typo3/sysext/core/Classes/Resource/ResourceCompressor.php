@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Resource;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,13 @@ namespace TYPO3\CMS\Core\Resource;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Resource;
+
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
 use TYPO3\CMS\Core\Utility\PathUtility;
+use TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController;
 
 /**
  * Compressor
@@ -160,7 +162,7 @@ class ResourceCompressor
         $filesToInclude = [];
         foreach ($jsFiles as $key => $fileOptions) {
             // invalid section found or no concatenation allowed, so continue
-            if (empty($fileOptions['section']) || !empty($fileOptions['excludeFromConcatenation']) || !empty($fileOptions['nomodule'])) {
+            if (empty($fileOptions['section']) || !empty($fileOptions['excludeFromConcatenation']) || !empty($fileOptions['nomodule']) || !empty($fileOptions['defer'])) {
                 continue;
             }
             if (!isset($filesToInclude[$fileOptions['section']])) {
@@ -181,11 +183,12 @@ class ResourceCompressor
             unset($jsFiles[$key]);
         }
         if (!empty($filesToInclude)) {
+            $defaultTypeAttributeForJavaScript = $this->getJavaScriptFileType();
             foreach ($filesToInclude as $section => $files) {
                 $targetFile = $this->createMergedJsFile($files);
                 $concatenatedOptions = [
                     'file' => $targetFile,
-                    'type' => 'text/javascript',
+                    'type' => $defaultTypeAttributeForJavaScript,
                     'section' => $section,
                     'compress' => true,
                     'excludeFromConcatenation' => true,
@@ -238,7 +241,7 @@ class ResourceCompressor
         if (empty($type)) {
             throw new \InvalidArgumentException('No valid file type given for files to be merged.', 1308957498);
         }
-        // we add up the filenames, filemtimes and filsizes to later build a checksum over
+        // we add up the filenames, filemtimes and filesizes to later build a checksum over
         // it and include it in the temporary file name
         $unique = '';
         foreach ($filesToInclude as $key => $filename) {
@@ -278,14 +281,14 @@ class ResourceCompressor
             foreach ($filesToInclude as $filename) {
                 $filenameAbsolute = GeneralUtility::resolveBackPath($this->rootPath . $filename);
                 $filename = PathUtility::stripPathSitePrefix($filenameAbsolute);
-                $contents = file_get_contents($filenameAbsolute);
+                $contents = (string)file_get_contents($filenameAbsolute);
                 // remove any UTF-8 byte order mark (BOM) from files
                 if (strpos($contents, "\xEF\xBB\xBF") === 0) {
                     $contents = substr($contents, 3);
                 }
                 // only fix paths if files aren't already in typo3temp (already processed)
                 if ($type === 'css' && !GeneralUtility::isFirstPartOfStr($filename, $this->targetDirectory)) {
-                    $contents = $this->cssFixRelativeUrlPaths($contents, PathUtility::dirname($filename) . '/');
+                    $contents = $this->cssFixRelativeUrlPaths($contents, $filename);
                 }
                 $concatenated .= LF . $contents;
             }
@@ -350,9 +353,9 @@ class ResourceCompressor
         $targetFile = $this->targetDirectory . $pathinfo['filename'] . '-' . md5($unique) . '.css';
         // only create it, if it doesn't exist, yet
         if (!file_exists(Environment::getPublicPath() . '/' . $targetFile) || $this->createGzipped && !file_exists(Environment::getPublicPath() . '/' . $targetFile . '.gzip')) {
-            $contents = $this->compressCssString(file_get_contents($filenameAbsolute));
+            $contents = $this->compressCssString((string)file_get_contents($filenameAbsolute));
             if (strpos($filename, $this->targetDirectory) === false) {
-                $contents = $this->cssFixRelativeUrlPaths($contents, PathUtility::dirname($filename) . '/');
+                $contents = $this->cssFixRelativeUrlPaths($contents, $filename);
             }
             $this->writeFileAndCompressed($targetFile, $contents);
         }
@@ -402,7 +405,7 @@ class ResourceCompressor
         $targetFile = $this->targetDirectory . $pathinfo['filename'] . '-' . md5($unique) . '.js';
         // only create it, if it doesn't exist, yet
         if (!file_exists(Environment::getPublicPath() . '/' . $targetFile) || $this->createGzipped && !file_exists(Environment::getPublicPath() . '/' . $targetFile . '.gzip')) {
-            $contents = file_get_contents($filenameAbsolute);
+            $contents = (string)file_get_contents($filenameAbsolute);
             $this->writeFileAndCompressed($targetFile, $contents);
         }
         return $this->returnFileReference($targetFile);
@@ -432,11 +435,12 @@ class ResourceCompressor
 
         // if the file is an absolute reference within the docRoot
         $absolutePath = $docRoot . '/' . $fileNameWithoutSlash;
-        // if it is already an absolute path to the file
-        if (PathUtility::isAbsolutePath($filename)) {
+        // If the $filename stems from a call to PathUtility::getAbsoluteWebPath() it has a leading slash,
+        // hence isAbsolutePath() results in true, which is obviously wrong. Check file existence to be sure.
+        // Calling is_file without @ for a path starting with '../' causes a PHP Warning when using open_basedir restriction
+        if (PathUtility::isAbsolutePath($filename) && @is_file($filename)) {
             $absolutePath = $filename;
         }
-        // Calling is_file without @ for a path starting with '../' causes a PHP Warning when using open_basedir restriction
         if (@is_file($absolutePath)) {
             if (strpos($absolutePath, $this->rootPath) === 0) {
                 // the path is within the current root path, simply strip rootPath off
@@ -451,7 +455,7 @@ class ResourceCompressor
             return $fileNameWithoutSlash;
         }
         // if the file is from a special TYPO3 internal directory, add the missing typo3/ prefix
-        if (is_file(realpath(Environment::getBackendPath() . '/' . $filename))) {
+        if (is_file((string)realpath(Environment::getBackendPath() . '/' . $filename))) {
             $filename = 'typo3/' . $filename;
         }
         // build the file path relative to the public web path
@@ -465,7 +469,7 @@ class ResourceCompressor
 
         // check if the file exists, and if so, return the path relative to current PHP script
         if (is_file($file)) {
-            return rtrim(PathUtility::getRelativePathTo($file), '/');
+            return rtrim((string)PathUtility::getRelativePathTo($file), '/');
         }
         // none of above conditions were met, fallback to default behaviour
         return $filename;
@@ -490,57 +494,14 @@ class ResourceCompressor
     }
 
     /**
-     * Fixes the relative paths inside of url() references in CSS files
-     *
-     * @param string $contents Data to process
-     * @param string $oldDir Directory of the original file, relative to TYPO3_mainDir
-     * @return string Processed data
+     * @param string $contents
+     * @param string $filename
+     * @return string
      */
-    protected function cssFixRelativeUrlPaths($contents, $oldDir)
+    protected function cssFixRelativeUrlPaths(string $contents, string $filename): string
     {
-        $newDir = '../../../' . $oldDir;
-        // Replace "url()" paths
-        if (stripos($contents, 'url') !== false) {
-            $regex = '/url(\\(\\s*["\']?(?!\\/)([^"\']+)["\']?\\s*\\))/iU';
-            $contents = $this->findAndReplaceUrlPathsByRegex($contents, $regex, $newDir, '(\'|\')');
-        }
-        // Replace "@import" paths
-        if (stripos($contents, '@import') !== false) {
-            $regex = '/@import\\s*(["\']?(?!\\/)([^"\']+)["\']?)/i';
-            $contents = $this->findAndReplaceUrlPathsByRegex($contents, $regex, $newDir, '"|"');
-        }
-        return $contents;
-    }
-
-    /**
-     * Finds and replaces all URLs by using a given regex
-     *
-     * @param string $contents Data to process
-     * @param string $regex Regex used to find URLs in content
-     * @param string $newDir Path to prepend to the original file
-     * @param string $wrap Wrap around replaced values
-     * @return string Processed data
-     */
-    protected function findAndReplaceUrlPathsByRegex($contents, $regex, $newDir, $wrap = '|')
-    {
-        $matches = [];
-        $replacements = [];
-        $wrap = explode('|', $wrap);
-        preg_match_all($regex, $contents, $matches);
-        foreach ($matches[2] as $matchCount => $match) {
-            // remove '," or white-spaces around
-            $match = trim($match, '\'" ');
-            // we must not rewrite paths containing ":" or "url(", e.g. data URIs (see RFC 2397)
-            if (strpos($match, ':') === false && !preg_match('/url\\s*\\(/i', $match)) {
-                $newPath = GeneralUtility::resolveBackPath($newDir . $match);
-                $replacements[$matches[1][$matchCount]] = $wrap[0] . $newPath . $wrap[1];
-            }
-        }
-        // replace URL paths in content
-        if (!empty($replacements)) {
-            $contents = str_replace(array_keys($replacements), array_values($replacements), $contents);
-        }
-        return $contents;
+        $newDir = '../../../' . PathUtility::dirname($filename) . '/';
+        return $this->getPathFixer()->fixRelativeUrlPaths($contents, $newDir);
     }
 
     /**
@@ -608,7 +569,7 @@ class ResourceCompressor
         GeneralUtility::writeFile(Environment::getPublicPath() . '/' . $filename, $contents);
         if ($this->createGzipped) {
             // create compressed version
-            GeneralUtility::writeFile(Environment::getPublicPath() . '/' . $filename . '.gzip', gzencode($contents, $this->gzipCompressionLevel));
+            GeneralUtility::writeFile(Environment::getPublicPath() . '/' . $filename . '.gzip', (string)gzencode($contents, $this->gzipCompressionLevel));
         }
     }
 
@@ -640,7 +601,7 @@ class ResourceCompressor
         $filename = $this->targetDirectory . 'external-' . md5($url);
         // Write only if file does not exist OR md5 of the content is not the same as fetched one
         if (!file_exists(Environment::getPublicPath() . '/' . $filename)
-            || (md5($externalContent) !== md5(file_get_contents(Environment::getPublicPath() . '/' . $filename)))
+            || !hash_equals(md5((string)file_get_contents(Environment::getPublicPath() . '/' . $filename)), md5($externalContent))
         ) {
             GeneralUtility::writeFile(Environment::getPublicPath() . '/' . $filename, $externalContent);
         }
@@ -663,7 +624,7 @@ class ResourceCompressor
         // Regexp to match single quoted strings.
         $single_quot = "'[^'\\\\]*(?:\\\\.[^'\\\\]*)*'";
         // Strip all comment blocks, but keep double/single quoted strings.
-        $contents = preg_replace(
+        $contents = (string)preg_replace(
             "<($double_quot|$single_quot)|$comment>Ss",
             '$1',
             $contents
@@ -671,8 +632,8 @@ class ResourceCompressor
         // Remove certain whitespace.
         // There are different conditions for removing leading and trailing
         // whitespace.
-        // @see http://php.net/manual/regexp.reference.subpatterns.php
-        $contents = preg_replace(
+        // @see https://php.net/manual/regexp.reference.subpatterns.php
+        $contents = (string)preg_replace(
             '<
 				# Strip leading and trailing whitespace.
 				\s*([@{};,])\s*
@@ -695,5 +656,31 @@ class ResourceCompressor
         // Ensure file ends in newline.
         $contents .= LF;
         return $contents;
+    }
+
+    /**
+     * Determines the the JavaScript mime type
+     *
+     * The <script> tag only needs the type if the page is not rendered as HTML5.
+     * In TYPO3 Backend or when TSFE is not available we always use HTML5.
+     * For TYPO3 Frontend the configured config.doctype is evaluated.
+     *
+     * @return string
+     */
+    protected function getJavaScriptFileType(): string
+    {
+        if (TYPO3_MODE === 'BE' || !isset($GLOBALS['TSFE']) || !($GLOBALS['TSFE'] instanceof TypoScriptFrontendController)) {
+            // Backend (or at least no TSFE), always HTML5
+            return '';
+        }
+        if (($GLOBALS['TSFE']->config['config']['doctype'] ?? 'html5') === 'html5') {
+            return '';
+        }
+        return 'text/javascript';
+    }
+
+    protected function getPathFixer(): RelativeCssPathFixer
+    {
+        return GeneralUtility::makeInstance(RelativeCssPathFixer::class);
     }
 }

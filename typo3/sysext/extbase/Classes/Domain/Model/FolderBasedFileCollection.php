@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Domain\Model;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,11 +13,14 @@ namespace TYPO3\CMS\Extbase\Domain\Model;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Domain\Model;
+
 /**
  * A file collection object (File Abstraction Layer)
  *
  * @internal experimental! This class is experimental and subject to change!
+ * @deprecated since TYPO3 10.4, will be removed in version 11.0
  */
-class FolderBasedFileCollection extends \TYPO3\CMS\Extbase\Domain\Model\AbstractFileCollection
+class FolderBasedFileCollection extends AbstractFileCollection
 {
 }

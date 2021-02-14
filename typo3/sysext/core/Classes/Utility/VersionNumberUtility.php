@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Utility;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,11 @@ namespace TYPO3\CMS\Core\Utility;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Utility;
+
+use TYPO3\CMS\Core\Exception;
+use TYPO3\CMS\Core\Information\Typo3Version;
 
 /**
  * Class with helper functions for version number handling
@@ -31,7 +35,7 @@ class VersionNumberUtility
         $version = $versionParts[0];
         for ($i = 1; $i < 3; $i++) {
             if (!empty($versionParts[$i])) {
-                $version .= str_pad((int)$versionParts[$i], 3, '0', STR_PAD_LEFT);
+                $version .= str_pad((string)(int)$versionParts[$i], 3, '0', STR_PAD_LEFT);
             } else {
                 $version .= '000';
             }
@@ -119,7 +123,7 @@ class VersionNumberUtility
      */
     public static function getCurrentTypo3Version()
     {
-        return TYPO3_version;
+        return (string)GeneralUtility::makeInstance(Typo3Version::class);
     }
 
     /**
@@ -138,7 +142,7 @@ class VersionNumberUtility
             $cleanedVersion = GeneralUtility::trimExplode('.', $versions[$i]);
             $cleanedVersionCount = count($cleanedVersion);
             for ($j = 0; $j < $cleanedVersionCount; $j++) {
-                $cleanedVersion[$j] = MathUtility::forceIntegerInRange($cleanedVersion[$j], 0, 999);
+                $cleanedVersion[$j] = MathUtility::forceIntegerInRange((int)$cleanedVersion[$j], 0, 999);
             }
             $cleanedVersionString = implode('.', $cleanedVersion);
             if (static::convertVersionNumberToInteger($cleanedVersionString) === 0) {
@@ -185,7 +189,7 @@ class VersionNumberUtility
         trigger_error('Method ' . __METHOD__ . ' will be removed in TYPO3 11.0', E_USER_DEPRECATED);
 
         if (!in_array($raise, ['main', 'sub', 'dev'])) {
-            throw new \TYPO3\CMS\Core\Exception('RaiseVersionNumber expects one of "main", "sub" or "dev".', 1342639555);
+            throw new Exception('RaiseVersionNumber expects one of "main", "sub" or "dev".', 1342639555);
         }
         $parts = GeneralUtility::intExplode('.', $version . '..');
         $parts[0] = MathUtility::forceIntegerInRange($parts[0], 0, 999);

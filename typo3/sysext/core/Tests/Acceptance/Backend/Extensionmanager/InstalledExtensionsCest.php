@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Acceptance\Backend\Extensionmanager;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,7 +15,8 @@ namespace TYPO3\CMS\Core\Tests\Acceptance\Backend\Extensionmanager;
  * The TYPO3 project - inspiring people to share!
  */
 
-use Codeception\Util\Locator;
+namespace TYPO3\CMS\Core\Tests\Acceptance\Backend\Extensionmanager;
+
 use TYPO3\CMS\Core\Tests\Acceptance\Support\BackendTester;
 
 /**
@@ -30,7 +31,7 @@ class InstalledExtensionsCest
     {
         $I->useExistingSession('admin');
 
-        $I->click('Extensions', '#menu');
+        $I->click('Extensions', '#modulemenu');
         $I->switchToContentFrame();
         $I->waitForElementVisible('#typo3-extension-list');
     }
@@ -44,7 +45,7 @@ class InstalledExtensionsCest
 
         // Fill extension search field
         $I->fillField('Tx_Extensionmanager_extensionkey', 'backend');
-        $I->waitForElementNotVisible(Locator::contains('#typo3-extension-list', 'core'));
+        $I->waitForElementNotVisible('tr#core');
 
         // see 2 rows. 1 for the header and one for the result
         $I->seeNumberOfElements('#typo3-extension-list tbody tr[role="row"]', 3);
@@ -64,9 +65,9 @@ class InstalledExtensionsCest
      */
     public function checkIfUploadFormAppears(BackendTester $I)
     {
-        $I->cantSeeElement('.module-body .uploadForm');
+        $I->cantSeeElement('.module-body .extension-upload-form');
         $I->click('a[title="Upload Extension .t3x/.zip"]', '.module-docheader');
-        $I->seeElement('.module-body .uploadForm');
+        $I->seeElement('.module-body .extension-upload-form');
     }
 
     /**
@@ -88,7 +89,7 @@ class InstalledExtensionsCest
 
         $I->amGoingTo('install extension belog');
         $I->switchToMainFrame();
-        $I->seeElement('.modulemenu-item-link');
+        $I->seeElement('.modulemenu-action');
         $I->cantSeeElement('#system_BelogLog');
 
         $I->switchToContentFrame();

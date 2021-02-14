@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Frontend\Tests\Functional\SiteHandling;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Frontend\Tests\Functional\SiteHandling;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Frontend\Tests\Functional\SiteHandling;
 
 use TYPO3\CMS\Core\Tests\Functional\SiteHandling\SiteBasedTestTrait;
 use TYPO3\CMS\Frontend\Tests\Functional\SiteHandling\Fixtures\LinkHandlingController;
@@ -35,7 +37,8 @@ abstract class AbstractTestCase extends FunctionalTestCase
         ],
         'FE' => [
             'cacheHash' => [
-                'requireCacheHashPresenceParameters' => ['testing[value]']
+                'requireCacheHashPresenceParameters' => ['value', 'testing[value]', 'tx_testing_link[value]'],
+                'excludedParameters' => ['tx_testing_link[excludedValue]']
             ],
         ]
     ];
@@ -44,6 +47,7 @@ abstract class AbstractTestCase extends FunctionalTestCase
         'EN' => ['id' => 0, 'title' => 'English', 'locale' => 'en_US.UTF8', 'iso' => 'en', 'hrefLang' => 'en-US', 'direction' => ''],
         'FR' => ['id' => 1, 'title' => 'French', 'locale' => 'fr_FR.UTF8', 'iso' => 'fr', 'hrefLang' => 'fr-FR', 'direction' => ''],
         'FR-CA' => ['id' => 2, 'title' => 'Franco-Canadian', 'locale' => 'fr_CA.UTF8', 'iso' => 'fr', 'hrefLang' => 'fr-CA', 'direction' => ''],
+        'ES' => ['id' => 3, 'title' => 'Spanish', 'locale' => 'es_ES.UTF8', 'iso' => 'es', 'hrefLang' => 'es-ES', 'direction' => ''],
     ];
 
     /**
@@ -57,39 +61,6 @@ abstract class AbstractTestCase extends FunctionalTestCase
     protected $pathsToLinkInTestInstance = [
         'typo3/sysext/core/Tests/Functional/Fixtures/Frontend/AdditionalConfiguration.php' => 'typo3conf/AdditionalConfiguration.php',
     ];
-
-    /**
-     * Combines string values of multiple array as cross-product into flat items.
-     *
-     * Example:
-     * + meltStrings(['a','b'], ['c','e'], ['f','g'])
-     * + results into ['acf', 'acg', 'aef', 'aeg', 'bcf', 'bcg', 'bef', 'beg']
-     *
-     * @param array $arrays Distinct array that should be melted
-     * @param callable $finalCallback Callback being executed on last multiplier
-     * @param string $prefix Prefix containing concatenated previous values
-     * @return array
-     */
-    protected function meltStrings(array $arrays, callable $finalCallback = null, string $prefix = ''): array
-    {
-        $results = [];
-        $array = array_shift($arrays);
-        foreach ($array as $item) {
-            $resultItem = $prefix . $item;
-            if (count($arrays) > 0) {
-                $results = array_merge(
-                    $results,
-                    $this->meltStrings($arrays, $finalCallback, $resultItem)
-                );
-                continue;
-            }
-            if ($finalCallback !== null) {
-                $resultItem = call_user_func($finalCallback, $resultItem);
-            }
-            $results[] = $resultItem;
-        }
-        return $results;
-    }
 
     /**
      * @param array $array
@@ -248,19 +219,5 @@ abstract class AbstractTestCase extends FunctionalTestCase
             },
             $menu
         );
-    }
-
-    /**
-     * @param array $keys
-     * @param mixed $payload
-     * @return array
-     */
-    protected function populateToKeys(array $keys, $payload): array
-    {
-        $result = [];
-        foreach ($keys as $key) {
-            $result[$key] = $payload;
-        }
-        return $result;
     }
 }

@@ -1,11 +1,9 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\Domain\Renderer;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
- *
- * It originated from the Neos.Form package (www.neos.io)
  *
  * It is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, either version 2
@@ -17,6 +15,13 @@ namespace TYPO3\CMS\Form\Domain\Renderer;
  * The TYPO3 project - inspiring people to share!
  */
 
+/*
+ * Inspired by and partially taken from the Neos.Form package (www.neos.io)
+ */
+
+namespace TYPO3\CMS\Form\Domain\Renderer;
+
+use TYPO3\CMS\Extbase\Mvc\Controller\ControllerContext;
 use TYPO3\CMS\Form\Domain\Runtime\FormRuntime;
 
 /**
@@ -45,7 +50,7 @@ abstract class AbstractElementRenderer implements RendererInterface
      *
      * @param \TYPO3\CMS\Extbase\Mvc\Controller\ControllerContext $controllerContext
      */
-    public function setControllerContext(\TYPO3\CMS\Extbase\Mvc\Controller\ControllerContext $controllerContext)
+    public function setControllerContext(ControllerContext $controllerContext)
     {
         $this->controllerContext = $controllerContext;
     }

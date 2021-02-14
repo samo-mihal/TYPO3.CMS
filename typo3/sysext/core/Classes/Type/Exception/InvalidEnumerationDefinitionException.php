@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Type\Exception;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,9 +13,13 @@ namespace TYPO3\CMS\Core\Type\Exception;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Type\Exception;
+
+use TYPO3\CMS\Core\Type\Exception;
+
 /**
  * Exception for an invalid enumeration definition
  */
-class InvalidEnumerationDefinitionException extends \TYPO3\CMS\Core\Type\Exception
+class InvalidEnumerationDefinitionException extends Exception
 {
 }

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extensionmanager\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,9 +13,18 @@ namespace TYPO3\CMS\Extensionmanager\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extensionmanager\Controller;
+
+use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\Messaging\FlashMessage;
+use TYPO3\CMS\Core\Package\Exception;
+use TYPO3\CMS\Core\Package\Exception\PackageStatesFileNotWritableException;
 use TYPO3\CMS\Core\Registry;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\PathUtility;
+use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
+use TYPO3\CMS\Extensionmanager\Exception\ExtensionManagerException;
 use TYPO3\CMS\Extensionmanager\Service\ExtensionManagementService;
 use TYPO3\CMS\Extensionmanager\Utility\ExtensionModelUtility;
 use TYPO3\CMS\Extensionmanager\Utility\FileHandlingUtility;
@@ -102,10 +110,8 @@ class ActionController extends AbstractController
                     $this->redirect('unresolvedDependencies', 'List', null, ['extensionKey' => $extensionKey]);
                 }
             }
-        } catch (\TYPO3\CMS\Extensionmanager\Exception\ExtensionManagerException $e) {
-            $this->addFlashMessage($e->getMessage(), '', \TYPO3\CMS\Core\Messaging\FlashMessage::ERROR);
-        } catch (\TYPO3\CMS\Core\Package\Exception\PackageStatesFileNotWritableException $e) {
-            $this->addFlashMessage($e->getMessage(), '', \TYPO3\CMS\Core\Messaging\FlashMessage::ERROR);
+        } catch (ExtensionManagerException|PackageStatesFileNotWritableException $e) {
+            $this->addFlashMessage($e->getMessage(), '', FlashMessage::ERROR);
         }
         $this->redirect('index', 'List', null, [
             self::TRIGGER_RefreshModuleMenu => true,
@@ -133,20 +139,25 @@ class ActionController extends AbstractController
     protected function removeExtensionAction($extension)
     {
         try {
+            if (Environment::isComposerMode()) {
+                throw new ExtensionManagerException(
+                    'The system is set to composer mode. You are not allowed to remove any extension.',
+                    1590314046
+                );
+            }
+
             $this->installUtility->removeExtension($extension);
             $this->addFlashMessage(
-                \TYPO3\CMS\Extbase\Utility\LocalizationUtility::translate(
+                LocalizationUtility::translate(
                     'extensionList.remove.message',
                     'extensionmanager',
                     [
                         'extension' => $extension,
                     ]
-                )
+                ) ?? ''
             );
-        } catch (\TYPO3\CMS\Extensionmanager\Exception\ExtensionManagerException $e) {
-            $this->addFlashMessage($e->getMessage(), '', \TYPO3\CMS\Core\Messaging\FlashMessage::ERROR);
-        } catch (\TYPO3\CMS\Core\Package\Exception $e) {
-            $this->addFlashMessage($e->getMessage(), '', \TYPO3\CMS\Core\Messaging\FlashMessage::ERROR);
+        } catch (ExtensionManagerException|Exception $e) {
+            $this->addFlashMessage($e->getMessage(), '', FlashMessage::ERROR);
         }
 
         return '';
@@ -160,7 +171,22 @@ class ActionController extends AbstractController
     protected function downloadExtensionZipAction($extension)
     {
         $fileName = $this->fileHandlingUtility->createZipFileFromExtension($extension);
-        $this->fileHandlingUtility->sendZipFileToBrowserAndDelete($fileName);
+        $this->sendZipFileToBrowserAndDelete($fileName);
+    }
+
+    /**
+     * Sends a zip file to the browser and deletes it afterwards
+     *
+     * @param string $fileName
+     */
+    protected function sendZipFileToBrowserAndDelete(string $fileName): void
+    {
+        header('Content-Type: application/zip');
+        header('Content-Length: ' . filesize($fileName));
+        header('Content-Disposition: attachment; filename="' . PathUtility::basename($fileName) . '"');
+        readfile($fileName);
+        unlink($fileName);
+        die;
     }
 
     /**

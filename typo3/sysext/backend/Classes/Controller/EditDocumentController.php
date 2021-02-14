@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Backend\Controller;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,8 @@ namespace TYPO3\CMS\Backend\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Controller;
+
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -22,6 +24,7 @@ use TYPO3\CMS\Backend\Controller\Event\AfterFormEnginePageInitializedEvent;
 use TYPO3\CMS\Backend\Controller\Event\BeforeFormEnginePageInitializedEvent;
 use TYPO3\CMS\Backend\Form\Exception\AccessDeniedException;
 use TYPO3\CMS\Backend\Form\Exception\DatabaseRecordException;
+use TYPO3\CMS\Backend\Form\Exception\DatabaseRecordWorkspaceDeletePlaceholderException;
 use TYPO3\CMS\Backend\Form\FormDataCompiler;
 use TYPO3\CMS\Backend\Form\FormDataGroup\TcaDatabaseRecord;
 use TYPO3\CMS\Backend\Form\FormResultCompiler;
@@ -33,8 +36,8 @@ use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
-use TYPO3\CMS\Core\Database\Query\Restriction\BackendWorkspaceRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
+use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 use TYPO3\CMS\Core\Database\ReferenceIndex;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Domain\Repository\PageRepository;
@@ -54,6 +57,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\HttpUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
 use TYPO3\CMS\Core\Utility\PathUtility;
+use TYPO3\CMS\Core\Versioning\VersionState;
 
 /**
  * Main backend controller almost always used if some database record is edited in the backend.
@@ -73,7 +77,7 @@ class EditDocumentController
     /**
      * An array looking approx like [tablename][list-of-ids]=command, eg. "&edit[pages][123]=edit".
      *
-     * @var array
+     * @var array<string,array>
      */
     protected $editconf = [];
 
@@ -212,13 +216,6 @@ class EditDocumentController
     protected $returnEditConf;
 
     /**
-     * Workspace used for the editing action.
-     *
-     * @var string|null
-     */
-    protected $workspace;
-
-    /**
      * parse_url() of current requested URI, contains ['path'] and ['query'] parts.
      *
      * @var array
@@ -345,7 +342,7 @@ class EditDocumentController
     /**
      * Used internally to disable the storage of the document reference (eg. new records)
      *
-     * @var bool
+     * @var int
      */
     protected $dontStoreDocumentRef = 0;
 
@@ -382,9 +379,15 @@ class EditDocumentController
      */
     protected $eventDispatcher;
 
+    /**
+     * @var UriBuilder
+     */
+    protected $uriBuilder;
+
     public function __construct(EventDispatcherInterface $eventDispatcher)
     {
         $this->eventDispatcher = $eventDispatcher;
+        $this->uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
         $this->moduleTemplate = GeneralUtility::makeInstance(ModuleTemplate::class);
         $this->moduleTemplate->setUiBlock(true);
         // @todo Used by TYPO3\CMS\Backend\Configuration\TypoScript\ConditionMatching
@@ -449,7 +452,6 @@ class EditDocumentController
         $this->closeDoc = (int)($parsedBody['closeDoc'] ?? $queryParams['closeDoc'] ?? self::DOCUMENT_CLOSE_MODE_DEFAULT);
         $this->doSave = (bool)($parsedBody['doSave'] ?? $queryParams['doSave'] ?? false);
         $this->returnEditConf = (bool)($parsedBody['returnEditConf'] ?? $queryParams['returnEditConf'] ?? false);
-        $this->workspace = $parsedBody['workspace'] ?? $queryParams['workspace'] ?? null;
         $this->uc = $parsedBody['uc'] ?? $queryParams['uc'] ?? null;
 
         // Set overrideVals as default values if defVals does not exist.
@@ -460,8 +462,7 @@ class EditDocumentController
         $this->addSlugFieldsToColumnsOnly($queryParams);
 
         // Set final return URL
-        $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
-        $this->retUrl = $this->returnUrl ?: (string)$uriBuilder->buildUriFromRoute('dummy');
+        $this->retUrl = $this->returnUrl ?: (string)$this->uriBuilder->buildUriFromRoute('dummy');
 
         // Change $this->editconf if versioning applies to any of the records
         $this->fixWSversioningInEditConf();
@@ -484,11 +485,6 @@ class EditDocumentController
             }
         }
 
-        // Sets a temporary workspace, this request is based on
-        if ($this->workspace !== null) {
-            $this->getBackendUser()->setTemporaryWorkspace($this->workspace);
-        }
-
         $event = new BeforeFormEnginePageInitializedEvent($this, $request);
         $this->eventDispatcher->dispatch($event);
         return null;
@@ -507,8 +503,12 @@ class EditDocumentController
         if ($this->columnsOnly && $table !== false && isset($GLOBALS['TCA'][$table])) {
             $fields = GeneralUtility::trimExplode(',', $this->columnsOnly, true);
             foreach ($fields as $field) {
-                if (isset($GLOBALS['TCA'][$table]['columns'][$field]) && $GLOBALS['TCA'][$table]['columns'][$field]['config']['type'] === 'slug') {
-                    foreach ($GLOBALS['TCA'][$table]['columns'][$field]['config']['generatorOptions']['fields'] as $fields) {
+                $postModifiers = $GLOBALS['TCA'][$table]['columns'][$field]['config']['generatorOptions']['postModifiers'] ?? [];
+                if (isset($GLOBALS['TCA'][$table]['columns'][$field])
+                    && $GLOBALS['TCA'][$table]['columns'][$field]['config']['type'] === 'slug'
+                    && (!is_array($postModifiers) || $postModifiers === [])
+                ) {
+                    foreach ($GLOBALS['TCA'][$table]['columns'][$field]['config']['generatorOptions']['fields'] ?? [] as $fields) {
                         $this->columnsOnly .= ',' . (is_array($fields) ? implode(',', $fields) : $fields);
                     }
                 }
@@ -544,6 +544,12 @@ class EditDocumentController
         if (isset($beUser->uc['neverHideAtCopy']) && $beUser->uc['neverHideAtCopy']) {
             $tce->neverHideAtCopy = 1;
         }
+
+        // Set default values fetched previously from GET / POST vars
+        if (is_array($this->defVals) && $this->defVals !== [] && is_array($tce->defaultValues)) {
+            $tce->defaultValues = array_merge_recursive($this->defVals, $tce->defaultValues);
+        }
+
         // Load DataHandler with data
         $tce->start($this->data, $this->cmd);
         if (is_array($this->mirror)) {
@@ -586,10 +592,10 @@ class EditDocumentController
                             }
                             $newEditConf[$tableName][$editId] = 'edit';
                         }
-                        $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
                         // Traverse all new records and forge the content of ->editconf so we can continue to edit these records!
                         if ($tableName === 'pages'
-                            && $this->retUrl != (string)$uriBuilder->buildUriFromRoute('dummy')
+                            && $this->retUrl !== (string)$this->uriBuilder->buildUriFromRoute('dummy')
+                            && $this->retUrl !== $this->getCloseUrl()
                             && $this->returnNewPageId
                         ) {
                             $this->retUrl .= '&id=' . $tce->substNEWwithIDs[$key];
@@ -621,10 +627,10 @@ class EditDocumentController
             }
             // Find the current table
             reset($this->editconf);
-            $nTable = key($this->editconf);
+            $nTable = (string)key($this->editconf);
             // Finding the first id, getting the records pid+uid
             reset($this->editconf[$nTable]);
-            $nUid = key($this->editconf[$nTable]);
+            $nUid = (int)key($this->editconf[$nTable]);
             $recordFields = 'pid,uid';
             if (BackendUtility::isTableWorkspaceEnabled($nTable)) {
                 $recordFields .= ',t3ver_oid';
@@ -664,7 +670,7 @@ class EditDocumentController
             $this->closeDocument(self::DOCUMENT_CLOSE_MODE_NO_REDIRECT, $request);
             // Find current table
             reset($this->editconf);
-            $nTable = key($this->editconf);
+            $nTable = (string)key($this->editconf);
             // Find the first id, getting the records pid+uid
             reset($this->editconf[$nTable]);
             $nUid = key($this->editconf[$nTable]);
@@ -727,9 +733,11 @@ class EditDocumentController
         }
         // If a preview is requested
         if (isset($parsedBody['_savedokview'])) {
+            $array_keys = array_keys($this->data);
             // Get the first table and id of the data array from DataHandler
-            $table = reset(array_keys($this->data));
-            $id = reset(array_keys($this->data[$table]));
+            $table = reset($array_keys);
+            $array_keys = array_keys($this->data[$table]);
+            $id = reset($array_keys);
             if (!MathUtility::canBeInterpretedAsInteger($id)) {
                 $id = $tce->substNEWwithIDs[$id];
             }
@@ -843,14 +851,7 @@ class EditDocumentController
         // language handling
         $languageField = $GLOBALS['TCA'][$table]['ctrl']['languageField'] ?? '';
         if ($languageField && !empty($recordArray[$languageField])) {
-            $l18nPointer = $GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField'] ?? '';
-            if ($l18nPointer && !empty($recordArray[$l18nPointer])
-                && isset($previewConfiguration['useDefaultLanguageRecord'])
-                && !$previewConfiguration['useDefaultLanguageRecord']
-            ) {
-                // use parent record
-                $recordId = $recordArray[$l18nPointer];
-            }
+            $recordId = $this->resolvePreviewRecordId($table, $recordArray, $previewConfiguration);
             $language = $recordArray[$languageField];
             if ($language > 0) {
                 $linkParameters['L'] = $language;
@@ -884,6 +885,30 @@ class EditDocumentController
         }
 
         return HttpUtility::buildQueryString($linkParameters, '&');
+    }
+
+    /**
+     * @param string $table
+     * @param array $recordArray
+     * @param array $previewConfiguration
+     *
+     * @return int
+     */
+    protected function resolvePreviewRecordId(string $table, array $recordArray, array $previewConfiguration): int
+    {
+        $l10nPointer = $GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField'] ?? '';
+        if ($l10nPointer
+            && !empty($recordArray[$l10nPointer])
+            && (
+                // not set -> default to true
+                !isset($previewConfiguration['useDefaultLanguageRecord'])
+                // or set -> use value
+                || $previewConfiguration['useDefaultLanguageRecord']
+            )
+        ) {
+            return (int)$recordArray[$l10nPointer];
+        }
+        return (int)$recordArray['uid'];
     }
 
     /**
@@ -1016,11 +1041,15 @@ class EditDocumentController
         }
         // Setting up the buttons and markers for doc header
         $this->getButtons($request);
-        $this->languageSwitch(
-            (string)($this->firstEl['table'] ?? ''),
-            (int)($this->firstEl['uid'] ?? 0),
-            isset($this->firstEl['pid']) ? (int)$this->firstEl['pid'] : null
-        );
+
+        // Create language switch options if the record is already persisted
+        if ($this->isSavedRecord) {
+            $this->languageSwitch(
+                (string)($this->firstEl['table'] ?? ''),
+                (int)($this->firstEl['uid'] ?? 0),
+                isset($this->firstEl['pid']) ? (int)$this->firstEl['pid'] : null
+            );
+        }
         $this->moduleTemplate->setContent($body);
     }
 
@@ -1188,7 +1217,7 @@ class EditDocumentController
                                 $title = $this->getLanguageService()
                                     ->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.noEditPermission');
                                 $editForm .= $this->getInfobox($message, $title);
-                            } catch (DatabaseRecordException $e) {
+                            } catch (DatabaseRecordException | DatabaseRecordWorkspaceDeletePlaceholderException $e) {
                                 $editForm .= $this->getInfobox($e->getMessage());
                             }
                         } // End of for each uid
@@ -1522,6 +1551,7 @@ class EditDocumentController
                     )
                 )
             )
+            && $this->getTsConfigOption($this->firstEl['table'], 'saveDocNew')
         ) {
             $classNames = 't3js-editform-new';
 
@@ -1621,8 +1651,6 @@ class EditDocumentController
             && $this->isSavedRecord
             && count($this->elementsData) === 1
         ) {
-            /** @var UriBuilder $uriBuilder */
-            $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
             $classNames = 't3js-editform-delete-record';
             $returnUrl = $this->retUrl;
             if ($this->firstEl['table'] === 'pages') {
@@ -1633,7 +1661,7 @@ class EditDocumentController
                 ) {
                     // TODO: Use the page's pid instead of 0, this requires a clean API to manipulate the page
                     // tree from the outside to be able to mark the pid as active
-                    $returnUrl = (string)$uriBuilder->buildUriFromRoutePath($queryParams['route'], ['id' => 0]);
+                    $returnUrl = (string)$this->uriBuilder->buildUriFromRoutePath($queryParams['route'], ['id' => 0]);
                 }
             }
 
@@ -1646,21 +1674,21 @@ class EditDocumentController
 
             $referenceCountMessage = BackendUtility::referenceCount(
                 $this->firstEl['table'],
-                (int)$this->firstEl['uid'],
+                (string)(int)$this->firstEl['uid'],
                 $this->getLanguageService()->sL(
                     'LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.referencesToRecord'
                 ),
-                $numberOfReferences
+                (string)$numberOfReferences
             );
             $translationCountMessage = BackendUtility::translationCount(
                 $this->firstEl['table'],
-                (int)$this->firstEl['uid'],
+                (string)(int)$this->firstEl['uid'],
                 $this->getLanguageService()->sL(
                     'LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.translationsOfRecord'
                 )
             );
 
-            $deleteUrl = (string)$uriBuilder->buildUriFromRoute('tce_db', [
+            $deleteUrl = (string)$this->uriBuilder->buildUriFromRoute('tce_db', [
                 'cmd' => [
                     $this->firstEl['table'] => [
                         $this->firstEl['uid'] => [
@@ -1706,29 +1734,17 @@ class EditDocumentController
             && !empty($this->firstEl['table'])
             && $this->getTsConfigOption($this->firstEl['table'], 'showHistory')
         ) {
-            /** @var UriBuilder $uriBuilder */
-            $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
-
-            $historyButtonOnClick = 'window.location.href=' .
-                GeneralUtility::quoteJSvalue(
-                    (string)$uriBuilder->buildUriFromRoute(
-                        'record_history',
-                        [
-                            'element' => $this->firstEl['table'] . ':' . $this->firstEl['uid'],
-                            'returnUrl' => $this->R_URI,
-                        ]
-                    )
-                ) . '; return false;';
-
+            $historyUrl = (string)$this->uriBuilder->buildUriFromRoute('record_history', [
+                'element' => $this->firstEl['table'] . ':' . $this->firstEl['uid'],
+                'returnUrl' => $this->R_URI,
+            ]);
             $historyButton = $buttonBar->makeLinkButton()
-                ->setHref('#')
+                ->setHref($historyUrl)
+                ->setTitle('Open history of this record')
                 ->setIcon($this->moduleTemplate->getIconFactory()->getIcon(
                     'actions-document-history-open',
                     Icon::SIZE_SMALL
-                ))
-                ->setOnClick($historyButtonOnClick)
-                ->setTitle('Open history of this record')
-                ;
+                ));
 
             $buttonBar->addButton($historyButton, $position, $group);
         }
@@ -1892,7 +1908,7 @@ class EditDocumentController
         $queryBuilder->getRestrictions()
             ->removeAll()
             ->add(GeneralUtility::makeInstance(DeletedRestriction::class))
-            ->add(GeneralUtility::makeInstance(BackendWorkspaceRestriction::class));
+            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, $this->getBackendUser()->workspace));
 
         return $queryBuilder
             ->count('uid')
@@ -1985,23 +2001,20 @@ class EditDocumentController
      *
      ***************************/
     /**
-     * Make selector box for creating new translation for a record or switching to edit the record in an existing
-     * language.
-     * Displays only languages which are available for the current page.
+     * Make selector box for creating new translation for a record or switching to edit the record
+     * in an existing language. Displays only languages which are available for the current page.
      *
      * @param string $table Table name
      * @param int $uid Uid for which to create a new language
-     * @param int $pid|null Pid of the record
+     * @param int|null $pid Pid of the record
      */
     protected function languageSwitch(string $table, int $uid, $pid = null)
     {
+        $backendUser = $this->getBackendUser();
         $languageField = $GLOBALS['TCA'][$table]['ctrl']['languageField'];
         $transOrigPointerField = $GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField'];
-        /** @var UriBuilder $uriBuilder */
-        $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
-
         // Table editable and activated for languages?
-        if ($this->getBackendUser()->check('tables_modify', $table)
+        if ($backendUser->check('tables_modify', $table)
             && $languageField
             && $transOrigPointerField
         ) {
@@ -2050,6 +2063,8 @@ class EditDocumentController
                     } else {
                         $rowsByLang[$rowCurrent[$languageField]] = $rowCurrent;
                     }
+                    // List of language id's that should not be added to the selector
+                    $noAddOption = [];
                     if ($rowCurrent[$transOrigPointerField] || $currentLanguage === 0) {
                         // Get record in other languages to see what's already available
 
@@ -2059,7 +2074,7 @@ class EditDocumentController
                         $queryBuilder->getRestrictions()
                             ->removeAll()
                             ->add(GeneralUtility::makeInstance(DeletedRestriction::class))
-                            ->add(GeneralUtility::makeInstance(BackendWorkspaceRestriction::class));
+                            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, $backendUser->workspace));
 
                         $result = $queryBuilder->select(...GeneralUtility::trimExplode(',', $fetchFields, true))
                             ->from($table)
@@ -2080,6 +2095,20 @@ class EditDocumentController
                             ->execute();
 
                         while ($row = $result->fetch()) {
+                            if ($backendUser->workspace !== 0 && BackendUtility::isTableWorkspaceEnabled($table)) {
+                                $workspaceVersion = BackendUtility::getWorkspaceVersionOfRecord($backendUser->workspace, $table, $row['uid'], 'uid,t3ver_state');
+                                if (!empty($workspaceVersion)) {
+                                    $versionState = VersionState::cast($workspaceVersion['t3ver_state']);
+                                    if ($versionState->equals(VersionState::DELETE_PLACEHOLDER)) {
+                                        // If a workspace delete placeholder exists for this translation: Mark
+                                        // this language as "don't add to selector" and continue with next row,
+                                        // otherwise an edit link to a delete placeholder would be created, which
+                                        // does not make sense.
+                                        $noAddOption[] = (int)$row[$languageField];
+                                        continue;
+                                    }
+                                }
+                            }
                             $rowsByLang[$row[$languageField]] = $row;
                         }
                     }
@@ -2094,7 +2123,7 @@ class EditDocumentController
                         if (!isset($rowsByLang[$languageId])) {
                             // Translation in this language does not exist
                             $selectorOptionLabel .= ' [' . htmlspecialchars($this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.new')) . ']';
-                            $redirectUrl = (string)$uriBuilder->buildUriFromRoute('record_edit', [
+                            $redirectUrl = (string)$this->uriBuilder->buildUriFromRoute('record_edit', [
                                 'justLocalized' => $table . ':' . $rowsByLang[0]['uid'] . ':' . $languageId,
                                 'returnUrl' => $this->retUrl
                             ]);
@@ -2120,9 +2149,9 @@ class EditDocumentController
                                     ]
                                 ];
                             }
-                            $href = (string)$uriBuilder->buildUriFromRoute('record_edit', $params);
+                            $href = (string)$this->uriBuilder->buildUriFromRoute('record_edit', $params);
                         }
-                        if ($addOption) {
+                        if ($addOption && !in_array($languageId, $noAddOption, true)) {
                             $menuItem = $languageMenu->makeMenuItem()
                                 ->setTitle($selectorOptionLabel)
                                 ->setHref($href);
@@ -2152,7 +2181,7 @@ class EditDocumentController
             return null;
         }
 
-        list($table, $origUid, $language) = explode(':', $justLocalized);
+        [$table, $origUid, $language] = explode(':', $justLocalized);
 
         if ($GLOBALS['TCA'][$table]
             && $GLOBALS['TCA'][$table]['ctrl']['languageField']
@@ -2165,7 +2194,7 @@ class EditDocumentController
             $queryBuilder->getRestrictions()
                 ->removeAll()
                 ->add(GeneralUtility::makeInstance(DeletedRestriction::class))
-                ->add(GeneralUtility::makeInstance(BackendWorkspaceRestriction::class));
+                ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, $this->getBackendUser()->workspace));
             $localizedRecord = $queryBuilder->select('uid')
                 ->from($table)
                 ->where(
@@ -2183,9 +2212,8 @@ class EditDocumentController
             $returnUrl = $parsedBody['returnUrl'] ?? $queryParams['returnUrl'] ?? '';
             if (is_array($localizedRecord)) {
                 // Create redirect response to self to edit just created record
-                $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
                 return new RedirectResponse(
-                    (string)$uriBuilder->buildUriFromRoute(
+                    (string)$this->uriBuilder->buildUriFromRoute(
                         'record_edit',
                         [
                             'edit[' . $table . '][' . $localizedRecord['uid'] . ']' => 'edit',
@@ -2238,7 +2266,7 @@ class EditDocumentController
             $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('pages');
             $queryBuilder->getRestrictions()->removeAll()
                 ->add(GeneralUtility::makeInstance(DeletedRestriction::class))
-                ->add(GeneralUtility::makeInstance(BackendWorkspaceRestriction::class));
+                ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, $this->getBackendUser()->workspace));
             $statement = $queryBuilder->select('uid', $GLOBALS['TCA']['pages']['ctrl']['languageField'])
                 ->from('pages')
                 ->where(
@@ -2366,7 +2394,7 @@ class EditDocumentController
     {
         // @todo: Refactor in TYPO3 v10: This GeneralUtility method fiddles with _GP()
         $this->storeArray = GeneralUtility::compileSelectedGetVarsFromArray(
-            'edit,defVals,overrideVals,columnsOnly,noView,workspace',
+            'edit,defVals,overrideVals,columnsOnly,noView',
             $this->R_URL_getvars
         );
         $this->storeUrl = HttpUtility::buildQueryString($this->storeArray, '&');
@@ -2403,6 +2431,7 @@ class EditDocumentController
      */
     protected function closeDocument($mode, ServerRequestInterface $request): ?ResponseInterface
     {
+        $setupArr = [];
         $mode = (int)$mode;
         // If current document is found in docHandler,
         // then unset it, possibly unset it ALL and finally, write it to the session data
@@ -2430,11 +2459,10 @@ class EditDocumentController
         if ($mode === self::DOCUMENT_CLOSE_MODE_NO_REDIRECT) {
             return null;
         }
-        $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
         // If ->returnEditConf is set, then add the current content of editconf to the ->retUrl variable: used by
         // other scripts, like wizard_add, to know which records was created or so...
-        if ($this->returnEditConf && $this->retUrl != (string)$uriBuilder->buildUriFromRoute('dummy')) {
-            $this->retUrl .= '&returnEditConf=' . rawurlencode(json_encode($this->editconf));
+        if ($this->returnEditConf && $this->retUrl != (string)$this->uriBuilder->buildUriFromRoute('dummy')) {
+            $this->retUrl .= '&returnEditConf=' . rawurlencode((string)json_encode($this->editconf));
         }
         // If mode is NOT set (means 0) OR set to 1, then make a header location redirect to $this->retUrl
         if ($mode === self::DOCUMENT_CLOSE_MODE_DEFAULT || $mode === self::DOCUMENT_CLOSE_MODE_REDIRECT) {
@@ -2443,7 +2471,7 @@ class EditDocumentController
         if ($this->retUrl === '') {
             return null;
         }
-        $retUrl = $this->returnUrl;
+        $retUrl = (string)$this->returnUrl;
         if (is_array($this->docHandler) && !empty($this->docHandler)) {
             if (!empty($setupArr[2])) {
                 $sParts = parse_url($request->getAttribute('normalizedParams')->getRequestUri());

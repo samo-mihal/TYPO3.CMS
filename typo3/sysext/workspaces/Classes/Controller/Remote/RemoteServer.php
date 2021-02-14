@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Workspaces\Controller\Remote;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Workspaces\Controller\Remote;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Workspaces\Controller\Remote;
+
 use TYPO3\CMS\Backend\Backend\Avatar\Avatar;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
@@ -26,6 +27,7 @@ use TYPO3\CMS\Core\Resource\ProcessedFile;
 use TYPO3\CMS\Core\Utility\DiffUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 use TYPO3\CMS\Workspaces\Domain\Model\CombinedRecord;
 use TYPO3\CMS\Workspaces\Service\GridDataService;
@@ -108,11 +110,7 @@ class RemoteServer
      */
     public function getStageActions()
     {
-        $currentWorkspace = $this->getCurrentWorkspace();
-        $stages = [];
-        if ($currentWorkspace != WorkspaceService::SELECT_ALL_WORKSPACES) {
-            $stages = $this->stagesService->getStagesForWSUser();
-        }
+        $stages = $this->stagesService->getStagesForWSUser();
         $data = [
             'total' => count($stages),
             'data' => $stages
@@ -131,21 +129,24 @@ class RemoteServer
         $diffReturnArray = [];
         $liveReturnArray = [];
         $diffUtility = $this->getDifferenceHandler();
-        $liveRecord = BackendUtility::getRecord($parameter->table, $parameter->t3ver_oid);
-        $versionRecord = BackendUtility::getRecord($parameter->table, $parameter->uid);
+        $liveRecord = (array)BackendUtility::getRecord($parameter->table, $parameter->t3ver_oid);
+        $versionRecord = (array)BackendUtility::getRecord($parameter->table, $parameter->uid);
         $iconFactory = GeneralUtility::makeInstance(IconFactory::class);
         $icon_Live = $iconFactory->getIconForRecord($parameter->table, $liveRecord, Icon::SIZE_SMALL)->render();
         $icon_Workspace = $iconFactory->getIconForRecord($parameter->table, $versionRecord, Icon::SIZE_SMALL)->render();
         $stagePosition = $this->stagesService->getPositionOfCurrentStage($parameter->stage);
         $fieldsOfRecords = array_keys($liveRecord);
-        if ($GLOBALS['TCA'][$parameter->table]) {
-            if ($GLOBALS['TCA'][$parameter->table]['interface']['showRecordFieldList']) {
-                $fieldsOfRecords = $GLOBALS['TCA'][$parameter->table]['interface']['showRecordFieldList'];
-                $fieldsOfRecords = GeneralUtility::trimExplode(',', $fieldsOfRecords, true);
-            }
-        }
         foreach ($fieldsOfRecords as $fieldName) {
-            if (empty($GLOBALS['TCA'][$parameter->table]['columns'][$fieldName]['config'])) {
+            if (
+                empty($GLOBALS['TCA'][$parameter->table]['columns'][$fieldName]['config'])
+            ) {
+                continue;
+            }
+            // Disable internal fields
+            if (($GLOBALS['TCA'][$parameter->table]['ctrl']['transOrigDiffSourceField'] ?? '') === $fieldName) {
+                continue;
+            }
+            if (($GLOBALS['TCA'][$parameter->table]['ctrl']['origUid'] ?? '') === $fieldName) {
                 continue;
             }
             // Get the field's label. If not available, use the field name
@@ -167,13 +168,13 @@ class RemoteServer
                         $useThumbnails = empty($differentExtensions);
                     }
 
-                    $liveFileReferences = BackendUtility::resolveFileReferences(
+                    $liveFileReferences = (array)BackendUtility::resolveFileReferences(
                         $parameter->table,
                         $fieldName,
                         $liveRecord,
                         0
                     );
-                    $versionFileReferences = BackendUtility::resolveFileReferences(
+                    $versionFileReferences = (array)BackendUtility::resolveFileReferences(
                         $parameter->table,
                         $fieldName,
                         $versionRecord,
@@ -206,7 +207,7 @@ class RemoteServer
                         $fieldName,
                         $liveRecord[$fieldName],
                         0,
-                        1,
+                        true,
                         false,
                         $liveRecord['uid']
                     );
@@ -215,7 +216,7 @@ class RemoteServer
                         $fieldName,
                         $versionRecord[$fieldName],
                         0,
-                        1,
+                        true,
                         false,
                         $versionRecord['uid']
                     );
@@ -246,15 +247,17 @@ class RemoteServer
         $historyService = GeneralUtility::makeInstance(HistoryService::class);
         $history = $historyService->getHistory($parameter->table, $parameter->t3ver_oid);
 
-        $prevStage = $this->stagesService->getPrevStage($parameter->stage);
-        $nextStage = $this->stagesService->getNextStage($parameter->stage);
-
-        if (isset($prevStage[0])) {
-            $prevStage = current($prevStage);
+        if ($this->stagesService->isPrevStageAllowedForUser($parameter->stage)) {
+            $prevStage = $this->stagesService->getPrevStage($parameter->stage);
+            if (isset($prevStage[0])) {
+                $prevStage = current($prevStage);
+            }
         }
-
-        if (isset($nextStage[0])) {
-            $nextStage = current($nextStage);
+        if ($this->stagesService->isNextStageAllowedForUser($parameter->stage)) {
+            $nextStage = $this->stagesService->getNextStage($parameter->stage);
+            if (isset($nextStage[0])) {
+                $nextStage = current($nextStage);
+            }
         }
 
         return [
@@ -271,8 +274,8 @@ class RemoteServer
                     // escape/sanitize the others
                     'path_Live' => htmlspecialchars(BackendUtility::getRecordPath($liveRecord['pid'], '', 999)),
                     'label_Stage' => htmlspecialchars($this->stagesService->getStageTitle($parameter->stage)),
-                    'label_PrevStage' => $prevStage,
-                    'label_NextStage' => $nextStage,
+                    'label_PrevStage' => $prevStage ?? false,
+                    'label_NextStage' => $nextStage ?? false,
                     'stage_position' => (int)$stagePosition['position'],
                     'stage_count' => (int)$stagePosition['count'],
                     'parent' => [
@@ -298,7 +301,7 @@ class RemoteServer
      */
     protected function prepareFileReferenceDifferences(array $liveFileReferences, array $versionFileReferences, $useThumbnails = false)
     {
-        $randomValue = uniqid('file');
+        $randomValue = StringUtility::getUniqueId('file');
 
         $liveValues = [];
         $versionValues = [];

@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Filelist\Controller\File;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Filelist\Controller\File;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Filelist\Controller\File;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -95,7 +97,7 @@ class ReplaceFileController
 
         // Cleaning and checking uid
         if ($this->uid > 0) {
-            $this->fileOrFolderObject = ResourceFactory::getInstance()
+            $this->fileOrFolderObject = GeneralUtility::makeInstance(ResourceFactory::class)
                 ->retrieveFileOrFolderObject('file:' . $this->uid);
         }
         if (!$this->fileOrFolderObject) {
@@ -131,10 +133,7 @@ class ReplaceFileController
         ];
         $this->moduleTemplate->getDocHeaderComponent()->setMetaInformation($pathInfo);
         $this->moduleTemplate->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/Backend/ContextMenu');
-        $this->moduleTemplate->addJavaScriptCode(
-            'ReplaceFileOnlineJavaScript',
-            'function backToList() {top.goToModule("file_FilelistList");}'
-        );
+        $this->moduleTemplate->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/Filelist/FileReplace');
     }
 
     /**

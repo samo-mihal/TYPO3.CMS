@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\ViewHelpers\Widget;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,12 +12,21 @@ namespace TYPO3\CMS\Fluid\ViewHelpers\Widget;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Fluid\ViewHelpers\Widget;
+
 use TYPO3\CMS\Extbase\Persistence\ObjectStorage;
 use TYPO3\CMS\Extbase\Persistence\QueryResultInterface;
 use TYPO3\CMS\Fluid\Core\Widget\AbstractWidgetViewHelper;
+use TYPO3\CMS\Fluid\ViewHelpers\Widget\Controller\PaginateController;
 
 /**
  * This ViewHelper renders a Pagination of objects.
+ *
+ * .. warning::
+ *
+ *   Using widgets is deprecated and all fluid widgets will be removed in a future release.
+ *   See :doc:`t3core:Changelog/11.0/Breaking-92529-AllFluidWidgetFunctionalityRemoved`
  *
  * Examples
  * ========
@@ -65,7 +73,7 @@ class PaginateViewHelper extends AbstractWidgetViewHelper
     /**
      * @param \TYPO3\CMS\Fluid\ViewHelpers\Widget\Controller\PaginateController $controller
      */
-    public function injectPaginateController(\TYPO3\CMS\Fluid\ViewHelpers\Widget\Controller\PaginateController $controller)
+    public function injectPaginateController(PaginateController $controller)
     {
         $this->controller = $controller;
     }

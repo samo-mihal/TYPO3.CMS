@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\core\Tests\Acceptance\Backend\Topbar;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\core\Tests\Acceptance\Backend\Topbar;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\core\Tests\Acceptance\Backend\Topbar;
 
 use TYPO3\CMS\Core\Tests\Acceptance\Support\BackendTester;
 
@@ -33,38 +35,38 @@ class ModuleMenuButtonCest
     /**
      * @param BackendTester $I
      */
-    public function checkModelMenuButtomFromBigToSmallScreen(BackendTester $I)
+    public function checkModelMenuButtonFromBigToSmallScreen(BackendTester $I)
     {
         $I->wantTo('see the module menu button behavior when shrinking the window');
 
         $I->seeElement('.scaffold-modulemenu-expanded');
-        $I->see('Web', 'span.modulemenu-group-title');
-        $I->seeElement('.modulemenu-group-icon');
+        $I->see('Web', '.modulemenu-name');
+        $I->seeElement('.modulemenu-icon');
 
         $I->amGoingTo('collapse the module menu');
         $I->click('button.t3js-topbar-button-modulemenu span[data-identifier="actions-menu"]');
 
         $I->expectTo('see only the module menu icon');
         $I->cantSeeElement('.scaffold-modulemenu-expanded');
-        $I->cantSee('Web', 'span.modulemenu-group-title');
-        $I->seeElement('.modulemenu-group-icon');
+        $I->cantSee('Web', '.modulemenu-name');
+        $I->seeElement('.modulemenu-icon');
 
         $I->amGoingTo('shrink the window');
         $I->resizeWindow(680, 420);
         $I->expectTo('see no module menu');
-        $I->cantSeeElement('.modulemenu-group-icon');
+        $I->cantSeeElement('.modulemenu-icon');
 
         $I->amGoingTo('expand the module menu');
         $I->click('button.t3js-topbar-button-modulemenu span[data-identifier="actions-menu"]');
         $I->expectTo('see the expanded module menu');
-        $I->see('Web', 'span.modulemenu-group-title');
-        $I->seeElement('.modulemenu-group-icon');
+        $I->see('Web', '.modulemenu-name');
+        $I->seeElement('.modulemenu-icon');
     }
 
     /**
      * @param BackendTester $I
      */
-    public function checkModelMenuButtomFromSmallToBigScreen(BackendTester $I)
+    public function checkModelMenuButtonFromSmallToBigScreen(BackendTester $I)
     {
         $I->wantTo('see the module menu button behavior when enlarging the window');
 
@@ -72,27 +74,27 @@ class ModuleMenuButtonCest
         $I->resizeWindow(320, 400);
         $I->expectTo('see the module menu');
         $I->seeElement('.scaffold-modulemenu-expanded');
-        $I->see('Web', 'span.modulemenu-group-title');
-        $I->seeElement('.modulemenu-group-icon');
+        $I->see('Web', '.modulemenu-name');
+        $I->seeElement('.modulemenu-icon');
 
         $I->amGoingTo('collapse the module menu');
         $I->click('button.t3js-topbar-button-modulemenu span[data-identifier="actions-menu"]');
 
         $I->expectTo('see no module menu');
         $I->cantSeeElement('.scaffold-modulemenu-expanded');
-        $I->cantSee('Web', 'span.modulemenu-group-title');
-        $I->cantSeeElement('.modulemenu-group-icon');
+        $I->cantSee('Web', '.modulemenu-name');
+        $I->cantSeeElement('.modulemenu-icon');
 
         $I->amGoingTo('enlarge the window');
         $I->resizeWindow(1280, 960);
         $I->expectTo('see the module menu icon');
-        $I->seeElement('.modulemenu-group-icon');
+        $I->seeElement('.modulemenu-icon');
 
         $I->amGoingTo('expand the module menu');
         $I->click('button.t3js-topbar-button-modulemenu span[data-identifier="actions-menu"]');
 
         $I->expectTo('see the full module menu');
         $I->seeElement('.scaffold-modulemenu-expanded');
-        $I->see('Web', 'span.modulemenu-group-title');
+        $I->see('Web', '.modulemenu-name');
     }
 }

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extensionmanager\Utility\Importer;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,11 +12,20 @@ namespace TYPO3\CMS\Extensionmanager\Utility\Importer;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Extensionmanager\Utility\Importer;
+
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Platform\PlatformInformation;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\VersionNumberUtility;
+use TYPO3\CMS\Extbase\Object\ObjectManager;
+use TYPO3\CMS\Extensionmanager\Domain\Model\Extension;
+use TYPO3\CMS\Extensionmanager\Domain\Repository\ExtensionRepository;
+use TYPO3\CMS\Extensionmanager\Domain\Repository\RepositoryRepository;
+use TYPO3\CMS\Extensionmanager\Exception\ExtensionManagerException;
 use TYPO3\CMS\Extensionmanager\Utility\Parser\AbstractExtensionXmlParser;
+use TYPO3\CMS\Extensionmanager\Utility\Parser\XmlParserFactory;
 
 /**
  * Importer object for extension list
@@ -137,16 +145,16 @@ class ExtensionListUtility implements \SplObserver
     public function __construct()
     {
         /** @var \TYPO3\CMS\Extbase\Object\ObjectManager $objectManager */
-        $this->objectManager = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Extbase\Object\ObjectManager::class);
-        $this->repositoryRepository = $this->objectManager->get(\TYPO3\CMS\Extensionmanager\Domain\Repository\RepositoryRepository::class);
-        $this->extensionRepository = $this->objectManager->get(\TYPO3\CMS\Extensionmanager\Domain\Repository\ExtensionRepository::class);
-        $this->extensionModel = $this->objectManager->get(\TYPO3\CMS\Extensionmanager\Domain\Model\Extension::class);
+        $this->objectManager = GeneralUtility::makeInstance(ObjectManager::class);
+        $this->repositoryRepository = $this->objectManager->get(RepositoryRepository::class);
+        $this->extensionRepository = $this->objectManager->get(ExtensionRepository::class);
+        $this->extensionModel = $this->objectManager->get(Extension::class);
         // @todo catch parser exception
-        $this->parser = \TYPO3\CMS\Extensionmanager\Utility\Parser\XmlParserFactory::getParserInstance('extension');
+        $this->parser = XmlParserFactory::getParserInstance('extension');
         if (is_object($this->parser)) {
             $this->parser->attach($this);
         } else {
-            throw new \TYPO3\CMS\Extensionmanager\Exception\ExtensionManagerException(
+            throw new ExtensionManagerException(
                 static::class . ': No XML parser available.',
                 1476108717
             );
@@ -232,11 +240,11 @@ class ExtensionListUtility implements \SplObserver
             0,
             (int)$subject->getAlldownloadcounter(),
             (int)$subject->getDownloadcounter(),
-            $subject->getTitle() !== null ? $subject->getTitle() : '',
+            $subject->getTitle() ?? '',
             $subject->getOwnerusername(),
-            $subject->getAuthorname() !== null ? $subject->getAuthorname() : '',
-            $subject->getAuthoremail() !== null ? $subject->getAuthoremail() : '',
-            $subject->getAuthorcompany() !== null ? $subject->getAuthorcompany() : '',
+            $subject->getAuthorname() ?? '',
+            $subject->getAuthoremail() ?? '',
+            $subject->getAuthorcompany() ?? '',
             (int)$subject->getLastuploaddate(),
             $subject->getT3xfilemd5(),
             $this->repositoryUid,

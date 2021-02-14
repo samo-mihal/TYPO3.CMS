@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Install\Tests\Unit\ExtensionScanner\Php;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Install\Tests\Unit\ExtensionScanner\Php;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Install\Tests\Unit\ExtensionScanner\Php;
 
 use PhpParser\NodeTraverser;
 use PhpParser\ParserFactory;
@@ -41,6 +43,6 @@ class CodeStatisticsTest extends UnitTestCase
 
         self::assertTrue($subject->isFileIgnored());
         self::assertEquals(2, $subject->getNumberOfIgnoredLines());
-        self::assertEquals(7, $subject->getNumberOfEffectiveCodeLines());
+        self::assertEquals(6, $subject->getNumberOfEffectiveCodeLines());
     }
 }

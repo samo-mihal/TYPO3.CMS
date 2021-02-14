@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Imaging;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,15 +13,20 @@ namespace TYPO3\CMS\Core\Imaging;
  * The TYPO3 project - inspiring people to share!
  */
 
-use Symfony\Component\Finder\Finder;
+namespace TYPO3\CMS\Core\Imaging;
+
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
+use TYPO3\CMS\Core\Cache\Frontend\VariableFrontend;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Exception;
 use TYPO3\CMS\Core\Imaging\IconProvider\BitmapIconProvider;
 use TYPO3\CMS\Core\Imaging\IconProvider\FontawesomeIconProvider;
 use TYPO3\CMS\Core\Imaging\IconProvider\SvgIconProvider;
+use TYPO3\CMS\Core\Imaging\IconProvider\SvgSpriteIconProvider;
+use TYPO3\CMS\Core\Information\Typo3Version;
 use TYPO3\CMS\Core\SingletonInterface;
+use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\StringUtility;
 
@@ -65,16 +69,9 @@ class IconRegistry implements SingletonInterface
     protected $icons = [];
 
     /**
-     * Paths to backend icon folders for automatic registration
-     *
-     * @var string[]
+     * @var string
      */
-    protected $backendIconPaths = [
-        'EXT:backend/Resources/Public/Icons/',
-        'EXT:core/Resources/Public/Icons/T3Icons/',
-        'EXT:impexp/Resources/Public/Icons/',
-        'EXT:install/Resources/Public/Icons/'
-    ];
+    protected $backendIconDeclaration = 'EXT:core/Resources/Public/Icons/T3Icons/icons.json';
 
     /**
      * List of allowed icon file extensions with their Provider class
@@ -382,6 +379,11 @@ class IconRegistry implements SingletonInterface
     ];
 
     /**
+     * @var array<string, string>
+     */
+    protected $iconAliases = [];
+
+    /**
      * Array of deprecated icons, add deprecated icons to this array and remove it from registry
      * - Index of this array contains the deprecated icon
      * - Value of each entry may contain a possible new identifier
@@ -409,8 +411,6 @@ class IconRegistry implements SingletonInterface
         'extensions-scheduler-run-task-cron' => 'actions-clock',
         'status-warning-lock' => 'warning-lock',
         'status-warning-in-use' => 'warning-in-use',
-        'status-status-reference-hard' => 'status-reference-hard',
-        'status-status-reference-soft' => 'status-reference-soft',
         'status-status-edit-read-only' => 'status-edit-read-only',
         't3-form-icon-advanced-password' => 'form-advanced-password',
         't3-form-icon-checkbox' => 'form-checkbox',
@@ -459,11 +459,17 @@ class IconRegistry implements SingletonInterface
      */
     public function __construct()
     {
+        if (ExtensionManagementUtility::isLoaded('impexp')) {
+            // ext:impexp is no required extension, the target items are located there.
+            // Register its deprecations only if impexp is loaded
+            $this->deprecatedIcons['status-status-reference-hard'] = 'status-reference-hard';
+            $this->deprecatedIcons['status-status-reference-soft'] = 'status-reference-soft';
+        }
         $this->initialize();
     }
 
     /**
-     * @param FrontendInterface $coreCache
+     * @param FrontendInterface $cache
      * @internal
      */
     public static function setCache(FrontendInterface $cache)
@@ -503,8 +509,8 @@ class IconRegistry implements SingletonInterface
      */
     protected function getCachedBackendIcons()
     {
-        $cacheIdentifier = 'BackendIcons_' . sha1(TYPO3_version . Environment::getProjectPath() . 'BackendIcons');
-        /** @var \TYPO3\CMS\Core\Cache\Frontend\VariableFrontend $assetsCache */
+        $cacheIdentifier = 'BackendIcons_' . sha1((string)(new Typo3Version()) . Environment::getProjectPath() . 'BackendIcons');
+        /** @var VariableFrontend $assetsCache */
         $assetsCache = static::$cache ?? GeneralUtility::makeInstance(CacheManager::class)->getCache('assets');
         $cacheEntry = $assetsCache->get($cacheIdentifier);
 
@@ -513,7 +519,7 @@ class IconRegistry implements SingletonInterface
         } else {
             $this->registerBackendIcons();
             // all found icons should now be present, for historic reasons now merge w/ the statically declared icons
-            $this->icons = array_merge($this->icons, $this->staticIcons);
+            $this->icons = array_merge($this->icons, $this->iconAliases, $this->staticIcons);
             $assetsCache->set($cacheIdentifier, $this->icons);
         }
         // if there's now at least one icon registered, consider it successful
@@ -525,41 +531,30 @@ class IconRegistry implements SingletonInterface
     /**
      * Automatically find and register the core backend icons
      */
-    protected function registerBackendIcons()
+    protected function registerBackendIcons(): void
     {
-        foreach ($this->backendIconPaths as $iconPath) {
-            $absoluteIconFolderPath = GeneralUtility::getFileAbsFileName($iconPath);
-            if ($absoluteIconFolderPath === '' || !is_readable($absoluteIconFolderPath)) {
-                // maybe EXT:path could not be resolved, then ignore
-                continue;
+        $dir = dirname($this->backendIconDeclaration);
+        $absoluteIconDeclarationPath = GeneralUtility::getFileAbsFileName($this->backendIconDeclaration);
+        $json = json_decode(file_get_contents($absoluteIconDeclarationPath), true);
+        foreach ($json['icons'] ?? [] as $declaration) {
+            $iconOptions = [
+                'sprite' => $dir . '/' . $declaration['sprite'],
+                'source' => $dir . '/' . $declaration['svg'],
+            ];
+            // kind of hotfix for now, needs a nicer concept later
+            if ($declaration['category'] === 'spinner') {
+                $iconOptions['spinning'] = true;
             }
 
-            $finder = new Finder();
-            $finder
-                ->files()
-                ->in($absoluteIconFolderPath)
-                ->name('/\.(' . implode('|', array_keys($this->backendIconAllowedExtensionsWithProvider)) . ')$/');
+            $this->registerIcon(
+                $declaration['identifier'],
+                SvgSpriteIconProvider::class,
+                $iconOptions
+            );
+        }
 
-            foreach ($finder as $iconFile) {
-                // ignore icons that are used as extension icon in extension manager
-                // @see ExtensionManagementUtility::getExtensionIcon()
-                if (strpos($iconFile->getRelativePathname(), 'Extension.') === 0) {
-                    continue;
-                }
-                $iconOptions = [
-                    'source' => $iconPath . GeneralUtility::fixWindowsFilePath($iconFile->getRelativePathname())
-                ];
-                // kind of hotfix for now, needs a nicer concept later
-                if (strpos($iconFile->getFilename(), 'spinner') === 0) {
-                    $iconOptions['spinning'] = true;
-                }
-
-                $this->registerIcon(
-                    $iconFile->getBasename('.' . $iconFile->getExtension()),
-                    $this->backendIconAllowedExtensionsWithProvider[$iconFile->getExtension()],
-                    $iconOptions
-                );
-            }
+        foreach ($json['aliases'] as $alias => $identifier) {
+            $this->registerAlias($alias, $identifier);
         }
     }
 
@@ -611,6 +606,22 @@ class IconRegistry implements SingletonInterface
             'provider' => $iconProviderClassName,
             'options' => $options
         ];
+    }
+
+    /**
+     * Registers an icon to be available inside the Icon Factory
+     *
+     * @param string $alias
+     * @param string $identifier
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function registerAlias($alias, $identifier)
+    {
+        if (!isset($this->icons[$identifier])) {
+            throw new \InvalidArgumentException('No icon with identifier "' . $identifier . '" registered.', 1602251838);
+        }
+        $this->iconAliases[$alias] = $this->icons[$identifier];
     }
 
     /**
@@ -723,7 +734,7 @@ class IconRegistry implements SingletonInterface
             $this->initialize();
         }
 
-        return sha1(json_encode($this->icons));
+        return sha1((string)json_encode($this->icons));
     }
 
     /**
@@ -808,7 +819,7 @@ class IconRegistry implements SingletonInterface
             'HK', 'HM', 'HN', 'HR', 'HT', 'HU',
             'ID', 'IE', 'IL', 'IM', 'IN', 'IO', 'IQ', 'IR', 'IS', 'IT',
             'JE', 'JM', 'JO', 'JP',
-            'KE', 'KG', 'KH', 'KI', 'KM', 'KN', 'KP', 'KR', 'KW', 'KY', 'KZ',
+            'KE', 'KG', 'KH', 'KI', 'KL', 'KM', 'KN', 'KP', 'KR', 'KW', 'KY', 'KZ',
             'LA', 'LB', 'LC', 'LI', 'LK', 'LR', 'LS', 'LT', 'LU', 'LV', 'LY',
             'MA', 'MC', 'MD', 'ME', 'MF', 'MG', 'MH', 'MI', 'MK', 'ML', 'MM', 'MN', 'MO', 'MP', 'MQ', 'MR', 'MS', 'MT', 'MU', 'MV', 'MW', 'MX', 'MY', 'MZ',
             'NA', 'NC', 'NE', 'NF', 'NG', 'NI', 'NL', 'NO', 'NP', 'NR', 'NU', 'NZ',

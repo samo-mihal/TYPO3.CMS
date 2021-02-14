@@ -1,4 +1,5 @@
 <?php
+
 return [
     'ctrl' => [
         'label' => 'groupName',
@@ -17,9 +18,6 @@ return [
             'disabled' => 'hidden'
         ],
         'searchFields' => 'groupName'
-    ],
-    'interface' => [
-        'showRecordFieldList' => 'hidden,groupName'
     ],
     'columns' => [
         'groupName' => [

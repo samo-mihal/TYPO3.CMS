@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Extbase\Persistence\Generic\Mapper;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Extbase\Persistence\Generic\Mapper;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Extbase\Persistence\Generic\Mapper;
 
 use TYPO3\CMS\Core\DataHandling\TableColumnSubType;
 use TYPO3\CMS\Core\DataHandling\TableColumnType;

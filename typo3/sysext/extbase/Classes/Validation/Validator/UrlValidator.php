@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Extbase\Validation\Validator;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,8 @@ namespace TYPO3\CMS\Extbase\Validation\Validator;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Validation\Validator;
+
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -23,7 +25,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 class UrlValidator extends AbstractValidator
 {
     /**
-     * Checks if the given value is a string.
+     * Checks if the given value is a valid url.
      *
      * @param mixed $value The value that should be validated
      */
@@ -34,7 +36,7 @@ class UrlValidator extends AbstractValidator
                 $this->translateErrorMessage(
                     'validator.url.notvalid',
                     'extbase'
-                ),
+                ) ?? '',
                 1238108078
             );
         }

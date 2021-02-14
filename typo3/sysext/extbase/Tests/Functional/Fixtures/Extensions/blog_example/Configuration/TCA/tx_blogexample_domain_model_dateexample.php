@@ -1,4 +1,5 @@
 <?php
+
 return [
     'ctrl' => [
         'title' => 'LLL:EXT:blog_example/Resources/Private/Language/locallang_db.xml:tx_blogexample_domain_model_dateexample',
@@ -11,9 +12,6 @@ return [
             'fe_group' => 'fe_group',
         ],
         'iconfile' => 'EXT:blog_example/Resources/Public/Icons/icon_tx_blogexample_domain_model_dateexample.gif'
-    ],
-    'interface' => [
-        'showRecordFieldList' => 'title, posts, administrator'
     ],
     'columns' => [
         'datetime_text' => [

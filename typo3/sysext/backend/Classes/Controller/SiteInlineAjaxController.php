@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Backend\Controller;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,8 @@ namespace TYPO3\CMS\Backend\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Controller;
+
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Configuration\SiteTcaConfiguration;
@@ -25,6 +27,7 @@ use TYPO3\CMS\Backend\Form\NodeFactory;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\HiddenRestriction;
 use TYPO3\CMS\Core\Http\JsonResponse;
+use TYPO3\CMS\Core\Localization\Locales;
 use TYPO3\CMS\Core\Utility\ArrayUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
@@ -96,6 +99,12 @@ class SiteInlineAjaxController extends AbstractFormEngineAjaxController
                 if (!empty($row['language_isocode'])) {
                     $defaultDatabaseRow['iso-639-1'] = $row['language_isocode'];
                     $defaultDatabaseRow['base'] = '/' . $row['language_isocode'] . '/';
+
+                    $locales = GeneralUtility::makeInstance(Locales::class);
+                    $allLanguages = $locales->getLanguages();
+                    if (isset($allLanguages[$row['language_isocode']])) {
+                        $defaultDatabaseRow['typo3Language'] = $row['language_isocode'];
+                    }
                 }
                 if (!empty($row['flag']) && $row['flag'] === 'multiple') {
                     $defaultDatabaseRow['flag'] = 'global';
@@ -343,10 +352,10 @@ class SiteInlineAjaxController extends AbstractFormEngineAjaxController
         if (empty($context['config'])) {
             throw new \RuntimeException('Empty context config section given', 1522771632);
         }
-        if (!hash_equals(GeneralUtility::hmac(json_encode($context['config']), 'InlineContext'), $context['hmac'])) {
+        if (!hash_equals(GeneralUtility::hmac((string)$context['config'], 'InlineContext'), (string)$context['hmac'])) {
             throw new \RuntimeException('Hash does not validate', 1522771640);
         }
-        return $context['config'];
+        return json_decode($context['config'], true);
     }
 
     /**

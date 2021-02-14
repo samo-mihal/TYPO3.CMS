@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Backend\Controller\Page;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Backend\Controller\Page;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Controller\Page;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -99,12 +101,46 @@ class TreeController
     protected $iconFactory;
 
     /**
+     * Number of tree levels which should be returned on the first page tree load
+     *
+     * @var int
+     */
+    protected $levelsToFetch = 2;
+
+    /**
+     * When set to true all nodes returend by API will be expanded
+     * @var bool
+     */
+    protected $expandAllNodes = false;
+
+    /**
      * Constructor to set up common objects needed in various places.
      */
     public function __construct()
     {
         $this->iconFactory = GeneralUtility::makeInstance(IconFactory::class);
-        $this->useNavTitle = (bool)($this->getBackendUser()->getTSConfig()['options.']['pageTree.']['showNavTitle'] ?? false);
+    }
+
+    protected function initializeConfiguration()
+    {
+        $userTsConfig = $this->getBackendUser()->getTSConfig();
+        $this->hiddenRecords = GeneralUtility::intExplode(
+            ',',
+            $userTsConfig['options.']['hideRecords.']['pages'] ?? '',
+            true
+        );
+        $this->backgroundColors = $userTsConfig['options.']['pageTree.']['backgroundColor.'] ?? [];
+        $this->addIdAsPrefix = (bool)($userTsConfig['options.']['pageTree.']['showPageIdWithTitle'] ?? false);
+        $this->addDomainName = (bool)($userTsConfig['options.']['pageTree.']['showDomainNameWithTitle'] ?? false);
+        $this->useNavTitle = (bool)($userTsConfig['options.']['pageTree.']['showNavTitle'] ?? false);
+        $this->showMountPathAboveMounts = (bool)($userTsConfig['options.']['pageTree.']['showPathAboveMounts'] ?? false);
+        $backendUserConfiguration = GeneralUtility::makeInstance(BackendUserConfiguration::class);
+        $this->expandedState = $backendUserConfiguration->get('BackendComponents.States.Pagetree');
+        if (is_object($this->expandedState) && is_object($this->expandedState->stateHash)) {
+            $this->expandedState = (array)$this->expandedState->stateHash;
+        } else {
+            $this->expandedState = $this->expandedState['stateHash'] ?: [];
+        }
     }
 
     /**
@@ -116,6 +152,7 @@ class TreeController
     {
         $configuration = [
             'allowRecursiveDelete' => !empty($this->getBackendUser()->uc['recursiveDelete']),
+            'allowDragMove' => $this->isDragMoveAllowed(),
             'doktypes' => $this->getDokTypes(),
             'displayDeleteConfirmation' => $this->getBackendUser()->jsConfirmation(JsConfirmation::DELETE),
             'temporaryMountPoint' => $this->getMountPointPath((int)($this->getBackendUser()->uc['pageTree_temporaryMountPoint'] ?? 0)),
@@ -143,6 +180,7 @@ class TreeController
             $doktypeLabelMap[$doktypeItemConfig[1]] = $doktypeItemConfig[0];
         }
         $doktypes = GeneralUtility::intExplode(',', $backendUser->getTSConfig()['options.']['pageTree.']['doktypesToShowInNewPageDragArea'] ?? '', true);
+        $doktypes = array_unique($doktypes);
         $output = [];
         $allowedDoktypes = GeneralUtility::intExplode(',', $backendUser->groupData['pagetypes_select'], true);
         $isAdmin = $backendUser->isAdmin();
@@ -173,29 +211,51 @@ class TreeController
      */
     public function fetchDataAction(ServerRequestInterface $request): ResponseInterface
     {
-        $userTsConfig = $this->getBackendUser()->getTSConfig();
-        $this->hiddenRecords = GeneralUtility::intExplode(',', $userTsConfig['options.']['hideRecords.']['pages'] ?? '', true);
-        $this->backgroundColors = $userTsConfig['options.']['pageTree.']['backgroundColor.'] ?? [];
-        $this->addIdAsPrefix = (bool)($userTsConfig['options.']['pageTree.']['showPageIdWithTitle'] ?? false);
-        $this->addDomainName = (bool)($userTsConfig['options.']['pageTree.']['showDomainNameWithTitle'] ?? false);
-        $this->showMountPathAboveMounts = (bool)($userTsConfig['options.']['pageTree.']['showPathAboveMounts'] ?? false);
-        $backendUserConfiguration = GeneralUtility::makeInstance(BackendUserConfiguration::class);
-        $this->expandedState = $backendUserConfiguration->get('BackendComponents.States.Pagetree');
-        if (is_object($this->expandedState) && is_object($this->expandedState->stateHash)) {
-            $this->expandedState = (array)$this->expandedState->stateHash;
-        } else {
-            $this->expandedState = $this->expandedState['stateHash'] ?: [];
-        }
+        $this->initializeConfiguration();
 
-        // Fetching a part of a pagetree
+        $items = [];
         if (!empty($request->getQueryParams()['pid'])) {
-            $entryPoints = [(int)$request->getQueryParams()['pid']];
+            // Fetching a part of a page tree
+            $entryPoints = $this->getAllEntryPointPageTrees((int)$request->getQueryParams()['pid']);
+            $mountPid = (int)($request->getQueryParams()['mount'] ?? 0);
+            $parentDepth = (int)($request->getQueryParams()['pidDepth'] ?? 0);
+            $this->levelsToFetch = $parentDepth + $this->levelsToFetch;
+            foreach ($entryPoints as $page) {
+                $items = array_merge($items, $this->pagesToFlatArray($page, $mountPid, $parentDepth));
+            }
         } else {
             $entryPoints = $this->getAllEntryPointPageTrees();
+            foreach ($entryPoints as $page) {
+                $items = array_merge($items, $this->pagesToFlatArray($page, (int)$page['uid']));
+            }
         }
+
+        return new JsonResponse($items);
+    }
+
+    /**
+     * Returns JSON representing page tree filtered by keyword
+     *
+     * @param ServerRequestInterface $request
+     * @return ResponseInterface
+     */
+    public function filterDataAction(ServerRequestInterface $request): ResponseInterface
+    {
+        $searchQuery = $request->getQueryParams()['q'] ?? '';
+        if (trim($searchQuery) === '') {
+            return new JsonResponse([]);
+        }
+
+        $this->initializeConfiguration();
+        $this->expandAllNodes = true;
+
         $items = [];
+        $entryPoints = $this->getAllEntryPointPageTrees(0, $searchQuery);
+
         foreach ($entryPoints as $page) {
-            $items = array_merge($items, $this->pagesToFlatArray($page, (int)$page['uid']));
+            if (!empty($page)) {
+                $items = array_merge($items, $this->pagesToFlatArray($page, (int)$page['uid']));
+            }
         }
 
         return new JsonResponse($items);
@@ -238,14 +298,21 @@ class TreeController
      */
     protected function pagesToFlatArray(array $page, int $entryPoint, int $depth = 0, array $inheritedData = []): array
     {
+        $backendUser = $this->getBackendUser();
         $pageId = (int)$page['uid'];
         if (in_array($pageId, $this->hiddenRecords, true)) {
+            return [];
+        }
+        if ($pageId === 0 && !$backendUser->isAdmin()) {
             return [];
         }
 
         $stopPageTree = !empty($page['php_tree_stop']) && $depth > 0;
         $identifier = $entryPoint . '_' . $pageId;
-        $expanded = !empty($page['expanded']) || (isset($this->expandedState[$identifier]) && $this->expandedState[$identifier]);
+        $expanded = !empty($page['expanded'])
+            || (isset($this->expandedState[$identifier]) && $this->expandedState[$identifier])
+            || $this->expandAllNodes;
+
         $backgroundColor = !empty($this->backgroundColors[$pageId]) ? $this->backgroundColors[$pageId] : ($inheritedData['backgroundColor'] ?? '');
 
         $suffix = '';
@@ -294,10 +361,17 @@ class TreeController
             'workspaceId' => !empty($page['t3ver_oid']) ? $page['t3ver_oid'] : $pageId,
             'siblingsCount' => $page['siblingsCount'] ?? 1,
             'siblingsPosition' => $page['siblingsPosition'] ?? 1,
+            'allowDelete' => $backendUser->doesUserHaveAccess($page, Permission::PAGE_DELETE),
+            'allowEdit' => $backendUser->doesUserHaveAccess($page, Permission::PAGE_EDIT)
+                && $backendUser->check('tables_modify', 'pages')
+                && $backendUser->checkLanguageAccess(0)
         ];
 
-        if (!empty($page['_children'])) {
+        if (!empty($page['_children']) || $this->getPageTreeRepository()->hasChildren($pageId)) {
             $item['hasChildren'] = true;
+            if ($depth >= $this->levelsToFetch) {
+                $page = $this->getPageTreeRepository()->getTreeLevels($page, 1);
+            }
         }
         if (!empty($prefix)) {
             $item['prefix'] = htmlspecialchars($prefix);
@@ -311,7 +385,7 @@ class TreeController
         if ($icon->getOverlayIcon()) {
             $item['overlayIcon'] = $icon->getOverlayIcon()->getIdentifier();
         }
-        if ($expanded) {
+        if ($expanded && is_array($page['_children']) && !empty($page['_children'])) {
             $item['expanded'] = $expanded;
         }
         if ($backgroundColor) {
@@ -333,9 +407,10 @@ class TreeController
         }
 
         $items[] = $item;
-        if (!$stopPageTree && is_array($page['_children'])) {
+        if (!$stopPageTree && is_array($page['_children']) && !empty($page['_children']) && ($depth < $this->levelsToFetch || $expanded)) {
             $siblingsCount = count($page['_children']);
             $siblingsPosition = 0;
+            $items[key($items)]['loaded'] = true;
             foreach ($page['_children'] as $child) {
                 $child['siblingsCount'] = $siblingsCount;
                 $child['siblingsPosition'] = ++$siblingsPosition;
@@ -345,74 +420,110 @@ class TreeController
         return $items;
     }
 
-    /**
-     * Fetches all entry points for the page tree that the user is allowed to see
-     *
-     * @return array
-     */
-    protected function getAllEntryPointPageTrees(): array
+    protected function getPageTreeRepository(): PageTreeRepository
     {
         $backendUser = $this->getBackendUser();
-
-        $userTsConfig = $this->getBackendUser()->getTSConfig();
+        $userTsConfig = $backendUser->getTSConfig();
         $excludedDocumentTypes = GeneralUtility::intExplode(',', $userTsConfig['options.']['pageTree.']['excludeDoktypes'] ?? '', true);
 
-        $additionalPageTreeQueryRestrictions = [];
+        $additionalQueryRestrictions = [];
         if (!empty($excludedDocumentTypes)) {
-            foreach ($excludedDocumentTypes as $excludedDocumentType) {
-                $additionalPageTreeQueryRestrictions[] = new DocumentTypeExclusionRestriction((int)$excludedDocumentType);
-            }
+            $additionalQueryRestrictions[] = GeneralUtility::makeInstance(DocumentTypeExclusionRestriction::class, $excludedDocumentTypes);
         }
 
-        $repository = GeneralUtility::makeInstance(PageTreeRepository::class, (int)$backendUser->workspace, [], $additionalPageTreeQueryRestrictions);
+        return GeneralUtility::makeInstance(
+            PageTreeRepository::class,
+            (int)$backendUser->workspace,
+            [],
+            $additionalQueryRestrictions
+        );
+    }
 
-        $entryPoints = (int)($backendUser->uc['pageTree_temporaryMountPoint'] ?? 0);
-        if ($entryPoints > 0) {
-            $entryPoints = [$entryPoints];
+    /**
+     * Fetches all pages for all tree entry points the user is allowed to see
+     *
+     * @param int $startPid
+     * @param string $query The search query can either be a string to be found in the title or the nav_title of a page or the uid of a page.
+     * @return array
+     */
+    protected function getAllEntryPointPageTrees(int $startPid = 0, string $query = ''): array
+    {
+        $backendUser = $this->getBackendUser();
+        $entryPointId = $startPid > 0 ? $startPid : (int)($backendUser->uc['pageTree_temporaryMountPoint'] ?? 0);
+        if ($entryPointId > 0) {
+            $entryPointIds = [$entryPointId];
         } else {
-            $entryPoints = array_map('intval', $backendUser->returnWebmounts());
-            $entryPoints = array_unique($entryPoints);
-            if (empty($entryPoints)) {
+            //watch out for deleted pages returned as webmount
+            $entryPointIds = array_map('intval', $backendUser->returnWebmounts());
+            $entryPointIds = array_unique($entryPointIds);
+            if (empty($entryPointIds)) {
                 // use a virtual root
                 // the real mount points will be fetched in getNodes() then
                 // since those will be the "sub pages" of the virtual root
-                $entryPoints = [0];
+                $entryPointIds = [0];
             }
         }
-        if (empty($entryPoints)) {
+        if (empty($entryPointIds)) {
             return [];
         }
+        $repository = $this->getPageTreeRepository();
 
-        foreach ($entryPoints as $k => &$entryPoint) {
-            if (in_array($entryPoint, $this->hiddenRecords, true)) {
-                unset($entryPoints[$k]);
+        $permClause = $this->getBackendUser()->getPagePermsClause(Permission::PAGE_SHOW);
+        if ($query !== '') {
+            $this->levelsToFetch = 999;
+            $repository->fetchFilteredTree(
+                $query,
+                $this->getAllowedMountPoints(),
+                $permClause
+            );
+        }
+
+        $entryPointRecords = [];
+        foreach ($entryPointIds as $k => $entryPointId) {
+            if (in_array($entryPointId, $this->hiddenRecords, true)) {
                 continue;
             }
 
             if (!empty($this->backgroundColors) && is_array($this->backgroundColors)) {
                 try {
-                    $entryPointRootLine = GeneralUtility::makeInstance(RootlineUtility::class, $entryPoint)->get();
+                    $entryPointRootLine = GeneralUtility::makeInstance(RootlineUtility::class, $entryPointId)->get();
                 } catch (RootLineException $e) {
                     $entryPointRootLine = [];
                 }
                 foreach ($entryPointRootLine as $rootLineEntry) {
                     $parentUid = $rootLineEntry['uid'];
-                    if (!empty($this->backgroundColors[$parentUid]) && empty($this->backgroundColors[$entryPoint])) {
-                        $this->backgroundColors[$entryPoint] = $this->backgroundColors[$parentUid];
+                    if (!empty($this->backgroundColors[$parentUid]) && empty($this->backgroundColors[$entryPointId])) {
+                        $this->backgroundColors[$entryPointId] = $this->backgroundColors[$parentUid];
                     }
                 }
             }
+            if ($entryPointId === 0) {
+                $entryPointRecord = [
+                    'uid' => 0,
+                    'title' => $GLOBALS['TYPO3_CONF_VARS']['SYS']['sitename'] ?: 'TYPO3'
+                ];
+            } else {
+                $entryPointRecord = BackendUtility::getRecordWSOL('pages', $entryPointId, '*', $permClause);
 
-            $entryPoint = $repository->getTree($entryPoint, function ($page) use ($backendUser) {
-                // check each page if the user has permission to access it
-                return $backendUser->doesUserHaveAccess($page, Permission::PAGE_SHOW);
-            });
-            if (!is_array($entryPoint)) {
-                unset($entryPoints[$k]);
+                if ($entryPointRecord !== null && !$this->getBackendUser()->isInWebMount($entryPointId)) {
+                    $entryPointRecord = null;
+                }
+            }
+            if ($entryPointRecord) {
+                $entryPointRecord['uid'] = (int)$entryPointRecord['uid'];
+                if ($query === '') {
+                    $entryPointRecord = $repository->getTreeLevels($entryPointRecord, $this->levelsToFetch);
+                } else {
+                    $entryPointRecord = $repository->getTree((int)$entryPointRecord['uid'], null, $entryPointIds, true);
+                }
+            }
+
+            if (is_array($entryPointRecord) && !empty($entryPointRecord)) {
+                $entryPointRecords[$k] = $entryPointRecord;
             }
         }
 
-        return $entryPoints;
+        return $entryPointRecords;
     }
 
     /**
@@ -489,6 +600,33 @@ class TreeController
         }
 
         return implode(' ', $classes);
+    }
+
+    /**
+     * Check if drag-move in the svg tree is allowed for the user
+     *
+     * @return bool
+     */
+    protected function isDragMoveAllowed(): bool
+    {
+        $backendUser = $this->getBackendUser();
+        return $backendUser->isAdmin()
+            || ($backendUser->check('tables_modify', 'pages') && $backendUser->checkLanguageAccess(0));
+    }
+
+    /**
+     * Get allowed mountpoints. Returns temporary mountpoint when temporary mountpoint is used.
+     *
+     * @return int[]
+     */
+    protected function getAllowedMountPoints(): array
+    {
+        $mountPoints = (int)($this->getBackendUser()->uc['pageTree_temporaryMountPoint'] ?? 0);
+        if (!$mountPoints) {
+            $mountPoints = array_map('intval', $this->getBackendUser()->returnWebmounts());
+            return array_unique($mountPoints);
+        }
+        return [$mountPoints];
     }
 
     /**

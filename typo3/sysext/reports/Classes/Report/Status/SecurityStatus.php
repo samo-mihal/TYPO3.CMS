@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Reports\Report\Status;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,13 +15,17 @@ namespace TYPO3\CMS\Reports\Report\Status;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Reports\Report\Status;
+
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
+use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Crypto\PasswordHashing\InvalidPasswordHashException;
 use TYPO3\CMS\Core\Crypto\PasswordHashing\PasswordHashFactory;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Localization\LanguageService;
+use TYPO3\CMS\Core\Resource\Security\FileNameValidator;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Reports\RequestAwareStatusProviderInterface;
 use TYPO3\CMS\Reports\Status as ReportStatus;
@@ -49,6 +53,7 @@ class SecurityStatus implements RequestAwareStatusProviderInterface
             'adminUserAccount' => $this->getAdminAccountStatus(),
             'fileDenyPattern' => $this->getFileDenyPatternStatus(),
             'htaccessUpload' => $this->getHtaccessUploadStatus(),
+            'exceptionHandler' => $this->getExceptionHandlerStatus()
         ];
 
         if ($request !== null) {
@@ -200,16 +205,14 @@ class SecurityStatus implements RequestAwareStatusProviderInterface
         $value = $this->getLanguageService()->getLL('status_ok');
         $message = '';
         $severity = ReportStatus::OK;
-        $defaultParts = GeneralUtility::trimExplode('|', FILE_DENY_PATTERN_DEFAULT, true);
-        $givenParts = GeneralUtility::trimExplode('|', $GLOBALS['TYPO3_CONF_VARS']['BE']['fileDenyPattern'], true);
-        $result = array_intersect($defaultParts, $givenParts);
 
-        if ($defaultParts !== $result) {
+        $fileAccessCheck = GeneralUtility::makeInstance(FileNameValidator::class);
+        if ($fileAccessCheck->missingImportantPatterns()) {
             $value = $this->getLanguageService()->getLL('status_insecure');
             $severity = ReportStatus::ERROR;
             $message = sprintf(
                 $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:warning.file_deny_pattern_partsNotPresent'),
-                '<br /><pre>' . htmlspecialchars(FILE_DENY_PATTERN_DEFAULT) . '</pre><br />'
+                '<br /><pre>' . htmlspecialchars($fileAccessCheck::DEFAULT_FILE_DENY_PATTERN) . '</pre><br />'
             );
         }
 
@@ -228,14 +231,34 @@ class SecurityStatus implements RequestAwareStatusProviderInterface
         $message = '';
         $severity = ReportStatus::OK;
 
-        if ($GLOBALS['TYPO3_CONF_VARS']['BE']['fileDenyPattern'] != FILE_DENY_PATTERN_DEFAULT
-            && GeneralUtility::verifyFilenameAgainstDenyPattern('.htaccess')) {
+        $fileNameAccess = GeneralUtility::makeInstance(FileNameValidator::class);
+        if ($fileNameAccess->customFileDenyPatternConfigured()
+            && $fileNameAccess->isValid('.htaccess')) {
             $value = $this->getLanguageService()->getLL('status_insecure');
             $severity = ReportStatus::ERROR;
             $message = $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:warning.file_deny_htaccess');
         }
 
         return GeneralUtility::makeInstance(ReportStatus::class, $this->getLanguageService()->getLL('status_htaccessUploadProtection'), $value, $message, $severity);
+    }
+
+    protected function getExceptionHandlerStatus(): ReportStatus
+    {
+        $value = $this->getLanguageService()->getLL('status_ok');
+        $message = '';
+        $severity = ReportStatus::OK;
+        if (
+            strpos($GLOBALS['TYPO3_CONF_VARS']['SYS']['productionExceptionHandler'], 'Debug') !== false ||
+            (Environment::getContext()->isProduction() && (int)$GLOBALS['TYPO3_CONF_VARS']['SYS']['displayErrors'] === 1)
+        ) {
+            $value = $this->getLanguageService()->getLL('status_insecure');
+            $severity = ReportStatus::ERROR;
+            $message = $this->getLanguageService()->getLL('status_exceptionHandler_errorMessage');
+        } elseif ((int)$GLOBALS['TYPO3_CONF_VARS']['SYS']['displayErrors'] === 1) {
+            $severity = ReportStatus::WARNING;
+            $message = $this->getLanguageService()->getLL('status_exceptionHandler_warningMessage');
+        }
+        return GeneralUtility::makeInstance(ReportStatus::class, $this->getLanguageService()->getLL('status_exceptionHandler'), $value, $message, $severity);
     }
 
     /**

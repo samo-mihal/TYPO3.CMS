@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Acceptance\Install\Sqlite;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Acceptance\Install\Sqlite;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Acceptance\Install\Sqlite;
 
 use Codeception\Scenario;
 use TYPO3\CMS\Core\Tests\Acceptance\Install\AbstractIntroductionPackage;
@@ -60,9 +62,8 @@ class IntroductionPackageCest extends AbstractIntroductionPackage
         $I->fillField('#t3-username', 'admin');
         $I->fillField('#t3-password', 'password');
         $I->click('#t3-login-submit-section > button');
-        $I->waitForElement('.nav', 30);
+        $I->waitForElement('.modulemenu', 30);
         $I->waitForElement('.scaffold-content iframe', 30);
-        $I->seeCookie('be_lastLoginProvider');
         $I->seeCookie('be_typo_user');
 
         // Loading might take some time

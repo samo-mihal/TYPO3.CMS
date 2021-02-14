@@ -1,4 +1,5 @@
 <?php
+
 return [
     'ctrl' => [
         'label' => 'title',
@@ -18,9 +19,6 @@ return [
         ],
         'useColumnsForDefaultValues' => 'lockToDomain',
         'searchFields' => 'title,description'
-    ],
-    'interface' => [
-        'showRecordFieldList' => 'title,hidden,subgroup,lockToDomain,description'
     ],
     'columns' => [
         'hidden' => [

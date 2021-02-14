@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Frontend\Utility;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,13 +13,17 @@ namespace TYPO3\CMS\Frontend\Utility;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Frontend\Utility;
+
+use TYPO3\CMS\Core\SingletonInterface;
+
 /**
  * This class contains compression functions for the TYPO3 Frontend. It can be
  * used only in EXT:frontend/Classes/Http/RequestHandler.php
  *
  * @internal this is an internal TYPO3 implementation and solely used for EXT:frontend and not part of TYPO3's Core API.
  */
-class CompressionUtility implements \TYPO3\CMS\Core\SingletonInterface
+class CompressionUtility implements SingletonInterface
 {
     /**
      * Accumulates content length for the compressed content. It is necessary to

@@ -1,11 +1,9 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\ViewHelpers\Form;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
- *
- * It originated from the Neos.Form package (www.neos.io)
  *
  * It is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, either version 2
@@ -17,9 +15,18 @@ namespace TYPO3\CMS\Form\ViewHelpers\Form;
  * The TYPO3 project - inspiring people to share!
  */
 
+/*
+ * Inspired by and partially taken from the Neos.Form package (www.neos.io)
+ */
+
+namespace TYPO3\CMS\Form\ViewHelpers\Form;
+
 use TYPO3\CMS\Core\Page\PageRenderer;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\StringUtility;
+use TYPO3\CMS\Extbase\Property\PropertyMapper;
 use TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormFieldViewHelper;
+use TYPO3\CMS\Form\Domain\Runtime\FormRuntime;
 use TYPO3\CMS\Form\ViewHelpers\RenderRenderableViewHelper;
 
 /**
@@ -46,7 +53,7 @@ class DatePickerViewHelper extends AbstractFormFieldViewHelper
      * @param \TYPO3\CMS\Extbase\Property\PropertyMapper $propertyMapper
      * @internal
      */
-    public function injectPropertyMapper(\TYPO3\CMS\Extbase\Property\PropertyMapper $propertyMapper)
+    public function injectPropertyMapper(PropertyMapper $propertyMapper)
     {
         $this->propertyMapper = $propertyMapper;
     }
@@ -88,7 +95,7 @@ class DatePickerViewHelper extends AbstractFormFieldViewHelper
         if ($this->hasArgument('id')) {
             $id = $this->arguments['id'];
         } else {
-            $id = 'field' . md5(uniqid());
+            $id = 'field' . md5(StringUtility::getUniqueId());
         }
 
         if (empty($placeholder)) {
@@ -112,7 +119,7 @@ class DatePickerViewHelper extends AbstractFormFieldViewHelper
         $this->setErrorClassAttribute();
         $content = '';
         $content .= $this->tag->render();
-        $content .= '<input type="hidden" name="' . $name . '[dateFormat]" value="' . htmlspecialchars($dateFormat) . '" />';
+        $content .= '<input type="hidden" name="' . htmlspecialchars($name) . '[dateFormat]" value="' . htmlspecialchars($dateFormat) . '" />';
 
         return $content;
     }
@@ -141,6 +148,8 @@ class DatePickerViewHelper extends AbstractFormFieldViewHelper
         if ($this->hasArgument('initialDate')) {
             return new \DateTime($this->arguments['initialDate']);
         }
+
+        return null;
     }
 
     /**

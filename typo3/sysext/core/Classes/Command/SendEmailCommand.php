@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Command;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Command;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Command;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -52,7 +54,7 @@ class SendEmailCommand extends Command
      *
      * @param InputInterface $input
      * @param OutputInterface $output
-     * @return int|void|null
+     * @return int
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
@@ -74,9 +76,11 @@ class SendEmailCommand extends Command
             }
             $sent = $transport->flushQueue($mailer->getRealTransport());
             $io->comment($sent . ' emails sent');
-        } else {
-            $io->error('The Mailer Transport is not set to "spool".');
+            return 0;
         }
+        $io->error('The Mailer Transport is not set to "spool".');
+
+        return 1;
     }
 
     /**

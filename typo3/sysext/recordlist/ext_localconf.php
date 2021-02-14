@@ -1,4 +1,5 @@
 <?php
+
 defined('TYPO3_MODE') or die();
 
 // Register element browsers
@@ -23,25 +24,25 @@ $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['ElementBrowsers']['folder'] = \TYPO3\
         folder {
             handler = TYPO3\\CMS\\Recordlist\\LinkHandler\\FolderLinkHandler
             label = LLL:EXT:recordlist/Resources/Private/Language/locallang_browse_links.xlf:folder
-            displayAfter = file
-            scanAfter = file
+            displayAfter = page,file
+            scanAfter = page,file
         }
         url {
             handler = TYPO3\\CMS\\Recordlist\\LinkHandler\\UrlLinkHandler
             label = LLL:EXT:recordlist/Resources/Private/Language/locallang_browse_links.xlf:extUrl
-            displayAfter = folder
+            displayAfter = page,file,folder
             scanAfter = telephone
         }
         mail {
             handler = TYPO3\\CMS\\Recordlist\\LinkHandler\\MailLinkHandler
             label = LLL:EXT:recordlist/Resources/Private/Language/locallang_browse_links.xlf:email
-            displayAfter = url
+            displayAfter = page,file,folder,url
             scanBefore = url
         }
         telephone {
             handler = TYPO3\\CMS\\Recordlist\\LinkHandler\\TelephoneLinkHandler
             label = LLL:EXT:recordlist/Resources/Private/Language/locallang_browse_links.xlf:telephone
-            displayAfter = mail
+            displayAfter = page,file,folder,url,mail
             scanBefore = url
         }
     }

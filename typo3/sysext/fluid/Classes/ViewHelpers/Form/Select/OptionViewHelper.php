@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\ViewHelpers\Form\Select;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,12 +12,16 @@ namespace TYPO3\CMS\Fluid\ViewHelpers\Form\Select;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Fluid\ViewHelpers\Form\Select;
+
+use TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormFieldViewHelper;
 use TYPO3\CMS\Fluid\ViewHelpers\Form\SelectViewHelper;
 
 /**
  * Adds custom :html:`<option>` tags inside an :ref:`<f:form.select> <typo3-fluid-form-select>`.
  */
-class OptionViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormFieldViewHelper
+class OptionViewHelper extends AbstractFormFieldViewHelper
 {
     /**
      * @var string
@@ -42,14 +45,14 @@ class OptionViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormFie
      */
     public function render()
     {
-        if ($this->arguments['selected'] ?? $this->isValueSelected($this->arguments['value'])) {
-            $this->tag->addAttribute('selected', 'selected');
-        }
         $childContent = $this->renderChildren();
         $this->tag->setContent($childContent);
         $value = $this->arguments['value'] ?? $childContent;
+        if ($this->arguments['selected'] ?? $this->isValueSelected((string)$value)) {
+            $this->tag->addAttribute('selected', 'selected');
+        }
         $this->tag->addAttribute('value', $value);
-        $parentRequestedFormTokenFieldName = $this->viewHelperVariableContainer->get(
+        $parentRequestedFormTokenFieldName = $this->renderingContext->getViewHelperVariableContainer()->get(
             SelectViewHelper::class,
             'registerFieldNameForFormTokenGeneration'
         );
@@ -63,18 +66,18 @@ class OptionViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormFie
     }
 
     /**
-     * @param mixed $value
+     * @param string $value
      * @return bool
      */
-    protected function isValueSelected($value)
+    protected function isValueSelected(string $value): bool
     {
-        $selectedValue = $this->viewHelperVariableContainer->get(SelectViewHelper::class, 'selectedValue');
+        $selectedValue = $this->renderingContext->getViewHelperVariableContainer()->get(SelectViewHelper::class, 'selectedValue');
         if (is_array($selectedValue)) {
-            return in_array($value, $selectedValue);
+            return in_array($value, $selectedValue, true);
         }
         if ($selectedValue instanceof \Iterator) {
-            return in_array($value, iterator_to_array($selectedValue));
+            return in_array($value, iterator_to_array($selectedValue), true);
         }
-        return $value == $selectedValue;
+        return $value === $selectedValue;
     }
 }

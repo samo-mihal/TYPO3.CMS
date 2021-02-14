@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Type\Bitmask;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Type\Bitmask;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Type\Bitmask;
 
 use TYPO3\CMS\Core\Type\Enumeration;
 
@@ -55,4 +56,26 @@ final class Permission extends Enumeration
      * @var int
      */
     const ALL = 31;
+
+    /**
+     * Permission mapping
+     * Used for instance in PageTS
+     *
+     * @return array
+     * @internal
+     */
+    public static function getMap(): array
+    {
+        return [
+            'show' => static::PAGE_SHOW,
+            // 1st bit
+            'edit' => static::PAGE_EDIT,
+            // 2nd bit
+            'delete' => static::PAGE_DELETE,
+            // 3rd bit
+            'new' => static::PAGE_NEW,
+            // 4th bit
+            'editcontent' => static::CONTENT_EDIT
+        ];
+    }
 }

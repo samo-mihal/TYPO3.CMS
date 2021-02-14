@@ -1,4 +1,5 @@
 <?php
+
 return [
     // Removed methods
     'TYPO3\CMS\Backend\Utility\BackendUtility::getAjaxUrl' => [
@@ -840,20 +841,6 @@ return [
             'Breaking-87193-DeprecatedFunctionalityRemoved.rst',
         ],
     ],
-    'TYPO3\CMS\Extbase\Utility\ExtensionUtility::configurePlugin' => [
-        'numberOfMandatoryArguments' => 3,
-        'maximumNumberOfArguments' => 5,
-        'restFiles' => [
-            'Deprecation-87550-UseControllerClassesWhenRegisteringPluginsmodules.rst',
-        ],
-    ],
-    'TYPO3\CMS\Extbase\Utility\ExtensionUtility::registerModule' => [
-        'numberOfMandatoryArguments' => 1,
-        'maximumNumberOfArguments' => 6,
-        'restFiles' => [
-            'Deprecation-87550-UseControllerClassesWhenRegisteringPluginsmodules.rst',
-        ],
-    ],
     'TYPO3\CMS\Extbase\Reflection\ObjectAccess::buildSetterMethodName' => [
         'numberOfMandatoryArguments' => 1,
         'maximumNumberOfArguments' => 1,
@@ -931,13 +918,6 @@ return [
             'Deprecation-88787-BackendUtilityEditOnClick.rst'
         ],
     ],
-    'TYPO3\CMS\Extbase\Utility\ExtensionUtility::registerPlugin' => [
-        'numberOfMandatoryArguments' => 3,
-        'maximumNumberOfArguments' => 4,
-        'restFiles' => [
-            'Deprecation-88995-CallingRegisterPluginWithVendorName.rst'
-        ],
-    ],
     'TYPO3\CMS\Core\Utility\GeneralUtility::getApplicationContext' => [
         'numberOfMandatoryArguments' => 0,
         'maximumNumberOfArguments' => 0,
@@ -957,6 +937,69 @@ return [
         'maximumNumberOfArguments' => 0,
         'restFiles' => [
             'Deprecation-89756-BackendUtilityTYPO3_copyRightNotice.rst',
+        ],
+    ],
+    'TYPO3\CMS\Core\Resource\ResourceFactory::getInstance' => [
+        'numberOfMandatoryArguments' => 0,
+        'maximumNumberOfArguments' => 0,
+        'restFiles' => [
+            'Deprecation-90260-ResourceFactorygetInstancePseudo-factory.rst',
+        ],
+    ],
+    'TYPO3\CMS\Core\Utility\GeneralUtility::isRunningOnCgiServerApi' => [
+        'numberOfMandatoryArguments' => 0,
+        'maximumNumberOfArguments' => 0,
+        'restFiles' => [
+            'Deprecation-90800-GeneralUtilityisRunningOnCgiServerApi.rst',
+        ],
+    ],
+    'TYPO3\CMS\Core\Utility\GeneralUtility::verifyFilenameAgainstDenyPattern' => [
+        'numberOfMandatoryArguments' => 1,
+        'maximumNumberOfArguments' => 1,
+        'restFiles' => [
+            'Deprecation-90147-UnifiedFileNameValidator.rst'
+        ],
+    ],
+    'TYPO3\CMS\Core\Utility\GeneralUtility::IPv6Hex2Bin' => [
+        'numberOfMandatoryArguments' => 1,
+        'maximumNumberOfArguments' => 1,
+        'restFiles' => [
+            'Deprecation-91001-VariousMethodsWithinGeneralUtility.rst'
+        ],
+    ],
+    'TYPO3\CMS\Core\Utility\GeneralUtility::IPv6Bin2Hex' => [
+        'numberOfMandatoryArguments' => 1,
+        'maximumNumberOfArguments' => 1,
+        'restFiles' => [
+            'Deprecation-91001-VariousMethodsWithinGeneralUtility.rst'
+        ],
+    ],
+    'TYPO3\CMS\Core\Utility\GeneralUtility::compressIPv6' => [
+        'numberOfMandatoryArguments' => 1,
+        'maximumNumberOfArguments' => 1,
+        'restFiles' => [
+            'Deprecation-91001-VariousMethodsWithinGeneralUtility.rst'
+        ],
+    ],
+    'TYPO3\CMS\Core\Utility\GeneralUtility::milliseconds' => [
+        'numberOfMandatoryArguments' => 0,
+        'maximumNumberOfArguments' => 0,
+        'restFiles' => [
+            'Deprecation-91001-VariousMethodsWithinGeneralUtility.rst'
+        ],
+    ],
+    'TYPO3\CMS\Core\Utility\GeneralUtility::linkThisUrl' => [
+        'numberOfMandatoryArguments' => 1,
+        'maximumNumberOfArguments' => 2,
+        'restFiles' => [
+            'Deprecation-91001-VariousMethodsWithinGeneralUtility.rst'
+        ],
+    ],
+    'TYPO3\CMS\Core\Utility\GeneralUtility::flushDirectory' => [
+        'numberOfMandatoryArguments' => 1,
+        'maximumNumberOfArguments' => 3,
+        'restFiles' => [
+            'Deprecation-91001-VariousMethodsWithinGeneralUtility.rst'
         ],
     ],
 ];

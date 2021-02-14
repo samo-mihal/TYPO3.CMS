@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Imaging\ImageManipulation;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Imaging\ImageManipulation;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Imaging\ImageManipulation;
 
 use TYPO3\CMS\Core\Resource\FileInterface;
 
@@ -92,6 +94,26 @@ class Area
     public static function createEmpty()
     {
         return new self(0.0, 0.0, 1.0, 1.0);
+    }
+
+    public function getWidth(): float
+    {
+        return $this->width;
+    }
+
+    public function getHeight(): float
+    {
+        return $this->height;
+    }
+
+    public function getOffsetLeft(): float
+    {
+        return $this->x;
+    }
+
+    public function getOffsetTop(): float
+    {
+        return $this->y;
     }
 
     /**

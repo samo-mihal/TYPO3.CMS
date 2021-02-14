@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Extbase\Tests\Unit\Service;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,9 @@ namespace TYPO3\CMS\Extbase\Tests\Unit\Service;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Extbase\Tests\Unit\Service;
+
 use Doctrine\DBAL\Statement;
 use Prophecy\Argument;
 use Prophecy\Prophecy\ObjectProphecy;
@@ -26,6 +29,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Configuration\ConfigurationManager;
 use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
 use TYPO3\CMS\Extbase\Exception;
+use TYPO3\CMS\Extbase\Service\ExtensionService;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -53,22 +57,24 @@ class ExtensionServiceTest extends UnitTestCase
     {
         parent::setUp();
         $GLOBALS['TSFE'] = new \stdClass();
-        $this->extensionService = $this->getAccessibleMock(\TYPO3\CMS\Extbase\Service\ExtensionService::class, ['dummy']);
-        $this->mockConfigurationManager = $this->createMock(\TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface::class);
-        $this->extensionService->_set('configurationManager', $this->mockConfigurationManager);
+        $this->extensionService = new ExtensionService();
+        $this->mockConfigurationManager = $this->createMock(ConfigurationManagerInterface::class);
+        $this->extensionService->injectConfigurationManager($this->mockConfigurationManager);
         $GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['extbase']['extensions'] = [
             'ExtensionName' => [
                 'plugins' => [
                     'SomePlugin' => [
                         'controllers' => [
-                            'ControllerName' => [
+                            'Fully\\Qualified\\ControllerName' => [
+                                'alias' => 'ControllerName',
                                 'actions' => ['index', 'otherAction']
                             ]
                         ]
                     ],
                     'ThirdPlugin' => [
                         'controllers' => [
-                            'ControllerName' => [
+                            'Fully\\Qualified\\ControllerName' => [
+                                'alias' => 'ControllerName',
                                 'actions' => ['otherAction', 'thirdAction']
                             ]
                         ]
@@ -79,11 +85,13 @@ class ExtensionServiceTest extends UnitTestCase
                 'plugins' => [
                     'SecondPlugin' => [
                         'controllers' => [
-                            'ControllerName' => [
+                            'Fully\\Qualified\\ControllerName' => [
+                                'alias' => 'ControllerName',
                                 'actions' => ['index', 'otherAction']
                             ],
-                            'SecondControllerName' => [
+                            'Fully\\Qualified\\SecondControllerName' => [
                                 'actions' => ['someAction', 'someOtherAction'],
+                                'alias' => 'SecondControllerName',
                                 'nonCacheableActions' => ['someOtherAction']
                             ]
                         ]
@@ -154,7 +162,7 @@ class ExtensionServiceTest extends UnitTestCase
      */
     public function pluginNamespaceCanBeOverridden()
     {
-        $this->mockConfigurationManager->expects(self::once())->method('getConfiguration')->with(\TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface::CONFIGURATION_TYPE_FRAMEWORK, 'SomeExtension', 'SomePlugin')->willReturn(['view' => ['pluginNamespace' => 'overridden_plugin_namespace']]);
+        $this->mockConfigurationManager->expects(self::once())->method('getConfiguration')->with(ConfigurationManagerInterface::CONFIGURATION_TYPE_FRAMEWORK, 'SomeExtension', 'SomePlugin')->willReturn(['view' => ['pluginNamespace' => 'overridden_plugin_namespace']]);
         $expectedResult = 'overridden_plugin_namespace';
         $actualResult = $this->extensionService->getPluginNamespace('SomeExtension', 'SomePlugin');
         self::assertEquals($expectedResult, $actualResult);
@@ -187,7 +195,7 @@ class ExtensionServiceTest extends UnitTestCase
      */
     public function getPluginNameByActionTests($extensionName, $controllerName, $actionName, $expectedResult)
     {
-        $this->mockConfigurationManager->expects(self::once())->method('getConfiguration')->with(\TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface::CONFIGURATION_TYPE_FRAMEWORK)->willReturn(['view' => ['pluginNamespace' => 'overridden_plugin_namespace']]);
+        $this->mockConfigurationManager->expects(self::once())->method('getConfiguration')->with(ConfigurationManagerInterface::CONFIGURATION_TYPE_FRAMEWORK)->willReturn(['view' => ['pluginNamespace' => 'overridden_plugin_namespace']]);
         $actualResult = $this->extensionService->getPluginNameByAction($extensionName, $controllerName, $actionName);
         self::assertEquals($expectedResult, $actualResult, 'Failing for $extensionName: "' . $extensionName . '", $controllerName: "' . $controllerName . '", $actionName: "' . $actionName . '" - ');
     }
@@ -199,7 +207,7 @@ class ExtensionServiceTest extends UnitTestCase
     {
         $this->expectException(Exception::class);
         $this->expectExceptionCode(1280825466);
-        $this->mockConfigurationManager->expects(self::once())->method('getConfiguration')->with(\TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface::CONFIGURATION_TYPE_FRAMEWORK)->willReturn(['view' => ['pluginNamespace' => 'overridden_plugin_namespace']]);
+        $this->mockConfigurationManager->expects(self::once())->method('getConfiguration')->with(ConfigurationManagerInterface::CONFIGURATION_TYPE_FRAMEWORK)->willReturn(['view' => ['pluginNamespace' => 'overridden_plugin_namespace']]);
         $this->extensionService->getPluginNameByAction('ExtensionName', 'ControllerName', 'otherAction');
     }
 
@@ -208,38 +216,26 @@ class ExtensionServiceTest extends UnitTestCase
      */
     public function getPluginNameByActionReturnsCurrentIfItCanHandleTheActionEvenIfMoreThanOnePluginMatches()
     {
-        $this->mockConfigurationManager->expects(self::once())->method('getConfiguration')->with(\TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface::CONFIGURATION_TYPE_FRAMEWORK)->willReturn(['extensionName' => 'CurrentExtension', 'pluginName' => 'CurrentPlugin', 'controllerConfiguration' => ['ControllerName' => ['actions' => ['otherAction']]]]);
-        $actualResult = $this->extensionService->getPluginNameByAction('CurrentExtension', 'ControllerName', 'otherAction');
-        $expectedResult = 'CurrentPlugin';
-        self::assertEquals($expectedResult, $actualResult);
-    }
-
-    /**
-     * @test
-     */
-    public function isActionCacheableReturnsTrueByDefault()
-    {
-        $mockConfiguration = [];
-        $this->mockConfigurationManager->expects(self::any())->method('getConfiguration')->willReturn($mockConfiguration);
-        $actualResult = $this->extensionService->isActionCacheable('SomeExtension', 'SomePlugin', 'SomeController', 'someAction');
-        self::assertTrue($actualResult);
-    }
-
-    /**
-     * @test
-     */
-    public function isActionCacheableReturnsFalseIfActionIsNotCacheable()
-    {
-        $mockConfiguration = [
+        $frameworkConfiguration = [
+            'extensionName' => 'CurrentExtension',
+            'pluginName' => 'CurrentPlugin',
             'controllerConfiguration' => [
-                'SomeController' => [
-                    'nonCacheableActions' => ['someAction']
+                'Fully\\Qualified\\ControllerName' => [
+                    'alias' => 'ControllerName',
+                    'actions' => ['otherAction']
                 ]
             ]
         ];
-        $this->mockConfigurationManager->expects(self::any())->method('getConfiguration')->willReturn($mockConfiguration);
-        $actualResult = $this->extensionService->isActionCacheable('SomeExtension', 'SomePlugin', 'SomeController', 'someAction');
-        self::assertFalse($actualResult);
+
+        $this->mockConfigurationManager
+            ->expects(self::once())
+            ->method('getConfiguration')
+            ->with(ConfigurationManagerInterface::CONFIGURATION_TYPE_FRAMEWORK)
+            ->willReturn($frameworkConfiguration);
+
+        $actualResult = $this->extensionService->getPluginNameByAction('CurrentExtension', 'ControllerName', 'otherAction');
+        $expectedResult = 'CurrentPlugin';
+        self::assertEquals($expectedResult, $actualResult);
     }
 
     /**
@@ -342,7 +338,7 @@ class ExtensionServiceTest extends UnitTestCase
             Argument::cetera()
         )->shouldBeCalled()->willReturn($statement->reveal());
 
-        $this->expectException(\TYPO3\CMS\Extbase\Exception::class);
+        $this->expectException(Exception::class);
         $this->expectExceptionCode(1280773643);
 
         $this->extensionService->getTargetPidByPlugin('ExtensionName', 'SomePlugin');

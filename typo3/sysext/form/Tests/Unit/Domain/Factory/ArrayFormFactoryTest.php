@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\Tests\Unit\Domain\Factory;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Form\Tests\Unit\Domain\Factory;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Form\Tests\Unit\Domain\Factory;
 
 use Prophecy\Argument;
 use TYPO3\CMS\Form\Domain\Exception\IdentifierNotValidException;
@@ -45,7 +47,7 @@ class ArrayFormFactoryTest extends UnitTestCase
     /**
      * @test
      */
-    public function addNestedRenderableSkipChildElementRenderingIfCompositElementIsUnknown()
+    public function addNestedRenderableSkipChildElementRenderingIfCompositeElementIsUnknown()
     {
         $unknownElement = new UnknownFormElement('test-2', 'test');
 

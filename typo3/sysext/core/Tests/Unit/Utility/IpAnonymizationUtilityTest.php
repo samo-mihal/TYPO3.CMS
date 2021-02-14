@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Unit\Utility;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\Utility;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\Utility;
 
 use TYPO3\CMS\Core\Utility\IpAnonymizationUtility;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
@@ -43,6 +45,8 @@ class IpAnonymizationUtilityTest extends UnitTestCase
             'IPv6 address with fallback' => ['2002:6dcd:8c74:6501:fb2:61c:ac98:6bea', null, '2002:6dcd:8c74:6501::'],
             'IPv4-Embedded IPv6 Address' => ['::ffff:18.52.86.120', 1, '::'],
             'anonymized IPv4 address' => ['192.158.0.0', 1, '192.158.0.0'],
+            'invalid IPv4 address given' => ['127.0.01', 1, ''],
+            'invalid IPv6 address given' => ['ffff18.52.86.120', 1, ''],
         ];
     }
 

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Tests\Unit\Validation\Validator\Fixture;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,14 @@ namespace TYPO3\CMS\Extbase\Tests\Unit\Validation\Validator\Fixture;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Tests\Unit\Validation\Validator\Fixture;
+
+use TYPO3\CMS\Extbase\Validation\Validator\AbstractValidator;
+
 /**
  * Testcase for the abstract base-class of validators
  */
-class AbstractValidatorClass extends \TYPO3\CMS\Extbase\Validation\Validator\AbstractValidator
+class AbstractValidatorClass extends AbstractValidator
 {
     /**
      * @var array

@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Extbase\Configuration;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,11 +15,16 @@ namespace TYPO3\CMS\Extbase\Configuration;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Configuration;
+
+use TYPO3\CMS\Core\SingletonInterface;
+use TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
+
 /**
  * Class ConfigurationManagerInterface
  * @internal only to be used within Extbase, not part of TYPO3 Core API.
  */
-interface ConfigurationManagerInterface extends \TYPO3\CMS\Core\SingletonInterface
+interface ConfigurationManagerInterface extends SingletonInterface
 {
     const CONFIGURATION_TYPE_FRAMEWORK = 'Framework';
     const CONFIGURATION_TYPE_SETTINGS = 'Settings';
@@ -29,14 +33,14 @@ interface ConfigurationManagerInterface extends \TYPO3\CMS\Core\SingletonInterfa
     /**
      * @param \TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer $contentObject
      */
-    public function setContentObject(\TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer $contentObject): void;
+    public function setContentObject(ContentObjectRenderer $contentObject): void;
 
     /**
      * Get the content object
      *
      * @return \TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer|null
      */
-    public function getContentObject(): ?\TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
+    public function getContentObject(): ?ContentObjectRenderer;
 
     /**
      * Returns the specified configuration.

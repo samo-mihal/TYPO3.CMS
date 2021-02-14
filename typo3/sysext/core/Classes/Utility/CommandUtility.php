@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Utility;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Utility;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Utility;
 
 use TYPO3\CMS\Core\Core\Environment;
 
@@ -368,7 +369,7 @@ class CommandUtility
                 if (trim($val) === '') {
                     continue;
                 }
-                list($cmd, $cmdPath) = GeneralUtility::trimExplode('=', $val, true, 2);
+                [$cmd, $cmdPath] = GeneralUtility::trimExplode('=', $val, true, 2);
                 $cmdArr[$cmd]['app'] = PathUtility::basename($cmdPath);
                 $cmdArr[$cmd]['path'] = PathUtility::dirname($cmdPath) . '/';
                 $cmdArr[$cmd]['valid'] = true;
@@ -452,7 +453,7 @@ class CommandUtility
         $isUTF8Filesystem = !empty($GLOBALS['TYPO3_CONF_VARS']['SYS']['UTF8filesystem']);
         $currentLocale = false;
         if ($isUTF8Filesystem) {
-            $currentLocale = setlocale(LC_CTYPE, 0);
+            $currentLocale = setlocale(LC_CTYPE, '0');
             setlocale(LC_CTYPE, $GLOBALS['TYPO3_CONF_VARS']['SYS']['systemLocale']);
         }
 

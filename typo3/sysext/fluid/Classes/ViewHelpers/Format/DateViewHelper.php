@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\ViewHelpers\Format;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Fluid\ViewHelpers\Format;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Fluid\ViewHelpers\Format;
 
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -154,7 +155,7 @@ class DateViewHelper extends AbstractViewHelper
 
         if (!$date instanceof \DateTimeInterface) {
             try {
-                $base = $base instanceof \DateTimeInterface ? $base->format('U') : strtotime((MathUtility::canBeInterpretedAsInteger($base) ? '@' : '') . $base);
+                $base = $base instanceof \DateTimeInterface ? (int)$base->format('U') : (int)strtotime((MathUtility::canBeInterpretedAsInteger($base) ? '@' : '') . $base);
                 $dateTimestamp = strtotime((MathUtility::canBeInterpretedAsInteger($date) ? '@' : '') . $date, $base);
                 $date = new \DateTime('@' . $dateTimestamp);
                 $date->setTimezone(new \DateTimeZone(date_default_timezone_get()));
@@ -164,7 +165,7 @@ class DateViewHelper extends AbstractViewHelper
         }
 
         if (strpos($format, '%') !== false) {
-            return strftime($format, $date->format('U'));
+            return strftime($format, (int)$date->format('U'));
         }
         return $date->format($format);
     }

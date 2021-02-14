@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Validation\Validator;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Extbase\Validation\Validator;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Extbase\Validation\Validator;
 
 /**
  * Validator for general numbers
@@ -39,7 +40,7 @@ class NumberRangeValidator extends AbstractValidator
                 $this->translateErrorMessage(
                     'validator.numberrange.notvalid',
                     'extbase'
-                ),
+                ) ?? '',
                 1221563685
             );
             return;
@@ -61,7 +62,7 @@ class NumberRangeValidator extends AbstractValidator
                     $minimum,
                     $maximum
                 ]
-            ), 1221561046, [$minimum, $maximum]);
+            ) ?? '', 1221561046, [$minimum, $maximum]);
         }
     }
 }

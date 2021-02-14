@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Form\Tests\Unit\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Form\Tests\Unit\Controller;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Form\Tests\Unit\Controller;
 
 use Prophecy\Argument;
 use TYPO3\CMS\Core\Cache\CacheManager;
@@ -74,7 +75,7 @@ class FormFrontendControllerTest extends UnitTestCase
             ])
         );
 
-        $flexFormTools = new FlexFormTools;
+        $flexFormTools = new FlexFormTools();
         $contentObject = new ContentObjectRenderer();
         $contentObject->data = [
             'pi_flexform' => $flexFormTools->flexArray2Xml([
@@ -208,7 +209,7 @@ class FormFrontendControllerTest extends UnitTestCase
             ])
         );
 
-        $flexFormTools = new FlexFormTools;
+        $flexFormTools = new FlexFormTools();
         $contentObject = new ContentObjectRenderer();
         $contentObject->data = [
             'pi_flexform' => $flexFormTools->flexArray2Xml([
@@ -358,7 +359,7 @@ class FormFrontendControllerTest extends UnitTestCase
             ])
         );
 
-        $flexFormTools = new FlexFormTools;
+        $flexFormTools = new FlexFormTools();
         $contentObject = new ContentObjectRenderer();
         $contentObject->data = [
             'pi_flexform' => $flexFormTools->flexArray2Xml([

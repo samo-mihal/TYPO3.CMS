@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Tstemplate\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,7 +13,10 @@ namespace TYPO3\CMS\Tstemplate\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Tstemplate\Controller;
+
 use Psr\Http\Message\ServerRequestInterface;
+use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\TypoScript\ExtendedTemplateService;
@@ -148,19 +150,19 @@ class TemplateAnalyzerModuleFunctionController
         $this->templateService->clearList_setup_temp = array_flip($this->templateService->clearList_setup);
         $pointer = count($this->templateService->hierarchyInfo);
         $hierarchyInfo = $this->templateService->ext_process_hierarchyInfo([], $pointer);
-        $assigns['hierarchy'] = implode(array_reverse($this->templateService->ext_getTemplateHierarchyArr(
+        $assigns['hierarchy'] = implode('', array_reverse($this->templateService->ext_getTemplateHierarchyArr(
             $hierarchyInfo,
             '',
             [],
             1
-        )), '');
+        )));
 
         $urlParameters = [
             'id' => $this->id,
             'template' => 'all'
         ];
         /** @var \TYPO3\CMS\Backend\Routing\UriBuilder $uriBuilder */
-        $uriBuilder = GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Routing\UriBuilder::class);
+        $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
         $assigns['moduleLink'] = (string)$uriBuilder->buildUriFromRoute('web_ts', $urlParameters);
 
         $assigns['template'] = $template = ($this->request->getQueryParams()['template'] ?? null);

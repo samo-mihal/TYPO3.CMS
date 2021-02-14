@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Http;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,9 +15,12 @@ namespace TYPO3\CMS\Core\Http;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Http;
+
 use Psr\Http\Message\ServerRequestFactoryInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\UploadedFileInterface;
+use Psr\Http\Message\UriInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -79,7 +82,7 @@ class ServerRequestFactory implements ServerRequestFactoryInterface
         }
         $parsedBody = GeneralUtility::_POST();
         if (empty($parsedBody) && in_array($method, ['PUT', 'PATCH', 'DELETE'])) {
-            parse_str(file_get_contents('php://input'), $parsedBody);
+            parse_str((string)file_get_contents('php://input'), $parsedBody);
         }
         if (!empty($parsedBody)) {
             $request = $request->withParsedBody($parsedBody);
@@ -98,6 +101,9 @@ class ServerRequestFactory implements ServerRequestFactoryInterface
     {
         $headers = [];
         foreach ($server as $key => $value) {
+            if (!is_string($key)) {
+                continue;
+            }
             if (strpos($key, 'HTTP_COOKIE') === 0) {
                 // Cookies are handled using the $_COOKIE superglobal
                 continue;

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Unit\Http;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\Http;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\Http;
 
 use TYPO3\CMS\Core\Http\Response;
 use TYPO3\CMS\Core\Http\Stream;
@@ -181,7 +182,7 @@ class ResponseTest extends UnitTestCase
     /**
      * @test
      */
-    public function constructorIgonoresInvalidHeaders()
+    public function constructorIgnoresInvalidHeaders()
     {
         $headers = [
             ['INVALID'],

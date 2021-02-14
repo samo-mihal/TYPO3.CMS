@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Install\Report;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,19 +13,24 @@ namespace TYPO3\CMS\Install\Report;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Install\Report;
+
+use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Crypto\PasswordHashing\InvalidPasswordHashException;
 use TYPO3\CMS\Core\Crypto\PasswordHashing\PasswordHashFactory;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Install\Service\EnableFileService;
+use TYPO3\CMS\Install\SystemEnvironment\ServerResponse\ServerResponseCheck;
 use TYPO3\CMS\Reports\Status;
+use TYPO3\CMS\Reports\StatusProviderInterface;
 
 /**
  * Provides a status report of the security of the install tool
  * @internal This class is only meant to be used within EXT:install and is not part of the TYPO3 Core API.
  */
-class SecurityStatusReport implements \TYPO3\CMS\Reports\StatusProviderInterface
+class SecurityStatusReport implements StatusProviderInterface
 {
     /**
      * Compiles a collection of system status checks as a status report.
@@ -38,7 +42,8 @@ class SecurityStatusReport implements \TYPO3\CMS\Reports\StatusProviderInterface
         $this->executeAdminCommand();
         return [
             'installToolPassword' => $this->getInstallToolPasswordStatus(),
-            'installToolProtection' => $this->getInstallToolProtectionStatus()
+            'installToolProtection' => $this->getInstallToolProtectionStatus(),
+            'serverResponseStatus' => GeneralUtility::makeInstance(ServerResponseCheck::class)->asStatus(),
         ];
     }
 
@@ -67,14 +72,15 @@ class SecurityStatusReport implements \TYPO3\CMS\Reports\StatusProviderInterface
         }
         if ($installToolPassword !== '' && $hashInstance !== null) {
             $isDefaultPassword = $hashInstance->checkPassword('joh316', $installToolPassword);
-        } elseif ($installToolPassword === md5('joh316')) {
+        } elseif ($installToolPassword === 'bacb98acf97e0b6112b1d1b650b84971') {
+            // using MD5 of legacy default password 'joh316'
             $isDefaultPassword = true;
         }
         if ($isDefaultPassword) {
             $value = $this->getLanguageService()->getLL('status_insecure');
             $severity = Status::ERROR;
             /** @var \TYPO3\CMS\Backend\Routing\UriBuilder $uriBuilder */
-            $uriBuilder = GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Routing\UriBuilder::class);
+            $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
             $changeInstallToolPasswordUrl = (string)$uriBuilder->buildUriFromRoute('tools_toolssettings');
             $message = sprintf(
                 $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:warning.installtool_default_password'),

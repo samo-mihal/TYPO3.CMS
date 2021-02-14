@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\Tests\Unit\Domain\Configuration;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Form\Tests\Unit\Domain\Configuration;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Form\Tests\Unit\Domain\Configuration;
 
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Form\Domain\Configuration\FormDefinitionConversionService;
@@ -128,7 +130,7 @@ class FormDefinitionConversionServiceTest extends UnitTestCase
      */
     public function removeHmacDataRemoveHmacs()
     {
-        $formDefinitionConversionService = new FormDefinitionConversionService;
+        $formDefinitionConversionService = new FormDefinitionConversionService();
         GeneralUtility::setSingletonInstance(FormDefinitionConversionService::class, $formDefinitionConversionService);
 
         $input = [

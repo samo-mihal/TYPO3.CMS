@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\DependencyInjection;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\DependencyInjection;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\DependencyInjection;
 
 use Symfony\Component\DependencyInjection\Compiler\AbstractRecursivePass;
 use Symfony\Component\DependencyInjection\Definition;
@@ -41,7 +43,7 @@ class AutowireInjectMethodsPass extends AbstractRecursivePass
 
         $alreadyCalledMethods = [];
 
-        foreach ($value->getMethodCalls() as list($method)) {
+        foreach ($value->getMethodCalls() as [$method]) {
             $alreadyCalledMethods[strtolower($method)] = true;
         }
 

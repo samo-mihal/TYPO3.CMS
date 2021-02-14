@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Collection;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,13 @@ namespace TYPO3\CMS\Core\Collection;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Collection;
+
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\FrontendRestrictionContainer;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController;
 
 /**
  * Implements the repository for record collections.
@@ -220,13 +222,13 @@ class RecordCollectionRepository
     }
 
     /**
-     * Function to return the current TYPO3_MODE.
+     * Function to return the current TYPO3_MODE (FE/BE) based on $GLOBALS[TSFE].
      * This function can be mocked in unit tests to be able to test frontend behaviour.
      *
      * @return string
      */
-    protected function getEnvironmentMode()
+    protected function getEnvironmentMode(): string
     {
-        return TYPO3_MODE;
+        return ($GLOBALS['TSFE'] ?? null) instanceof TypoScriptFrontendController ? 'FE' : 'BE';
     }
 }

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Form\FormDataGroup;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Backend\Form\FormDataGroup;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Form\FormDataGroup;
+
 use TYPO3\CMS\Backend\Form\FormDataGroupInterface;
 use TYPO3\CMS\Backend\Form\FormDataProviderInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -25,7 +26,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 class OnTheFly implements FormDataGroupInterface
 {
     /**
-     * @var array<FormDataProviderInterface>
+     * @var string[]
      */
     protected $providerList = [];
 

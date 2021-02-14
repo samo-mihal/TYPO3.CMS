@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\ExpressionLanguage\FunctionsProvider;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,10 +15,14 @@ namespace TYPO3\CMS\Core\ExpressionLanguage\FunctionsProvider;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\ExpressionLanguage\FunctionsProvider;
+
 use Symfony\Component\ExpressionLanguage\ExpressionFunction;
 use Symfony\Component\ExpressionLanguage\ExpressionFunctionProviderInterface;
 use TYPO3\CMS\Core\Configuration\Features;
 use TYPO3\CMS\Core\Context\Context;
+use TYPO3\CMS\Core\Utility\ArrayUtility;
+use TYPO3\CMS\Core\Utility\Exception\MissingArrayPathException;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\CMS\Core\Utility\VersionNumberUtility;
@@ -41,6 +45,7 @@ class DefaultFunctionsProvider implements ExpressionFunctionProviderInterface
             $this->getEnvFunction(),
             $this->getDateFunction(),
             $this->getFeatureToggleFunction(),
+            $this->getTraverseArrayFunction(),
         ];
     }
 
@@ -106,6 +111,22 @@ class DefaultFunctionsProvider implements ExpressionFunctionProviderInterface
         }, function ($arguments, $featureName) {
             return GeneralUtility::makeInstance(Features::class)
                 ->isFeatureEnabled($featureName);
+        });
+    }
+
+    public function getTraverseArrayFunction(): ExpressionFunction
+    {
+        return new ExpressionFunction('traverse', function () {
+            // Not implemented, we only use the evaluator
+        }, function ($arguments, $array, $path) {
+            if (!is_array($array) || !is_string($path) || $path === '') {
+                return '';
+            }
+            try {
+                return ArrayUtility::getValueByPath($array, $path);
+            } catch (MissingArrayPathException $e) {
+                return '';
+            }
         });
     }
 }

@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Backend\Form\NodeExpansion;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Backend\Form\NodeExpansion;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Form\NodeExpansion;
 
 use TYPO3\CMS\Backend\Form\AbstractNode;
 use TYPO3\CMS\Core\Imaging\Icon;
@@ -126,7 +128,7 @@ class FieldControl extends AbstractNode
 
             $html = [];
             $html[] = '<a ' . GeneralUtility::implodeAttributes($linkAttributes, true) . '>';
-            $html[] =   '<span alt="' . htmlspecialchars($title) . '" title="' . htmlspecialchars($title) . '">';
+            $html[] =   '<span title="' . htmlspecialchars($title) . '">';
             $html[] =       $iconFactory->getIcon($icon, Icon::SIZE_SMALL)->render();
             $html[] =   '</span>';
             $html[] = '</a>';

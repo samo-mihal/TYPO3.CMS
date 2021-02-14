@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Error;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,10 @@ namespace TYPO3\CMS\Core\Error;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Error;
+
+use TYPO3\CMS\Core\Information\Typo3Information;
 
 /**
  * A basic but solid exception handler which catches everything which
@@ -95,7 +99,7 @@ HTML;
 
         $exceptionInfo = '';
         if ($throwable->getCode() > 0) {
-            $wikiLink = TYPO3_URL_EXCEPTION . 'debug/' . $throwable->getCode();
+            $wikiLink = Typo3Information::URL_EXCEPTION . 'debug/' . $throwable->getCode();
             $exceptionInfo = <<<INFO
             <div class="container">
                 <div class="callout">
@@ -210,6 +214,10 @@ HTML;
                 top: 0;
             }
 
+            .panel-collapse .exception-page {
+                height: 100%;
+            }
+
             .exception-page a {
                 color: #ff8700;
                 text-decoration: underline;
@@ -289,6 +297,10 @@ HTML;
                 max-width: 1140px;
                 margin: 0 auto;
                 padding: 0 30px;
+            }
+
+            .panel-collapse .exception-page .container {
+                width: 100%;
             }
 
             .exception-page .exception-illustration {

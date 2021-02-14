@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Extbase\Configuration;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,6 +15,9 @@ namespace TYPO3\CMS\Extbase\Configuration;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Configuration;
+
+use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\HiddenRestriction;
@@ -170,7 +172,11 @@ class BackendConfigurationManager extends AbstractConfigurationManager
             ->select('uid')
             ->from('pages')
             ->where(
-                $queryBuilder->expr()->eq('is_siteroot', $queryBuilder->createNamedParameter(1, \PDO::PARAM_INT))
+                $queryBuilder->expr()->eq('is_siteroot', $queryBuilder->createNamedParameter(1, \PDO::PARAM_INT)),
+                $queryBuilder->expr()->eq('sys_language_uid', $queryBuilder->createNamedParameter(0, \PDO::PARAM_INT)),
+                // Only consider live root page IDs, never return a versioned root page ID
+                $queryBuilder->expr()->eq('t3ver_oid', $queryBuilder->createNamedParameter(0, \PDO::PARAM_INT)),
+                $queryBuilder->expr()->eq('t3ver_wsid', $queryBuilder->createNamedParameter(0, \PDO::PARAM_INT))
             )
             ->orderBy('sorting')
             ->execute()
@@ -271,7 +277,7 @@ class BackendConfigurationManager extends AbstractConfigurationManager
     /**
      * @return \TYPO3\CMS\Core\Authentication\BackendUserAuthentication
      */
-    protected function getBackendUser(): \TYPO3\CMS\Core\Authentication\BackendUserAuthentication
+    protected function getBackendUser(): BackendUserAuthentication
     {
         return $GLOBALS['BE_USER'];
     }

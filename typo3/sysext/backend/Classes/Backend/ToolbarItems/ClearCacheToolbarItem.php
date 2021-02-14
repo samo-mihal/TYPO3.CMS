@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Backend\ToolbarItems;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Backend\ToolbarItems;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Backend\ToolbarItems;
 
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Toolbar\ClearCacheActionsHookInterface;
@@ -65,7 +66,7 @@ class ClearCacheToolbarItem implements ToolbarItemInterface
         // Clearing of all caches is only shown if explicitly enabled via TSConfig
         // or if BE-User is admin and the TSconfig explicitly disables the possibility for admins.
         // This is useful for big production systems where admins accidentally could slow down the system.
-        if ($userTsConfig['options.']['clearCache.']['all'] ?? false
+        if (($userTsConfig['options.']['clearCache.']['all'] ?? false)
             || ($isAdmin && (bool)($userTsConfig['options.']['clearCache.']['all'] ?? true))
         ) {
             $this->cacheActions[] = [

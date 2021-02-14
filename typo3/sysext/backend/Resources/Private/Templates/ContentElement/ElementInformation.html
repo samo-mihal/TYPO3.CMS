@@ -1,11 +1,52 @@
 <f:if condition="{accessAllowed}">
     <f:then>
-        <h1>
-            <f:if condition="{table}">
-                <small>{table}</small><br />{icon -> f:format.raw()}
-                <span title="{title}">{title -> f:format.crop(maxCharacters: maxTitleLength)}</span>
-            </f:if>
-        </h1>
+        <div class="card-container">
+            <div class="card">
+
+                <div class="card-header">
+                    <div class="card-icon">
+                        {icon -> f:format.raw()}
+                    </div>
+
+                    <div class="card-header-body">
+                        <h1 class="card-title">{title -> f:format.crop(maxCharacters: maxTitleLength)} [{extraFields.uid.fieldLabel}: {extraFields.uid.value}]</h1>
+                        <f:if condition="{table}">
+                            <span class="card-subtitle">{table}</span>
+                        </f:if>
+                    </div>
+                </div>
+
+                <div class="card-content">
+                    <div class="row">
+                        <f:for each="{extraFields}" as="extraField">
+                            <f:if condition="{extraField.isDatetime}">
+                                <div class="col-md-6">
+                                    <strong>{extraField.fieldLabel}</strong><br>
+                                    {extraField.value}
+                                </div>
+                            </f:if>
+                        </f:for>
+                    </div>
+                    <f:if condition="{extraFields.creatorRecord}">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="media">
+                                    <div class="media-left">
+                                        {extraFields.creatorRecord.value.icon -> f:format.raw()}
+                                    </div>
+                                    <div class="media-body">
+                                        <strong>{extraFields.creatorRecord.value.username}</strong><br>
+                                        {extraFields.creatorRecord.value.realName}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </f:if>
+                </div>
+            </div>
+        </div>
+
+
         <f:if condition="{missingFile}">
             <f:be.infobox title="{f:translate(key:'LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:warning.file_missing')}" state="1">{missingFile}</f:be.infobox>
         </f:if>
@@ -24,7 +65,7 @@
         </f:if>
         <f:if condition="{url}">
             <p>
-                <a class="btn btn-default" href="{url}" target="_blank">
+                <a class="btn btn-default" href="{url}" target="_blank" title="{f:translate(key:'LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.show')}">
                     <core:icon identifier="actions-document-view" size="small" alternativeMarkupIdentifier="inline" />
                     <f:translate key="LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.show" />
                 </a>
@@ -32,16 +73,13 @@
         </f:if>
         <div class="table-fit table-fit-wrap">
             <table class="table table-striped table-hover">
-                <f:for each="{extraFields}" as="extraField">
-                    <f:render section="extraFieldRow" arguments="{row: extraField}" />
-                </f:for>
                 <f:for each="{fields}" as="field">
                     <f:render section="fieldRow" arguments="{row: field}" />
                 </f:for>
             </table>
         </div>
         <f:if condition="{returnUrl}">
-            <a class="btn btn-primary" href="{returnUrl}">
+            <a class="btn btn-primary" href="{returnUrl}" title="{f:translate(key:'LLL:EXT:core/Resources/Private/Language/locallang_common.xlf:back')}">
                 <core:icon identifier="actions-view-go-back" size="small" />
                 <f:translate key="LLL:EXT:core/Resources/Private/Language/locallang_common.xlf:back" />
             </a>
@@ -104,30 +142,6 @@
         <f:be.infobox state="2">{f:translate(key: 'LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.noEditPermission')}</f:be.infobox>
     </f:else>
 </f:if>
-
-
-
-<f:section name="extraFieldRow">
-    <tr>
-        <th class="col-nowrap">{row.fieldLabel}</th>
-        <td>
-            <f:if condition="{row.creatorRecord}">
-                <div class="media">
-                    <div class="media-left">
-                        {row.creatorRecord.icon -> f:format.raw()}
-                    </div>
-                    <div class="media-body">
-                        <strong>{row.creatorRecord.username}</strong><br>
-                        {row.creatorRecord.realName}
-                    </div>
-                </div>
-            </f:if>
-            <f:if condition="{row.value}">
-                {row.value}
-            </f:if>
-        </td>
-    </tr>
-</f:section>
 
 <f:section name="fieldRow">
     <tr>
@@ -200,12 +214,12 @@
                 <core:icon identifier="actions-document-view" size="small" />
             </a>
         </f:if>
-        <a class="btn btn-default btn-sm" href="{line.recordEditUrl}">
+        <a class="btn btn-default btn-sm" href="{line.recordEditUrl}" title="{f:translate(key:'LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:cm.edit')}">
             <core:icon identifier="actions-open" size="small" />
         </a>
     </div>
     <div class="btn-group" role="group">
-        <a class="btn btn-default btn-sm" href="{line.recordHistoryUrl}">
+        <a class="btn btn-default btn-sm" href="{line.recordHistoryUrl}" title="{f:translate(key:'LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:cm.history')}">
             <core:icon identifier="actions-document-history-open" size="small" />
         </a>
     </div>

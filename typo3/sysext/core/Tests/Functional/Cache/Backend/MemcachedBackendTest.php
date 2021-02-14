@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Functional\Cache\Backend;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,9 +13,12 @@ namespace TYPO3\CMS\Core\Tests\Functional\Cache\Backend;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Functional\Cache\Backend;
+
 use TYPO3\CMS\Core\Cache\Backend\MemcachedBackend;
 use TYPO3\CMS\Core\Cache\Exception;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
 /**
@@ -68,7 +70,7 @@ class MemcachedBackendTest extends FunctionalTestCase
         $this->expectException(Exception::class);
         $this->expectExceptionCode(1207149215);
 
-        $subject->set($this->getUniqueId('MyIdentifier'), 'some data');
+        $subject->set(StringUtility::getUniqueId('MyIdentifier'), 'some data');
     }
 
     /**
@@ -93,7 +95,7 @@ class MemcachedBackendTest extends FunctionalTestCase
         $subject = $this->initializeSubject();
         $subject->setCache($frontendProphecy->reveal());
 
-        $identifier = $this->getUniqueId('MyIdentifier');
+        $identifier = StringUtility::getUniqueId('MyIdentifier');
         $subject->set($identifier, 'Some data');
         self::assertTrue($subject->has($identifier));
     }
@@ -110,7 +112,7 @@ class MemcachedBackendTest extends FunctionalTestCase
         $subject->setCache($frontendProphecy->reveal());
 
         $data = 'Some data';
-        $identifier = $this->getUniqueId('MyIdentifier');
+        $identifier = StringUtility::getUniqueId('MyIdentifier');
         $subject->set($identifier, $data);
         self::assertEquals($data, $subject->get($identifier));
     }
@@ -173,7 +175,7 @@ class MemcachedBackendTest extends FunctionalTestCase
         $subject->setCache($frontendProphecy->reveal());
 
         $data = 'Some data';
-        $identifier = $this->getUniqueId('MyIdentifier');
+        $identifier = StringUtility::getUniqueId('MyIdentifier');
         $subject->set($identifier, $data);
         $subject->remove($identifier);
         self::assertFalse($subject->has($identifier));
@@ -191,7 +193,7 @@ class MemcachedBackendTest extends FunctionalTestCase
         $subject->setCache($frontendProphecy->reveal());
 
         $data = 'Some data';
-        $identifier = $this->getUniqueId('MyIdentifier');
+        $identifier = StringUtility::getUniqueId('MyIdentifier');
         $subject->set($identifier, $data);
         $otherData = 'some other data';
         $subject->set($identifier, $otherData);
@@ -210,7 +212,7 @@ class MemcachedBackendTest extends FunctionalTestCase
         $subject->setCache($frontendProphecy->reveal());
 
         $data = 'Some data';
-        $identifier = $this->getUniqueId('MyIdentifier');
+        $identifier = StringUtility::getUniqueId('MyIdentifier');
         $subject->set($identifier, $data, ['UnitTestTag%tag1', 'UnitTestTag%tag2']);
         $retrieved = $subject->findIdentifiersByTag('UnitTestTag%tag1');
         self::assertEquals($identifier, $retrieved[0]);
@@ -230,7 +232,7 @@ class MemcachedBackendTest extends FunctionalTestCase
         $subject->setCache($frontendProphecy->reveal());
 
         $data = 'Some data';
-        $identifier = $this->getUniqueId('MyIdentifier');
+        $identifier = StringUtility::getUniqueId('MyIdentifier');
         $subject->set($identifier, $data, ['UnitTestTag%tag1', 'UnitTestTag%tag2']);
         $subject->set($identifier, $data, ['UnitTestTag%tag3']);
         self::assertEquals([], $subject->findIdentifiersByTag('UnitTestTag%tagX'));
@@ -247,7 +249,7 @@ class MemcachedBackendTest extends FunctionalTestCase
         $subject = $this->initializeSubject();
         $subject->setCache($frontendProphecy->reveal());
 
-        $identifier = $this->getUniqueId('NonExistingIdentifier');
+        $identifier = StringUtility::getUniqueId('NonExistingIdentifier');
         self::assertFalse($subject->has($identifier));
     }
 
@@ -262,7 +264,7 @@ class MemcachedBackendTest extends FunctionalTestCase
         $subject = $this->initializeSubject();
         $subject->setCache($frontendProphecy->reveal());
 
-        $identifier = $this->getUniqueId('NonExistingIdentifier');
+        $identifier = StringUtility::getUniqueId('NonExistingIdentifier');
         self::assertFalse($subject->remove($identifier));
     }
 

@@ -1,23 +1,23 @@
 <?php
-namespace TYPO3\CMS\Fluid\ViewHelpers\Uri;
 
-/*                                                                        *
- * This script is part of the TYPO3 project - inspiring people to share!  *
- *                                                                        *
- * TYPO3 is free software; you can redistribute it and/or modify it under *
- * the terms of the GNU General Public License version 2 as published by  *
- * the Free Software Foundation.                                          *
- *                                                                        *
- * This script is distributed in the hope that it will be useful, but     *
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHAN-    *
- * TABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General      *
- * Public License for more details.                                       *
- *                                                                        */
+/*
+ * This file is part of the TYPO3 CMS project.
+ *
+ * It is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License, either version 2
+ * of the License, or any later version.
+ *
+ * For the full copyright and license information, please read the
+ * LICENSE.txt file that was distributed with this source code.
+ *
+ * The TYPO3 project - inspiring people to share!
+ */
+
+namespace TYPO3\CMS\Fluid\ViewHelpers\Uri;
 
 use TYPO3\CMS\Core\Imaging\ImageManipulation\CropVariantCollection;
 use TYPO3\CMS\Core\Resource\Exception\ResourceDoesNotExistException;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Extbase\Object\ObjectManager;
 use TYPO3\CMS\Extbase\Service\ImageService;
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
@@ -26,6 +26,8 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
 
 /**
  * Resizes a given image (if required) and returns its relative path.
+ *
+ * External URLs are not processed and just returned as is.
  *
  * Examples
  * ========
@@ -94,6 +96,7 @@ class ImageViewHelper extends AbstractViewHelper
         $this->registerArgument('image', 'object', 'image');
         $this->registerArgument('crop', 'string|bool', 'overrule cropping of image (setting to FALSE disables the cropping set in FileReference)');
         $this->registerArgument('cropVariant', 'string', 'select a cropping variant, in case multiple croppings have been specified or stored in FileReference', false, 'default');
+        $this->registerArgument('fileExtension', 'string', 'Custom file extension to use');
 
         $this->registerArgument('width', 'string', 'width of the image. This can be a numeric value representing the fixed width of the image in pixels. But you can also perform simple calculations by adding "m" or "c" to the value. See imgResource.width for possible options.');
         $this->registerArgument('height', 'string', 'height of the image. This can be a numeric value representing the fixed height of the image in pixels. But you can also perform simple calculations by adding "m" or "c" to the value. See imgResource.width for possible options.');
@@ -125,6 +128,11 @@ class ImageViewHelper extends AbstractViewHelper
             throw new Exception('You must either specify a string src or a File object.', 1460976233);
         }
 
+        // A URL was given as src, this is kept as is
+        if ($src !== '' && preg_match('/^(https?:)?\/\//', $src)) {
+            return $src;
+        }
+
         try {
             $imageService = self::getImageService();
             $image = $imageService->getImage($src, $image, $treatIdAsReference);
@@ -145,6 +153,9 @@ class ImageViewHelper extends AbstractViewHelper
                 'maxHeight' => $arguments['maxHeight'],
                 'crop' => $cropArea->isEmpty() ? null : $cropArea->makeAbsoluteBasedOnFile($image),
             ];
+            if (!empty($arguments['fileExtension'])) {
+                $processingInstructions['fileExtension'] = $arguments['fileExtension'];
+            }
 
             $processedImage = $imageService->applyProcessingInstructions($image, $processingInstructions);
             return $imageService->getImageUri($processedImage, $absolute);
@@ -170,8 +181,6 @@ class ImageViewHelper extends AbstractViewHelper
      */
     protected static function getImageService()
     {
-        /** @var ObjectManager $objectManager */
-        $objectManager = GeneralUtility::makeInstance(ObjectManager::class);
-        return $objectManager->get(ImageService::class);
+        return GeneralUtility::makeInstance(ImageService::class);
     }
 }

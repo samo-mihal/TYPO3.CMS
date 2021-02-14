@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Core;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,9 @@ namespace TYPO3\CMS\Core\Core;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Core;
+
+use TYPO3\CMS\Core\Resource\Security\FileNameValidator;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\PathUtility;
 
@@ -27,7 +29,7 @@ use TYPO3\CMS\Core\Utility\PathUtility;
  *
  * This class does not use any TYPO3 instance specific configuration, it only
  * sets up things based on the server environment and core code. Even with a
- * missing typo3conf/localconf.php this script will be successful.
+ * missing typo3conf/LocalConfiguration.php this script will be successful.
  *
  * The script aborts execution with an error message if
  * some part fails or conditions are not met.
@@ -50,30 +52,8 @@ class SystemEnvironmentBuilder
     const REQUESTTYPE_INSTALL = 16;
 
     /**
-     * A list of supported CGI server APIs
-     * NOTICE: This is a duplicate of the SAME array in GeneralUtility!
-     *         It is duplicated here as this information is needed early in bootstrap
-     *         and GeneralUtility is not available yet.
-     * @var array
-     */
-    protected static $supportedCgiServerApis = [
-        'fpm-fcgi',
-        'cgi',
-        'isapi',
-        'cgi-fcgi',
-        'srv', // HHVM with fastcgi
-    ];
-
-    /**
-     * An array of disabled methods
-     *
-     * @var string[]
-     */
-    protected static $disabledFunctions;
-
-    /**
      * Run base setup.
-     * This entry method is used in all scopes (FE, BE, eid, ajax, ...)
+     * This entry method is used in all scopes (FE, BE, Install Tool and CLI)
      *
      * @internal This method should not be used by 3rd party code. It will change without further notice.
      * @param int $entryPointLevel Number of subdirectories where the entry script is located under the document root
@@ -90,17 +70,20 @@ class SystemEnvironmentBuilder
 
         self::initializeGlobalVariables();
         self::initializeGlobalTimeTrackingVariables();
-        self::initializeBasicErrorReporting();
-
-        $applicationContext = static::createApplicationContext();
-        self::initializeEnvironment($applicationContext, $requestType, $scriptPath, $rootPath);
-        GeneralUtility::presetApplicationContext($applicationContext);
+        self::initializeEnvironment($requestType, $scriptPath, $rootPath);
     }
 
+    /**
+     * Some notes:
+     *
+     * HTTP_TYPO3_CONTEXT -> used with Apache suexec support
+     * REDIRECT_TYPO3_CONTEXT -> used under some circumstances when value is set in the webserver and proxying the values to FPM
+     * @return ApplicationContext
+     * @throws \TYPO3\CMS\Core\Exception
+     */
     protected static function createApplicationContext(): ApplicationContext
     {
-        $applicationContext = getenv('TYPO3_CONTEXT') ?: (getenv('REDIRECT_TYPO3_CONTEXT') ?: 'Production');
-
+        $applicationContext = getenv('TYPO3_CONTEXT') ?: (getenv('REDIRECT_TYPO3_CONTEXT') ?: (getenv('HTTP_TYPO3_CONTEXT') ?: 'Production'));
         return new ApplicationContext($applicationContext);
     }
 
@@ -111,36 +94,59 @@ class SystemEnvironmentBuilder
     {
         // Check one of the constants and return early if already defined,
         // needed if multiple requests are handled in one process, for instance in functional testing.
-        if (defined('TYPO3_version')) {
+        // This check can be removed in TYPO3 v11.0.
+        if (defined('FILE_DENY_PATTERN_DEFAULT')) {
             return;
         }
-
-        // This version, branch and copyright
-        define('TYPO3_version', '10.2.3-dev');
-        define('TYPO3_branch', '10.2');
-        define('TYPO3_copyright_year', '1998-' . date('Y'));
-
-        // TYPO3 external links
-        define('TYPO3_URL_GENERAL', 'https://typo3.org/');
-        define('TYPO3_URL_LICENSE', 'https://typo3.org/typo3-cms/overview/licenses/');
-        define('TYPO3_URL_EXCEPTION', 'https://typo3.org/go/exception/CMS/');
-        define('TYPO3_URL_DONATE', 'https://typo3.org/community/contribute/donate/');
-        define('TYPO3_URL_WIKI_OPCODECACHE', 'https://wiki.typo3.org/Opcode_Cache');
 
         // A linefeed, a carriage return, a CR-LF combination
         defined('LF') ?: define('LF', chr(10));
         defined('CR') ?: define('CR', chr(13));
         defined('CRLF') ?: define('CRLF', CR . LF);
 
-        // Security related constant: Default value of fileDenyPattern
-        define('FILE_DENY_PATTERN_DEFAULT', '\\.(php[3-7]?|phpsh|phtml|pht|phar|shtml|cgi)(\\..*)?$|\\.pl$|^\\.htaccess$');
-        // Security related constant: List of file extensions that should be registered as php script file extensions
-        define('PHP_EXTENSIONS_DEFAULT', 'php,php3,php4,php5,php6,php7,phpsh,inc,phtml,pht,phar');
+        // A generic constant to state we are in TYPO3 scope. This is especially used in script files
+        // like ext_localconf.php that run in global scope without class encapsulation: "defined('TYPO3') or die();"
+        // This is a security measure to prevent script output if those files are located within document root and
+        // called directly without bootstrap and error handling setup.
+        defined('TYPO3') ?: define('TYPO3', true);
 
         // Relative path from document root to typo3/ directory, hardcoded to "typo3/"
         if (!defined('TYPO3_mainDir')) {
             define('TYPO3_mainDir', 'typo3/');
         }
+
+        /**
+         * @deprecated use FileNameAccess class to retrieve this information, will be removed in TYPO3 v11.0
+         */
+        define('FILE_DENY_PATTERN_DEFAULT', FileNameValidator::DEFAULT_FILE_DENY_PATTERN);
+        /**
+         * @deprecated use FILE_DENY_PATTERN and FileNameAccess class to retrieve this information, will be removed in TYPO3 v11.0
+         */
+        define('PHP_EXTENSIONS_DEFAULT', 'php,php3,php4,php5,php6,php7,php8,phpsh,inc,phtml,pht,phar');
+        /**
+         * @deprecated use Typo3Information class to retrieve this information, will be removed in TYPO3 v11.0
+         */
+        define('TYPO3_copyright_year', '1998-' . date('Y'));
+        /**
+         * @deprecated use Typo3Information class to retrieve this information, will be removed in TYPO3 v11.0
+         */
+        define('TYPO3_URL_GENERAL', 'https://typo3.org/');
+        /**
+         * @deprecated use Typo3Information class to retrieve this information, will be removed in TYPO3 v11.0
+         */
+        define('TYPO3_URL_LICENSE', 'https://typo3.org/typo3-cms/overview/licenses/');
+        /**
+         * @deprecated use Typo3Information class to retrieve this information, will be removed in TYPO3 v11.0
+         */
+        define('TYPO3_URL_EXCEPTION', 'https://typo3.org/go/exception/CMS/');
+        /**
+         * @deprecated use Typo3Information class to retrieve this information, will be removed in TYPO3 v11.0
+         */
+        define('TYPO3_URL_DONATE', 'https://typo3.org/community/contribute/donate/');
+        /**
+         * @deprecated use Typo3Information class to retrieve this information, will be removed in TYPO3 v11.0
+         */
+        define('TYPO3_URL_WIKI_OPCODECACHE', 'https://wiki.typo3.org/Opcode_Cache');
     }
 
     /**
@@ -172,18 +178,21 @@ class SystemEnvironmentBuilder
                 // or has the real path
                 $scriptName = ltrim(substr($scriptPath, strlen($rootPath)), '/');
             }
-            $rootPath = rtrim(GeneralUtility::fixWindowsFilePath(getenv('TYPO3_PATH_ROOT')), '/');
+            $rootPath = rtrim(GeneralUtility::fixWindowsFilePath((string)getenv('TYPO3_PATH_ROOT')), '/');
             $scriptPath = $rootPath . '/' . $scriptName;
         }
         return $scriptPath;
     }
 
     /**
-     * Absolute path to the root of the typo3 instance. This is often identical to the web document root path (eg. .../public),
-     * but may be different. For instance helhum/typo3-secure-web uses this: Then, rootPath TYPO3_PATH_ROOT is the absolute path to
-     * the private directory where code and runtime files are located (currently typo3/ext, typo3/sysext, fileadmin, typo3temp),
-     * while TYPO3_PATH_WEB is the public/ web document folder that gets assets like fileadmin and Resources/Public folders
-     * from extensions linked in.
+     * Absolute path to the "classic" site root of the TYPO3 application.
+     * This semantically refers to the directory where executable server-side code, configuration
+     * and runtime files are located (e.g. typo3conf/ext, typo3/sysext, typo3temp/var).
+     * In practice this is always identical to the public web document root path which contains
+     * files that are served by the webserver directly (fileadmin/ and public resources).
+     *
+     * This is not to be confused with the app-path that is used in composer-mode installations (by default).
+     * Resources in app-path are located outside the document root.
      *
      * @param int $entryPointLevel Number of subdirectories where the entry script is located under the document root
      * @param int $requestType
@@ -193,7 +202,7 @@ class SystemEnvironmentBuilder
     {
         // Check if the root path has been set in the environment (e.g. by the composer installer)
         if (getenv('TYPO3_PATH_ROOT')) {
-            return rtrim(GeneralUtility::fixWindowsFilePath(getenv('TYPO3_PATH_ROOT')), '/');
+            return rtrim(GeneralUtility::fixWindowsFilePath((string)getenv('TYPO3_PATH_ROOT')), '/');
         }
         $isCli = self::isCliRequestType($requestType);
         // Absolute path of the entry script that was called
@@ -230,15 +239,14 @@ class SystemEnvironmentBuilder
     /**
      * Initialize the Environment class
      *
-     * @param ApplicationContext $context
      * @param int $requestType
      * @param string $scriptPath
      * @param string $sitePath
      */
-    protected static function initializeEnvironment(ApplicationContext $context, int $requestType, string $scriptPath, string $sitePath)
+    protected static function initializeEnvironment(int $requestType, string $scriptPath, string $sitePath)
     {
         if (getenv('TYPO3_PATH_ROOT')) {
-            $rootPathFromEnvironment = rtrim(GeneralUtility::fixWindowsFilePath(getenv('TYPO3_PATH_ROOT')), '/');
+            $rootPathFromEnvironment = rtrim(GeneralUtility::fixWindowsFilePath((string)getenv('TYPO3_PATH_ROOT')), '/');
             if ($sitePath !== $rootPathFromEnvironment) {
                 // This means, that we re-initialized the environment during a single request
                 // This currently only happens in custom code or during functional testing
@@ -248,10 +256,10 @@ class SystemEnvironmentBuilder
             }
         }
 
-        $projectRootPath = GeneralUtility::fixWindowsFilePath(getenv('TYPO3_PATH_APP'));
+        $projectRootPath = GeneralUtility::fixWindowsFilePath((string)getenv('TYPO3_PATH_APP'));
         $isDifferentRootPath = ($projectRootPath && $projectRootPath !== $sitePath);
         Environment::initialize(
-            $context,
+            static::createApplicationContext(),
             self::isCliRequestType($requestType),
             self::usesComposerClassLoading(),
             $isDifferentRootPath ? $projectRootPath : $sitePath,
@@ -259,36 +267,18 @@ class SystemEnvironmentBuilder
             $isDifferentRootPath ? $projectRootPath . '/var'    : $sitePath . '/typo3temp/var',
             $isDifferentRootPath ? $projectRootPath . '/config' : $sitePath . '/typo3conf',
             $scriptPath,
-            self::getTypo3Os() === 'WIN' ? 'WINDOWS' : 'UNIX'
+            self::isRunningOnWindows() ? 'WINDOWS' : 'UNIX'
         );
     }
 
     /**
-     * Initialize basic error reporting.
-     *
-     * There are a lot of extensions that have no strict / notice / deprecated free
-     * ext_localconf or ext_tables. Since the final error reporting must be set up
-     * after those extension files are read, a default configuration is needed to
-     * suppress error reporting meanwhile during further bootstrap.
+     * Determine if the operating system TYPO3 is running on is windows.
      */
-    protected static function initializeBasicErrorReporting()
+    protected static function isRunningOnWindows(): bool
     {
-        // Core should be notice free at least until this point ...
-        error_reporting(E_ALL & ~(E_STRICT | E_NOTICE | E_DEPRECATED));
-    }
-
-    /**
-     * Determine the operating system TYPO3 is running on.
-     *
-     * @return string Either 'WIN' if running on Windows, else empty string
-     */
-    protected static function getTypo3Os()
-    {
-        $typoOs = '';
-        if (stripos(PHP_OS, 'darwin') === false && stripos(PHP_OS, 'cygwin') === false && stripos(PHP_OS, 'win') !== false) {
-            $typoOs = 'WIN';
-        }
-        return $typoOs;
+        return stripos(PHP_OS, 'darwin') === false
+            && stripos(PHP_OS, 'cygwin') === false
+            && stripos(PHP_OS, 'win') !== false;
     }
 
     /**
@@ -323,22 +313,11 @@ class SystemEnvironmentBuilder
      */
     protected static function getPathThisScriptNonCli()
     {
-        $cgiPath = '';
-        if (isset($_SERVER['ORIG_PATH_TRANSLATED'])) {
-            $cgiPath = $_SERVER['ORIG_PATH_TRANSLATED'];
-        } elseif (isset($_SERVER['PATH_TRANSLATED'])) {
-            $cgiPath = $_SERVER['PATH_TRANSLATED'];
+        $cgiPath = $_SERVER['ORIG_PATH_TRANSLATED'] ?? $_SERVER['PATH_TRANSLATED'] ?? '';
+        if ($cgiPath && Environment::isRunningOnCgiServer()) {
+            return $cgiPath;
         }
-        if ($cgiPath && in_array(PHP_SAPI, self::$supportedCgiServerApis, true)) {
-            $scriptPath = $cgiPath;
-        } else {
-            if (isset($_SERVER['ORIG_SCRIPT_FILENAME'])) {
-                $scriptPath = $_SERVER['ORIG_SCRIPT_FILENAME'];
-            } else {
-                $scriptPath = $_SERVER['SCRIPT_FILENAME'];
-            }
-        }
-        return $scriptPath;
+        return $_SERVER['ORIG_SCRIPT_FILENAME'] ?? $_SERVER['SCRIPT_FILENAME'];
     }
 
     /**
@@ -352,31 +331,19 @@ class SystemEnvironmentBuilder
     protected static function getPathThisScriptCli()
     {
         // Possible relative path of the called script
-        if (isset($_SERVER['argv'][0])) {
-            $scriptPath = $_SERVER['argv'][0];
-        } elseif (isset($_ENV['_'])) {
-            $scriptPath = $_ENV['_'];
-        } else {
-            $scriptPath = $_SERVER['_'];
-        }
+        $scriptPath = $_SERVER['argv'][0] ?? $_ENV['_'] ?? $_SERVER['_'];
         // Find out if path is relative or not
         $isRelativePath = false;
-        if (self::getTypo3Os() === 'WIN') {
+        if (self::isRunningOnWindows()) {
             if (!preg_match('/^([a-zA-Z]:)?\\\\/', $scriptPath)) {
                 $isRelativePath = true;
             }
-        } else {
-            if ($scriptPath[0] !== '/') {
-                $isRelativePath = true;
-            }
+        } elseif ($scriptPath[0] !== '/') {
+            $isRelativePath = true;
         }
         // Concatenate path to current working directory with relative path and remove "/./" constructs
         if ($isRelativePath) {
-            if (isset($_SERVER['PWD'])) {
-                $workingDirectory = $_SERVER['PWD'];
-            } else {
-                $workingDirectory = getcwd();
-            }
+            $workingDirectory = $_SERVER['PWD'] ?? getcwd();
             $scriptPath = $workingDirectory . '/' . preg_replace('/\\.\\//', '', $scriptPath);
         }
         return $scriptPath;
@@ -401,49 +368,11 @@ class SystemEnvironmentBuilder
     {
         $entryScriptDirectory = PathUtility::dirnameDuringBootstrap($scriptPath);
         if ($entryPointLevel > 0) {
-            list($rootPath) = GeneralUtility::revExplode('/', $entryScriptDirectory, $entryPointLevel + 1);
+            [$rootPath] = GeneralUtility::revExplode('/', $entryScriptDirectory, $entryPointLevel + 1);
         } else {
             $rootPath = $entryScriptDirectory;
         }
         return $rootPath;
-    }
-
-    /**
-     * Send http headers, echo out a text message and exit with error code
-     *
-     * @param string $message
-     */
-    protected static function exitWithMessage($message)
-    {
-        $headers = [
-            \TYPO3\CMS\Core\Utility\HttpUtility::HTTP_STATUS_500,
-            'Content-Type: text/plain'
-        ];
-        if (!headers_sent()) {
-            foreach ($headers as $header) {
-                header($header);
-            }
-        }
-        echo $message . LF;
-        exit(1);
-    }
-
-    /**
-     * Check if the given function is disabled in the system
-     *
-     * @param string $function
-     * @return bool
-     */
-    public static function isFunctionDisabled($function)
-    {
-        if (static::$disabledFunctions === null) {
-            static::$disabledFunctions = GeneralUtility::trimExplode(',', ini_get('disable_functions'));
-        }
-        if (!empty(static::$disabledFunctions)) {
-            return in_array($function, static::$disabledFunctions, true);
-        }
-
-        return false;
     }
 
     /**
@@ -490,7 +419,7 @@ class SystemEnvironmentBuilder
     /**
      * Define constants and variables
      *
-     * @param string
+     * @param string $mode
      */
     protected static function defineLegacyConstants(string $mode)
     {

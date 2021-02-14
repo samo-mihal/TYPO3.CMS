@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\FrontendLogin\Redirect;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\FrontendLogin\Redirect;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\FrontendLogin\Redirect;
 
 use TYPO3\CMS\Core\Authentication\LoginType;
 use TYPO3\CMS\Core\Context\Context;
@@ -147,7 +148,7 @@ class RedirectHandler
      * Base on setting redirectFirstMethod get first or last entry from redirect url list.
      *
      * @param array $redirectUrlList
-     * @param $redirectFirstMethod
+     * @param string $redirectFirstMethod
      * @return string
      */
     protected function fetchReturnUrlFromList(array $redirectUrlList, $redirectFirstMethod): string
@@ -157,7 +158,9 @@ class RedirectHandler
         }
 
         // Remove empty values, but keep "0" as value (that's why "strlen" is used as second parameter)
-        $redirectUrlList = array_filter($redirectUrlList, 'strlen');
+        $redirectUrlList = array_filter($redirectUrlList, static function (string $value): bool {
+            return strlen($value) > 0;
+        });
 
         return $redirectFirstMethod
             ? array_shift($redirectUrlList)
@@ -165,7 +168,7 @@ class RedirectHandler
     }
 
     /**
-     * Generate redirect_url for case that the user was successfuly logged in
+     * Generate redirect_url for case that the user was successfully logged in
      *
      * @param string $redirectMode
      * @param int $redirectPageLogin

@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Acceptance\Support\Helper;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,8 @@ namespace TYPO3\CMS\Core\Tests\Acceptance\Support\Helper;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Acceptance\Support\Helper;
+
 use TYPO3\CMS\Core\Tests\Acceptance\Support\BackendTester;
 use TYPO3\TestingFramework\Core\Acceptance\Helper\AbstractPageTree;
 
@@ -24,7 +26,7 @@ use TYPO3\TestingFramework\Core\Acceptance\Helper\AbstractPageTree;
 class PageTree extends AbstractPageTree
 {
     /**
-     * Inject our core AcceptanceTester actor into ModalDialog
+     * Inject our core AcceptanceTester actor into PageTree
      *
      * @param BackendTester $I
      */

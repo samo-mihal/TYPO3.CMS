@@ -34,6 +34,8 @@ import com.atlassian.bamboo.specs.util.MapBuilder;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Abstract class with common methods of pre-merge and nightly plan
@@ -44,9 +46,20 @@ abstract class AbstractCoreSpec {
     static String projectName = "TYPO3 Core";
     static String projectKey = "CORE";
 
-    private String composerRootVersionEnvironment = "COMPOSER_ROOT_VERSION=10.1.0";
+    private String composerRootVersionEnvironment = "COMPOSER_ROOT_VERSION=10.4.0";
 
     private String testingFrameworkBuildPath = "vendor/typo3/testing-framework/Resources/Core/Build/";
+
+    private static final String IMAGE_JS_VERSION = "3.0";
+
+    // will only execute `composer install`
+    public static final int COMPOSER_DEFAULT = 0;
+    // will execute `composer update --with-dependencies`
+    public static final int COMPOSER_MAX = 1;
+    // will execute `composer update --prefer-lowest`
+    public static final int COMPOSER_MIN = 2;
+
+    static Map<String, String> phpMinVersions = new HashMap<String, String>();
 
     /**
      * Default permissions on core plans
@@ -54,8 +67,8 @@ abstract class AbstractCoreSpec {
     PlanPermissions getDefaultPlanPermissions(String projectKey, String planKey) {
         return new PlanPermissions(new PlanIdentifier(projectKey, planKey))
             .permissions(new Permissions()
-                .groupPermissions("TYPO3 GmbH", PermissionType.ADMIN, PermissionType.VIEW, PermissionType.EDIT, PermissionType.BUILD, PermissionType.CLONE)
-                .groupPermissions("TYPO3 Core Team", PermissionType.VIEW, PermissionType.BUILD)
+                .groupPermissions("t3g-team-dev", PermissionType.ADMIN, PermissionType.VIEW, PermissionType.EDIT, PermissionType.BUILD, PermissionType.CLONE)
+                .groupPermissions("team-core-dev", PermissionType.VIEW, PermissionType.BUILD)
                 .loggedInUserPermissions(PermissionType.VIEW)
                 .anonymousUserPermissionView()
             );
@@ -67,7 +80,7 @@ abstract class AbstractCoreSpec {
     PlanPermissions getSecurityPlanPermissions(String projectKey, String planKey) {
         return new PlanPermissions(new PlanIdentifier(projectKey, planKey))
             .permissions(new Permissions()
-                .groupPermissions("TYPO3 GmbH", PermissionType.ADMIN, PermissionType.VIEW, PermissionType.EDIT, PermissionType.BUILD, PermissionType.CLONE)
+                .groupPermissions("t3g-team-dev", PermissionType.ADMIN, PermissionType.VIEW, PermissionType.EDIT, PermissionType.BUILD, PermissionType.CLONE)
             );
     }
 
@@ -227,7 +240,7 @@ abstract class AbstractCoreSpec {
     /**
      * Job checking CGL of all core php files
      */
-    Job getJobCglCheckFullCore( String requirementIdentifier, Task composerTask, Boolean isSecurity) {
+    Job getJobCglCheckFullCore(String requirementIdentifier, Task composerTask, Boolean isSecurity) {
         return new Job("Integration CGL " , new BambooKey("CGLCHECK"))
             .description("Check coding guidelines of full core")
             .pluginConfigurations(this.getDefaultJobPluginConfiguration())
@@ -275,7 +288,7 @@ abstract class AbstractCoreSpec {
                 this.getTaskGitCherryPick(isSecurity),
                 this.getTaskStopDanglingContainers(),
                 composerTask,
-                this.getTaskPrepareAcceptanceTest(),
+                this.getTaskPrepareAcceptanceTest(requirementIdentifier),
                 this.getTaskDockerDependenciesAcceptanceInstallMariadb10(),
                 new ScriptTask()
                     .description("Install TYPO3 on mariadb 10")
@@ -330,8 +343,8 @@ abstract class AbstractCoreSpec {
                 this.getTaskGitCherryPick(isSecurity),
                 this.getTaskStopDanglingContainers(),
                 composerTask,
-                this.getTaskPrepareAcceptanceTest(),
-                this.getTaskDockerDependenciesAcceptanceInstallPostgres10(),
+                this.getTaskPrepareAcceptanceTest(requirementIdentifier),
+                this.getTaskDockerDependenciesAcceptancePostgres10(),
                 new ScriptTask()
                     .description("Install TYPO3 on postgresql 10")
                     .interpreter(ScriptTaskProperties.Interpreter.BINSH_OR_CMDEXE)
@@ -385,7 +398,7 @@ abstract class AbstractCoreSpec {
                 this.getTaskGitCherryPick(isSecurity),
                 this.getTaskStopDanglingContainers(),
                 composerTask,
-                this.getTaskPrepareAcceptanceTest(),
+                this.getTaskPrepareAcceptanceTest(requirementIdentifier),
                 this.getTaskDockerDependenciesAcceptanceInstallSqlite(),
                 new ScriptTask()
                     .description("Install TYPO3 on sqlite")
@@ -443,7 +456,7 @@ abstract class AbstractCoreSpec {
                     this.getTaskGitCherryPick(isSecurity),
                     this.getTaskStopDanglingContainers(),
                     composerTask,
-                    this.getTaskPrepareAcceptanceTest(),
+                    this.getTaskPrepareAcceptanceTest(requirementIdentifier),
                     this.getTaskDockerDependenciesAcceptanceBackendMariadb10(),
                     new ScriptTask()
                         .description("Split acceptance tests")
@@ -503,6 +516,123 @@ abstract class AbstractCoreSpec {
                 .cleanWorkingDirectory(true)
             );
         }
+
+        return jobs;
+    }
+
+    /**
+     * Jobs for mysql based acceptance tests
+     */
+    ArrayList<Job> getJobsAcceptanceTestsPageTreeMysql(int stageNumber, String requirementIdentifier, Task composerTask, Boolean isSecurity) {
+        String name = getTaskNamePartForComposer(stageNumber);
+        ArrayList<Job> jobs = new ArrayList<Job>();
+
+        jobs.add(new Job("Accept PageTree my " + name + " " + requirementIdentifier, new BambooKey("ACPTMY" + stageNumber + requirementIdentifier))
+            .description("Run acceptance tests for page tree" + requirementIdentifier)
+            .pluginConfigurations(this.getDefaultJobPluginConfiguration())
+            .tasks(
+                this.getTaskGitCloneRepository(),
+                this.getTaskGitCherryPick(isSecurity),
+                this.getTaskStopDanglingContainers(),
+                composerTask,
+                this.getTaskPrepareAcceptanceTest(requirementIdentifier),
+                this.getTaskDockerDependenciesAcceptanceBackendMariadb10(),
+                new ScriptTask()
+                    .description("Execute codeception acceptance test for pageTree.")
+                    .interpreter(ScriptTaskProperties.Interpreter.BINSH_OR_CMDEXE)
+                    .inlineBody(
+                        this.getScriptTaskBashInlineBody() +
+                            "function codecept() {\n" +
+                            "    docker run \\\n" +
+                            "        -u ${HOST_UID} \\\n" +
+                            "        -v /bamboo-data/${BAMBOO_COMPOSE_PROJECT_NAME}/passwd:/etc/passwd \\\n" +
+                            "        -v ${BAMBOO_COMPOSE_PROJECT_NAME}_bamboo-data:/srv/bamboo/xml-data/build-dir/ \\\n" +
+                            "        -e typo3DatabaseName=func_test \\\n" +
+                            "        -e typo3DatabaseUsername=root \\\n" +
+                            "        -e typo3DatabasePassword=funcp  \\\n" +
+                            "        -e typo3DatabaseHost=mariadb10  \\\n" +
+                            "        --name ${BAMBOO_COMPOSE_PROJECT_NAME}sib_adhoc \\\n" +
+                            "        --network ${BAMBOO_COMPOSE_PROJECT_NAME}_test \\\n" +
+                            "        --rm \\\n" +
+                            "        typo3gmbh/" + requirementIdentifier.toLowerCase() + ":latest \\\n" +
+                            "        bin/bash -c \"cd ${PWD}; ./bin/codecept $*\"\n" +
+                            "}\n" +
+                            "\n" +
+                            "codecept run PageTree -d -c typo3/sysext/core/Tests/codeception.yml --xml reports.xml --html reports.html\n"
+                    )
+            )
+            .finalTasks(
+                this.getTaskStopDockerDependencies(),
+                new TestParserTask(TestParserTaskProperties.TestType.JUNIT)
+                    .resultDirectories("typo3temp/var/tests/AcceptanceReports/reports.xml")
+            )
+            .artifacts(new Artifact()
+                .name("Test Report")
+                .copyPattern("typo3temp/var/tests/AcceptanceReports/")
+                .shared(false)
+            )
+            .requirements(
+                this.getRequirementDocker10()
+            )
+            .cleanWorkingDirectory(true)
+        );
+
+        return jobs;
+    }
+
+    ArrayList<Job> getJobsAcceptanceTestsInstallToolMysql(int stageNumber, String requirementIdentifier, Task composerTask, Boolean isSecurity) {
+        String name = getTaskNamePartForComposer(stageNumber);
+        ArrayList<Job> jobs = new ArrayList<Job>();
+
+        jobs.add(new Job("Accept InstallTool my " + name + " " + requirementIdentifier, new BambooKey("ACITMY" + stageNumber + requirementIdentifier))
+            .description("Run acceptance tests for install tool " + requirementIdentifier)
+            .pluginConfigurations(this.getDefaultJobPluginConfiguration())
+            .tasks(
+                this.getTaskGitCloneRepository(),
+                this.getTaskGitCherryPick(isSecurity),
+                this.getTaskStopDanglingContainers(),
+                composerTask,
+                this.getTaskPrepareAcceptanceTest(requirementIdentifier),
+                this.getTaskDockerDependenciesAcceptanceBackendMariadb10(),
+                new ScriptTask()
+                    .description("Execute codeception acceptance test for standalone install tool.")
+                    .interpreter(ScriptTaskProperties.Interpreter.BINSH_OR_CMDEXE)
+                    .inlineBody(
+                        this.getScriptTaskBashInlineBody() +
+                            "function codecept() {\n" +
+                            "    docker run \\\n" +
+                            "        -u ${HOST_UID} \\\n" +
+                            "        -v /bamboo-data/${BAMBOO_COMPOSE_PROJECT_NAME}/passwd:/etc/passwd \\\n" +
+                            "        -v ${BAMBOO_COMPOSE_PROJECT_NAME}_bamboo-data:/srv/bamboo/xml-data/build-dir/ \\\n" +
+                            "        -e typo3DatabaseName=func_test \\\n" +
+                            "        -e typo3DatabaseUsername=root \\\n" +
+                            "        -e typo3DatabasePassword=funcp  \\\n" +
+                            "        -e typo3DatabaseHost=mariadb10  \\\n" +
+                            "        --name ${BAMBOO_COMPOSE_PROJECT_NAME}sib_adhoc \\\n" +
+                            "        --network ${BAMBOO_COMPOSE_PROJECT_NAME}_test \\\n" +
+                            "        --rm \\\n" +
+                            "        typo3gmbh/" + requirementIdentifier.toLowerCase() + ":latest \\\n" +
+                            "        bin/bash -c \"cd ${PWD}; ./bin/codecept $*\"\n" +
+                            "}\n" +
+                            "\n" +
+                            "codecept run InstallTool -d -c typo3/sysext/core/Tests/codeception.yml --env=mysql --xml reports.xml --html reports.html\n"
+                    )
+            )
+            .finalTasks(
+                this.getTaskStopDockerDependencies(),
+                new TestParserTask(TestParserTaskProperties.TestType.JUNIT)
+                    .resultDirectories("typo3temp/var/tests/AcceptanceReports/reports.xml")
+            )
+            .artifacts(new Artifact()
+                .name("Test Report")
+                .copyPattern("typo3temp/var/tests/AcceptanceReports/")
+                .shared(false)
+            )
+            .requirements(
+                this.getRequirementDocker10()
+            )
+            .cleanWorkingDirectory(true)
+        );
 
         return jobs;
     }
@@ -674,7 +804,7 @@ abstract class AbstractCoreSpec {
                                 "        -e typo3DatabaseHost=localhost \\\n" +
                                 "        -e typo3DatabasePort=1433 \\\n" +
                                 "        -e typo3DatabaseCharset=utf-8 \\\n" +
-                                "        -e typo3DatabaseHost=mssql2017cu17 \\\n" +
+                                "        -e typo3DatabaseHost=mssql2019latest \\\n" +
                                 "        -e typo3TestingRedisHost=${BAMBOO_COMPOSE_PROJECT_NAME}sib_redis4_1 \\\n" +
                                 "        -e typo3TestingMemcachedHost=${BAMBOO_COMPOSE_PROJECT_NAME}sib_memcached1-5_1 \\\n" +
                                 "        --name ${BAMBOO_COMPOSE_PROJECT_NAME}sib_adhoc \\\n" +
@@ -741,7 +871,7 @@ abstract class AbstractCoreSpec {
                                 "        -e typo3DatabaseHost=localhost \\\n" +
                                 "        -e typo3DatabasePort=1433 \\\n" +
                                 "        -e typo3DatabaseCharset=utf-8 \\\n" +
-                                "        -e typo3DatabaseHost=mssql2017cu17 \\\n" +
+                                "        -e typo3DatabaseHost=mssql2019latest \\\n" +
                                 "        -e typo3TestingRedisHost=${BAMBOO_COMPOSE_PROJECT_NAME}sib_redis4_1 \\\n" +
                                 "        -e typo3TestingMemcachedHost=${BAMBOO_COMPOSE_PROJECT_NAME}sib_memcached1-5_1 \\\n" +
                                 "        --name ${BAMBOO_COMPOSE_PROJECT_NAME}sib_adhoc \\\n" +
@@ -968,6 +1098,47 @@ abstract class AbstractCoreSpec {
     }
 
     /**
+     * Job with integration test checking the source code with phpstan/phpstan
+     *
+     * @param String requirementIdentifier
+     * @param Task composerTask
+     * @param Boolean isSecurity
+     */
+    protected Job getJobIntegrationPhpStan(String requirementIdentifier, Task composerTask, Boolean isSecurity) {
+        return new Job("Integration phpstan", new BambooKey("PHPSTAN"))
+            .description("Check source code via phpstan")
+            .pluginConfigurations(this.getDefaultJobPluginConfiguration())
+            .tasks(
+                this.getTaskGitCloneRepository(),
+                this.getTaskGitCherryPick(isSecurity),
+                this.getTaskStopDanglingContainers(),
+                composerTask,
+                new ScriptTask()
+                    .description("Run phpstan")
+                    .interpreter(ScriptTaskProperties.Interpreter.BINSH_OR_CMDEXE)
+                    .inlineBody(
+                        this.getScriptTaskBashInlineBody() +
+                            "function phpstan() {\n" +
+                            "    docker run \\\n" +
+                            "        -u ${HOST_UID} \\\n" +
+                            "        -v /bamboo-data/${BAMBOO_COMPOSE_PROJECT_NAME}/passwd:/etc/passwd \\\n" +
+                            "        -v ${BAMBOO_COMPOSE_PROJECT_NAME}_bamboo-data:/srv/bamboo/xml-data/build-dir/ \\\n" +
+                            "        --name ${BAMBOO_COMPOSE_PROJECT_NAME}sib_adhoc \\\n" +
+                            "        --rm \\\n" +
+                            "        typo3gmbh/" + requirementIdentifier.toLowerCase() + ":latest \\\n" +
+                            "        bin/bash -c \"cd ${PWD}; ./bin/phpstan analyse --no-progress --no-interaction $*\"\n" +
+                            "}\n" +
+                            "\n" +
+                            "phpstan"
+                    )
+            )
+            .requirements(
+                this.getRequirementDocker10()
+            )
+            .cleanWorkingDirectory(true);
+    }
+
+    /**
      * Job with various smaller script tests
      */
     Job getJobIntegrationVarious(String requirementIdentifier, Task composerTask, Boolean isSecurity) {
@@ -1162,7 +1333,7 @@ abstract class AbstractCoreSpec {
                             "        -e HOME=${HOME} \\\n" +
                             "        --name ${BAMBOO_COMPOSE_PROJECT_NAME}sib_adhoc \\\n" +
                             "        --rm \\\n" +
-                            "        typo3gmbh/" + requirementIdentifier.toLowerCase() + ":latest \\\n" +
+                            "        typo3gmbh/" + requirementIdentifier.toLowerCase() + ":" + IMAGE_JS_VERSION + " \\\n" +
                             "        bin/bash -c \"cd ${PWD}/Build; yarn $*\"\n" +
                             "}\n" +
                             "\n" +
@@ -1181,7 +1352,7 @@ abstract class AbstractCoreSpec {
                             "        -e HOME=${HOME} \\\n" +
                             "        --name ${BAMBOO_COMPOSE_PROJECT_NAME}sib_adhoc \\\n" +
                             "        --rm \\\n" +
-                            "        typo3gmbh/" + requirementIdentifier.toLowerCase() + ":latest \\\n" +
+                            "        typo3gmbh/" + requirementIdentifier.toLowerCase() + ":" + IMAGE_JS_VERSION + " \\\n" +
                             "        bin/bash -c \"cd ${PWD}; ./Build/node_modules/karma/bin/karma $*\"\n" +
                             "}\n" +
                             "\n" +
@@ -1259,7 +1430,7 @@ abstract class AbstractCoreSpec {
                             "        -e HOME=${HOME} \\\n" +
                             "        --name ${BAMBOO_COMPOSE_PROJECT_NAME}sib_adhoc \\\n" +
                             "        --rm \\\n" +
-                            "        typo3gmbh/" + requirementIdentifier.toLowerCase() + ":latest \\\n" +
+                            "        typo3gmbh/" + requirementIdentifier.toLowerCase() + ":" + IMAGE_JS_VERSION + " \\\n" +
                             "        bin/bash -c \"cd ${PWD}/Build; yarn $*\"\n" +
                             "}\n" +
                             "\n" +
@@ -1278,7 +1449,7 @@ abstract class AbstractCoreSpec {
                             "        -e HOME=${HOME} \\\n" +
                             "        --name ${BAMBOO_COMPOSE_PROJECT_NAME}sib_adhoc \\\n" +
                             "        --rm \\\n" +
-                            "        typo3gmbh/" + requirementIdentifier.toLowerCase() + ":latest \\\n" +
+                            "        typo3gmbh/" + requirementIdentifier.toLowerCase() + ":" + IMAGE_JS_VERSION + " \\\n" +
                             "        bin/bash -c \"cd ${PWD}/Build; ./node_modules/grunt/bin/grunt $*\"\n" +
                             "}\n" +
                             "\n" +
@@ -1297,7 +1468,7 @@ abstract class AbstractCoreSpec {
                             "        -e HOME=${HOME} \\\n" +
                             "        --name ${BAMBOO_COMPOSE_PROJECT_NAME}sib_adhoc \\\n" +
                             "        --rm \\\n" +
-                            "        typo3gmbh/" + requirementIdentifier.toLowerCase() + ":latest \\\n" +
+                            "        typo3gmbh/" + requirementIdentifier.toLowerCase() + ":" + IMAGE_JS_VERSION + " \\\n" +
                             "        bin/bash -c \"cd ${PWD}/Build; ./node_modules/grunt/bin/grunt $*\"\n" +
                             "}\n" +
                             "\n" +
@@ -1386,10 +1557,10 @@ abstract class AbstractCoreSpec {
      */
     Task getComposerTaskByStageNumber(String phpVersion, int stageNumber) {
         Task composerTask = this.getTaskComposerInstall(phpVersion);
-        if (stageNumber == 1) {
+        if (stageNumber == COMPOSER_MAX) {
             composerTask = this.getTaskComposerUpdateMax(phpVersion);
         } else {
-            if (stageNumber == 2) {
+            if (stageNumber == COMPOSER_MIN) {
                 composerTask = this.getTaskComposerUpdateMin(phpVersion);
             }
         }
@@ -1502,35 +1673,25 @@ abstract class AbstractCoreSpec {
      * Task definition to cherry pick a patch set from gerrit on top of cloned core
      */
     private Task getTaskGitCherryPick(Boolean isSecurity) {
-        if (isSecurity) {
-            return new ScriptTask()
-                .description("Gerrit cherry pick")
-                .interpreter(ScriptTaskProperties.Interpreter.BINSH_OR_CMDEXE)
-                .inlineBody(
-                    this.getScriptTaskBashInlineBody() +
-                        "CHANGEURL=${bamboo.changeUrl}\n" +
-                        "CHANGEURLID=${CHANGEURL#https://review.typo3.org/}\n" +
-                        "PATCHSET=${bamboo.patchset}\n" +
-                        "\n" +
-                        "if [[ $CHANGEURL ]]; then\n" +
-                        "    gerrit-cherry-pick https://review.typo3.org/Teams/Security/TYPO3v4-Core $CHANGEURLID/$PATCHSET || exit 1\n" +
-                        "fi\n"
-                );
-        } else {
-            return new ScriptTask()
-                .description("Gerrit cherry pick")
-                .interpreter(ScriptTaskProperties.Interpreter.BINSH_OR_CMDEXE)
-                .inlineBody(
-                    this.getScriptTaskBashInlineBody() +
-                        "CHANGEURL=${bamboo.changeUrl}\n" +
-                        "CHANGEURLID=${CHANGEURL#https://review.typo3.org/}\n" +
-                        "PATCHSET=${bamboo.patchset}\n" +
-                        "\n" +
-                        "if [[ $CHANGEURL ]]; then\n" +
-                        "    gerrit-cherry-pick https://review.typo3.org/Packages/TYPO3.CMS $CHANGEURLID/$PATCHSET || exit 1\n" +
-                        "fi\n"
-                );
-        }
+        String cherryPickRepository = isSecurity ? "Teams/Security/TYPO3v4-Core" : "Packages/TYPO3.CMS";
+
+        return new ScriptTask()
+            .description("Gerrit cherry pick")
+            .interpreter(ScriptTaskProperties.Interpreter.BINSH_OR_CMDEXE)
+            .inlineBody(
+                this.getScriptTaskBashInlineBody() +
+                    "CHANGEURL=${bamboo.changeUrl}\n" +
+                    "CHANGEURLID=${CHANGEURL#https://review.typo3.org/}\n" +
+                    "PATCHSET=${bamboo.patchset}\n" +
+                    "\n" +
+                    "if [[ $CHANGEURL ]]; then\n" +
+                    "    NEXT_WAIT_TIME=0\n" +
+                    "    until gerrit-cherry-pick https://review.typo3.org/" + cherryPickRepository + " $CHANGEURLID/$PATCHSET; do\n" +
+                    "        [[ $NEXT_WAIT_TIME -eq 5 ]] && exit 1\n" +
+                    "        sleep $(( NEXT_WAIT_TIME++ ))\n" +
+                    "    done\n" +
+                    "fi\n"
+            );
     }
 
     /**
@@ -1544,8 +1705,11 @@ abstract class AbstractCoreSpec {
             .inlineBody(
                 this.getScriptTaskBashInlineBody() +
                     "cd Build/testing-docker/bamboo\n" +
-                    "docker-compose down -v\n" +
-                    "docker rm -f ${BAMBOO_COMPOSE_PROJECT_NAME}sib_adhoc\n" +
+                    "docker inspect -f '{{.State.Running}}' ${BAMBOO_COMPOSE_PROJECT_NAME}sib_adhoc > /dev/null 2>&1\n" +
+                    "if [[ $? -eq 0 ]]; then\n" +
+                    "    docker-compose down -v\n" +
+                    "    docker rm -f ${BAMBOO_COMPOSE_PROJECT_NAME}sib_adhoc\n" +
+                    "fi\n" +
                     "exit 0\n"
             );
     }
@@ -1560,7 +1724,8 @@ abstract class AbstractCoreSpec {
             .inlineBody(
                 this.getScriptTaskBashInlineBody() +
                     this.getScriptTaskComposer(requirementIdentifier) +
-                    "composer install --no-progress --no-suggest --no-interaction"
+                    "composer install --no-progress --no-interaction -n\n" +
+                    "composer dumpautoload"
             )
             .environmentVariables(this.composerRootVersionEnvironment);
     }
@@ -1581,8 +1746,9 @@ abstract class AbstractCoreSpec {
             .inlineBody(
                 this.getScriptTaskBashInlineBody() +
                     this.getScriptTaskComposer(requirementIdentifier) +
-                    "composer install -n\n" +
-                    "composer update --with-dependencies --no-progress -n"
+                    "composer config --unset platform.php \n" +
+                    "composer update --with-dependencies --no-progress  -n\n" +
+                    "composer dumpautoload"
             )
             .environmentVariables(this.composerRootVersionEnvironment);
     }
@@ -1592,19 +1758,20 @@ abstract class AbstractCoreSpec {
      * This will update all dependencies to current possible minimum version.
      * Used in nightly to see if we are compatible with lowest possible dependency versions.
      * <p>
-     * We update in 2 steps: First composer install as usual, then update. This
-     * way it is easy to see which packages are updated in comparison to what is
-     * currently defined in composer.lock.
+     * We set the php platform requirement to the lowest for the given PHP version.
+     * In reality we use PHP 7.4.1 or 7.2.1, depending on the currently handled PHP version.
      */
     Task getTaskComposerUpdateMin(String requirementIdentifier) {
+        String phpVersion = phpMinVersions.get(requirementIdentifier);
         return new ScriptTask()
             .description("composer update --prefer-lowest")
             .interpreter(ScriptTaskProperties.Interpreter.BINSH_OR_CMDEXE)
             .inlineBody(
                 this.getScriptTaskBashInlineBody() +
                     this.getScriptTaskComposer(requirementIdentifier) +
-                    "composer install -n\n" +
-                    "composer update --prefer-lowest --no-progress -n"
+                    "composer config platform.php " + phpVersion + "\n" +
+                    "composer update --prefer-lowest --no-progress  -n\n" +
+                    "composer dumpautoload"
             )
             .environmentVariables(this.composerRootVersionEnvironment);
     }
@@ -1612,13 +1779,15 @@ abstract class AbstractCoreSpec {
     /**
      * Task to prepare an acceptance test
      */
-    private Task getTaskPrepareAcceptanceTest() {
+    private Task getTaskPrepareAcceptanceTest(String phpVersion) {
         return new ScriptTask()
             .description("Prepare acceptance test environment")
             .interpreter(ScriptTaskProperties.Interpreter.BINSH_OR_CMDEXE)
             .inlineBody(
                 this.getScriptTaskBashInlineBody() +
-                    "mkdir -p typo3temp/var/tests/\n"
+                    "mkdir -p typo3temp/var/tests/\n" +
+                    "cd Build/testing-docker/bamboo\n" +
+                    "echo DOCKER_PHP_IMAGE=" + phpVersion.toLowerCase() + " > .env"
             );
     }
 
@@ -1632,7 +1801,7 @@ abstract class AbstractCoreSpec {
             .inlineBody(
                 this.getScriptTaskBashInlineBody() +
                     "cd Build/testing-docker/bamboo\n" +
-                    "echo COMPOSE_PROJECT_NAME=${BAMBOO_COMPOSE_PROJECT_NAME}sib > .env\n" +
+                    "echo COMPOSE_PROJECT_NAME=${BAMBOO_COMPOSE_PROJECT_NAME}sib >> .env\n" +
                     "docker-compose run start_dependencies_acceptance_install_mariadb10"
             );
     }
@@ -1640,14 +1809,14 @@ abstract class AbstractCoreSpec {
     /**
      * Start docker sibling containers to execute acceptance install tests on postgres
      */
-    private Task getTaskDockerDependenciesAcceptanceInstallPostgres10() {
+    private Task getTaskDockerDependenciesAcceptancePostgres10() {
         return new ScriptTask()
             .description("Start docker siblings for acceptance test install postgres")
             .interpreter(ScriptTaskProperties.Interpreter.BINSH_OR_CMDEXE)
             .inlineBody(
                 this.getScriptTaskBashInlineBody() +
                     "cd Build/testing-docker/bamboo\n" +
-                    "echo COMPOSE_PROJECT_NAME=${BAMBOO_COMPOSE_PROJECT_NAME}sib > .env\n" +
+                    "echo COMPOSE_PROJECT_NAME=${BAMBOO_COMPOSE_PROJECT_NAME}sib >> .env\n" +
                     "docker-compose run start_dependencies_acceptance_install_postgres10"
             );
     }
@@ -1662,7 +1831,7 @@ abstract class AbstractCoreSpec {
             .inlineBody(
                 this.getScriptTaskBashInlineBody() +
                     "cd Build/testing-docker/bamboo\n" +
-                    "echo COMPOSE_PROJECT_NAME=${BAMBOO_COMPOSE_PROJECT_NAME}sib > .env\n" +
+                    "echo COMPOSE_PROJECT_NAME=${BAMBOO_COMPOSE_PROJECT_NAME}sib >> .env\n" +
                     "docker-compose run start_dependencies_acceptance_install_sqlite"
             );
     }
@@ -1677,7 +1846,7 @@ abstract class AbstractCoreSpec {
             .inlineBody(
                 this.getScriptTaskBashInlineBody() +
                     "cd Build/testing-docker/bamboo\n" +
-                    "echo COMPOSE_PROJECT_NAME=${BAMBOO_COMPOSE_PROJECT_NAME}sib > .env\n" +
+                    "echo COMPOSE_PROJECT_NAME=${BAMBOO_COMPOSE_PROJECT_NAME}sib >> .env\n" +
                     "docker-compose run start_dependencies_acceptance_backend_mariadb10"
             );
     }
@@ -1692,7 +1861,7 @@ abstract class AbstractCoreSpec {
             .inlineBody(
                 this.getScriptTaskBashInlineBody() +
                     "cd Build/testing-docker/bamboo\n" +
-                    "echo COMPOSE_PROJECT_NAME=${BAMBOO_COMPOSE_PROJECT_NAME}sib > .env\n" +
+                    "echo COMPOSE_PROJECT_NAME=${BAMBOO_COMPOSE_PROJECT_NAME}sib >> .env\n" +
                     "docker-compose run start_dependencies_functional_mariadb10"
             );
     }
@@ -1707,7 +1876,7 @@ abstract class AbstractCoreSpec {
             .inlineBody(
                 this.getScriptTaskBashInlineBody() +
                     "cd Build/testing-docker/bamboo\n" +
-                    "echo COMPOSE_PROJECT_NAME=${BAMBOO_COMPOSE_PROJECT_NAME}sib > .env\n" +
+                    "echo COMPOSE_PROJECT_NAME=${BAMBOO_COMPOSE_PROJECT_NAME}sib >> .env\n" +
                     "docker-compose run start_dependencies_functional_mssql"
             );
     }
@@ -1722,7 +1891,7 @@ abstract class AbstractCoreSpec {
             .inlineBody(
                 this.getScriptTaskBashInlineBody() +
                     "cd Build/testing-docker/bamboo\n" +
-                    "echo COMPOSE_PROJECT_NAME=${BAMBOO_COMPOSE_PROJECT_NAME}sib > .env\n" +
+                    "echo COMPOSE_PROJECT_NAME=${BAMBOO_COMPOSE_PROJECT_NAME}sib >> .env\n" +
                     "docker-compose run start_dependencies_functional_postgres10"
             );
     }
@@ -1737,7 +1906,7 @@ abstract class AbstractCoreSpec {
             .inlineBody(
                 this.getScriptTaskBashInlineBody() +
                     "cd Build/testing-docker/bamboo\n" +
-                    "echo COMPOSE_PROJECT_NAME=${BAMBOO_COMPOSE_PROJECT_NAME}sib > .env\n" +
+                    "echo COMPOSE_PROJECT_NAME=${BAMBOO_COMPOSE_PROJECT_NAME}sib >> .env\n" +
                     "docker-compose run start_dependencies_functional_sqlite"
             );
     }

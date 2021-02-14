@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Backend\Form\FormDataProvider;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Backend\Form\FormDataProvider;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Form\FormDataProvider;
 
 use TYPO3\CMS\Backend\Form\FormDataProviderInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -307,7 +309,7 @@ class EvaluateDisplayConditions implements FormDataProviderInterface
                     }
                     $namedConditionArray['operand'] = (int)$operand;
                 } elseif ($namedConditionArray['operator'] === '-' || $namedConditionArray['operator'] === '!-') {
-                    list($minimum, $maximum) = GeneralUtility::trimExplode('-', $operand);
+                    [$minimum, $maximum] = GeneralUtility::trimExplode('-', $operand);
                     if (!MathUtility::canBeInterpretedAsInteger($minimum) || !MathUtility::canBeInterpretedAsInteger($maximum)) {
                         throw new \RuntimeException(
                             'Field condition "' . $conditionString . '" with comparison operator ' . $namedConditionArray['operator']

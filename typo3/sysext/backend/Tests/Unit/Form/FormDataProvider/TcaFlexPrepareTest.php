@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
 
 use Prophecy\Argument;
 use Prophecy\Prophecy\ObjectProphecy;
@@ -88,7 +89,7 @@ class TcaFlexPrepareTest extends UnitTestCase
             ],
         ];
         $expected = $input;
-        self::assertEquals($expected, (new TcaFlexPrepare)->addData($input));
+        self::assertEquals($expected, (new TcaFlexPrepare())->addData($input));
     }
 
     /**
@@ -159,7 +160,7 @@ class TcaFlexPrepareTest extends UnitTestCase
             'meta' => [],
         ];
 
-        self::assertEquals($expected, (new TcaFlexPrepare)->addData($input));
+        self::assertEquals($expected, (new TcaFlexPrepare())->addData($input));
     }
 
     /**
@@ -238,7 +239,7 @@ class TcaFlexPrepareTest extends UnitTestCase
             'meta' => [],
         ];
 
-        self::assertEquals($expected, (new TcaFlexPrepare)->addData($input));
+        self::assertEquals($expected, (new TcaFlexPrepare())->addData($input));
     }
 
     /**
@@ -282,6 +283,6 @@ class TcaFlexPrepareTest extends UnitTestCase
             'meta' => []
         ];
 
-        self::assertEquals($expected, (new TcaFlexPrepare)->addData($input));
+        self::assertEquals($expected, (new TcaFlexPrepare())->addData($input));
     }
 }

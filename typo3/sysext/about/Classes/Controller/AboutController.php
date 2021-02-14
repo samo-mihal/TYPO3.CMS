@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\About\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,11 +13,14 @@ namespace TYPO3\CMS\About\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\About\Controller;
+
 use Psr\Http\Message\ResponseInterface;
 use TYPO3\CMS\Backend\Module\ModuleLoader;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Core\Http\HtmlResponse;
-use TYPO3\CMS\Core\Information\Typo3Copyright;
+use TYPO3\CMS\Core\Information\Typo3Information;
+use TYPO3\CMS\Core\Information\Typo3Version;
 use TYPO3\CMS\Core\Package\PackageManager;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Fluid\View\StandaloneView;
@@ -43,14 +45,21 @@ class AboutController
      * @var ViewInterface
      */
     protected $view;
-    /**
-     * @var \TYPO3\CMS\Core\Information\Typo3Copyright
-     */
-    private $copyright;
 
-    public function __construct(Typo3Copyright $copyright)
+    /**
+     * @var Typo3Version
+     */
+    protected $version;
+
+    /**
+     * @var Typo3Information
+     */
+    protected $typo3Information;
+
+    public function __construct(Typo3Version $version, Typo3Information $typo3Information)
     {
-        $this->copyright = $copyright;
+        $this->version = $version;
+        $this->typo3Information = $typo3Information;
     }
 
     /**
@@ -72,11 +81,11 @@ class AboutController
         }
 
         $this->view->assignMultiple([
-            'copyrightYear' => $this->copyright->getCopyrightYear(),
-            'donationUrl' => TYPO3_URL_DONATE,
-            'currentVersion' => TYPO3_version,
+            'copyrightYear' => $this->typo3Information->getCopyrightYear(),
+            'donationUrl' => $this->typo3Information::URL_DONATE,
+            'currentVersion' => $this->version->getVersion(),
             'loadedExtensions' => $this->getLoadedExtensions(),
-            'copyRightNotice' => $this->copyright->getCopyrightNotice(),
+            'copyRightNotice' => $this->typo3Information->getCopyrightNotice(),
             'warnings' => $warnings,
             'modules' => $this->getModulesData()
         ]);

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Package;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,10 @@ namespace TYPO3\CMS\Core\Package;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Package;
+
+use TYPO3\CMS\Core\Package\Exception\PackageStatesUnavailableException;
 
 /**
  * This is an intermediate package manager that loads just
@@ -34,7 +37,7 @@ class FailsafePackageManager extends PackageManager
     {
         try {
             parent::loadPackageStates();
-        } catch (Exception\PackageStatesUnavailableException $exception) {
+        } catch (PackageStatesUnavailableException $exception) {
             $this->inFailsafeMode = true;
             $this->packageStatesConfiguration = [];
             $this->scanAvailablePackages();

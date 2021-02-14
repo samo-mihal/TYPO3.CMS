@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Unit\Resource\Driver\Fixtures;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,10 @@ namespace TYPO3\CMS\Core\Tests\Unit\Resource\Driver\Fixtures;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\Resource\Driver\Fixtures;
+
+use TYPO3\CMS\Core\Resource\Driver\AbstractDriver;
 
 /**
  * Fixture class for the filename filters in the local driver.
@@ -29,7 +32,7 @@ class LocalDriverFilenameFilter
      * @param \TYPO3\CMS\Core\Resource\Driver\AbstractDriver $driverInstance
      * @return bool|int
      */
-    public static function filterFilename($itemName, $itemIdentifier, $parentIdentifier, array $additionalInformation, \TYPO3\CMS\Core\Resource\Driver\AbstractDriver $driverInstance)
+    public static function filterFilename($itemName, $itemIdentifier, $parentIdentifier, array $additionalInformation, AbstractDriver $driverInstance)
     {
         if ($itemName === 'fileA' || $itemName === 'folderA/') {
             return -1;

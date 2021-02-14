@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Provider;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,11 +13,14 @@ namespace TYPO3\CMS\Backend\Provider;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Provider;
+
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Backend\View\BackendLayout\BackendLayout;
 use TYPO3\CMS\Backend\View\BackendLayout\BackendLayoutCollection;
 use TYPO3\CMS\Backend\View\BackendLayout\DataProviderContext;
 use TYPO3\CMS\Backend\View\BackendLayout\DataProviderInterface;
+use TYPO3\CMS\Core\Utility\ArrayUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -170,12 +172,13 @@ class PageTsBackendLayoutDataProvider implements DataProviderInterface
      */
     protected function generateBackendLayoutFromTsConfig($identifier, $data)
     {
+        $backendLayout = [];
         if (!empty($data['config.']['backend_layout.']) && is_array($data['config.']['backend_layout.'])) {
             $backendLayout['uid'] = substr($identifier, 0, -1);
             $backendLayout['title'] = $data['title'] ?: $backendLayout['uid'];
             $backendLayout['icon'] = $data['icon'] ?: '';
             // Convert PHP array back to plain TypoScript so it can be processed
-            $config = \TYPO3\CMS\Core\Utility\ArrayUtility::flatten($data['config.']);
+            $config = ArrayUtility::flatten($data['config.']);
             $backendLayout['config'] = '';
             foreach ($config as $row => $value) {
                 $backendLayout['config'] .= $row . ' = ' . $value . "\r\n";

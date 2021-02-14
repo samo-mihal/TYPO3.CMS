@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Tests\Unit\View\BackendLayout;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,13 @@ namespace TYPO3\CMS\Backend\Tests\Unit\View\BackendLayout;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Tests\Unit\View\BackendLayout;
+
+use Prophecy\Argument;
+use TYPO3\CMS\Backend\View\BackendLayout\BackendLayout;
+use TYPO3\CMS\Backend\View\BackendLayoutView;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -21,6 +27,8 @@ use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
  */
 class BackendLayoutTest extends UnitTestCase
 {
+    protected $resetSingletonInstances = true;
+
     /**
      * @test
      */
@@ -28,10 +36,10 @@ class BackendLayoutTest extends UnitTestCase
     {
         $this->expectException(\UnexpectedValueException::class);
         $this->expectExceptionCode(1381597630);
-        $identifier = $this->getUniqueId('identifier__');
-        $title = $this->getUniqueId('title');
-        $configuration = $this->getUniqueId('configuration');
-        new \TYPO3\CMS\Backend\View\BackendLayout\BackendLayout($identifier, $title, $configuration);
+        $identifier = StringUtility::getUniqueId('identifier__');
+        $title = StringUtility::getUniqueId('title');
+        $configuration = StringUtility::getUniqueId('configuration');
+        new BackendLayout($identifier, $title, $configuration);
     }
 
     /**
@@ -39,10 +47,14 @@ class BackendLayoutTest extends UnitTestCase
      */
     public function objectIsCreated()
     {
-        $identifier = $this->getUniqueId('identifier');
-        $title = $this->getUniqueId('title');
-        $configuration = $this->getUniqueId('configuration');
-        $backendLayout = new \TYPO3\CMS\Backend\View\BackendLayout\BackendLayout($identifier, $title, $configuration);
+        $backendLayoutView = $this->prophesize(BackendLayoutView::class);
+        $backendLayoutView->parseStructure(Argument::any())->willReturn([]);
+        GeneralUtility::setSingletonInstance(BackendLayoutView::class, $backendLayoutView->reveal());
+
+        $identifier = StringUtility::getUniqueId('identifier');
+        $title = StringUtility::getUniqueId('title');
+        $configuration = StringUtility::getUniqueId('configuration');
+        $backendLayout = new BackendLayout($identifier, $title, $configuration);
 
         self::assertEquals($identifier, $backendLayout->getIdentifier());
         self::assertEquals($title, $backendLayout->getTitle());

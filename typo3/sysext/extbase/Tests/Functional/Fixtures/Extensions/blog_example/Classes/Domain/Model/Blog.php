@@ -1,5 +1,4 @@
 <?php
-namespace ExtbaseTeam\BlogExample\Domain\Model;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,12 +13,17 @@ namespace ExtbaseTeam\BlogExample\Domain\Model;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace ExtbaseTeam\BlogExample\Domain\Model;
+
 use TYPO3\CMS\Extbase\Annotation as Extbase;
+use TYPO3\CMS\Extbase\Domain\Model\Category;
+use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
+use TYPO3\CMS\Extbase\Persistence\ObjectStorage;
 
 /**
  * A blog
  */
-class Blog extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity
+class Blog extends AbstractEntity
 {
     /**
      * The blog's title.
@@ -78,8 +82,8 @@ class Blog extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity
      */
     public function __construct()
     {
-        $this->posts = new \TYPO3\CMS\Extbase\Persistence\ObjectStorage();
-        $this->categories = new \TYPO3\CMS\Extbase\Persistence\ObjectStorage();
+        $this->posts = new ObjectStorage();
+        $this->categories = new ObjectStorage();
     }
 
     /**
@@ -171,7 +175,7 @@ class Blog extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity
      */
     public function removeAllPosts()
     {
-        $this->posts = new \TYPO3\CMS\Extbase\Persistence\ObjectStorage();
+        $this->posts = new ObjectStorage();
     }
 
     /**
@@ -189,7 +193,7 @@ class Blog extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity
      *
      * @param \TYPO3\CMS\Extbase\Domain\Model\Category $category
      */
-    public function addCategory(\TYPO3\CMS\Extbase\Domain\Model\Category $category)
+    public function addCategory(Category $category)
     {
         $this->categories->attach($category);
     }
@@ -219,7 +223,7 @@ class Blog extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity
      *
      * @param \TYPO3\CMS\Extbase\Domain\Model\Category $category
      */
-    public function removeCategory(\TYPO3\CMS\Extbase\Domain\Model\Category $category)
+    public function removeCategory(Category $category)
     {
         $this->categories->detach($category);
     }

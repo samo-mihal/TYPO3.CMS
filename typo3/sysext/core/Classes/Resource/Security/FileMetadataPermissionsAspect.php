@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Resource\Security;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,11 +13,14 @@ namespace TYPO3\CMS\Core\Resource\Security;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Resource\Security;
+
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\DataHandling\DataHandlerCheckModifyAccessListHookInterface;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\SingletonInterface;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
 
 /**
@@ -57,7 +59,7 @@ class FileMetadataPermissionsAspect implements DataHandlerCheckModifyAccessListH
      * We "abuse" it here to actually check if access is allowed to sys_file_metadata.
      *
      *
-     * @param int &$accessAllowed Whether the user has access to modify a table
+     * @param int $accessAllowed Whether the user has access to modify a table
      * @param string $table The name of the table to be modified
      * @param DataHandler $parent The calling parent object
      * @throws \UnexpectedValueException
@@ -76,7 +78,7 @@ class FileMetadataPermissionsAspect implements DataHandlerCheckModifyAccessListH
                         );
                     }
 
-                    $fileMetadataRecord = BackendUtility::getRecord('sys_file_metadata', $id);
+                    $fileMetadataRecord = (array)BackendUtility::getRecord('sys_file_metadata', (int)$id);
                     $accessAllowed = $this->checkFileWriteAccessForFileMetaData($fileMetadataRecord);
                     if (!$accessAllowed) {
                         // If for any item in the array, access is not allowed, we deny the whole operation
@@ -89,7 +91,7 @@ class FileMetadataPermissionsAspect implements DataHandlerCheckModifyAccessListH
                 foreach ($parent->datamap[$table] as $id => $data) {
                     $recordAccessAllowed = false;
 
-                    if (strpos($id, 'NEW') === false) {
+                    if (strpos((string)$id, 'NEW') === false) {
                         $fileMetadataRecord = BackendUtility::getRecord('sys_file_metadata', $id);
                         if ($fileMetadataRecord !== null) {
                             if ($parent->isImporting && empty($fileMetadataRecord['file'])) {
@@ -141,7 +143,7 @@ class FileMetadataPermissionsAspect implements DataHandlerCheckModifyAccessListH
         $accessAllowed = $parameters['hasAccess'];
 
         if ($accessAllowed && $table === 'sys_file_metadata' && $cmd === 'edit') {
-            $fileMetadataRecord = BackendUtility::getRecord('sys_file_metadata', $uid);
+            $fileMetadataRecord = (array)BackendUtility::getRecord('sys_file_metadata', $uid);
             $accessAllowed = $this->checkFileWriteAccessForFileMetaData($fileMetadataRecord);
         }
         return $accessAllowed;
@@ -162,7 +164,7 @@ class FileMetadataPermissionsAspect implements DataHandlerCheckModifyAccessListH
             if (strpos($file, 'sys_file_') !== false) {
                 $file = substr($file, strlen('sys_file_'));
             }
-            $fileObject = ResourceFactory::getInstance()->getFileObject((int)$file);
+            $fileObject = GeneralUtility::makeInstance(ResourceFactory::class)->getFileObject((int)$file);
             $accessAllowed = $fileObject->checkActionPermission('editMeta');
         }
         return $accessAllowed;

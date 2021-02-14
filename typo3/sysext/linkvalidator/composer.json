@@ -9,12 +9,18 @@
 		"email": "typo3cms@typo3.org",
 		"role": "Developer"
 	}],
+	"support": {
+		"chat": "https://typo3.org/help",
+		"docs": "https://docs.typo3.org/c/typo3/cms-linkvalidator/master/en-us",
+		"issues": "https://forge.typo3.org",
+		"source": "https://github.com/TYPO3/TYPO3.CMS"
+	},
 	"config": {
 		"sort-packages": true
 	},
 	"require": {
-		"typo3/cms-core": "10.2.*@dev",
-		"typo3/cms-info": "10.2.*@dev"
+		"typo3/cms-core": "10.4.*@dev",
+		"typo3/cms-info": "10.4.*@dev"
 	},
 	"suggest": {
 		"typo3/cms-scheduler": "Regular checks of links"
@@ -23,6 +29,9 @@
 		"typo3/cms": "*"
 	},
 	"extra": {
+		"branch-alias": {
+			"dev-master": "10.4.x-dev"
+		},
 		"typo3/cms": {
 			"extension-key": "linkvalidator"
 		}

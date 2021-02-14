@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Routing\Aspect;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,8 +15,15 @@ namespace TYPO3\CMS\Core\Routing\Aspect;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Routing\Aspect;
+
+use TYPO3\CMS\Core\Context\Context;
+use TYPO3\CMS\Core\Context\ContextAwareInterface;
+use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
+use TYPO3\CMS\Core\Site\SiteAwareInterface;
 use TYPO3\CMS\Core\Site\SiteLanguageAwareInterface;
+use TYPO3\CMS\Core\Site\SiteLanguageAwareTrait;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -31,10 +37,18 @@ class AspectFactory
     protected $availableAspects;
 
     /**
-     * AspectFactory constructor.
+     * @var Context
      */
-    public function __construct()
+    protected $context;
+
+    /**
+     * AspectFactory constructor.
+     *
+     * @param Context $context
+     */
+    public function __construct(Context $context = null)
     {
+        $this->context = $context ?? GeneralUtility::makeInstance(Context::class);
         $this->availableAspects = $GLOBALS['TYPO3_CONF_VARS']['SYS']['routing']['aspects'] ?? [];
     }
 
@@ -43,14 +57,16 @@ class AspectFactory
      *
      * @param array $aspects
      * @param SiteLanguage $language
+     * @param Site $site
      * @return AspectInterface[]
      */
-    public function createAspects(array $aspects, SiteLanguage $language): array
+    public function createAspects(array $aspects, SiteLanguage $language, Site $site): array
     {
         $aspects = array_map(
-            function ($settings) use ($language) {
+            function ($settings) use ($language, $site) {
                 $type = (string)($settings['type'] ?? '');
-                return $this->create($type, $settings, $language);
+                $aspect = $this->create($type, $settings);
+                return $this->enrich($aspect, $language, $site);
             },
             $aspects
         );
@@ -63,12 +79,11 @@ class AspectFactory
      *
      * @param string $type
      * @param array $settings
-     * @param SiteLanguage $language
      * @return AspectInterface
      * @throws \InvalidArgumentException
      * @throws \OutOfRangeException
      */
-    protected function create(string $type, array $settings, SiteLanguage $language): AspectInterface
+    protected function create(string $type, array $settings): AspectInterface
     {
         if (empty($type)) {
             throw new \InvalidArgumentException(
@@ -86,7 +101,7 @@ class AspectFactory
         $className = $this->availableAspects[$type];
         /** @var AspectInterface $aspect */
         $aspect = GeneralUtility::makeInstance($className, $settings);
-        return $this->enrich($aspect, $language);
+        return $aspect;
     }
 
     /**
@@ -94,13 +109,21 @@ class AspectFactory
      *
      * @param AspectInterface $aspect
      * @param SiteLanguage $language
-     * @return AspectInterface|mixed
+     * @param Site $site
+     * @return AspectInterface
      */
-    protected function enrich(AspectInterface $aspect, SiteLanguage $language): AspectInterface
+    protected function enrich(AspectInterface $aspect, SiteLanguage $language, Site $site): AspectInterface
     {
-        // the check for the trait can be removed at any time after TYPO3 v11
+        // the check for the trait is @deprecated and can be removed at any time after TYPO3 v11
         if ($aspect instanceof SiteLanguageAwareInterface || in_array(SiteLanguageAwareTrait::class, class_uses($aspect), true)) {
+            /** @var AspectInterface|SiteLanguageAwareInterface $aspect */
             $aspect->setSiteLanguage($language);
+        }
+        if ($aspect instanceof SiteAwareInterface) {
+            $aspect->setSite($site);
+        }
+        if ($aspect instanceof ContextAwareInterface) {
+            $aspect->setContext($this->context);
         }
         return $aspect;
     }

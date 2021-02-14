@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Extbase\Property;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Extbase\Property;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Extbase\Property;
 
 /**
  * Interface for type converters, which can convert from a simple type to an object or another simple type.
@@ -83,7 +84,7 @@ interface TypeConverterInterface
      * @param \TYPO3\CMS\Extbase\Property\PropertyMappingConfigurationInterface $configuration
      * @return string the type of $propertyName in $targetType
      */
-    public function getTypeOfChildProperty(string $targetType, string $propertyName, \TYPO3\CMS\Extbase\Property\PropertyMappingConfigurationInterface $configuration): string;
+    public function getTypeOfChildProperty(string $targetType, string $propertyName, PropertyMappingConfigurationInterface $configuration): string;
 
     /**
      * Actually convert from $source to $targetType, taking into account the fully
@@ -103,5 +104,5 @@ interface TypeConverterInterface
      * @return mixed|\TYPO3\CMS\Extbase\Error\Error the target type, or an error object if a user-error occurred
      * @throws \TYPO3\CMS\Extbase\Property\Exception\TypeConverterException thrown in case a developer error occurred
      */
-    public function convertFrom($source, string $targetType, array $convertedChildProperties = [], \TYPO3\CMS\Extbase\Property\PropertyMappingConfigurationInterface $configuration = null);
+    public function convertFrom($source, string $targetType, array $convertedChildProperties = [], PropertyMappingConfigurationInterface $configuration = null);
 }

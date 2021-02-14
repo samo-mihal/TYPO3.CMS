@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Install\Service;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Install\Service;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Install\Service;
 
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
@@ -37,7 +38,7 @@ use TYPO3\CMS\Install\FolderStructure\DefaultFactory;
 class CoreUpdateService
 {
     /**
-     * @var \TYPO3\CMS\Install\Service\CoreVersionService
+     * @var CoreVersionService
      */
     protected $coreVersionService;
 
@@ -67,12 +68,9 @@ class CoreUpdateService
      */
     protected $downloadBaseUri;
 
-    /**
-     * @param CoreVersionService $coreVersionService
-     */
-    public function __construct(CoreVersionService $coreVersionService = null)
+    public function __construct(CoreVersionService $coreVersionService)
     {
-        $this->coreVersionService = $coreVersionService ?: GeneralUtility::makeInstance(CoreVersionService::class);
+        $this->coreVersionService = $coreVersionService;
         $this->setDownloadTargetPath(Environment::getVarPath() . '/transient/');
         $this->symlinkToCoreFiles = $this->discoverCurrentCoreSymlink();
         $this->downloadBaseUri = 'https://get.typo3.org';
@@ -143,8 +141,9 @@ class CoreUpdateService
             $success = false;
             $this->messages->enqueue(new FlashMessage(
                 'To perform an update, the folder structure of this TYPO3 CMS instance must'
-                    . ' stick to the conventions, or the update process could lead to unexpected'
-                    . ' results and may be hazardous to your system',
+                . ' stick to the conventions, or the update process could lead to unexpected results'
+                . ' and may be hazardous to your system. Please check your directory status in the'
+                . ' “Environment” module under “Directory Status”.',
                 'Automatic TYPO3 CMS core update not possible: Folder structure has errors or warnings',
                 FlashMessage::ERROR
             ));
@@ -167,11 +166,26 @@ class CoreUpdateService
             if (!$result) {
                 $success = false;
                 $this->messages->enqueue(new FlashMessage(
-                    'Could not write a file in path "' . Environment::getPublicPath() . '/"!',
+                    'Could not write a file in path "' . Environment::getPublicPath() . '/"!'
+                    . ' Please check your directory status in the “Environment” module under “Directory Status”.',
                     'Automatic TYPO3 CMS core update not possible: No write access to document root',
                     FlashMessage::ERROR
                 ));
             } else {
+                // Check symlink creation
+                $link = Environment::getPublicPath() . '/' . StringUtility::getUniqueId('install-core-update-test-');
+                @symlink($file, $link);
+                if (!is_link($link)) {
+                    $success = false;
+                    $this->messages->enqueue(new FlashMessage(
+                        'Could not create a symbolic link in path "' . Environment::getPublicPath() . '/"!'
+                        . ' Please check your directory status in the “Environment” module under “Directory Status”.',
+                        'Automatic TYPO3 CMS core update not possible: No symlink creation possible',
+                        FlashMessage::ERROR
+                    ));
+                } else {
+                    unlink($link);
+                }
                 unlink($file);
             }
 
@@ -183,7 +197,8 @@ class CoreUpdateService
                 if (!$result) {
                     $success = false;
                     $this->messages->enqueue(new FlashMessage(
-                        'New TYPO3 CMS core should be installed in "' . $coreLocation . '", but this directory is not writable!',
+                        'New TYPO3 CMS core should be installed in "' . $coreLocation . '", but this directory is not writable!'
+                        . ' Please check your directory status in the “Environment” module under “Directory Status”.',
                         'Automatic TYPO3 CMS core update not possible: No write access to TYPO3 CMS core location',
                         FlashMessage::ERROR
                     ));
@@ -444,7 +459,7 @@ class CoreUpdateService
                 FlashMessage::ERROR
             ));
         } else {
-            $isCurrentCoreSymlinkAbsolute = PathUtility::isAbsolutePath(readlink($this->symlinkToCoreFiles));
+            $isCurrentCoreSymlinkAbsolute = PathUtility::isAbsolutePath((string)readlink($this->symlinkToCoreFiles));
             $unlinkResult = unlink($this->symlinkToCoreFiles);
             if (!$unlinkResult) {
                 $success = false;

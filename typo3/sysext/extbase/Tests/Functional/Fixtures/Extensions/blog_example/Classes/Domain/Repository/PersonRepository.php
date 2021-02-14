@@ -1,5 +1,4 @@
 <?php
-namespace ExtbaseTeam\BlogExample\Domain\Repository;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,12 +13,15 @@ namespace ExtbaseTeam\BlogExample\Domain\Repository;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace ExtbaseTeam\BlogExample\Domain\Repository;
+
 use TYPO3\CMS\Extbase\Persistence\QueryInterface;
+use TYPO3\CMS\Extbase\Persistence\Repository;
 
 /**
  * A repository for persons
  */
-class PersonRepository extends \TYPO3\CMS\Extbase\Persistence\Repository
+class PersonRepository extends Repository
 {
     protected $defaultOrderings = ['lastname' => QueryInterface::ORDER_ASCENDING];
 }

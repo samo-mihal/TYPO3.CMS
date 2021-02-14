@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Tests\Unit\Property\TypeConverter;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,9 @@ namespace TYPO3\CMS\Extbase\Tests\Unit\Property\TypeConverter;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Tests\Unit\Property\TypeConverter;
+
+use TYPO3\CMS\Extbase\Property\TypeConverter\BooleanConverter;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -29,7 +31,7 @@ class BooleanConverterTest extends UnitTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->converter = new \TYPO3\CMS\Extbase\Property\TypeConverter\BooleanConverter();
+        $this->converter = new BooleanConverter();
     }
 
     /**

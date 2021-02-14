@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\T3editor\Tests\Unit\Registry;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,8 @@ namespace TYPO3\CMS\T3editor\Tests\Unit\Registry;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\T3editor\Tests\Unit\Registry;
+
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\T3editor\Mode;
 use TYPO3\CMS\T3editor\Registry\ModeRegistry;
@@ -26,19 +28,19 @@ use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 class ModeRegistryTest extends UnitTestCase
 {
     /**
-     * @var ModeRegistry|\PHPUnit\Framework\MockObject\MockObject|\TYPO3\TestingFramework\Core\AccessibleObjectInterface
+     * @var ModeRegistry
      */
     protected $subject;
 
     protected function setUp(): void
     {
-        $this->subject = $this->getAccessibleMock(ModeRegistry::class, ['dummy'], [], '', false);
+        $this->subject = new ModeRegistry();
     }
 
     /**
      * @test
      */
-    public function identifierIsReturned()
+    public function identifierIsReturned(): void
     {
         $expected = GeneralUtility::makeInstance(Mode::class, 'test/mode/default/default');
         $this->subject->register($expected);
@@ -50,7 +52,7 @@ class ModeRegistryTest extends UnitTestCase
     /**
      * @test
      */
-    public function latestDefaultModeIsReturned()
+    public function latestDefaultModeIsReturned(): void
     {
         $firstDefaultMode = GeneralUtility::makeInstance(Mode::class, 'test/another/foo/bar')->setAsDefault();
         $expected = GeneralUtility::makeInstance(Mode::class, 'test/another/defaultmode/defaultmode')->setAsDefault();
@@ -63,7 +65,7 @@ class ModeRegistryTest extends UnitTestCase
     /**
      * @test
      */
-    public function formatCodeReturnsCorrectMode()
+    public function formatCodeReturnsCorrectMode(): void
     {
         $expected = GeneralUtility::makeInstance(Mode::class, 'test/mode/format/code')->setFormatCode('code');
         $this->subject->register($expected);
@@ -75,7 +77,7 @@ class ModeRegistryTest extends UnitTestCase
     /**
      * @test
      */
-    public function modeIsFetchedByFileExtension()
+    public function modeIsFetchedByFileExtension(): void
     {
         $expected = GeneralUtility::makeInstance(Mode::class, 'test/mode/extension/extension')->bindToFileExtensions(['ext', 'fext']);
         $this->subject->register($expected);

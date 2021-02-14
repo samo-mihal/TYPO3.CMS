@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Frontend\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,12 +13,16 @@ namespace TYPO3\CMS\Frontend\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Frontend\Controller;
+
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Exception;
 use TYPO3\CMS\Core\Http\Response;
+use TYPO3\CMS\Core\Resource\FileInterface;
 use TYPO3\CMS\Core\Resource\ProcessedFile;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
+use TYPO3\CMS\Core\Resource\Security\FileNameValidator;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
 
@@ -40,6 +43,8 @@ use TYPO3\CMS\Core\Utility\MathUtility;
  */
 class ShowImageController
 {
+    protected const ALLOWED_PARAMETER_NAMES = ['width', 'height', 'crop', 'bodyTag', 'title'];
+
     /**
      * @var \Psr\Http\Message\ServerRequestInterface
      */
@@ -127,17 +132,24 @@ EOF;
             throw new \InvalidArgumentException('hash does not match', 1476048456);
         }
 
-        // decode the parameters Array
-        $parameters = unserialize(base64_decode($parametersEncoded));
+        // decode the parameters Array - `bodyTag` contains HTML if set and would lead
+        // to a false-positive XSS-detection, that's why parameters are base64-encoded
+        $parameters = json_decode(base64_decode($parametersEncoded), true) ?? [];
         foreach ($parameters as $parameterName => $parameterValue) {
-            $this->{$parameterName} = $parameterValue;
+            if (in_array($parameterName, static::ALLOWED_PARAMETER_NAMES, true)) {
+                $this->{$parameterName} = $parameterValue;
+            }
         }
 
         if (MathUtility::canBeInterpretedAsInteger($fileUid)) {
-            $this->file = ResourceFactory::getInstance()->getFileObject((int)$fileUid);
+            $this->file = GeneralUtility::makeInstance(ResourceFactory::class)->getFileObject((int)$fileUid);
         } else {
-            $this->file = ResourceFactory::getInstance()->retrieveFileOrFolderObject($fileUid);
+            $this->file = GeneralUtility::makeInstance(ResourceFactory::class)->retrieveFileOrFolderObject($fileUid);
         }
+        if (!($this->file instanceof FileInterface && $this->isFileValid($this->file))) {
+            throw new Exception('File processing for local storage is denied', 1594043425);
+        }
+
         $this->frame = $this->request->getQueryParams()['frame'] ?? null;
     }
 
@@ -149,7 +161,7 @@ EOF;
     {
         $processedImage = $this->processImage();
         $imageTagMarkers = [
-            '###publicUrl###' => htmlspecialchars($processedImage->getPublicUrl()),
+            '###publicUrl###' => htmlspecialchars($processedImage->getPublicUrl() ?? ''),
             '###alt###' => htmlspecialchars($this->file->getProperty('alternative') ?: $this->title),
             '###title###' => htmlspecialchars($this->file->getProperty('title') ?: $this->title),
             '###width###' => $processedImage->getProperty('width'),
@@ -203,9 +215,16 @@ EOF;
             return $response;
         } catch (\InvalidArgumentException $e) {
             // add a 410 "gone" if invalid parameters given
-            return (new Response)->withStatus(410);
+            return (new Response())->withStatus(410);
         } catch (Exception $e) {
-            return (new Response)->withStatus(404);
+            return (new Response())->withStatus(404);
         }
+    }
+
+    protected function isFileValid(FileInterface $file): bool
+    {
+        return $file->getStorage()->getDriverType() !== 'Local'
+            || GeneralUtility::makeInstance(FileNameValidator::class)
+                ->isValid(basename($file->getIdentifier()));
     }
 }

@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Install\Tests\Unit\ExtensionScanner\Php\Matcher;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Install\Tests\Unit\ExtensionScanner\Php\Matcher;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Install\Tests\Unit\ExtensionScanner\Php\Matcher;
 
 use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor\NameResolver;
@@ -58,12 +60,10 @@ class ClassNameMatcherTest extends UnitTestCase
         $traverser->addVisitor($subject);
         $traverser->traverse($statements);
         $expectedHitLineNumbers = [
-            28,
-            28,
-            28,
             30,
-            33,
-            34,
+            30,
+            30,
+            32,
             35,
             36,
             37,
@@ -72,8 +72,10 @@ class ClassNameMatcherTest extends UnitTestCase
             40,
             41,
             42,
-            45,
-            46,
+            43,
+            44,
+            47,
+            48,
         ];
         $actualHitLineNumbers = [];
         foreach ($subject->getMatches() as $match) {

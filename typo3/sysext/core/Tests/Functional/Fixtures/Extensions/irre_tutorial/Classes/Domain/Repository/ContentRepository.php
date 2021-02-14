@@ -1,5 +1,4 @@
 <?php
-namespace OliverHader\IrreTutorial\Domain\Repository;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,15 +13,20 @@ namespace OliverHader\IrreTutorial\Domain\Repository;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace OliverHader\IrreTutorial\Domain\Repository;
+
+use TYPO3\CMS\Extbase\Persistence\QueryInterface;
+use TYPO3\CMS\Extbase\Persistence\Repository;
+
 /**
  * Content Repository
  */
-class ContentRepository extends \TYPO3\CMS\Extbase\Persistence\Repository
+class ContentRepository extends Repository
 {
     /**
      * @var array
      */
     protected $defaultOrderings = [
-        'sorting' => \TYPO3\CMS\Extbase\Persistence\QueryInterface::ORDER_ASCENDING,
+        'sorting' => QueryInterface::ORDER_ASCENDING,
     ];
 }

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Validation\Validator;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,13 @@ namespace TYPO3\CMS\Extbase\Validation\Validator;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Extbase\Validation\Validator;
+
+use TYPO3\CMS\Extbase\Error\Result;
+use TYPO3\CMS\Extbase\Persistence\Generic\LazyObjectStorage;
+use TYPO3\CMS\Extbase\Utility\TypeHandlingUtility;
+use TYPO3\CMS\Extbase\Validation\ValidatorResolver;
 
 /**
  * A generic collection validator.
@@ -36,7 +42,7 @@ class CollectionValidator extends GenericObjectValidator
     /**
      * @param \TYPO3\CMS\Extbase\Validation\ValidatorResolver $validatorResolver
      */
-    public function injectValidatorResolver(\TYPO3\CMS\Extbase\Validation\ValidatorResolver $validatorResolver)
+    public function injectValidatorResolver(ValidatorResolver $validatorResolver)
     {
         $this->validatorResolver = $validatorResolver;
     }
@@ -50,14 +56,14 @@ class CollectionValidator extends GenericObjectValidator
      */
     public function validate($value)
     {
-        $this->result = new \TYPO3\CMS\Extbase\Error\Result();
+        $this->result = new Result();
 
         if ($this->acceptsEmptyValues === false || $this->isEmpty($value) === false) {
-            if ((is_object($value) && !\TYPO3\CMS\Extbase\Utility\TypeHandlingUtility::isCollectionType(get_class($value))) && !is_array($value)) {
+            if ((is_object($value) && !TypeHandlingUtility::isCollectionType(get_class($value))) && !is_array($value)) {
                 $this->addError('The given subject was not a collection.', 1317204797);
                 return $this->result;
             }
-            if ($value instanceof \TYPO3\CMS\Extbase\Persistence\Generic\LazyObjectStorage && !$value->isInitialized()) {
+            if ($value instanceof LazyObjectStorage && !$value->isInitialized()) {
                 return $this->result;
             }
             if (is_object($value)) {

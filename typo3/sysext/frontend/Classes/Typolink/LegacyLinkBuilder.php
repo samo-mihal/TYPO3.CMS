@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Frontend\Typolink;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,9 @@ namespace TYPO3\CMS\Frontend\Typolink;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Frontend\Typolink;
+
 use TYPO3\CMS\Core\LinkHandling\LinkService;
 use TYPO3\CMS\Frontend\Http\UrlProcessorInterface;
 
@@ -35,7 +38,7 @@ class LegacyLinkBuilder extends AbstractTypolinkBuilder
             // Setting title if blank value to link
             $linkText = $this->encodeFallbackLinkTextIfLinkTextIsEmpty($linkText, rawurldecode($linkLocation));
             $linkLocation = (strpos($linkLocation, '/') !== 0 ? $tsfe->absRefPrefix : '') . $linkLocation;
-            $url = $this->processUrl(UrlProcessorInterface::CONTEXT_FILE, $linkLocation, $conf);
+            $url = $this->processUrl(UrlProcessorInterface::CONTEXT_FILE, $linkLocation, $conf) ?? '';
             $url = $this->forceAbsoluteUrl($url, $conf);
             $target = $target ?: $this->resolveTargetAttribute($conf, 'fileTarget', false, $tsfe->fileTarget);
         } elseif ($linkDetails['url']) {

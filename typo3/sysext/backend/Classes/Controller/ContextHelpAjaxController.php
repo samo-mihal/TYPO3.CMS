@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Controller;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Controller;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -63,7 +64,7 @@ class ContextHelpAjaxController
         $moreIcon = $helpTextArray['moreInfo'] ? $iconFactory->getIcon('actions-view-go-forward', Icon::SIZE_SMALL)->render() : '';
         return [
             'title' => $helpTextArray['title'],
-            'description' => '<p class="t3-help-short' . ($moreIcon ? ' tipIsLinked' : '') . '">' . $helpTextArray['description'] . $moreIcon . '</p>',
+            'description' => '<p class="help-short' . ($moreIcon ? ' help-has-link' : '') . '">' . $helpTextArray['description'] . $moreIcon . '</p>',
             'id' => $table . '.' . $field,
             'moreInfo' => $helpTextArray['moreInfo']
         ];

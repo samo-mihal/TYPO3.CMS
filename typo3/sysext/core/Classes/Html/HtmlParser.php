@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Html;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Html;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Html;
 
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
@@ -57,6 +58,9 @@ class HtmlParser
         });
         $regexStr = '/\\<\\/?(' . implode('|', $tags) . ')(\\s*\\>|\\s[^\\>]*\\>)/si';
         $parts = preg_split($regexStr, $content);
+        if (empty($parts)) {
+            return [];
+        }
         $newParts = [];
         $pointer = strlen($parts[0]);
         $buffer = $parts[0];
@@ -164,6 +168,9 @@ class HtmlParser
         });
         $regexStr = '/\\<(' . implode('|', $tags) . ')(\\s[^>]*)?\\/?>/si';
         $parts = preg_split($regexStr, $content);
+        if (empty($parts)) {
+            return [];
+        }
         $pointer = strlen($parts[0]);
         $newParts = [];
         $newParts[] = $parts[0];
@@ -249,7 +256,7 @@ class HtmlParser
      */
     public function get_tag_attributes($tag, $deHSC = false)
     {
-        list($components, $metaC) = $this->split_tag_attributes($tag);
+        [$components, $metaC] = $this->split_tag_attributes($tag);
         // Attribute name is stored here
         $name = '';
         $valuemode = false;
@@ -266,7 +273,7 @@ class HtmlParser
                             $name = '';
                         }
                     } else {
-                        if ($namekey = preg_replace('/[^[:alnum:]_\\:\\-]/', '', $val)) {
+                        if ($namekey = preg_replace('/[^[:alnum:]_\\:\\-]/', '', $val) ?? '') {
                             $name = strtolower($namekey);
                             $attributesMeta[$name] = [];
                             $attributesMeta[$name]['origTag'] = $namekey;
@@ -280,6 +287,7 @@ class HtmlParser
             }
             return [$attributes, $attributesMeta];
         }
+        return [null, null];
     }
 
     /**
@@ -423,7 +431,7 @@ class HtmlParser
             }
             $firstChar = $tok[0] ?? null;
             // It is a tag... (first char is a-z0-9 or /) (fixed 19/01 2004). This also avoids triggering on <?xml..> and <!DOCTYPE..>
-            if (!$skipTag && preg_match('/[[:alnum:]\\/]/', $firstChar) === 1) {
+            if (!$skipTag && preg_match('/[[:alnum:]\\/]/', (string)$firstChar) === 1) {
                 $tagEnd = strpos($tok, '>');
                 // If there is and end-bracket...	tagEnd can't be 0 as the first character can't be a >
                 if ($tagEnd) {
@@ -805,7 +813,7 @@ class HtmlParser
      * @param mixed $str Input string/array
      * @param bool $caseSensitiveComparison If this value is FALSE, the string is returned in uppercase
      * @param string $cacheKey Key string used for internal caching of the results. Could be an MD5 hash of the serialized version of the input $str if that is an array.
-     * @return string Output string, processed
+     * @return array|string Output string, processed
      * @internal
      */
     public function caseShift($str, $caseSensitiveComparison, $cacheKey = '')
@@ -1005,7 +1013,7 @@ class HtmlParser
         $nbspRegex = $treatNonBreakingSpaceAsEmpty ? '|(&nbsp;)' : '';
         $finalRegex = sprintf('/<(%s)[^>]*>( %s)*<\/\\1[^>]*>/i', $tagRegEx, $nbspRegex);
         while ($count !== 0) {
-            $content = preg_replace($finalRegex, '', $content, -1, $count);
+            $content = preg_replace($finalRegex, '', $content, -1, $count) ?? $content;
         }
         return $content;
     }

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Tree;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,12 +12,15 @@ namespace TYPO3\CMS\Backend\Tree;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Tree;
+
 use TYPO3\CMS\Core\Imaging\Icon;
 
 /**
  * Representation Tree Node
  */
-class TreeRepresentationNode extends \TYPO3\CMS\Backend\Tree\TreeNode
+class TreeRepresentationNode extends TreeNode
 {
     /**
      * Node Label
@@ -44,7 +46,7 @@ class TreeRepresentationNode extends \TYPO3\CMS\Backend\Tree\TreeNode
     /**
      * Node Icon
      *
-     * @var string | Icon
+     * @var string|Icon
      */
     protected $icon = '';
 

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Unit\Resource\Driver;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,15 @@ namespace TYPO3\CMS\Core\Tests\Unit\Resource\Driver;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\Resource\Driver;
+
+use TYPO3\CMS\Core\Resource\Driver\AbstractDriver;
+use TYPO3\CMS\Core\Tests\Unit\Resource\BaseTestCase;
+
 /**
  * Test case for the abstract driver.
  */
-class AbstractDriverTest extends \TYPO3\CMS\Core\Tests\Unit\Resource\BaseTestCase
+class AbstractDriverTest extends BaseTestCase
 {
     /**
      * @var \TYPO3\CMS\Core\Resource\Driver\AbstractDriver
@@ -34,7 +38,7 @@ class AbstractDriverTest extends \TYPO3\CMS\Core\Tests\Unit\Resource\BaseTestCas
      */
     protected function createDriver()
     {
-        return $this->getMockForAbstractClass(\TYPO3\CMS\Core\Resource\Driver\AbstractDriver::class, [], '', false);
+        return $this->getMockForAbstractClass(AbstractDriver::class, [], '', false);
     }
 
     /**

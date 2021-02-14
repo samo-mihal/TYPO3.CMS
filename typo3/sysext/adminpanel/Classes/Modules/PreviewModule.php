@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Adminpanel\Modules;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Adminpanel\Modules;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Adminpanel\Modules;
 
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Adminpanel\ModuleApi\AbstractModule;
@@ -74,11 +75,14 @@ class PreviewModule extends AbstractModule implements RequestEnricherInterface, 
      */
     public function enrich(ServerRequestInterface $request): ServerRequestInterface
     {
+        // Backend preview params (ADMCMD_) take precedence over configured admin panel values
+        $simulateGroupByRequest = (int)($request->getQueryParams()['ADMCMD_simUser'] ?? 0);
+        $simulateTimeByRequest = (int)($request->getQueryParams()['ADMCMD_simTime'] ?? 0);
         $this->config = [
             'showHiddenPages' => (bool)$this->getConfigOptionForModule('showHiddenPages'),
-            'simulateDate' => $this->getConfigOptionForModule('simulateDate'),
+            'simulateDate' => $simulateTimeByRequest ?: (int)$this->getConfigOptionForModule('simulateDate'),
             'showHiddenRecords' => (bool)$this->getConfigOptionForModule('showHiddenRecords'),
-            'simulateUserGroup' => (int)$this->getConfigOptionForModule('simulateUserGroup'),
+            'simulateUserGroup' => $simulateGroupByRequest ?: (int)$this->getConfigOptionForModule('simulateUserGroup'),
             'showFluidDebug' => (bool)$this->getConfigOptionForModule('showFluidDebug'),
         ];
         if ($this->config['showFluidDebug']) {
@@ -90,7 +94,8 @@ class PreviewModule extends AbstractModule implements RequestEnricherInterface, 
             $this->config['showHiddenPages'],
             $this->config['showHiddenRecords'],
             $this->config['simulateDate'],
-            $this->config['simulateUserGroup']
+            $this->config['simulateUserGroup'],
+            $request
         );
 
         return $request;
@@ -150,14 +155,17 @@ class PreviewModule extends AbstractModule implements RequestEnricherInterface, 
      *
      * @param bool $showHiddenPages
      * @param bool $showHiddenRecords
-     * @param string $simulateDate
+     * @param int $simulateDate
      * @param int $simulateUserGroup UID of the fe_group to simulate
+     * @param \Psr\Http\Message\ServerRequestInterface $request
+     * @throws \Exception
      */
     protected function initializeFrontendPreview(
         bool $showHiddenPages,
         bool $showHiddenRecords,
-        string $simulateDate,
-        int $simulateUserGroup
+        int $simulateDate,
+        int $simulateUserGroup,
+        ServerRequestInterface $request
     ): void {
         $context = GeneralUtility::makeInstance(Context::class);
         $this->clearPreviewSettings($context);
@@ -189,11 +197,16 @@ class PreviewModule extends AbstractModule implements RequestEnricherInterface, 
         }
         // simulate usergroup
         if ($simulateUserGroup) {
+            $frontendUser = $request->getAttribute('frontend.user');
+            $frontendUser->user[$frontendUser->usergroup_column] = $simulateUserGroup;
+            // let's fake having a user with that group, too
+            // This can be removed once #90989 is fixed
+            $frontendUser->user['uid'] = PHP_INT_MAX;
             $context->setAspect(
                 'frontend.user',
                 GeneralUtility::makeInstance(
                     UserAspect::class,
-                    null,
+                    $frontendUser,
                     [$simulateUserGroup]
                 )
             );
@@ -212,28 +225,23 @@ class PreviewModule extends AbstractModule implements RequestEnricherInterface, 
     }
 
     /**
-     * @param string $simulateDate
+     * The simulated date needs to be a timestring (UTC)
+     *
+     * Simulation date is either set via configuration of AdminPanel (Date and Time Fields) or via ADMCMD_ $_GET
+     * parameter from backend previews
+     *
+     * @param int $simulateDate
      * @return int
      */
-    protected function parseDate(string $simulateDate): ?int
+    protected function parseDate(int $simulateDate): ?int
     {
-        $date = false;
         try {
-            $date = new \DateTime($simulateDate);
-        } catch (\Exception $e) {
-            if (is_numeric($simulateDate)) {
-                try {
-                    $date = new \DateTime('@' . $simulateDate);
-                } catch (\Exception $e) {
-                    $date = false;
-                }
-            }
-        }
-        if ($date !== false) {
-            $simTime = $date->getTimestamp();
+            $simTime = (new \DateTime('@' . $simulateDate))->getTimestamp();
             $simTime = max($simTime, 60);
+        } catch (\Exception $e) {
+            $simTime = null;
         }
-        return $simTime ?? null;
+        return $simTime;
     }
 
     protected function clearPreviewSettings(Context $context): void

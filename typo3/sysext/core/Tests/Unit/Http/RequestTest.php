@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Unit\Http;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\Http;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\Http;
 
 use TYPO3\CMS\Core\Http\Request;
 use TYPO3\CMS\Core\Http\Stream;
@@ -526,5 +527,23 @@ class RequestTest extends UnitTestCase
     {
         $this->expectException(\InvalidArgumentException::class);
         new Request(null, null, 'php://memory', [$name => $value]);
+    }
+
+    /**
+     * @test
+     */
+    public function supportedRequestMethodsWork(): void
+    {
+        $request = new Request('some-uri', 'PURGE');
+        self::assertEquals('PURGE', $request->getMethod());
+    }
+
+    /**
+     * @test
+     */
+    public function nonSupportedRequestMethodsRaisesException(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        new Request('some-uri', 'UNSUPPORTED');
     }
 }

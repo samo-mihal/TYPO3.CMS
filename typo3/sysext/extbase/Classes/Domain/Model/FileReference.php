@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Domain\Model;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,12 +13,18 @@ namespace TYPO3\CMS\Extbase\Domain\Model;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Domain\Model;
+
+use TYPO3\CMS\Core\Resource\ResourceFactory;
+use TYPO3\CMS\Core\Resource\ResourceInterface;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+
 /**
  * A file reference object (File Abstraction Layer)
  *
  * @internal experimental! This class is experimental and subject to change!
  */
-class FileReference extends \TYPO3\CMS\Extbase\Domain\Model\AbstractFileFolder
+class FileReference extends AbstractFileFolder
 {
     /**
      * Uid of the referenced sys_file. Needed for extbase to serialize the
@@ -32,7 +37,7 @@ class FileReference extends \TYPO3\CMS\Extbase\Domain\Model\AbstractFileFolder
     /**
      * @param \TYPO3\CMS\Core\Resource\ResourceInterface $originalResource
      */
-    public function setOriginalResource(\TYPO3\CMS\Core\Resource\ResourceInterface $originalResource)
+    public function setOriginalResource(ResourceInterface $originalResource)
     {
         $this->originalResource = $originalResource;
         $this->uidLocal = (int)$originalResource->getOriginalFile()->getUid();
@@ -45,7 +50,7 @@ class FileReference extends \TYPO3\CMS\Extbase\Domain\Model\AbstractFileFolder
     {
         if ($this->originalResource === null) {
             $uid = $this->_localizedUid;
-            $this->originalResource = \TYPO3\CMS\Core\Resource\ResourceFactory::getInstance()->getFileReferenceObject($uid);
+            $this->originalResource = GeneralUtility::makeInstance(ResourceFactory::class)->getFileReferenceObject($uid);
         }
 
         return $this->originalResource;

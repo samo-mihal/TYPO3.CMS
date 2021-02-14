@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Mvc\Web;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Extbase\Mvc\Web;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Extbase\Mvc\Web;
 
 use TYPO3\CMS\Core\Core\Environment;
 
@@ -31,7 +32,7 @@ class BackendRequestHandler extends AbstractRequestHandler
     {
         $request = $this->requestBuilder->build();
         /** @var \TYPO3\CMS\Extbase\Mvc\ResponseInterface $response */
-        $response = $this->objectManager->get(\TYPO3\CMS\Extbase\Mvc\Web\Response::class);
+        $response = $this->objectManager->get(Response::class);
         $this->dispatcher->dispatch($request, $response);
         return $response;
     }

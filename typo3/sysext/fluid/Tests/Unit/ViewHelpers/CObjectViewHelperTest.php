@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Fluid\Tests\Unit\ViewHelpers;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,8 @@ namespace TYPO3\CMS\Fluid\Tests\Unit\ViewHelpers;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Fluid\Tests\Unit\ViewHelpers;
+
 use Prophecy\Argument;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
@@ -23,6 +25,7 @@ use TYPO3\CMS\Fluid\ViewHelpers\CObjectViewHelper;
 use TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
 use TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController;
 use TYPO3\TestingFramework\Fluid\Unit\ViewHelpers\ViewHelperBaseTestcase;
+use TYPO3Fluid\Fluid\Core\ViewHelper\Exception;
 
 /**
  * Test case
@@ -145,7 +148,7 @@ class CObjectViewHelperTest extends ViewHelperBaseTestcase
             ]
         );
 
-        $this->expectException(\TYPO3Fluid\Fluid\Core\ViewHelper\Exception::class);
+        $this->expectException(Exception::class);
         $this->expectExceptionCode($exceptionCode);
         $this->viewHelper->initializeArgumentsAndRender();
     }
@@ -217,7 +220,7 @@ class CObjectViewHelperTest extends ViewHelperBaseTestcase
 
         $this->contentObjectRenderer->start(['foo'], 'table')->willReturn();
         $this->contentObjectRenderer->setCurrentVal('foo')->willReturn();
-        $this->contentObjectRenderer->cObjGetSingle('TEXT', $subConfigArray)->willReturn('Hello World');
+        $this->contentObjectRenderer->cObjGetSingle('TEXT', $subConfigArray, Argument::any())->willReturn('Hello World');
 
         $objectManager = $this->prophesize(ObjectManager::class);
         $objectManager->get(ConfigurationManagerInterface::class)->willReturn($this->configurationManager->reveal());

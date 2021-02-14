@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Resource\Event;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Core\Resource\Event;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Resource\Event;
 
 use TYPO3\CMS\Core\Resource\FileInterface;
 use TYPO3\CMS\Core\Resource\Folder;
@@ -37,10 +38,22 @@ final class AfterFileCopiedEvent
      */
     private $folder;
 
-    public function __construct(FileInterface $file, Folder $folder)
+    /**
+     * @var string
+     */
+    private $newFileIdentifier;
+
+    /**
+     * @var FileInterface|null
+     */
+    private $newFile;
+
+    public function __construct(FileInterface $file, Folder $folder, string $newFileIdentifier, ?FileInterface $newFile)
     {
         $this->file = $file;
         $this->folder = $folder;
+        $this->newFileIdentifier = $newFileIdentifier;
+        $this->newFile = $newFile;
     }
 
     public function getFile(): FileInterface
@@ -51,5 +64,15 @@ final class AfterFileCopiedEvent
     public function getFolder(): Folder
     {
         return $this->folder;
+    }
+
+    public function getNewFileIdentifier(): string
+    {
+        return $this->newFileIdentifier;
+    }
+
+    public function getNewFile(): ?FileInterface
+    {
+        return $this->newFile;
     }
 }

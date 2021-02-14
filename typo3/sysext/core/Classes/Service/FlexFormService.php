@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Service;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,15 @@ namespace TYPO3\CMS\Core\Service;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Service;
+
+use TYPO3\CMS\Core\SingletonInterface;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+
 /**
  * Utilities to process flexForms
  */
-class FlexFormService implements \TYPO3\CMS\Core\SingletonInterface
+class FlexFormService implements SingletonInterface
 {
     /**
      * Parses the flexForm content and converts it to an array
@@ -34,7 +38,7 @@ class FlexFormService implements \TYPO3\CMS\Core\SingletonInterface
     public function convertFlexFormContentToArray($flexFormContent, $languagePointer = 'lDEF', $valuePointer = 'vDEF')
     {
         $settings = [];
-        $flexFormArray = \TYPO3\CMS\Core\Utility\GeneralUtility::xml2array($flexFormContent);
+        $flexFormArray = GeneralUtility::xml2array($flexFormContent);
         $flexFormArray = $flexFormArray['data'] ?? [];
         foreach (array_values($flexFormArray) as $languages) {
             if (!is_array($languages[$languagePointer])) {
@@ -67,9 +71,9 @@ class FlexFormService implements \TYPO3\CMS\Core\SingletonInterface
     /**
      * Parses a flexForm node recursively and takes care of sections etc
      *
-     * @param array $nodeArray The flexForm node to parse
+     * @param mixed $nodeArray The flexForm node to parse
      * @param string $valuePointer The valuePointer to use for value retrieval
-     * @return array
+     * @return mixed
      */
     public function walkFlexFormNode($nodeArray, $valuePointer = 'vDEF')
     {

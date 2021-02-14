@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Frontend\Tests\Functional\ContentObject;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,10 @@ namespace TYPO3\CMS\Frontend\Tests\Functional\ContentObject;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Frontend\Tests\Functional\ContentObject;
+
+use Doctrine\DBAL\Platforms\SQLServerPlatform;
+use Psr\Log\NullLogger;
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Domain\Repository\PageRepository;
@@ -179,6 +182,15 @@ class ContentObjectRendererTest extends FunctionalTestCase
                 [
                     'SELECT' => 'avg(crdate)'
                 ]
+            ],
+            'single distinct, add nothing' => [
+                'tt_content',
+                [
+                    'selectFields' => 'DISTINCT crdate'
+                ],
+                [
+                    'SELECT' => 'DISTINCT crdate'
+                ]
             ]
         ];
 
@@ -218,7 +230,7 @@ class ContentObjectRendererTest extends FunctionalTestCase
 
         $databasePlatform = (new ConnectionPool())->getConnectionForTable('tt_content')->getDatabasePlatform();
         foreach ($expected as $field => $value) {
-            if (!($databasePlatform instanceof \Doctrine\DBAL\Platforms\SQLServerPlatform)) {
+            if (!($databasePlatform instanceof SQLServerPlatform)) {
                 // Replace the MySQL backtick quote character with the actual quote character for the DBMS,
                 if ($field === 'SELECT') {
                     $quoteChar = $databasePlatform->getIdentifierQuoteCharacter();
@@ -242,14 +254,10 @@ class ContentObjectRendererTest extends FunctionalTestCase
             'pidInList' => '16, -35'
         ];
 
-        $this->subject->expects(self::at(0))
+        $this->subject->expects(self::exactly(2))
             ->method('getTreeList')
-            ->with(-16, 15)
-            ->willReturn('15,16');
-        $this->subject->expects(self::at(1))
-            ->method('getTreeList')
-            ->with(-35, 15)
-            ->willReturn('15,35');
+            ->withConsecutive([-16, 15], [-35, 15])
+            ->willReturnOnConsecutiveCalls('15,16', '15,35');
 
         $this->subject->getQuery('tt_content', $conf, true);
     }
@@ -578,6 +586,36 @@ class ContentObjectRendererTest extends FunctionalTestCase
     }
 
     /**
+     * @test
+     */
+    public function libParseFuncProperlyKeepsTagsUnescaped()
+    {
+        $tsfe = $this->getMockBuilder(TypoScriptFrontendController::class)->disableOriginalConstructor()->getMock();
+        $subject = new ContentObjectRenderer($tsfe);
+        $subject->setLogger(new NullLogger());
+        $input = 'This is a simple inline text, no wrapping configured';
+        $result = $subject->parseFunc($input, $this->getLibParseFunc());
+        self::assertEquals($input, $result);
+
+        $input = '<p>A one liner paragraph</p>';
+        $result = $subject->parseFunc($input, $this->getLibParseFunc());
+        self::assertEquals($input, $result);
+
+        $input = 'A one liner paragraph
+And another one';
+        $result = $subject->parseFunc($input, $this->getLibParseFunc());
+        self::assertEquals($input, $result);
+
+        $input = '<p>A one liner paragraph</p><p>And another one and the spacing is kept</p>';
+        $result = $subject->parseFunc($input, $this->getLibParseFunc());
+        self::assertEquals($input, $result);
+
+        $input = '<p>text to a <a href="https://www.example.com">an external page</a>.</p>';
+        $result = $subject->parseFunc($input, $this->getLibParseFunc());
+        self::assertEquals($input, $result);
+    }
+
+    /**
      * @return array
      */
     protected function getLibParseFunc()
@@ -593,7 +631,7 @@ class ContentObjectRendererTest extends FunctionalTestCase
                     ],
                 ],
             ],
-            'tags' => [
+            'tags.' => [
                 'link' => 'TEXT',
                 'link.' => [
                     'current' => '1',
@@ -604,6 +642,15 @@ class ContentObjectRendererTest extends FunctionalTestCase
                     ],
                     'parseFunc.' => [
                         'constants' => '1',
+                    ],
+                ],
+                'a' => 'TEXT',
+                'a.' => [
+                    'current' => '1',
+                    'typolink.' => [
+                        'parameter.' => [
+                            'data' => 'parameters:href',
+                        ],
                     ],
                 ],
             ],

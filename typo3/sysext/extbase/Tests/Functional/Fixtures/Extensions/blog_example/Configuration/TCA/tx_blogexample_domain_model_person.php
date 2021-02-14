@@ -1,4 +1,5 @@
 <?php
+
 return [
     'ctrl' => [
         'title' => 'LLL:EXT:blog_example/Resources/Private/Language/locallang_db.xml:tx_blogexample_domain_model_person',
@@ -17,9 +18,6 @@ return [
             'disabled' => 'hidden'
         ],
         'iconfile' => 'EXT:blog_example/Resources/Public/Icons/icon_tx_blogexample_domain_model_person.gif'
-    ],
-    'interface' => [
-        'showRecordFieldList' => 'firstname, lastname, email, avatar'
     ],
     'columns' => [
         'sys_language_uid' => [
@@ -41,7 +39,6 @@ return [
         ],
         'l10n_parent' => [
             'displayCond' => 'FIELD:sys_language_uid:>:0',
-            'exclude' => true,
             'label' => 'LLL:EXT:core/Resources/Private/Language/locallang_general.xlf:LGL.l18n_parent',
             'config' => [
                 'type' => 'select',
@@ -50,7 +47,7 @@ return [
                     ['', 0],
                 ],
                 'foreign_table' => 'tx_blogexample_domain_model_person',
-                'foreign_table_where' => 'AND tx_blogexample_domain_model_person.uid=###REC_FIELD_l10n_parent### AND tx_blogexample_domain_model_person.sys_language_uid IN (-1,0)',
+                'foreign_table_where' => 'AND tx_blogexample_domain_model_person.pid=###CURRENT_PID### AND tx_blogexample_domain_model_person.sys_language_uid IN (-1,0)',
             ]
         ],
         'hidden' => [

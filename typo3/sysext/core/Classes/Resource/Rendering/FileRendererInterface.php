@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Resource\Rendering;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,12 +13,15 @@ namespace TYPO3\CMS\Core\Resource\Rendering;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Resource\Rendering;
+
 use TYPO3\CMS\Core\Resource\FileInterface;
+use TYPO3\CMS\Core\SingletonInterface;
 
 /**
  * Class FileRendererInterface
  */
-interface FileRendererInterface extends \TYPO3\CMS\Core\SingletonInterface
+interface FileRendererInterface extends SingletonInterface
 {
     /**
      * Returns the priority of the renderer

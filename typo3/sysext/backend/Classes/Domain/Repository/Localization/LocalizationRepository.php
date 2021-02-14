@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Backend\Domain\Repository\Localization;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,14 +15,16 @@ namespace TYPO3\CMS\Backend\Domain\Repository\Localization;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Domain\Repository\Localization;
+
 use Doctrine\DBAL\Driver\Statement;
 use TYPO3\CMS\Backend\Configuration\TranslationConfigurationProvider;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
-use TYPO3\CMS\Core\Database\Query\Restriction\BackendWorkspaceRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
+use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -73,6 +74,10 @@ class LocalizationRepository
                 $queryBuilder->expr()->eq(
                     'tt_content.sys_language_uid',
                     $queryBuilder->createNamedParameter($localizedLanguage, \PDO::PARAM_INT)
+                ),
+                $queryBuilder->expr()->neq(
+                    'tt_content_orig.sys_language_uid',
+                    $queryBuilder->createNamedParameter(-1, \PDO::PARAM_INT)
                 )
             )
             ->groupBy('tt_content_orig.sys_language_uid');
@@ -253,7 +258,7 @@ class LocalizationRepository
         $queryBuilder->getRestrictions()
             ->removeAll()
             ->add(GeneralUtility::makeInstance(DeletedRestriction::class))
-            ->add(GeneralUtility::makeInstance(BackendWorkspaceRestriction::class));
+            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, (int)$this->getBackendUser()->workspace));
 
         return $queryBuilder;
     }

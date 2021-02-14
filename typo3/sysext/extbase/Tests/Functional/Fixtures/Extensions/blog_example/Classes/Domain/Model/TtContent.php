@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace ExtbaseTeam\BlogExample\Domain\Model;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,12 +15,17 @@ namespace ExtbaseTeam\BlogExample\Domain\Model;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace ExtbaseTeam\BlogExample\Domain\Model;
+
 use TYPO3\CMS\Extbase\Annotation as Extbase;
+use TYPO3\CMS\Extbase\Domain\Model\Category;
+use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
+use TYPO3\CMS\Extbase\Persistence\ObjectStorage;
 
 /**
  * A tt_content model
  */
-class TtContent extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity
+class TtContent extends AbstractEntity
 {
     /**
      * uid
@@ -60,8 +64,8 @@ class TtContent extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity
      */
     public function __construct()
     {
-        $this->image = new \TYPO3\CMS\Extbase\Persistence\ObjectStorage();
-        $this->categories = new \TYPO3\CMS\Extbase\Persistence\ObjectStorage();
+        $this->image = new ObjectStorage();
+        $this->categories = new ObjectStorage();
     }
 
     /**
@@ -87,7 +91,7 @@ class TtContent extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity
     /**
      * @return \TYPO3\CMS\Extbase\Persistence\ObjectStorage
      */
-    public function getImage(): \TYPO3\CMS\Extbase\Persistence\ObjectStorage
+    public function getImage(): ObjectStorage
     {
         return $this->image;
     }
@@ -95,7 +99,7 @@ class TtContent extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity
     /**
      * @param \TYPO3\CMS\Extbase\Persistence\ObjectStorage $image
      */
-    public function setImage(\TYPO3\CMS\Extbase\Persistence\ObjectStorage $image)
+    public function setImage(ObjectStorage $image)
     {
         $this->image = $image;
     }
@@ -105,7 +109,7 @@ class TtContent extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity
      *
      * @param \TYPO3\CMS\Extbase\Domain\Model\Category $category
      */
-    public function addCategory(\TYPO3\CMS\Extbase\Domain\Model\Category $category)
+    public function addCategory(Category $category)
     {
         $this->categories->attach($category);
     }
@@ -135,7 +139,7 @@ class TtContent extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity
      *
      * @param \TYPO3\CMS\Extbase\Domain\Model\Category $category
      */
-    public function removeCategory(\TYPO3\CMS\Extbase\Domain\Model\Category $category)
+    public function removeCategory(Category $category)
     {
         $this->categories->detach($category);
     }

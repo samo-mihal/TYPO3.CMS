@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\ViewHelpers\Link;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Fluid\ViewHelpers\Link;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Fluid\ViewHelpers\Link;
 
 use TYPO3\CMS\Core\Utility\MathUtility;
 use TYPO3\CMS\Extbase\Mvc\Web\Routing\UriBuilder;
@@ -120,6 +121,9 @@ class ActionViewHelper extends AbstractTagBasedViewHelper
         }
 
         $uri = $uriBuilder->uriFor($action, $parameters, $controller, $extensionName, $pluginName);
+        if ($uri === '') {
+            return $this->renderChildren();
+        }
         $this->tag->addAttribute('href', $uri);
         $this->tag->setContent($this->renderChildren());
         $this->tag->forceClosingTag(true);

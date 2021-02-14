@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Backend\Middleware;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,15 +15,14 @@ namespace TYPO3\CMS\Backend\Middleware;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Middleware;
+
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Context\Context;
-use TYPO3\CMS\Core\Context\UserAspect;
-use TYPO3\CMS\Core\Context\WorkspaceAspect;
-use TYPO3\CMS\Core\Core\Bootstrap;
+use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -31,7 +30,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  *
  * @internal
  */
-class BackendUserAuthenticator implements MiddlewareInterface
+class BackendUserAuthenticator extends \TYPO3\CMS\Core\Middleware\BackendUserAuthenticator
 {
     /**
      * List of requests that don't need a valid BE user
@@ -41,6 +40,10 @@ class BackendUserAuthenticator implements MiddlewareInterface
     protected $publicRoutes = [
         '/login',
         '/login/frame',
+        '/login/password-reset/forget',
+        '/login/password-reset/initiate-reset',
+        '/login/password-reset/validate',
+        '/login/password-reset/finish',
         '/ajax/login',
         '/ajax/logout',
         '/ajax/login/refresh',
@@ -48,16 +51,6 @@ class BackendUserAuthenticator implements MiddlewareInterface
         '/ajax/rsa/publickey',
         '/ajax/core/requirejs',
     ];
-
-    /**
-     * @var Context
-     */
-    protected $context;
-
-    public function __construct(Context $context)
-    {
-        $this->context = $context;
-    }
 
     /**
      * Calls the bootstrap process to set up $GLOBALS['BE_USER'] AND $GLOBALS['LANG']
@@ -70,14 +63,28 @@ class BackendUserAuthenticator implements MiddlewareInterface
     {
         $pathToRoute = $request->getAttribute('routePath', '/login');
 
-        Bootstrap::initializeBackendUser();
+        // The global must be available very early, because methods below
+        // might trigger code which relies on it. See: #45625
+        $GLOBALS['BE_USER'] = GeneralUtility::makeInstance(BackendUserAuthentication::class);
+        $GLOBALS['BE_USER']->start();
+        // Register the backend user as aspect and initializing workspace once for TSconfig conditions
+        $this->setBackendUserAspect($GLOBALS['BE_USER'], (int)$GLOBALS['BE_USER']->user['workspace_id']);
         // @todo: once this logic is in this method, the redirect URL should be handled as response here
-        Bootstrap::initializeBackendAuthentication($this->isLoggedInBackendUserRequired($pathToRoute));
-        Bootstrap::initializeLanguageObject();
-        // Register the backend user as aspect
+        $GLOBALS['BE_USER']->backendCheckLogin($this->isLoggedInBackendUserRequired($pathToRoute));
+        $GLOBALS['LANG'] = LanguageService::createFromUserPreferences($GLOBALS['BE_USER']);
+        // Re-setting the user and take the workspace from the user object now
         $this->setBackendUserAspect($GLOBALS['BE_USER']);
 
-        return $handler->handle($request);
+        $response = $handler->handle($request);
+
+        // If no backend user is logged-in, the cookie should be removed
+        if (!GeneralUtility::makeInstance(Context::class)->getAspect('backend.user')->isLoggedIn()) {
+            $GLOBALS['BE_USER']->removeCookie($GLOBALS['BE_USER']->name);
+        }
+
+        // Additional headers to never cache any PHP request should be sent at any time when
+        // accessing the TYPO3 Backend
+        return $this->applyHeadersToResponse($response);
     }
 
     /**
@@ -90,16 +97,5 @@ class BackendUserAuthenticator implements MiddlewareInterface
     protected function isLoggedInBackendUserRequired(string $routePath): bool
     {
         return in_array($routePath, $this->publicRoutes, true);
-    }
-
-    /**
-     * Register the backend user as aspect
-     *
-     * @param BackendUserAuthentication $user
-     */
-    protected function setBackendUserAspect(BackendUserAuthentication $user)
-    {
-        $this->context->setAspect('backend.user', GeneralUtility::makeInstance(UserAspect::class, $user));
-        $this->context->setAspect('workspace', GeneralUtility::makeInstance(WorkspaceAspect::class, $user->workspace));
     }
 }

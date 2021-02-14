@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Resource\Search\QueryRestrictions;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Resource\Search\QueryRestrictions;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Resource\Search\QueryRestrictions;
 
 use TYPO3\CMS\Core\Database\Query\Expression\CompositeExpression;
 use TYPO3\CMS\Core\Database\Query\Expression\ExpressionBuilder;
@@ -66,7 +68,7 @@ class SearchTermRestriction implements QueryRestrictionInterface
     private function makeQuerySearchByTable(string $tableName, string $tableAlias): CompositeExpression
     {
         $fieldsToSearchWithin = $this->extractSearchableFieldsFromTable($tableName);
-        $searchTerm = $this->searchDemand->getSearchTerm();
+        $searchTerm = (string)$this->searchDemand->getSearchTerm();
         $constraints = [];
 
         $searchTermParts = str_getcsv($searchTerm, ' ');
@@ -108,7 +110,7 @@ class SearchTermRestriction implements QueryRestrictionInterface
                 // Assemble the search condition only if the field makes sense to be searched
                 if ($fieldType === 'text'
                     || $fieldType === 'flex'
-                    || ($fieldType === 'input' && (!$evalRules || !preg_match('/date|time|int/', $evalRules)))
+                    || ($fieldType === 'input' && (!$evalRules || !preg_match('/\b(?:date|time|int)\b/', $evalRules)))
                 ) {
                     $constraintsForParts[] = $searchConstraint;
                 }

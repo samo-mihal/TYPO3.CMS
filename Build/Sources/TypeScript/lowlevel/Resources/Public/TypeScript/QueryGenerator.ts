@@ -11,7 +11,7 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import * as $ from 'jquery';
+import $ from 'jquery';
 import 'TYPO3/CMS/Backend/Input/Clearable';
 
 /**
@@ -49,6 +49,15 @@ class QueryGenerator {
       e.preventDefault();
       const $field = $(e.currentTarget);
       this.addValueToField($field.data('field'), $field.val());
+    });
+    this.form.on('change', '[data-assign-store-control-title]', (evt: JQueryEventObject): void => {
+      const $currentTarget = $(evt.currentTarget);
+      const $titleField = this.form.find('[name="storeControl\[title\]"]');
+      if ($currentTarget.val() !== '0') {
+        $titleField.val($currentTarget.find('option:selected').text());
+      } else {
+        $titleField.val('');
+      }
     });
     (<NodeListOf<HTMLInputElement>>document.querySelectorAll('form[name="queryform"] .t3js-clearable')).forEach(
       (clearableField: HTMLInputElement) => clearableField.clearable({

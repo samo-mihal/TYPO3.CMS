@@ -9,20 +9,30 @@
 		"email": "typo3cms@typo3.org",
 		"role": "Developer"
 	}],
+	"support": {
+		"chat": "https://typo3.org/help",
+		"docs": "https://docs.typo3.org",
+		"issues": "https://forge.typo3.org",
+		"source": "https://github.com/TYPO3/TYPO3.CMS"
+	},
 	"config": {
 		"sort-packages": true
 	},
 	"require": {
-		"nikic/php-parser": "^4.3",
+		"doctrine/dbal": "~2.10.0 || ~2.11.2",
+		"nikic/php-parser": "^4.10.4",
 		"symfony/finder": "^4.4 || ^5.0",
-		"typo3/cms-core": "10.2.*@dev",
-		"typo3/cms-extbase": "10.2.*@dev",
-		"typo3/cms-fluid": "10.2.*@dev"
+		"typo3/cms-core": "10.4.*@dev",
+		"typo3/cms-extbase": "10.4.*@dev",
+		"typo3/cms-fluid": "10.4.*@dev"
 	},
 	"conflict": {
 		"typo3/cms": "*"
 	},
 	"extra": {
+		"branch-alias": {
+			"dev-master": "10.4.x-dev"
+		},
 		"typo3/cms": {
 			"Package": {
 				"serviceProvider": "TYPO3\\CMS\\Install\\ServiceProvider",

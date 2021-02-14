@@ -15,9 +15,6 @@
 			<trans-unit id="noEditPage" resname="noEditPage">
 				<source>Sorry, you do not have permissions to edit this page!</source>
 			</trans-unit>
-			<trans-unit id="nextThree" resname="nextThree">
-				<source>Edit next %s records</source>
-			</trans-unit>
 			<trans-unit id="moveUp" resname="moveUp">
 				<source>Move record up</source>
 			</trans-unit>
@@ -60,20 +57,14 @@
 			<trans-unit id="paste.modal.title.paste" resname="paste.modal.title.paste">
 				<source>Paste record</source>
 			</trans-unit>
-			<trans-unit id="paste.modal.pastecopy" resname="paste.modal.pastecopy">
-				<source>Do you want to copy the record to this position?</source>
-			</trans-unit>
 			<trans-unit id="paste.modal.paste" resname="paste.modal.paste">
-				<source>Do you want to move the record to this position?</source>
+				<source>Do you want to paste the record to this position?</source>
 			</trans-unit>
 			<trans-unit id="paste.modal.button.cancel" resname="paste.modal.button.cancel">
 				<source>Cancel</source>
 			</trans-unit>
-			<trans-unit id="paste.modal.button.pastecopy" resname="paste.modal.button.pastecopy">
-				<source>Copy</source>
-			</trans-unit>
 			<trans-unit id="paste.modal.button.paste" resname="paste.modal.button.paste">
-				<source>Move</source>
+				<source>Paste</source>
 			</trans-unit>
 			<trans-unit id="editColumn" resname="editColumn">
 				<source>Edit this column</source>
@@ -118,7 +109,7 @@
 				<source>Show hidden content elements</source>
 			</trans-unit>
 			<trans-unit id="new_language" resname="new_language">
-				<source>Make new translation of this page</source>
+				<source>Create a new translation of this page</source>
 			</trans-unit>
 			<trans-unit id="newLabel" resname="newLabel">
 				<source>NEW</source>
@@ -134,6 +125,12 @@
 			</trans-unit>
 			<trans-unit id="editPageLanguageOverlayProperties" resname="editPageLanguageOverlayProperties">
 				<source>Edit page language overlay properties</source>
+			</trans-unit>
+			<trans-unit id="editThisColumn" resname="editThisColumn">
+				<source>Edit the '%s' field of the listed pages</source>
+			</trans-unit>
+			<trans-unit id="editDefaultLanguagePage" resname="editDefaultLanguagePage">
+				<source>Edit default language page properties</source>
 			</trans-unit>
 			<trans-unit id="newRecordGeneral" resname="newRecordGeneral">
 				<source>Create new record</source>
@@ -370,6 +367,11 @@
 				<source>Copying content will take the content elements from the source language and create copies in a different language.&lt;br&gt;
 					This means that you will be able to move content elements around freely, but you will not have the benefit of being able to compare changes made in the source language later on.&lt;br&gt;
 					&lt;strong&gt;Use this when you want to have freedom in designing your translated website.&lt;/strong&gt;
+				</source>
+			</trans-unit>
+			<trans-unit id="localize.educate.noTranslate" resname="localize.educate.noTranslate" xml:space="preserve">
+				<source>Using the translation wizard is not possible, because either translation is disabled or the translated page is in "mixed mode". Being in "mixed mode" means that both translated records that have a source language and "free mode" records without a parent, are present.&lt;br&gt;
+					We highlighted the problematic records for you in this case.
 				</source>
 			</trans-unit>
 			<trans-unit id="error.invalidBackendLayout" resname="error.invalidBackendLayout">

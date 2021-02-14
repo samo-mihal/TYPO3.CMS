@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Functional\DataHandling\Group;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,14 @@ namespace TYPO3\CMS\Core\Tests\Functional\DataHandling\Group;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Functional\DataHandling\Group;
+
+use TYPO3\CMS\Core\Tests\Functional\DataHandling\AbstractDataHandlerActionTestCase;
+
 /**
  * Functional test for the DataHandler
  */
-abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\DataHandling\AbstractDataHandlerActionTestCase
+abstract class AbstractActionTestCase extends AbstractDataHandlerActionTestCase
 {
     const VALUE_PageId = 89;
     const VALUE_PageIdTarget = 90;
@@ -46,19 +49,11 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         parent::setUp();
         $this->importScenarioDataSet('LiveDefaultPages');
         $this->importScenarioDataSet('LiveDefaultElements');
-        $this->importScenarioDataSet('ReferenceIndex');
 
         $this->setUpFrontendSite(1, $this->siteLanguageConfiguration);
         $this->setUpFrontendRootPage(1, ['typo3/sysext/core/Tests/Functional/Fixtures/Frontend/JsonRenderer.typoscript']);
     }
 
-    /**
-     * Relations
-     */
-
-    /**
-     * See DataSet/addElementRelation.csv
-     */
     public function addElementRelation()
     {
         $this->actionService->modifyReferences(
@@ -69,9 +64,6 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         );
     }
 
-    /**
-     * See DataSet/deleteElementRelation.csv
-     */
     public function deleteElementRelation()
     {
         $this->actionService->modifyReferences(
@@ -82,17 +74,11 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         );
     }
 
-    /**
-     * See DataSet/changeElementSorting.csv
-     */
     public function changeElementSorting()
     {
         $this->actionService->moveRecord(self::TABLE_Element, self::VALUE_ElementIdFirst, -self::VALUE_ElementIdSecond);
     }
 
-    /**
-     * See DataSet/changeElementRelationSorting.csv
-     */
     public function changeElementRelationSorting()
     {
         $this->actionService->modifyReferences(
@@ -103,9 +89,6 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         );
     }
 
-    /**
-     * See DataSet/createContentNAddRelation.csv
-     */
     public function createContentAndAddElementRelation()
     {
         $newTableIds = $this->actionService->createNewRecord(
@@ -116,9 +99,6 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         $this->recordIds['newContentId'] = $newTableIds[self::TABLE_Content][0];
     }
 
-    /**
-     * See DataSet/createContentNCreateRelation.csv
-     */
     public function createContentAndCreateElementRelation()
     {
         $newElementIds = $this->actionService->createNewRecord(self::TABLE_Element, self::VALUE_PageId, ['title' => 'Testing #1']);
@@ -128,59 +108,38 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         $this->recordIds['newContentId'] = $newContentIds[self::TABLE_Content][0];
     }
 
-    /**
-     * See DataSet/modifyElementOfRelation.csv
-     */
     public function modifyElementOfRelation()
     {
         $this->actionService->modifyRecord(self::TABLE_Element, self::VALUE_ElementIdFirst, ['title' => 'Testing #1']);
     }
 
-    /**
-     * See DataSet/modifyContentOfRelation.csv
-     */
     public function modifyContentOfRelation()
     {
         $this->actionService->modifyRecord(self::TABLE_Content, self::VALUE_ContentIdFirst, ['header' => 'Testing #1']);
     }
 
-    /**
-     * See DataSet/modifyBothSidesOfRelation.csv
-     */
     public function modifyBothSidesOfRelation()
     {
         $this->actionService->modifyRecord(self::TABLE_Element, self::VALUE_ElementIdFirst, ['title' => 'Testing #1']);
         $this->actionService->modifyRecord(self::TABLE_Content, self::VALUE_ContentIdFirst, ['header' => 'Testing #1']);
     }
 
-    /**
-     * See DataSet/deleteContentOfRelation.csv
-     */
     public function deleteContentOfRelation()
     {
         $this->actionService->deleteRecord(self::TABLE_Content, self::VALUE_ContentIdLast);
     }
 
-    /**
-     * See DataSet/deleteElementOfRelation.csv
-     */
     public function deleteElementOfRelation()
     {
         $this->actionService->deleteRecord(self::TABLE_Element, self::VALUE_ElementIdFirst);
     }
 
-    /**
-     * See DataSet/copyContentOfRelation.csv
-     */
     public function copyContentOfRelation()
     {
         $newTableIds = $this->actionService->copyRecord(self::TABLE_Content, self::VALUE_ContentIdLast, self::VALUE_PageId);
         $this->recordIds['copiedContentId'] = $newTableIds[self::TABLE_Content][self::VALUE_ContentIdLast];
     }
 
-    /**
-     * See DataSet/copyElementOfRelation.csv
-     */
     public function copyElementOfRelation()
     {
         $newTableIds = $this->actionService->copyRecord(self::TABLE_Element, self::VALUE_ElementIdFirst, self::VALUE_PageId);
@@ -205,9 +164,6 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         $this->recordIds['localizedElementId'] = $newTableIds[self::TABLE_Element][self::VALUE_ElementIdFirst];
     }
 
-    /**
-     * See DataSet/localizeContentOfRelation.csv
-     */
     public function localizeContentOfRelation()
     {
         $newTableIds = $this->actionService->localizeRecord(self::TABLE_Content, self::VALUE_ContentIdLast, self::VALUE_LanguageId);
@@ -247,20 +203,15 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         );
     }
 
-    /**
-     * See DataSet/localizeElementOfRelation.csv
-     */
     public function localizeElementOfRelation()
     {
         $newTableIds = $this->actionService->localizeRecord(self::TABLE_Element, self::VALUE_ElementIdFirst, self::VALUE_LanguageId);
         $this->recordIds['localizedElementId'] = $newTableIds[self::TABLE_Element][self::VALUE_ElementIdFirst];
     }
 
-    /**
-     * See DataSet/moveContentOfRelationToDifferentPage.csv
-     */
     public function moveContentOfRelationToDifferentPage()
     {
-        $this->actionService->moveRecord(self::TABLE_Content, self::VALUE_ContentIdLast, self::VALUE_PageIdTarget);
+        $newTableIds = $this->actionService->moveRecord(self::TABLE_Content, self::VALUE_ContentIdLast, self::VALUE_PageIdTarget);
+        $this->recordIds['movedContentId'] = $newTableIds[self::TABLE_Content][self::VALUE_ContentIdLast];
     }
 }

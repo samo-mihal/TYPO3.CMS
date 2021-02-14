@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Tests\Unit\Validation\Validator;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,10 @@ namespace TYPO3\CMS\Extbase\Tests\Unit\Validation\Validator;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Tests\Unit\Validation\Validator;
+
+use TYPO3\CMS\Extbase\Validation\Error;
+use TYPO3\CMS\Extbase\Validation\Validator\RegularExpressionValidator;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -24,7 +27,7 @@ class RegularExpressionValidatorTest extends UnitTestCase
     /**
      * @var string
      */
-    protected $validatorClassName = \TYPO3\CMS\Extbase\Validation\Validator\RegularExpressionValidator::class;
+    protected $validatorClassName = RegularExpressionValidator::class;
 
     /**
      * @test
@@ -52,6 +55,6 @@ class RegularExpressionValidatorTest extends UnitTestCase
             ->getMock();
         $errors = $validator->validate('some subject that will not match')->getErrors();
         // we only test for the error code, after the translation Method for message is mocked anyway
-        self::assertEquals([new \TYPO3\CMS\Extbase\Validation\Error('', 1221565130)], $errors);
+        self::assertEquals([new Error('', 1221565130)], $errors);
     }
 }

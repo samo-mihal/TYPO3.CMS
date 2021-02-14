@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Category;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Category;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Category;
 
 use TYPO3\CMS\Core\Database\Event\AlterTableDefinitionStatementsEvent;
 use TYPO3\CMS\Core\Localization\LanguageService;
@@ -145,19 +146,9 @@ class CategoryRegistry implements SingletonInterface
     public function getCategoryFieldsForTable(array &$configuration)
     {
         $table = $configuration['config']['itemsProcConfig']['table'] ?? '';
-        // Lookup table for legacy menu content element
-        if (empty($table)) {
-            $menuType = $configuration['row']['menu_type'][0] ?? '';
-            // Define the table being looked up from the type of menu
-            if ($menuType === 'categorized_pages') {
-                $table = 'pages';
-            } elseif ($menuType === 'categorized_content') {
-                $table = 'tt_content';
-            }
-        }
         // Return early if no table is defined
         if (empty($table)) {
-            throw new \UnexpectedValueException('The given menu_type is not supported.', 1381823570);
+            throw new \UnexpectedValueException('No table is given.', 1381823570);
         }
         // Loop on all registries and find entries for the correct table
         foreach ($this->registry as $tableName => $fields) {
@@ -366,6 +357,9 @@ class CategoryRegistry implements SingletonInterface
             if (isset($options['displayCond'])) {
                 $columns[$fieldName]['displayCond'] = $options['displayCond'];
             }
+            if (isset($options['onChange'])) {
+                $columns[$fieldName]['onChange'] = $options['onChange'];
+            }
 
             // Register opposite references for the foreign side of a relation
             if (empty($GLOBALS['TCA']['sys_category']['columns']['items']['config']['MM_oppositeUsage'][$tableName])) {
@@ -373,15 +367,6 @@ class CategoryRegistry implements SingletonInterface
             }
             if (!in_array($fieldName, $GLOBALS['TCA']['sys_category']['columns']['items']['config']['MM_oppositeUsage'][$tableName])) {
                 $GLOBALS['TCA']['sys_category']['columns']['items']['config']['MM_oppositeUsage'][$tableName][] = $fieldName;
-            }
-
-            // Add field to interface list per default (unless the 'interface' property is FALSE)
-            if (
-                (!isset($options['interface']) || $options['interface'])
-                && !empty($GLOBALS['TCA'][$tableName]['interface']['showRecordFieldList'])
-                && !GeneralUtility::inList($GLOBALS['TCA'][$tableName]['interface']['showRecordFieldList'], $fieldName)
-            ) {
-                $GLOBALS['TCA'][$tableName]['interface']['showRecordFieldList'] .= ',' . $fieldName;
             }
 
             // Adding fields to an existing table definition

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extensionmanager\Domain\Model;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Extensionmanager\Domain\Model;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extensionmanager\Domain\Model;
+
 use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Extensionmanager\Exception\ExtensionManagerException;
 
@@ -26,7 +27,7 @@ class DownloadQueue implements SingletonInterface
     /**
      * Storage for extensions to be downloaded
      *
-     * @var array|string[]
+     * @var array<string, array<string>>
      */
     protected $extensionStorage = [];
 
@@ -124,7 +125,7 @@ class DownloadQueue implements SingletonInterface
     /**
      * Remove an extension from extension copy storage
      *
-     * @param $extensionKey
+     * @param string $extensionKey
      */
     public function removeExtensionFromCopyQueue($extensionKey)
     {

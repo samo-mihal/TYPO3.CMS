@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Acceptance\Backend\BackendUser;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Acceptance\Backend\BackendUser;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Acceptance\Backend\BackendUser;
 
 use TYPO3\CMS\Core\Tests\Acceptance\Support\BackendTester;
 
@@ -29,8 +31,8 @@ class ListGroupCest
     {
         $I->useExistingSession('admin');
 
-        $I->see('Backend users');
-        $I->click('Backend users');
+        $I->see('Backend Users');
+        $I->click('Backend Users');
 
         $I->switchToContentFrame();
         $I->selectOption('div.module-docheader select.t3-js-jumpMenuBox', 'Backend user groups');
@@ -43,10 +45,10 @@ class ListGroupCest
      */
     public function canEditBeGroupsFromListView(BackendTester $I)
     {
-        $groupname = $I->grabTextFrom('table.table-striped > tbody > tr:nth-child(1) > td.col-title > a > b');
+        $groupname = $I->grabTextFrom('table.table-striped > tbody > tr:nth-child(1) > td.title > a > b');
 
         $I->amGoingTo('test edit on group name');
-        $I->click('table.table-striped > tbody > tr:nth-child(1) > td.col-title > a');
+        $I->click('table.table-striped > tbody > tr:nth-child(1) > td.title > a');
         $this->openAndCloseTheEditForm($I, $groupname);
 
         $I->amGoingTo('test edit on edit button');

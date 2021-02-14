@@ -72,12 +72,13 @@ return [
         'fileCreateMask' => '0664',
         'folderCreateMask' => '2775',
         'features' => [
+            'fluidBasedPageModule' => false,
             'form.legacyUploadMimeTypes' => true,
             'redirects.hitCount' => false,
             'unifiedPageTranslationHandling' => false,
             'security.frontend.keepSessionDataOnLogout' => false,
+            'security.backend.enforceReferrer' => true,
             'rearrangedRedirectMiddlewares' => false,
-            'betaTranslationServer' => false,
             'felogin.extbase' => false,
         ],
         'createGroup' => '',
@@ -108,6 +109,7 @@ return [
         'reverseProxyPrefixSSL' => '',
         'availablePasswordHashAlgorithms' => [
             \TYPO3\CMS\Core\Crypto\PasswordHashing\Argon2iPasswordHash::class,
+            \TYPO3\CMS\Core\Crypto\PasswordHashing\Argon2idPasswordHash::class,
             \TYPO3\CMS\Core\Crypto\PasswordHashing\BcryptPasswordHash::class,
             \TYPO3\CMS\Core\Crypto\PasswordHashing\Pbkdf2PasswordHash::class,
             \TYPO3\CMS\Core\Crypto\PasswordHashing\PhpassPasswordHash::class,
@@ -128,6 +130,34 @@ return [
                 'StaticRangeMapper' => \TYPO3\CMS\Core\Routing\Aspect\StaticRangeMapper::class,
                 'StaticValueMapper' => \TYPO3\CMS\Core\Routing\Aspect\StaticValueMapper::class,
             ],
+        ],
+        'locking' => [
+            'strategies' => [
+                \TYPO3\CMS\Core\Locking\FileLockStrategy::class => [
+                    // if not set: use default priority of FileLockStrategy
+                    //'priority' => 75,
+
+                    // if not set: use default path of FileLockStrategy
+                    // If you change this, directory must exist!
+                    // 'lockFileDir' => 'typo3temp/var'
+                ],
+                \TYPO3\CMS\Core\Locking\SemaphoreLockStrategy::class => [
+                    // if not set: use default priority of SemaphoreLockStrategy
+                    // 'priority' => 50
+
+                    // empty: use default path of SemaphoreLockStrategy
+                    // If you change this, directory must exist!
+                    // 'lockFileDir' => 'typo3temp/var'
+                ],
+                \TYPO3\CMS\Core\Locking\SimpleLockStrategy::class => [
+                    // if not set: use default priority of SimpleLockStrategy
+                    //'priority' => 25,
+
+                    // empty: use default path of SimpleLockStrategy
+                    // If you change this, directory must exist!
+                    // 'lockFileDir' => 'typo3temp/var'
+                ]
+            ]
         ],
         'caching' => [
             'cacheConfigurations' => [
@@ -245,6 +275,31 @@ return [
                 ]
             ],
             'processors' => [
+                'SvgImageProcessor' => [
+                    'className' => \TYPO3\CMS\Core\Resource\Processing\SvgImageProcessor::class,
+                    'before' => [
+                        'LocalImageProcessor',
+                    ],
+                ],
+                'DeferredBackendImageProcessor' => [
+                    'className' => \TYPO3\CMS\Backend\Resource\Processing\DeferredBackendImageProcessor::class,
+                    'before' => [
+                        'LocalImageProcessor',
+                        'OnlineMediaPreviewProcessor',
+                    ],
+                    'after' => [
+                        'SvgImageProcessor',
+                    ],
+                ],
+                'OnlineMediaPreviewProcessor' => [
+                    'className' => \TYPO3\CMS\Core\Resource\OnlineMedia\Processing\PreviewProcessing::class,
+                    'after' => [
+                        'SvgImageProcessor',
+                    ],
+                    'before' => [
+                        'LocalImageProcessor',
+                    ],
+                ],
                 'LocalImageProcessor' => [
                     'className' => \TYPO3\CMS\Core\Resource\Processing\LocalImageProcessor::class,
                 ],
@@ -538,6 +593,12 @@ return [
                             \TYPO3\CMS\Backend\Form\FormDataProvider\TcaRadioItems::class
                         ],
                     ],
+                    \TYPO3\CMS\Backend\Form\FormDataProvider\TcaSlug::class => [
+                        'depends' => [
+                            \TYPO3\CMS\Backend\Form\FormDataProvider\DatabaseRecordOverrideValues::class,
+                            \TYPO3\CMS\Backend\Form\FormDataProvider\TcaTypesShowitem::class,
+                        ],
+                    ],
                     \TYPO3\CMS\Backend\Form\FormDataProvider\TcaGroup::class => [
                         'depends' => [
                             \TYPO3\CMS\Backend\Form\FormDataProvider\DatabaseRecordOverrideValues::class,
@@ -726,6 +787,11 @@ return [
                     \TYPO3\CMS\Backend\Form\FormDataProvider\TcaRadioItems::class => [
                         'depends' => [
                             \TYPO3\CMS\Backend\Form\FormDataProvider\DatabaseRowDefaultValues::class,
+                        ],
+                    ],
+                    \TYPO3\CMS\Backend\Form\FormDataProvider\DatabasePageRootline::class => [
+                        'depends' => [
+                            \TYPO3\CMS\Backend\Form\FormDataProvider\DatabaseEffectivePid::class,
                         ],
                     ],
                     \TYPO3\CMS\Backend\Form\FormDataProvider\TcaCheckboxItems::class => [
@@ -1056,15 +1122,26 @@ return [
                 ],
             ],
         ],
+        'yamlLoader' => [
+            'placeholderProcessors' => [
+                \TYPO3\CMS\Core\Configuration\Processor\Placeholder\EnvVariableProcessor::class => [],
+                \TYPO3\CMS\Core\Configuration\Processor\Placeholder\ValueFromReferenceArrayProcessor::class => [
+                    'after' => [
+                        \TYPO3\CMS\Core\Configuration\Processor\Placeholder\EnvVariableProcessor::class
+                    ]
+                ]
+            ]
+        ]
     ],
     'EXT' => [ // Options related to the Extension Management
         'allowGlobalInstall' => false,
         'allowLocalInstall' => true,
-        'excludeForPackaging' => '(?:\\..*(?!htaccess)|.*~|.*\\.swp|.*\\.bak|\\.sass-cache|node_modules|bower_components)',
+        'excludeForPackaging' => '(?:\\.(?!htaccess$).*|.*~|.*\\.swp|.*\\.bak|node_modules|bower_components)',
         'runtimeActivatedPackages' => [],
     ],
     'BE' => [
         // Backend Configuration.
+        'fluidPageModule' => true,
         'languageDebug' => false,
         'fileadminDir' => 'fileadmin/',
         'lockRootPath' => '',
@@ -1073,8 +1150,10 @@ return [
         'userUploadDir' => '',
         'warning_email_addr' => '',
         'warning_mode' => 0,
-        'lockIP' => 4,
-        'lockIPv6' => 2,
+        'passwordReset' => true,
+        'passwordResetForAdmins' => true,
+        'lockIP' => 0,
+        'lockIPv6' => 0,
         'sessionTimeout' => 28800,  // a backend user logged in for 8 hours
         'IPmaskList' => '',
         'lockBeUserToDBmounts' => true,
@@ -1083,6 +1162,7 @@ return [
         'enabledBeUserIPLock' => true,
         'cookieDomain' => '',
         'cookieName' => 'be_typo_user',
+        'cookieSameSite' => 'strict',
         'loginSecurityLevel' => 'normal',
         'showRefreshLoginPopup' => false,
         'adminOnly' => 0,
@@ -1229,7 +1309,6 @@ return [
         'defaultPermissions' => [],
         'defaultUC' => [],
         'customPermOptions' => [], // Array with sets of custom permission options. Syntax is; 'key' => array('header' => 'header string, language split', 'items' => array('key' => array('label, language split','icon reference', 'Description text, language split'))). Keys cannot contain ":|," characters.
-        'fileDenyPattern' => FILE_DENY_PATTERN_DEFAULT,
         'interfaces' => 'backend',
         'explicitADmode' => 'explicitDeny',
         'flexformForceCDATA' => 0,
@@ -1254,8 +1333,8 @@ return [
         'pageUnavailable_force' => false,
         'addRootLineFields' => '',
         'checkFeUserPid' => true,
-        'lockIP' => 2,
-        'lockIPv6' => 2,
+        'lockIP' => 0,
+        'lockIPv6' => 0,
         'loginSecurityLevel' => 'normal',
         'lifetime' => 0,
         'sessionTimeout' => 6000,
@@ -1263,6 +1342,7 @@ return [
         'permalogin' => 0,
         'cookieDomain' => '',
         'cookieName' => 'fe_typo_user',
+        'cookieSameSite' => 'lax',
         'defaultUserTSconfig' => '',
         'defaultTypoScript_constants' => '',
         'defaultTypoScript_constants.' => [], // Lines of TS to include after a static template with the uid = the index in the array (Constants)
@@ -1306,7 +1386,7 @@ return [
     'MAIL' => [ // Mail configurations to tune how \TYPO3\CMS\Core\Mail\ classes will send their mails.
         'transport' => 'sendmail',
         'transport_smtp_server' => 'localhost:25',
-        'transport_smtp_encrypt' => '',
+        'transport_smtp_encrypt' => false,
         'transport_smtp_username' => '',
         'transport_smtp_password' => '',
         'transport_sendmail_command' => '',
@@ -1317,6 +1397,19 @@ return [
         'defaultMailFromName' => '',
         'defaultMailReplyToAddress' => '',
         'defaultMailReplyToName' => '',
+        'format' => 'both',
+        'layoutRootPaths' => [
+            0 => 'EXT:core/Resources/Private/Layouts/',
+            10 => 'EXT:backend/Resources/Private/Layouts/'
+        ],
+        'partialRootPaths' => [
+            0 => 'EXT:core/Resources/Private/Partials/',
+            10 => 'EXT:backend/Resources/Private/Partials/'
+        ],
+        'templateRootPaths' => [
+            0 => 'EXT:core/Resources/Private/Templates/Email/',
+            10 => 'EXT:backend/Resources/Private/Templates/Email/'
+        ],
     ],
     'HTTP' => [ // HTTP configuration to tune how TYPO3 behaves on HTTP requests made by TYPO3. Have a look at http://docs.guzzlephp.org/en/latest/request-options.html for some background information on those settings.
         'allow_redirects' => [ // Mixed, set to false if you want to allow redirects, or use it as an array to add more values,
@@ -1359,7 +1452,8 @@ return [
                     'writerConfiguration' => [
                         \TYPO3\CMS\Core\Log\LogLevel::NOTICE => [
                             \TYPO3\CMS\Core\Log\Writer\FileWriter::class => [
-                                'logFileInfix' => 'deprecations'
+                                'logFileInfix' => 'deprecations',
+                                'disabled' => true,
                             ],
                         ]
                     ]

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\Tests\Unit\ViewHelpers\Format;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Fluid\Tests\Unit\ViewHelpers\Format;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Fluid\Tests\Unit\ViewHelpers\Format;
 
 use TYPO3\CMS\Fluid\ViewHelpers\Format\DateViewHelper;
 use TYPO3\TestingFramework\Fluid\Unit\ViewHelpers\ViewHelperBaseTestcase;
@@ -148,7 +149,7 @@ class DateViewHelperTest extends ViewHelperBaseTestcase
             ]
         );
         $actualResult = $this->viewHelper->initializeArgumentsAndRender();
-        $expectedResult = (new \DateTime())->format('Y-m-d');
+        $expectedResult = date('Y-m-d', $GLOBALS['EXEC_TIME']);
         self::assertEquals($expectedResult, $actualResult);
     }
 
@@ -168,7 +169,7 @@ class DateViewHelperTest extends ViewHelperBaseTestcase
             ]
         );
         $actualResult = $this->viewHelper->initializeArgumentsAndRender();
-        $expectedResult = (new \DateTime())->format('Y-m-d');
+        $expectedResult = date('Y-m-d', $GLOBALS['EXEC_TIME']);
         self::assertEquals($expectedResult, $actualResult);
     }
 
@@ -426,55 +427,6 @@ class DateViewHelperTest extends ViewHelperBaseTestcase
             $this->viewHelper,
             [
                 'date' => $date,
-                'format' => $format
-            ]
-        );
-        $actualResult = $this->viewHelper->initializeArgumentsAndRender();
-        self::assertEquals($expected, $actualResult);
-    }
-
-    /**
-     * Data provider for dateViewHelperFormatsDateLocalizedDataProvider
-     *
-     * @return array
-     */
-    public function dateViewHelperFormatsDateLocalizedDataProvider()
-    {
-        return [
-            'de_DE.UTF-8' => [
-                'de_DE.UTF-8',
-                '03. Februar 2013'
-            ],
-            'en_ZW.utf8' => [
-                'en_ZW.utf8',
-                '03. February 2013'
-            ]
-        ];
-    }
-
-    /**
-     * @dataProvider dateViewHelperFormatsDateLocalizedDataProvider
-     *
-     * @test
-     */
-    public function dateViewHelperFormatsDateLocalized($locale, $expected)
-    {
-        $format = '%d. %B %Y';
-        // 2013-02-03 11:40 UTC
-        $timestamp = '@1359891658';
-
-        try {
-            $this->setLocale(LC_COLLATE, $locale);
-            $this->setLocale(LC_CTYPE, $locale);
-            $this->setLocale(LC_MONETARY, $locale);
-            $this->setLocale(LC_TIME, $locale);
-        } catch (\PHPUnit\Framework\Exception $e) {
-            self::markTestSkipped('Locale ' . $locale . ' is not available.');
-        }
-        $this->setArgumentsUnderTest(
-            $this->viewHelper,
-            [
-                'date' => $timestamp,
                 'format' => $format
             ]
         );

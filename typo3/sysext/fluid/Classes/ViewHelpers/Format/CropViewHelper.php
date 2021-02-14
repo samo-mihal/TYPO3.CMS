@@ -1,7 +1,5 @@
 <?php
 
-namespace TYPO3\CMS\Fluid\ViewHelpers\Format;
-
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -15,6 +13,8 @@ namespace TYPO3\CMS\Fluid\ViewHelpers\Format;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Fluid\ViewHelpers\Format;
+
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
@@ -23,6 +23,8 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
 
 /**
  * Use this ViewHelper to crop the text between its opening and closing tags.
+ *
+ * Whitespace within the f:format.crop element will be considered as characters.
  *
  * Examples
  * ========
@@ -33,10 +35,13 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
  * ::
  *
  *    <f:format.crop maxCharacters="10">
- *        This is some very long text
+ *    This is some very long text
  *    </f:format.crop>
  *
- * ``This is…``
+ * ``This is...``
+ *
+ * The third word "some" does not fit in the 10 character limit, because respectWordBoundaries
+ * is true by default.
  *
  * Custom suffix
  * -------------
@@ -44,7 +49,7 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
  * ::
  *
  *    <f:format.crop maxCharacters="17" append="&nbsp;[more]">
- *        This is some very long text
+ *    This is some very long text
  *    </f:format.crop>
  *
  * ``This is some&nbsp;[more]``
@@ -55,10 +60,10 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
  * ::
  *
  *    <f:format.crop maxCharacters="10" respectWordBoundaries="false">
- *        This is some very long text
+ *    This is some very long text
  *    </f:format.crop>
  *
- * ``This is so…``
+ * ``This is s...``
  *
  * Don't respect HTML tags
  * -----------------------
@@ -66,7 +71,7 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
  * ::
  *
  *    <f:format.crop maxCharacters="28" respectWordBoundaries="false" respectHtml="false">
- *        This is some text with <strong>HTML</strong> tags
+ *    This is some text with <strong>HTML</strong> tags
  *    </f:format.crop>
  *
  * ``This is some text with <stro``

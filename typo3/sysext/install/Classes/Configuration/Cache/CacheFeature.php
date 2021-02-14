@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Install\Configuration\Cache;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,13 +13,16 @@ namespace TYPO3\CMS\Install\Configuration\Cache;
  * The TYPO3 project - inspiring people to share!
  */
 
-use TYPO3\CMS\Install\Configuration;
+namespace TYPO3\CMS\Install\Configuration\Cache;
+
+use TYPO3\CMS\Install\Configuration\AbstractFeature;
+use TYPO3\CMS\Install\Configuration\FeatureInterface;
 
 /**
  * Cache feature sets best practices
  * @internal only to be used within EXT:install
  */
-class CacheFeature extends Configuration\AbstractFeature implements Configuration\FeatureInterface
+class CacheFeature extends AbstractFeature implements FeatureInterface
 {
     /**
      * @var string Name of feature

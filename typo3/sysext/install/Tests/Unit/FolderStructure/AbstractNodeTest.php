@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Install\Tests\Unit\FolderStructure;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,11 +13,16 @@ namespace TYPO3\CMS\Install\Tests\Unit\FolderStructure;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Install\Tests\Unit\FolderStructure;
+
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\CMS\Install\FolderStructure\AbstractNode;
 use TYPO3\CMS\Install\FolderStructure\Exception;
 use TYPO3\CMS\Install\FolderStructure\Exception\InvalidArgumentException;
+use TYPO3\CMS\Install\FolderStructure\NodeInterface;
+use TYPO3\CMS\Install\FolderStructure\RootNodeInterface;
 use TYPO3\CMS\Install\Tests\Unit\FolderStructureTestCase;
 use TYPO3\TestingFramework\Core\AccessibleObjectInterface;
 
@@ -34,7 +38,7 @@ class AbstractNodeTest extends FolderStructureTestCase
     {
         /** @var $node AbstractNode|AccessibleObjectInterface|\PHPUnit\Framework\MockObject\MockObject */
         $node = $this->getAccessibleMock(AbstractNode::class, ['dummy'], [], '', false);
-        $name = $this->getUniqueId('name_');
+        $name = StringUtility::getUniqueId('name_');
         $node->_set('name', $name);
         self::assertSame($name, $node->getName());
     }
@@ -70,7 +74,7 @@ class AbstractNodeTest extends FolderStructureTestCase
     {
         /** @var $node AbstractNode|AccessibleObjectInterface|\PHPUnit\Framework\MockObject\MockObject */
         $node = $this->getAccessibleMock(AbstractNode::class, ['dummy'], [], '', false);
-        $parent = $this->createMock(\TYPO3\CMS\Install\FolderStructure\RootNodeInterface::class);
+        $parent = $this->createMock(RootNodeInterface::class);
         $node->_set('parent', $parent);
         self::assertSame($parent, $node->_call('getParent'));
     }
@@ -82,10 +86,10 @@ class AbstractNodeTest extends FolderStructureTestCase
     {
         /** @var $node AbstractNode|AccessibleObjectInterface|\PHPUnit\Framework\MockObject\MockObject */
         $node = $this->getAccessibleMock(AbstractNode::class, ['dummy'], [], '', false);
-        $parent = $this->createMock(\TYPO3\CMS\Install\FolderStructure\RootNodeInterface::class);
+        $parent = $this->createMock(RootNodeInterface::class);
         $parentPath = '/foo/bar';
         $parent->expects(self::once())->method('getAbsolutePath')->willReturn($parentPath);
-        $name = $this->getUniqueId('test_');
+        $name = StringUtility::getUniqueId('test_');
         $node->_set('parent', $parent);
         $node->_set('name', $name);
         self::assertSame($parentPath . '/' . $name, $node->getAbsolutePath());
@@ -98,7 +102,7 @@ class AbstractNodeTest extends FolderStructureTestCase
     {
         /** @var $node AbstractNode|AccessibleObjectInterface|\PHPUnit\Framework\MockObject\MockObject */
         $node = $this->getAccessibleMock(AbstractNode::class, ['dummy'], [], '', false);
-        $parentMock = $this->createMock(\TYPO3\CMS\Install\FolderStructure\NodeInterface::class);
+        $parentMock = $this->createMock(NodeInterface::class);
         $parentMock->expects(self::once())->method('isWritable');
         $node->_set('parent', $parentMock);
         $node->isWritable();
@@ -111,7 +115,7 @@ class AbstractNodeTest extends FolderStructureTestCase
     {
         /** @var $node AbstractNode|AccessibleObjectInterface|\PHPUnit\Framework\MockObject\MockObject */
         $node = $this->getAccessibleMock(AbstractNode::class, ['dummy'], [], '', false);
-        $parentMock = $this->createMock(\TYPO3\CMS\Install\FolderStructure\NodeInterface::class);
+        $parentMock = $this->createMock(NodeInterface::class);
         $parentMock->expects(self::once())->method('isWritable')->willReturn(true);
         $node->_set('parent', $parentMock);
         self::assertTrue($node->isWritable());
@@ -137,8 +141,8 @@ class AbstractNodeTest extends FolderStructureTestCase
     {
         /** @var $node AbstractNode|AccessibleObjectInterface|\PHPUnit\Framework\MockObject\MockObject */
         $node = $this->getAccessibleMock(AbstractNode::class, ['getAbsolutePath'], [], '', false);
-        $path = Environment::getVarPath() . '/tests/' . $this->getUniqueId('link_');
-        $target = Environment::getVarPath() . '/tests/' . $this->getUniqueId('notExists_');
+        $path = Environment::getVarPath() . '/tests/' . StringUtility::getUniqueId('link_');
+        $target = Environment::getVarPath() . '/tests/' . StringUtility::getUniqueId('notExists_');
         touch($target);
         symlink($target, $path);
         unlink($target);
@@ -198,7 +202,7 @@ class AbstractNodeTest extends FolderStructureTestCase
         $node->expects(self::any())->method('getRelativePathBelowSiteRoot')->willReturn('');
         $node->expects(self::once())->method('isPermissionCorrect')->willReturn(false);
         $path = $this->getVirtualTestDir('root_');
-        $subPath = $path . '/' . $this->getUniqueId('dir_');
+        $subPath = $path . '/' . StringUtility::getUniqueId('dir_');
         mkdir($subPath);
         chmod($path, 02000);
         $node->expects(self::any())->method('getAbsolutePath')->willReturn($subPath);
@@ -226,7 +230,7 @@ class AbstractNodeTest extends FolderStructureTestCase
         $node->expects(self::any())->method('getRelativePathBelowSiteRoot')->willReturn('');
         $node->expects(self::once())->method('isPermissionCorrect')->willReturn(false);
         $path = $this->getVirtualTestDir('root_');
-        $subPath = $path . '/' . $this->getUniqueId('dir_');
+        $subPath = $path . '/' . StringUtility::getUniqueId('dir_');
         mkdir($subPath);
         chmod($path, 02000);
         $node->expects(self::any())->method('getAbsolutePath')->willReturn($subPath);
@@ -251,7 +255,7 @@ class AbstractNodeTest extends FolderStructureTestCase
         $node->expects(self::any())->method('getRelativePathBelowSiteRoot')->willReturn('');
         $node->expects(self::once())->method('isPermissionCorrect')->willReturn(false);
         $path = $this->getVirtualTestDir('root_');
-        $subPath = $path . '/' . $this->getUniqueId('dir_');
+        $subPath = $path . '/' . StringUtility::getUniqueId('dir_');
         mkdir($subPath);
         chmod($path, 02770);
         $node->_set('targetPermission', '2770');

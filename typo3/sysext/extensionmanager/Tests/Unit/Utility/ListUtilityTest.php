@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Extensionmanager\Tests\Unit\Utility;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,9 @@ namespace TYPO3\CMS\Extensionmanager\Tests\Unit\Utility;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extensionmanager\Tests\Unit\Utility;
+
+use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\Package\Package;
 use TYPO3\CMS\Core\Package\PackageManager;
 use TYPO3\CMS\Extensionmanager\Domain\Repository\ExtensionRepository;
@@ -35,9 +38,8 @@ class ListUtilityTest extends UnitTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->subject = $this->getMockBuilder(ListUtility::class)
-            ->setMethods(['emitPackagesMayHaveChangedSignal'])
-            ->getMock();
+        $this->subject = new ListUtility();
+        $this->subject->injectEventDispatcher($this->prophesize(EventDispatcherInterface::class)->reveal());
         $packageManagerMock = $this->getMockBuilder(PackageManager::class)
             ->disableOriginalConstructor()
             ->getMock();

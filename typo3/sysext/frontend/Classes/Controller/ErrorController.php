@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Frontend\Controller;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,9 +15,12 @@ namespace TYPO3\CMS\Frontend\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Frontend\Controller;
+
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Controller\ErrorPageController;
+use TYPO3\CMS\Core\Error\Http\InternalServerErrorException;
 use TYPO3\CMS\Core\Error\Http\PageNotFoundException;
 use TYPO3\CMS\Core\Error\Http\ServiceUnavailableException;
 use TYPO3\CMS\Core\Error\PageErrorHandler\PageErrorHandlerInterface;
@@ -28,14 +31,36 @@ use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
- * Handles "Page Not Found" or "Page Unavailable" requests,
+ * Handles error requests,
  * returns a response object.
  */
 class ErrorController
 {
     /**
-     * Used for creating a 500 response ("Page unavailable"), usually due some misconfiguration
+     * Used for creating a 500 response ("Internal Server Error"), usually due some misconfiguration
      * but if configured, a RedirectResponse could be returned as well.
+     *
+     * @param ServerRequestInterface $request
+     * @param string $message
+     * @param array $reasons
+     * @return ResponseInterface
+     * @throws InternalServerErrorException
+     */
+    public function internalErrorAction(ServerRequestInterface $request, string $message, array $reasons = []): ResponseInterface
+    {
+        if (!$this->isPageUnavailableHandlerConfigured()) {
+            throw new InternalServerErrorException($message, 1607585445);
+        }
+        $errorHandler = $this->getErrorHandlerFromSite($request, 500);
+        if ($errorHandler instanceof PageErrorHandlerInterface) {
+            return $errorHandler->handlePageError($request, $message, $reasons);
+        }
+        return $this->handleDefaultError($request, 500, $message ?: 'Internal Server Error');
+    }
+
+    /**
+     * Used for creating a 503 response ("Service Unavailable"), to be used for maintenance mode
+     * or when the server is overloaded, a RedirectResponse could be returned as well.
      *
      * @param ServerRequestInterface $request
      * @param string $message
@@ -48,11 +73,11 @@ class ErrorController
         if (!$this->isPageUnavailableHandlerConfigured()) {
             throw new ServiceUnavailableException($message, 1518472181);
         }
-        $errorHandler = $this->getErrorHandlerFromSite($request, 500);
+        $errorHandler = $this->getErrorHandlerFromSite($request, 503);
         if ($errorHandler instanceof PageErrorHandlerInterface) {
             return $errorHandler->handlePageError($request, $message, $reasons);
         }
-        return $this->handleDefaultError($request, 500, $message ?: 'Page is unavailable');
+        return $this->handleDefaultError($request, 503, $message ?: 'Service Unavailable');
     }
 
     /**
@@ -102,10 +127,10 @@ class ErrorController
     }
 
     /**
-     * Checks whether the pageUnavailableHandler should be used. To be used, pageUnavailable_handling must be set
-     * and devIPMask must not match the current visitor's IP address.
+     * Checks whether the devIPMask matches the current visitor's IP address.
+     * Note: the name of this method is a misnomer (legacy code),
      *
-     * @return bool TRUE/FALSE whether the pageUnavailable_handler should be used.
+     * @return bool True if the server error handler should be used.
      */
     protected function isPageUnavailableHandlerConfigured(): bool
     {

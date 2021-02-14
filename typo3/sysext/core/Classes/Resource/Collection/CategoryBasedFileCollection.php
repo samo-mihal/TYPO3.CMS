@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Resource\Collection;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Resource\Collection;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Resource\Collection;
 
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
@@ -82,7 +83,7 @@ class CategoryBasedFileCollection extends AbstractFileCollection
                 )
             )
             ->execute();
-        $resourceFactory = ResourceFactory::getInstance();
+        $resourceFactory = GeneralUtility::makeInstance(ResourceFactory::class);
         while ($record = $statement->fetch()) {
             $this->add($resourceFactory->getFileObject((int)$record['file']));
         }

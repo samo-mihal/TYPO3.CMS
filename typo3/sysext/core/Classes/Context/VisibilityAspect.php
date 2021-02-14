@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Context;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Context;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Context;
 
 use TYPO3\CMS\Core\Context\Exception\AspectPropertyNotFoundException;
 
@@ -72,6 +74,11 @@ class VisibilityAspect implements AspectInterface
                 return $this->includeDeletedRecords;
         }
         throw new AspectPropertyNotFoundException('Property "' . $name . '" not found in Aspect "' . __CLASS__ . '".', 1527780439);
+    }
+
+    public function includeHidden(): bool
+    {
+        return $this->includeHiddenContent || $this->includeHiddenPages;
     }
 
     public function includeHiddenPages(): bool

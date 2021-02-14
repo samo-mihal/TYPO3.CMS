@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Resource\Processing;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Resource\Processing;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Resource\Processing;
 
 use TYPO3\CMS\Core\Imaging\GraphicalFunctions;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -28,11 +29,10 @@ class LocalImageProcessor implements ProcessorInterface
      * @param TaskInterface $task
      * @return bool
      */
-    public function canProcessTask(TaskInterface $task)
+    public function canProcessTask(TaskInterface $task): bool
     {
-        $canProcessTask = $task->getType() === 'Image';
-        $canProcessTask = $canProcessTask & in_array($task->getName(), ['Preview', 'CropScaleMask']);
-        return $canProcessTask;
+        return $task->getType() === 'Image'
+            && in_array($task->getName(), ['Preview', 'CropScaleMask'], true);
     }
 
     /**
@@ -41,17 +41,30 @@ class LocalImageProcessor implements ProcessorInterface
      * @param TaskInterface $task
      * @throws \InvalidArgumentException
      */
-    public function processTask(TaskInterface $task)
+    public function processTask(TaskInterface $task): void
     {
-        if (!$this->canProcessTask($task)) {
-            throw new \InvalidArgumentException('Cannot process task of type "' . $task->getType() . '.' . $task->getName() . '"', 1350570621);
-        }
         if ($this->checkForExistingTargetFile($task)) {
             return;
         }
+        $this->processTaskWithLocalFile($task, null);
+    }
+
+    /**
+     * Processes an image described in a task, but optionally uses a given local image
+     *
+     * @param TaskInterface $task
+     * @param string|null $localFile
+     * @throws \InvalidArgumentException
+     */
+    public function processTaskWithLocalFile(TaskInterface $task, ?string $localFile): void
+    {
         $helper = $this->getHelperByTaskName($task->getName());
         try {
-            $result = $helper->process($task);
+            if ($localFile === null) {
+                $result = $helper->process($task);
+            } else {
+                $result = $helper->processWithLocalFile($task, $localFile);
+            }
             if ($result === null) {
                 $task->setExecuted(true);
                 $task->getTargetFile()->setUsesOriginalFile();
@@ -63,13 +76,6 @@ class LocalImageProcessor implements ProcessorInterface
                     ['width' => $imageDimensions[0], 'height' => $imageDimensions[1], 'size' => filesize($result['filePath']), 'checksum' => $task->getConfigurationChecksum()]
                 );
                 $task->getTargetFile()->updateWithLocalFile($result['filePath']);
-            } elseif (!empty($result['width']) && !empty($result['height']) && empty($result['filePath'])) {
-                // New dimensions + no new file (for instance svg)
-                $task->setExecuted(true);
-                $task->getTargetFile()->setUsesOriginalFile();
-                $task->getTargetFile()->updateProperties(
-                    ['width' => $result['width'], 'height' => $result['height'], 'size' => $task->getSourceFile()->getSize(), 'checksum' => $task->getConfigurationChecksum()]
-                );
             } else {
                 // Seems we have no valid processing result
                 $task->setExecuted(false);

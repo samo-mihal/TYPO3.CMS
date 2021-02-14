@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Form\FormDataProvider;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Form\FormDataProvider;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Form\FormDataProvider;
 
 use TYPO3\CMS\Backend\Form\FormDataProviderInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -49,6 +50,7 @@ class DatabaseRowInitializeNew implements FormDataProviderInterface
         $result = $this->setDefaultsFromDefaultValues($result);
         $result = $this->setDefaultsFromInlineRelations($result);
         $result = $this->setDefaultsFromInlineParentLanguage($result);
+        $result = $this->setDefaultsFromInlineParentUid($result);
         $result = $this->setPid($result);
 
         return $result;
@@ -219,6 +221,24 @@ class DatabaseRowInitializeNew implements FormDataProviderInterface
         $parentSysLanguageUid = (int)$result['inlineParentConfig']['inline']['parentSysLanguageUid'];
         $languageFieldName = $result['processedTca']['ctrl']['languageField'];
         $result['databaseRow'][$languageFieldName] = $parentSysLanguageUid;
+
+        return $result;
+    }
+
+    /**
+     * Set the parent uid of inline relations created via ajax to the corresponding foreign field
+     *
+     * @param array $result Result array
+     * @return array
+     */
+    protected function setDefaultsFromInlineParentUid(array $result): array
+    {
+        $isInlineChild = $result['isInlineChild'] ?? false;
+        $parentField = $result['inlineParentConfig']['foreign_field'] ?? false;
+
+        if ($isInlineChild && $parentField && !empty($result['inlineParentUid'])) {
+            $result['databaseRow'][$parentField] = $result['inlineParentUid'];
+        }
 
         return $result;
     }

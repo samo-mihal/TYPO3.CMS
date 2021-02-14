@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Database\Query;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Database\Query;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Database\Query;
 
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -123,9 +125,9 @@ class QueryHelper
             $tableName = strtok($input, $quoteCharacter);
         }
 
-        $tableAlias = strtok($quoteCharacter);
+        $tableAlias = (string)strtok($quoteCharacter);
         if (strtolower($tableAlias) === 'as') {
-            $tableAlias = strtok($quoteCharacter);
+            $tableAlias = (string)strtok($quoteCharacter);
             // Skip the next token which must be ON
             strtok(' ');
             $joinCondition = strtok('');
@@ -143,7 +145,7 @@ class QueryHelper
         // that the quoted table alias contains whitespace.
         $firstCharacterOfTableAlias = $tableAlias[0] ?? null;
         if ($firstCharacterOfTableAlias === '`' || $firstCharacterOfTableAlias === '"') {
-            $tableAlias = substr($tableAlias, 1, -1);
+            $tableAlias = substr((string)$tableAlias, 1, -1);
         }
 
         $tableAlias = $tableAlias ?: $tableName;

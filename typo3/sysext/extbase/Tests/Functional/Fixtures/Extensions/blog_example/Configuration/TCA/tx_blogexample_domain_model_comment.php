@@ -1,4 +1,5 @@
 <?php
+
 return [
     'ctrl' => [
         'title' => 'LLL:EXT:blog_example/Resources/Private/Language/locallang_db.xml:tx_blogexample_domain_model_comment',
@@ -12,9 +13,6 @@ return [
             'disabled' => 'hidden'
         ],
         'iconfile' => 'EXT:blog_example/Resources/Public/Icons/icon_tx_blogexample_domain_model_comment.gif'
-    ],
-    'interface' => [
-        'showRecordFieldList' => 'hidden, date, author, email, content'
     ],
     'columns' => [
         'hidden' => [

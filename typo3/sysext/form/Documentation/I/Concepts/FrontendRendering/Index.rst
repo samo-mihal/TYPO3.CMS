@@ -113,7 +113,7 @@ we need to add some meaningful values to ``$prototypeConfiguration``::
 
 For each abstract ``<formElementTypeIdentifier>`` we have to add some
 configuration. In the snippet above, we only define the ``implementation
-class name``. Apart form that, it is always possible to set default values
+class name``. Apart from that, it is always possible to set default values
 for all configuration options of such elements, as the following example
 shows::
 
@@ -294,8 +294,8 @@ Render through FLUIDTEMPLATE (without controller)
            settings {
                persistenceIdentifier = EXT:my_site_package/Resources/Private/Forms/MyForm.yaml
            }
-           extbase.pluginName = Form
-           extbase.controllerExtensionName = Formframework
+           extbase.pluginName = Formframework
+           extbase.controllerExtensionName = Form
            extbase.controllerName = FormFrontend
            extbase.controllerActionName = perform
        }
@@ -805,37 +805,33 @@ to the field and adds a page URL as translation argument:
 .. code-block:: typoscript
 
    plugin.tx_form {
-       settings {
-           formDefinitionOverrides {
-               <form-id> {
-                   renderables {
-                       0 {
-                           # Page
-                           renderables {
-                               fieldWithTranslationArguments {
-                                   renderingOptions {
-                                       translation {
-                                           arguments {
-                                               label {
-                                                   0 = TEXT
-                                                   0.typolink {
-                                                       # Terms and conditions page, could be
-                                                       # set also via TypoScript constants
-                                                       parameter = 42
-                                                       returnLast = url
-                                                    }
-                                                 }
-                                              }
-                                           }
-                                        }
-                                     }
-                                  }
-                               }
-                            }
-                         }
-                      }
-                   }
-                }
+      settings {
+         formDefinitionOverrides {
+            <form-id> {
+               renderables {
+                  0 {
+                     # Page
+                     renderables {
+                        fieldWithTranslationArguments {
+                           renderingOptions {
+                              translation {
+                                 arguments {
+                                    label {
+                                       0 = TEXT
+                                       0.typolink {
+                                          # Terms and conditions page, could be
+                                          # set also via TypoScript constants
+                                          parameter = 42
+                                          returnLast = url
+                                       }
+                                    }
+                                 }
+                              }
+                           }
+                        }
+                     }
+                  }
+               }
             }
          }
       }

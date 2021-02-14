@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extensionmanager\Domain\Repository;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,13 @@ namespace TYPO3\CMS\Extensionmanager\Domain\Repository;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extensionmanager\Domain\Repository;
+
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Platform\PlatformInformation;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapper;
 use TYPO3\CMS\Extbase\Persistence\Generic\Query;
 use TYPO3\CMS\Extbase\Persistence\Generic\QuerySettingsInterface;
 use TYPO3\CMS\Extbase\Persistence\QueryInterface;
@@ -193,7 +195,7 @@ class ExtensionRepository extends Repository
             ->execute()
             ->fetchAll();
 
-        $dataMapper = $this->objectManager->get(\TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapper::class);
+        $dataMapper = $this->objectManager->get(DataMapper::class);
         return $dataMapper->map(Extension::class, $result);
     }
 
@@ -427,10 +429,10 @@ class ExtensionRepository extends Repository
      * Adds default constraints to the query - in this case it
      * enables us to always just search for the latest version of an extension
      *
-     * @param Query $query the query to adjust
-     * @return Query
+     * @param QueryInterface $query the query to adjust
+     * @return QueryInterface
      */
-    protected function addDefaultConstraints(Query $query): Query
+    protected function addDefaultConstraints(QueryInterface $query): QueryInterface
     {
         if ($query->getConstraint()) {
             $query->matching($query->logicalAnd(

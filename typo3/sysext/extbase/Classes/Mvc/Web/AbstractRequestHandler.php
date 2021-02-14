@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Mvc\Web;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,11 +13,18 @@ namespace TYPO3\CMS\Extbase\Mvc\Web;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Mvc\Web;
+
+use TYPO3\CMS\Extbase\Mvc\Dispatcher;
+use TYPO3\CMS\Extbase\Mvc\RequestHandlerInterface;
+use TYPO3\CMS\Extbase\Object\ObjectManagerInterface;
+use TYPO3\CMS\Extbase\Service\EnvironmentService;
+
 /**
  * A request handler which can handle web requests.
  * @internal only to be used within Extbase, not part of TYPO3 Core API.
  */
-abstract class AbstractRequestHandler implements \TYPO3\CMS\Extbase\Mvc\RequestHandlerInterface
+abstract class AbstractRequestHandler implements RequestHandlerInterface
 {
     /**
      * @var \TYPO3\CMS\Extbase\Object\ObjectManagerInterface
@@ -43,7 +49,7 @@ abstract class AbstractRequestHandler implements \TYPO3\CMS\Extbase\Mvc\RequestH
     /**
      * @param \TYPO3\CMS\Extbase\Mvc\Dispatcher $dispatcher
      */
-    public function injectDispatcher(\TYPO3\CMS\Extbase\Mvc\Dispatcher $dispatcher)
+    public function injectDispatcher(Dispatcher $dispatcher)
     {
         $this->dispatcher = $dispatcher;
     }
@@ -51,7 +57,7 @@ abstract class AbstractRequestHandler implements \TYPO3\CMS\Extbase\Mvc\RequestH
     /**
      * @param \TYPO3\CMS\Extbase\Mvc\Web\RequestBuilder $requestBuilder
      */
-    public function injectRequestBuilder(\TYPO3\CMS\Extbase\Mvc\Web\RequestBuilder $requestBuilder)
+    public function injectRequestBuilder(RequestBuilder $requestBuilder)
     {
         $this->requestBuilder = $requestBuilder;
     }
@@ -59,7 +65,7 @@ abstract class AbstractRequestHandler implements \TYPO3\CMS\Extbase\Mvc\RequestH
     /**
      * @param \TYPO3\CMS\Extbase\Object\ObjectManagerInterface $objectManager
      */
-    public function injectObjectManager(\TYPO3\CMS\Extbase\Object\ObjectManagerInterface $objectManager)
+    public function injectObjectManager(ObjectManagerInterface $objectManager)
     {
         $this->objectManager = $objectManager;
     }
@@ -67,7 +73,7 @@ abstract class AbstractRequestHandler implements \TYPO3\CMS\Extbase\Mvc\RequestH
     /**
      * @param \TYPO3\CMS\Extbase\Service\EnvironmentService $environmentService
      */
-    public function injectEnvironmentService(\TYPO3\CMS\Extbase\Service\EnvironmentService $environmentService)
+    public function injectEnvironmentService(EnvironmentService $environmentService)
     {
         $this->environmentService = $environmentService;
     }

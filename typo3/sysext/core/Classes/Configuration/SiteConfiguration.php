@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Configuration;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,10 +15,12 @@ namespace TYPO3\CMS\Core\Configuration;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Configuration;
+
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Yaml\Yaml;
 use TYPO3\CMS\Core\Cache\CacheManager;
-use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
+use TYPO3\CMS\Core\Cache\Frontend\PhpFrontend;
 use TYPO3\CMS\Core\Configuration\Loader\YamlFileLoader;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\SingletonInterface;
@@ -55,7 +56,7 @@ class SiteConfiguration implements SingletonInterface
      * @internal
      * @var string
      */
-    protected $cacheIdentifier = 'site-configuration';
+    protected $cacheIdentifier = 'sites-configuration';
 
     /**
      * Cache stores all configuration as Site objects, as long as they haven't been changed.
@@ -76,11 +77,15 @@ class SiteConfiguration implements SingletonInterface
     /**
      * Return all site objects which have been found in the filesystem.
      *
+     * @param bool $useCache
      * @return Site[]
      */
-    public function getAllExistingSites(): array
+    public function getAllExistingSites(bool $useCache = true): array
     {
-        return $this->firstLevelCache ?? $this->resolveAllExistingSites();
+        if ($useCache && $this->firstLevelCache !== null) {
+            return $this->firstLevelCache;
+        }
+        return $this->resolveAllExistingSites($useCache);
     }
 
     /**
@@ -101,7 +106,7 @@ class SiteConfiguration implements SingletonInterface
                     'title' => 'English',
                     'enabled' => true,
                     'languageId' => 0,
-                    'base' => '/en/',
+                    'base' => '/',
                     'typo3Language' => 'default',
                     'locale' => 'en_US.UTF-8',
                     'iso-639-1' => 'en',
@@ -146,31 +151,27 @@ class SiteConfiguration implements SingletonInterface
     protected function getAllSiteConfigurationFromFiles(bool $useCache = true): array
     {
         // Check if the data is already cached
-        if ($useCache && $siteConfiguration = $this->getCache()->get($this->cacheIdentifier)) {
-            // Due to the nature of PhpFrontend, the `<?php` and `#` wraps have to be removed
-            $siteConfiguration = preg_replace('/^<\?php\s*|\s*#$/', '', $siteConfiguration);
-            $siteConfiguration = json_decode($siteConfiguration, true);
+        $siteConfiguration = $useCache ? $this->getCache()->require($this->cacheIdentifier) : false;
+        if ($siteConfiguration !== false) {
+            return $siteConfiguration;
         }
+        $finder = new Finder();
+        try {
+            $finder->files()->depth(0)->name($this->configFileName)->in($this->configPath . '/*');
+        } catch (\InvalidArgumentException $e) {
+            // Directory $this->configPath does not exist yet
+            $finder = [];
+        }
+        $loader = GeneralUtility::makeInstance(YamlFileLoader::class);
+        $siteConfiguration = [];
+        foreach ($finder as $fileInfo) {
+            $configuration = $loader->load(GeneralUtility::fixWindowsFilePath((string)$fileInfo));
+            $identifier = basename($fileInfo->getPath());
+            $siteConfiguration[$identifier] = $configuration;
+        }
+        $this->getCache()->set($this->cacheIdentifier, 'return ' . var_export($siteConfiguration, true) . ';');
 
-        // Nothing in the cache (or no site found)
-        if (empty($siteConfiguration)) {
-            $finder = new Finder();
-            try {
-                $finder->files()->depth(0)->name($this->configFileName)->in($this->configPath . '/*');
-            } catch (\InvalidArgumentException $e) {
-                // Directory $this->configPath does not exist yet
-                $finder = [];
-            }
-            $loader = GeneralUtility::makeInstance(YamlFileLoader::class);
-            $siteConfiguration = [];
-            foreach ($finder as $fileInfo) {
-                $configuration = $loader->load(GeneralUtility::fixWindowsFilePath((string)$fileInfo));
-                $identifier = basename($fileInfo->getPath());
-                $siteConfiguration[$identifier] = $configuration;
-            }
-            $this->getCache()->set($this->cacheIdentifier, json_encode($siteConfiguration));
-        }
-        return $siteConfiguration ?? [];
+        return $siteConfiguration;
     }
 
     /**
@@ -267,10 +268,10 @@ class SiteConfiguration implements SingletonInterface
     /**
      * Short-hand function for the cache
      *
-     * @return FrontendInterface
+     * @return PhpFrontend
      * @throws \TYPO3\CMS\Core\Cache\Exception\NoSuchCacheException
      */
-    protected function getCache(): FrontendInterface
+    protected function getCache(): PhpFrontend
     {
         return GeneralUtility::makeInstance(CacheManager::class)->getCache('core');
     }

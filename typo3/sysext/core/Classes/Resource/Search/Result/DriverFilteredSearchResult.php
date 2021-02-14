@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Resource\Search\Result;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Resource\Search\Result;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Resource\Search\Result;
 
 use TYPO3\CMS\Core\Resource\Driver\DriverInterface;
 use TYPO3\CMS\Core\Resource\File;
@@ -124,8 +126,8 @@ class DriverFilteredSearchResult implements FileSearchResultInterface
     /**
      * Filter out identifiers by calling all attached filters
      *
-     * @param File[] $files
-     * @return array
+     * @param File ...$files
+     * @return array<int, File>
      */
     private function applyFilters(File ...$files): array
     {

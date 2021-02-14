@@ -50,7 +50,7 @@ define(['jquery',
         duplicateFormModalTrigger: {identifier: '[data-identifier="duplicateForm"]'},
         removeFormModalTrigger: {identifier: '[data-identifier="removeForm"]'},
 
-        newFormMode: {identifier: '[data-identifier="newFormMode"]'},
+        newFormMode: {identifier: '[data-identifier="newFormMode"]', button: '[data-identifier="newFormModeButton"]'},
         newFormName: {identifier: '[data-identifier="newFormName"]'},
         newFormSavePath: {identifier: '[data-identifier="newFormSavePath"]'},
         newFormPrototypeName: {identifier: '[data-identifier="newFormPrototypeName"]'},
@@ -86,9 +86,9 @@ define(['jquery',
          * Wizard step 1
          */
         MultiStepWizard.addSlide('new-form-step-1', TYPO3.lang['formManager.newFormWizard.step1.title'], '', Severity.info, null, function(slide) {
-          Icons.getIcon('actions-document-duplicates-select', Icons.sizes.large).done(function (duplicateIconMarkup) {
-            Icons.getIcon('actions-document-new', Icons.sizes.large).done(function (blankIconMarkup) {
-              var advandecWizardHasOptions, folders, html, modal, cancelButton, nextButton, prototypes,
+          Icons.getIcon('actions-document-duplicates-select', Icons.sizes.large).then(function (duplicateIconMarkup) {
+            Icons.getIcon('actions-document-new', Icons.sizes.large).then(function (blankIconMarkup) {
+              var advancedWizardHasOptions, folders, html, modal, cancelButton, nextButton, prototypes,
                 templates;
 
               modal = MultiStepWizard.setup.$carousel.closest('.modal');
@@ -128,18 +128,24 @@ define(['jquery',
               html += '<div class="row">'
                 + '<div class="col-sm-6">'
                 + '<p>'
-                + '<label class="btn btn-block btn-default btn-block btn-createform">'
+                + '<label class="label-block">'
+                + '<button class="btn btn-block btn-default btn-block btn-createform" data-identifier="newFormModeButton" type="button">'
                 + blankIconMarkup
                 + '<input type="radio" name="newformmode" id="mode_blank" value="blank" data-identifier="newFormMode" style="display: none">'
-                + '<br>' + TYPO3.lang['formManager.blankForm.label'] + '</label>'
+                + '<br>' + TYPO3.lang['formManager.blankForm.label']
+                + '</button>'
+                + '</label>'
                 + '</p>'
                 + '</div>'
                 + '<div class="col-sm-6">'
                 + '<p>'
-                + '<label class="btn btn-block btn-default btn-block btn-createform">'
+                + '<label class="label-block">'
+                + '<button class="btn btn-block btn-default btn-block btn-createform" data-identifier="newFormModeButton" type="button">'
                 + duplicateIconMarkup
                 + '<input type="radio" name="newformmode" id="mode_predefined" value="predefined" data-identifier="newFormMode" style="display: none">'
-                + '<br>' + TYPO3.lang['formManager.predefinedForm.label'] + '</label>'
+                + '<br>' + TYPO3.lang['formManager.predefinedForm.label']
+                + '</button>'
+                + '</label>'
                 + '</p>'
                 + '</div>'
                 + '</div>';
@@ -157,8 +163,14 @@ define(['jquery',
                 }
               });
 
+              $(getDomElementIdentifier('newFormMode', 'button'), modal).on('click', function (e) {
+                $(getDomElementIdentifier('newFormMode'), $(this)).prop('checked', true).trigger('change');
+              });
+
+              $(getDomElementIdentifier('newFormMode', 'button'), modal).first().focus();
+
               nextButton.on('click', function() {
-                Icons.getIcon('spinner-circle', Icons.sizes.default, null, null).done(function(markup) {
+                Icons.getIcon('spinner-circle', Icons.sizes.default, null, null).then(function(markup) {
                   slide.html($('<div />', {class: 'text-center'}).append(markup));
                 });
               });
@@ -320,6 +332,9 @@ define(['jquery',
               $(this).removeClass('has-error');
               MultiStepWizard.unlockNextStep();
               MultiStepWizard.set('formName', $(this).val());
+              if (e.code === 'Enter') {
+                MultiStepWizard.triggerStepButton('next');
+              }
             } else {
               $(this).addClass('has-error');
               MultiStepWizard.lockNextStep();
@@ -337,7 +352,7 @@ define(['jquery',
 
           nextButton.on('click', function() {
             MultiStepWizard.setup.forceSelection = false;
-            Icons.getIcon('spinner-circle', Icons.sizes.default, null, null).done(function(markup) {
+            Icons.getIcon('spinner-circle', Icons.sizes.default, null, null).then(function(markup) {
               slide.html($('<div />', {class: 'text-center'}).append(markup));
             });
           });
@@ -413,9 +428,11 @@ define(['jquery',
 
           slide.html(html);
 
+          nextButton.focus();
+
           nextButton.on('click', function(e) {
             MultiStepWizard.setup.forceSelection = false;
-            Icons.getIcon('spinner-circle', Icons.sizes.default, null, null).done(function(markup) {
+            Icons.getIcon('spinner-circle', Icons.sizes.default, null, null).then(function(markup) {
               slide.html($('<div />', {class: 'text-center'}).append(markup));
             });
           });
@@ -535,7 +552,7 @@ define(['jquery',
           slide.html(html);
 
           nextButton.on('click', function() {
-            Icons.getIcon('spinner-circle', Icons.sizes.default, null, null).done(function(markup) {
+            Icons.getIcon('spinner-circle', Icons.sizes.default, null, null).then(function(markup) {
               slide.html($('<div />', {class: 'text-center'}).append(markup));
             });
           });
@@ -586,6 +603,9 @@ define(['jquery',
               $(this).removeClass('has-error');
               MultiStepWizard.unlockNextStep();
               MultiStepWizard.set('formName', $(this).val());
+              if (e.code === 'Enter') {
+                MultiStepWizard.triggerStepButton('next');
+              }
             } else {
               $(this).addClass('has-error');
               MultiStepWizard.lockNextStep();
@@ -593,13 +613,14 @@ define(['jquery',
           });
 
           nextButton.on('click', function(e) {
-            Icons.getIcon('spinner-circle', Icons.sizes.default, null, null).done(function(markup) {
+            Icons.getIcon('spinner-circle', Icons.sizes.default, null, null).then(function(markup) {
               MultiStepWizard.set('confirmationDuplicateFormName', that.data('formName'));
-              MultiStepWizard.set('savePath', $(getDomElementIdentifier('duplicateFormSavePath') + ' option:selected', modal).val());
 
               if (folders.length > 1) {
+                MultiStepWizard.set('savePath', $(getDomElementIdentifier('duplicateFormSavePath') + ' option:selected', modal).val());
                 MultiStepWizard.set('confirmationDuplicateFormSavePath', $(getDomElementIdentifier('duplicateFormSavePath') + ' option:selected', modal).text());
               } else {
+                MultiStepWizard.set('savePath', folders[0]['value']);
                 MultiStepWizard.set('confirmationDuplicateFormSavePath', folders[0]['label']);
               }
 
@@ -661,8 +682,10 @@ define(['jquery',
 
           slide.html(html);
 
+          nextButton.focus();
+
           nextButton.on('click', function(e) {
-            Icons.getIcon('spinner-circle', Icons.sizes.default, null, null).done(function(markup) {
+            Icons.getIcon('spinner-circle', Icons.sizes.default, null, null).then(function(markup) {
               slide.html($('<div />', {class: 'text-center'}).append(markup));
             });
           });

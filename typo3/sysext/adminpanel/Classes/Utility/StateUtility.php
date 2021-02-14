@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Adminpanel\Utility;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Adminpanel\Utility;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Adminpanel\Utility;
 
 use TYPO3\CMS\Backend\FrontendBackendUserAuthentication;
 
@@ -63,6 +64,6 @@ class StateUtility
     public static function isHiddenForUser(): bool
     {
         $beUser = $GLOBALS['BE_USER'] ?? null;
-        return $beUser->getTSConfig()['admPanel.']['hide'] ?? false;
+        return $beUser ? (bool)($beUser->getTSConfig()['admPanel.']['hide'] ?? false) : false;
     }
 }

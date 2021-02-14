@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Filelist;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,12 +13,15 @@ namespace TYPO3\CMS\Filelist;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Filelist;
+
 use TYPO3\CMS\Backend\Clipboard\Clipboard;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Localization\LanguageService;
+use TYPO3\CMS\Core\Resource\AbstractFile;
 use TYPO3\CMS\Core\Resource\FileInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -75,7 +77,8 @@ class FileFacade
     public function getIsEditable(): bool
     {
         return $this->getIsWritable()
-            && GeneralUtility::inList($GLOBALS['TYPO3_CONF_VARS']['SYS']['textfile_ext'], $this->resource->getExtension());
+            && $this->resource instanceof AbstractFile
+            && $this->resource->isTextFile();
     }
 
     /**
@@ -282,7 +285,7 @@ class FileFacade
      */
     public function getIsImage()
     {
-        return GeneralUtility::inList($GLOBALS['TYPO3_CONF_VARS']['GFX']['imagefile_ext'], strtolower($this->getExtension()));
+        return $this->resource instanceof AbstractFile && $this->resource->isImage();
     }
 
     /**
@@ -335,7 +338,7 @@ class FileFacade
     public function __call($method, $arguments)
     {
         if (is_callable([$this->resource, $method])) {
-            return call_user_func_array([$this->resource, $method], $arguments);
+            $this->resource->$method(...$arguments);
         }
 
         return null;

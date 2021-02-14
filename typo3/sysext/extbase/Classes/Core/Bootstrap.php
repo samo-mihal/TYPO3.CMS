@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Extbase\Core;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,6 +15,8 @@ namespace TYPO3\CMS\Extbase\Core;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Core;
+
 use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -26,10 +27,11 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
 use TYPO3\CMS\Extbase\Configuration\RequestHandlersConfigurationFactory;
 use TYPO3\CMS\Extbase\Mvc\RequestHandlerResolver;
-use TYPO3\CMS\Extbase\Mvc\Web\Response as ExtbaseResponse;
+use TYPO3\CMS\Extbase\Mvc\Response as ExtbaseResponse;
 use TYPO3\CMS\Extbase\Persistence\ClassesConfigurationFactory;
 use TYPO3\CMS\Extbase\Persistence\PersistenceManagerInterface;
 use TYPO3\CMS\Extbase\Service\CacheService;
+use TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
 
 /**
  * Creates a request and dispatches it to the controller which was specified
@@ -37,7 +39,7 @@ use TYPO3\CMS\Extbase\Service\CacheService;
  *
  * This class is the main entry point for extbase extensions.
  */
-class Bootstrap implements \TYPO3\CMS\Extbase\Core\BootstrapInterface
+class Bootstrap implements BootstrapInterface
 {
     /**
      * @var array
@@ -63,7 +65,7 @@ class Bootstrap implements \TYPO3\CMS\Extbase\Core\BootstrapInterface
     protected $configurationManager;
 
     /**
-     * @var PersistenceManager
+     * @var PersistenceManagerInterface
      */
     protected $persistenceManager;
 
@@ -126,7 +128,7 @@ class Bootstrap implements \TYPO3\CMS\Extbase\Core\BootstrapInterface
     public function initializeConfiguration(array $configuration): void
     {
         /** @var \TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer $contentObject */
-        $contentObject = $this->cObj ?? $this->container->get(\TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer::class);
+        $contentObject = $this->cObj ?? $this->container->get(ContentObjectRenderer::class);
         $this->configurationManager->setContentObject($contentObject);
         $this->configurationManager->setConfiguration($configuration);
         // todo: Shouldn't the configuration manager object – which is a singleton – be stateless?

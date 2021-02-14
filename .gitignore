@@ -40,6 +40,7 @@ nbproject
 /Build/testing-docker/local/.env
 /typo3/sysext/*/Resources/Private/TypeScript/*.js
 /typo3/sysext/*/Resources/Public/JavaScript/*.js.map
+typo3/sysext/core/Tests/Acceptance/AcceptanceTests-Job-*
 #
 # TypeScript stuff
 .baseDir.ts
@@ -57,6 +58,7 @@ nbproject
 /typo3conf/*
 /fileadmin/*
 /uploads/*
+/FIRST_INSTALL
 #
 # root .htaccess file
 /.htaccess

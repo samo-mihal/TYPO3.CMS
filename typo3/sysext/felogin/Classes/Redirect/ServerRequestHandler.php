@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\FrontendLogin\Redirect;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\FrontendLogin\Redirect;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\FrontendLogin\Redirect;
 
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Site\SiteFinder;
@@ -42,8 +43,7 @@ class ServerRequestHandler
         $this->request = $GLOBALS['TYPO3_REQUEST'];
         $this->redirectUrlValidator = GeneralUtility::makeInstance(
             RedirectUrlValidator::class,
-            GeneralUtility::makeInstance(SiteFinder::class),
-            (int)$GLOBALS['TSFE']->id
+            GeneralUtility::makeInstance(SiteFinder::class)
         );
     }
 
@@ -60,7 +60,7 @@ class ServerRequestHandler
     }
 
     /**
-     * Returns validated redirect url cointained in request param return_url or redirect_url
+     * Returns validated redirect url contained in request param return_url or redirect_url
      *
      * @return string
      */

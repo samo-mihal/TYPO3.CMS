@@ -11,9 +11,9 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import * as $ from 'jquery';
+import {AjaxResponse} from 'TYPO3/CMS/Core/Ajax/AjaxResponse';
+import $ from 'jquery';
 import 'nprogress';
-import 'twbs/bootstrap-slider';
 import {SeverityEnum} from 'TYPO3/CMS/Backend/Enum/Severity';
 import 'TYPO3/CMS/Backend/Input/Clearable';
 import Workspaces from './Workspaces';
@@ -41,6 +41,10 @@ enum Identifiers {
   pagination = '#workspace-pagination',
 }
 
+/**
+ * Backend workspace module. Loaded only in Backend context, not in
+ * workspace preview. Contains all JavaScript of the main BE module.
+ */
 class Backend extends Workspaces {
   private elements: { [key: string]: JQuery } = {};
   private settings: { [key: string]: string | number } = {
@@ -237,8 +241,8 @@ class Backend extends Workspaces {
           ],
           type: 'selection',
         },
-      ).done((response: any): void => {
-        if (response[0].result.result === 'warning') {
+      ).then(async (response: AjaxResponse): Promise<void> => {
+        if ((await response.resolve())[0].result.result === 'warning') {
           this.addIntegrityCheckWarningToWizard();
         }
 
@@ -257,7 +261,7 @@ class Backend extends Workspaces {
               row.dataset.t3ver_oid,
               row.dataset.uid,
             ]),
-          ).done((): void => {
+          ).then((): void => {
             Wizard.dismiss();
             this.getWorkspaceInfos();
             Backend.refreshPageTree();
@@ -277,11 +281,6 @@ class Backend extends Workspaces {
         let newUrl = TYPO3.settings.FormEngine.moduleUrl
           + '&returnUrl=' + encodeURIComponent(document.location.href)
           + '&id=' + TYPO3.settings.Workspaces.id + '&edit[' + row.dataset.table + '][' + row.dataset.uid + ']=edit';
-
-        // Append workspace of record in all-workspaces view
-        if (TYPO3.settings.Workspaces.allView) {
-          newUrl += '&workspace=' + row.dataset.t3ver_wsid;
-        }
 
         window.location.href = newUrl;
       }).on('click', '[data-action="version"]', (e: JQueryEventObject): void => {
@@ -304,11 +303,9 @@ class Backend extends Workspaces {
 
         $me.empty().append(this.getPreRenderedIcon(iconIdentifier));
       });
-    $(window.top.document).on('click', '.t3js-workspace-recipients-selectall', (e: JQueryEventObject): void => {
-      e.preventDefault();
+    $(window.top.document).on('click', '.t3js-workspace-recipients-selectall', (): void => {
       $('.t3js-workspace-recipient', window.top.document).not(':disabled').prop('checked', true);
-    }).on('click', '.t3js-workspace-recipients-deselectall', (e: JQueryEventObject): void => {
-      e.preventDefault();
+    }).on('click', '.t3js-workspace-recipients-deselectall', (): void => {
       $('.t3js-workspace-recipient', window.top.document).not(':disabled').prop('checked', false);
     });
 
@@ -364,7 +361,7 @@ class Backend extends Workspaces {
       this.sendRemoteRequest([
         this.generateRemoteActionsPayload('saveLanguageSelection', [$me.val()]),
         this.generateRemotePayload('getWorkspaceInfos', this.settings),
-      ]).done((response: any): void => {
+      ]).then((response: any): void => {
         this.elements.$languageSelector.prev().html($me.find(':selected').data('icon'));
         this.renderWorkspaceInfos(response[1].result);
       });
@@ -462,8 +459,8 @@ class Backend extends Workspaces {
       this.generateRemoteActionsPayload(stageWindowAction, [
         $row.data('uid'), $row.data('table'), $row.data('t3ver_oid'),
       ]),
-    ).done((response: any): void => {
-      const $modal = this.renderSendToStageWindow(response);
+    ).then(async (response: AjaxResponse): Promise<void> => {
+      const $modal = this.renderSendToStageWindow(await response.resolve());
       $modal.on('button.clicked', (modalEvent: JQueryEventObject): void => {
         if ((<HTMLAnchorElement>modalEvent.target).name === 'ok') {
           const serializedForm = Utility.convertFormToObject(modalEvent.currentTarget.querySelector('form'));
@@ -478,7 +475,8 @@ class Backend extends Workspaces {
           this.sendRemoteRequest([
             this.generateRemoteActionsPayload(stageExecuteAction, [serializedForm]),
             this.generateRemotePayload('getWorkspaceInfos', this.settings),
-          ]).done((requestResponse: any): void => {
+          ]).then(async (response: AjaxResponse): Promise<void> => {
+            const requestResponse = await response.resolve();
             $modal.modal('hide');
             this.renderWorkspaceInfos(requestResponse[1].result);
             Backend.refreshPageTree();
@@ -499,14 +497,15 @@ class Backend extends Workspaces {
       this.generateRemotePayload('getSystemLanguages', {
         pageUid: this.elements.$container.data('pageUid'),
       }),
-    ]).done((response: any): void => {
+    ]).then(async (response: AjaxResponse): Promise<void> => {
+      const resolvedResponse = await response.resolve();
       this.elements.$depthSelector.prop('disabled', false);
 
       // Records
-      this.renderWorkspaceInfos(response[0].result);
+      this.renderWorkspaceInfos(resolvedResponse[0].result);
 
       // Stage actions
-      const stageActions = response[1].result.data;
+      const stageActions = resolvedResponse[1].result.data;
       let i;
       for (i = 0; i < stageActions.length; ++i) {
         this.elements.$chooseStageAction.append(
@@ -515,7 +514,7 @@ class Backend extends Workspaces {
       }
 
       // Mass actions
-      const massActions = response[2].result.data;
+      const massActions = resolvedResponse[2].result.data;
       for (i = 0; i < massActions.length; ++i) {
         this.elements.$chooseSelectionAction.append(
           $('<option />').val(massActions[i].action).text(massActions[i].title),
@@ -527,7 +526,7 @@ class Backend extends Workspaces {
       }
 
       // Languages
-      const languages = response[3].result.data;
+      const languages = resolvedResponse[3].result.data;
       for (i = 0; i < languages.length; ++i) {
         const $option = $('<option />').val(languages[i].uid).text(languages[i].title).data('icon', languages[i].icon);
         if (String(languages[i].uid) === String(TYPO3.settings.Workspaces.language)) {
@@ -549,8 +548,8 @@ class Backend extends Workspaces {
   private getWorkspaceInfos(): void {
     this.sendRemoteRequest(
       this.generateRemotePayload('getWorkspaceInfos', this.settings),
-    ).done((response: any): void => {
-      this.renderWorkspaceInfos(response[0].result);
+    ).then(async (response: AjaxResponse): Promise<void> => {
+      this.renderWorkspaceInfos((await response.resolve())[0].result);
     });
   }
 
@@ -572,20 +571,21 @@ class Backend extends Workspaces {
       const item = result.data[i];
       const $actions = $('<div />', {class: 'btn-group'});
       let $integrityIcon: JQuery;
+      let hasSubitems = item.Workspaces_CollectionChildren > 0 && item.Workspaces_CollectionCurrent !== '';
       $actions.append(
         this.getAction(
-          item.Workspaces_CollectionChildren > 0 && item.Workspaces_CollectionCurrent !== '',
+          hasSubitems,
           'expand',
-          'apps-pagetree-collapse',
+          (item.expanded ? 'apps-pagetree-expand' : 'apps-pagetree-collapse'),
         ).attr('title', TYPO3.lang['tooltip.expand'])
           .attr('data-target', '[data-collection="' + item.Workspaces_CollectionCurrent + '"]')
+          .attr('aria-expanded', !hasSubitems || item.expanded ? 'true' : 'false')
           .attr('data-toggle', 'collapse'),
-        $('<button />', {
-          class: 'btn btn-default',
-          'data-action': 'changes',
-          'data-toggle': 'tooltip',
-          title: TYPO3.lang['tooltip.showChanges'],
-        }).append(this.getPreRenderedIcon('actions-document-info')),
+        this.getAction(
+          item.hasChanges,
+          'changes',
+          'actions-document-info')
+          .attr('title', TYPO3.lang['tooltip.showChanges']),
         this.getAction(
           item.allowedAction_swap && item.Workspaces_CollectionParent === '',
           'swap',
@@ -627,7 +627,9 @@ class Backend extends Workspaces {
         this.elements.$tableBody.append(
           $('<tr />').append(
             $('<th />'),
-            $('<th />', {colspan: 6}).text(this.latestPath),
+            $('<th />', {colspan: 6}).html(
+              '<span title="' + item.path_Workspace + '">' + item.path_Workspace_crop + '</span>'
+            ),
           ),
         );
       }
@@ -648,8 +650,12 @@ class Backend extends Workspaces {
       };
 
       if (item.Workspaces_CollectionParent !== '') {
+        // fetch parent and see if this one is expanded
+        let parentItem = result.data.find((element: any) => {
+          return element.Workspaces_CollectionCurrent === item.Workspaces_CollectionParent;
+        });
         rowConfiguration['data-collection'] = item.Workspaces_CollectionParent;
-        rowConfiguration.class = 'collapse';
+        rowConfiguration.class = 'collapse' + (parentItem.expanded ? ' in' :  '');
       }
 
       this.elements.$tableBody.append(
@@ -663,10 +669,14 @@ class Backend extends Workspaces {
           }).html(
             item.icon_Workspace + '&nbsp;'
             + '<a href="#" data-action="changes">'
-            + '<span class="item-state-' + item.state_Workspace + '">' + item.label_Workspace + '</span>'
+            + '<span class="workspace-state-' + item.state_Workspace + '" title="' + item.label_Workspace + '">' + item.label_Workspace_crop + '</span>'
             + '</a>',
           ),
-          $('<td />', {class: 't3js-title-live'}).html(item.icon_Live + '&nbsp;' + item.label_Live),
+          $('<td />', {class: 't3js-title-live'}).html(
+            item.icon_Live
+            + '&nbsp;'
+            + '<span class"workspace-live-title title="' + item.label_Live + '">' + item.label_Live_crop + '</span>'
+          ),
           $('<td />').text(item.label_Stage),
           $('<td />').empty().append($integrityIcon),
           $('<td />').html(item.language.icon),
@@ -756,8 +766,8 @@ class Backend extends Workspaces {
         table: $tr.data('table'),
         uid: $tr.data('uid'),
       }),
-    ).done((response: any): void => {
-      const item = response[0].result.data[0];
+    ).then(async (response: AjaxResponse): Promise<void> => {
+      const item = (await response.resolve())[0].result.data[0];
       const $content = $('<div />');
       const $tabsNav = $('<ul />', {class: 'nav nav-tabs', role: 'tablist'});
       const $tabsContent = $('<div />', {class: 'tab-content'});
@@ -847,7 +857,7 @@ class Backend extends Workspaces {
         ),
       );
 
-      if ($tr.data('stage') !== $tr.data('prevStage')) {
+      if (item.label_PrevStage !== false && $tr.data('stage') !== $tr.data('prevStage')) {
         modalButtons.push({
           text: item.label_PrevStage.title,
           active: true,
@@ -860,16 +870,18 @@ class Backend extends Workspaces {
         });
       }
 
-      modalButtons.push({
-        text: item.label_NextStage.title,
-        active: true,
-        btnClass: 'btn-default',
-        name: 'nextstage',
-        trigger: (): void => {
-          Modal.currentModal.trigger('modal-dismiss');
-          this.sendToStage($tr, 'next');
-        },
-      });
+      if (item.label_NextStage !== false) {
+        modalButtons.push({
+          text: item.label_NextStage.title,
+          active: true,
+          btnClass: 'btn-default',
+          name: 'nextstage',
+          trigger: (): void => {
+            Modal.currentModal.trigger('modal-dismiss');
+            this.sendToStage($tr, 'next');
+          },
+        });
+      }
       modalButtons.push({
         text: TYPO3.lang.close,
         active: true,
@@ -882,7 +894,7 @@ class Backend extends Workspaces {
 
       Modal.advanced({
         type: Modal.types.default,
-        title: TYPO3.lang['window.recordInformation'].replace('{0}', $.trim($tr.find('.t3js-title-live').text())),
+        title: TYPO3.lang['window.recordInformation'].replace('{0}', $tr.find('.t3js-title-live').text().trim()),
         content: $content,
         severity: SeverityEnum.info,
         buttons: modalButtons,
@@ -903,9 +915,9 @@ class Backend extends Workspaces {
       this.generateRemoteActionsPayload('viewSingleRecord', [
         $tr.data('table'), $tr.data('uid'),
       ]),
-    ).done((response: any): void => {
+    ).then(async (response: AjaxResponse): Promise<void> => {
       // eslint-disable-next-line no-eval
-      eval(response[0].result);
+      eval((await response.resolve())[0].result);
     });
   }
 
@@ -944,7 +956,7 @@ class Backend extends Workspaces {
             $tr.data('table'),
             $tr.data('uid'),
           ]),
-        ]).done((): void => {
+        ]).then((): void => {
           $modal.modal('hide');
           this.getWorkspaceInfos();
           Backend.refreshPageTree();
@@ -984,9 +996,9 @@ class Backend extends Workspaces {
           selection: affectedRecords,
           type: 'selection',
         },
-      ).done((response: any): void => {
+      ).then(async (response: AjaxResponse): Promise<void> => {
         Wizard.setForceSelection(false);
-        if (response[0].result.result === 'warning') {
+        if ((await response.resolve())[0].result.result === 'warning') {
           this.addIntegrityCheckWarningToWizard();
         }
         this.renderSelectionActionWizard(selectedAction, affectedRecords);
@@ -1027,7 +1039,8 @@ class Backend extends Workspaces {
           action: selectedAction,
           selection: affectedRecords,
         }),
-      ).done((): void => {
+      ).then((): void => {
+        this.markedRecordsForMassAction = [];
         this.getWorkspaceInfos();
         Wizard.dismiss();
         Backend.refreshPageTree();
@@ -1062,9 +1075,9 @@ class Backend extends Workspaces {
           language: this.settings.language,
           type: selectedAction,
         },
-      ).done((response: any): void => {
+      ).then(async (response: AjaxResponse): Promise<void> => {
         Wizard.setForceSelection(false);
-        if (response[0].result.result === 'warning') {
+        if ((await response.resolve())[0].result.result === 'warning') {
           this.addIntegrityCheckWarningToWizard();
         }
         this.renderMassActionWizard(selectedAction);
@@ -1108,13 +1121,13 @@ class Backend extends Workspaces {
       SeverityEnum.warning,
     );
 
-    const sendRequestsUntilAllProcessed = (response: any): void => {
-      const result = response[0].result;
+    const sendRequestsUntilAllProcessed = async (response: AjaxResponse): Promise<void> => {
+      const result = (await response.resolve())[0].result;
       // Make sure to process all items
       if (result.processed < result.total) {
         this.sendRemoteRequest(
           this.generateRemoteMassActionsPayload(massAction, result),
-        ).done(sendRequestsUntilAllProcessed);
+        ).then(sendRequestsUntilAllProcessed);
       } else {
         this.getWorkspaceInfos();
         Wizard.dismiss();
@@ -1130,7 +1143,7 @@ class Backend extends Workspaces {
           language: this.settings.language,
           swap: doSwap,
         }),
-      ).done(sendRequestsUntilAllProcessed);
+      ).then(sendRequestsUntilAllProcessed);
     }).done((): void => {
       Wizard.show();
 
@@ -1160,8 +1173,8 @@ class Backend extends Workspaces {
       this.generateRemoteActionsPayload('sendToSpecificStageWindow', [
         stage, affectedRecords,
       ]),
-    ).done((response: any): void => {
-      const $modal = this.renderSendToStageWindow(response);
+    ).then(async (response: AjaxResponse): Promise<void> => {
+      const $modal = this.renderSendToStageWindow(await response.resolve());
       $modal.on('button.clicked', (modalEvent: JQueryEventObject): void => {
         if ((<HTMLAnchorElement>modalEvent.target).name === 'ok') {
           const serializedForm = Utility.convertFormToObject(modalEvent.currentTarget.querySelector('form'));
@@ -1173,7 +1186,8 @@ class Backend extends Workspaces {
           this.sendRemoteRequest([
             this.generateRemoteActionsPayload('sendToSpecificStageExecute', [serializedForm]),
             this.generateRemotePayload('getWorkspaceInfos', this.settings),
-          ]).done((actionResponse: any): void => {
+          ]).then(async (response: AjaxResponse): Promise<void> => {
+            const actionResponse = await response.resolve();
             $modal.modal('hide');
             this.renderWorkspaceInfos(actionResponse[1].result);
             Backend.refreshPageTree();
@@ -1212,8 +1226,8 @@ class Backend extends Workspaces {
       this.generateRemoteActionsPayload('generateWorkspacePreviewLinksForAllLanguages', [
         this.settings.id,
       ]),
-    ).done((response: any): void => {
-      const result = response[0].result;
+    ).then(async (response: AjaxResponse): Promise<void> => {
+      const result = (await response.resolve())[0].result;
       const $list = $('<dl />');
 
       $.each(result, (language: string, url: string): void => {
@@ -1254,5 +1268,12 @@ class Backend extends Workspaces {
     return this.elements.$actionIcons.find('[data-identifier="' + identifier + '"]').clone();
   }
 }
+
+/**
+ * Changes the markup of a pagination action being disabled
+ */
+$.fn.disablePagingAction = function(): void {
+  $(this).addClass('disabled').find('.t3-icon').unwrap().wrap($('<span />'));
+};
 
 export = new Backend();

@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\FrontendLogin\Controller;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,11 +15,14 @@ namespace TYPO3\CMS\FrontendLogin\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\FrontendLogin\Controller;
+
 use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Context\Exception\AspectNotFoundException;
 use TYPO3\CMS\Core\Crypto\PasswordHashing\InvalidPasswordHashException;
 use TYPO3\CMS\Core\Crypto\PasswordHashing\PasswordHashFactory;
+use TYPO3\CMS\Core\Messaging\AbstractMessage;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Error\Error;
 use TYPO3\CMS\Extbase\Error\Result;
@@ -86,7 +88,15 @@ class PasswordRecoveryController extends AbstractLoginFormController
             $this->recoveryService->sendRecoveryEmail($email);
         }
 
-        $this->addFlashMessage($this->getTranslation('forgot_reset_message_emailSent'));
+        if ($this->exposeNoneExistentUser($email)) {
+            $this->addFlashMessage(
+                $this->getTranslation('forgot_reset_message_error'),
+                '',
+                AbstractMessage::ERROR
+            );
+        } else {
+            $this->addFlashMessage($this->getTranslation('forgot_reset_message_emailSent'));
+        }
 
         $this->redirect('login', 'Login', 'felogin');
     }
@@ -95,9 +105,10 @@ class PasswordRecoveryController extends AbstractLoginFormController
      * Validate hash and make sure it's not expired. If it is not in the correct format or not set at all, a redirect
      * to recoveryAction() is made, without further information.
      */
-    protected function validateIfHashHasExpired()
+    protected function validateIfHashHasExpired(): void
     {
         $hash = $this->request->hasArgument('hash') ? $this->request->getArgument('hash') : '';
+        $hash = is_string($hash) ? $hash : '';
 
         if (!$this->hasValidHash($hash)) {
             $this->redirect('recovery', 'PasswordRecovery', 'felogin');
@@ -278,7 +289,7 @@ class PasswordRecoveryController extends AbstractLoginFormController
             $hashedPassword = $event->getHashedPassword();
             if ($event->isPropagationStopped()) {
                 $requestResult = $this->request->getOriginalRequestMappingResults();
-                $requestResult->addError(new Error($event->getErrorMessage(), 1562846833));
+                $requestResult->addError(new Error($event->getErrorMessage() ?? '', 1562846833));
                 $this->request->setOriginalRequestMappingResults($requestResult);
 
                 $this->forward(
@@ -301,5 +312,20 @@ class PasswordRecoveryController extends AbstractLoginFormController
             );
         }
         return $hashedPassword;
+    }
+
+    /**
+     * @param string|null $email
+     * @return bool
+     */
+    protected function exposeNoneExistentUser(?string $email): bool
+    {
+        $acceptedValues = ['1', 1, 'true'];
+
+        return !$email && in_array(
+            $this->settings['exposeNonexistentUserInForgotPasswordDialog'] ?? null,
+            $acceptedValues,
+            true
+        );
     }
 }

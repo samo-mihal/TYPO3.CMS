@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Functional\DataHandling\DataHandler;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,15 +15,18 @@ namespace TYPO3\CMS\Core\Tests\Functional\DataHandling\DataHandler;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Functional\DataHandling\DataHandler;
+
 use TYPO3\CMS\Core\Crypto\Random;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
 /**
  * Tests related to DataHandler::getUnique()
  */
-class GetUniqueTest extends \TYPO3\TestingFramework\Core\Functional\FunctionalTestCase
+class GetUniqueTest extends FunctionalTestCase
 {
     protected function setUp(): void
     {

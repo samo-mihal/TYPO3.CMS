@@ -1,4 +1,5 @@
 <?php
+
 return [
     '$GLOBALS[\'TYPO3_DB\']' => [
         'restFiles' => [
@@ -13,11 +14,6 @@ return [
     '$GLOBALS[\'PARSETIME_START\']' => [
         'restFiles' => [
             'Breaking-82893-RemoveGlobalVariablePARSETIME_START.rst'
-        ],
-    ],
-    '$GLOBALS[\'TYPO3_REQUEST\']' => [
-        'restFiles' => [
-            'Deprecation-83736-DeprecatedGlobalsTYPO3_REQUEST.rst',
         ],
     ],
     '$GLOBALS[\'TYPO3_LOADED_EXT\']' => [

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Unit\Cache\Backend;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,7 +13,12 @@ namespace TYPO3\CMS\Core\Tests\Unit\Cache\Backend;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\Cache\Backend;
+
 use TYPO3\CMS\Core\Cache\Backend\WincacheBackend;
+use TYPO3\CMS\Core\Cache\Exception;
+use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -29,12 +33,12 @@ class WincacheBackendTest extends UnitTestCase
      */
     public function setThrowsExceptionIfNoFrontEndHasBeenSet()
     {
-        $this->expectException(\TYPO3\CMS\Core\Cache\Exception::class);
-        //@todo Add exception code with wincache extension
+        $this->expectException(Exception::class);
+        // @todo Add exception code with wincache extension
 
         $backend = new WincacheBackend('Testing');
         $data = 'Some data';
-        $identifier = $this->getUniqueId('MyIdentifier');
+        $identifier = StringUtility::getUniqueId('MyIdentifier');
         $backend->set($identifier, $data);
     }
 
@@ -45,7 +49,7 @@ class WincacheBackendTest extends UnitTestCase
     {
         $backend = $this->setUpBackend();
         $data = 'Some data';
-        $identifier = $this->getUniqueId('MyIdentifier');
+        $identifier = StringUtility::getUniqueId('MyIdentifier');
         $backend->set($identifier, $data);
         $inCache = $backend->has($identifier);
         self::assertTrue($inCache, 'WinCache backend failed to set and check entry');
@@ -58,10 +62,10 @@ class WincacheBackendTest extends UnitTestCase
     {
         $backend = $this->setUpBackend();
         $data = 'Some data';
-        $identifier = $this->getUniqueId('MyIdentifier');
+        $identifier = StringUtility::getUniqueId('MyIdentifier');
         $backend->set($identifier, $data);
         $fetchedData = $backend->get($identifier);
-        self::assertEquals($data, $fetchedData, 'Winache backend failed to set and retrieve data');
+        self::assertEquals($data, $fetchedData, 'Wincache backend failed to set and retrieve data');
     }
 
     /**
@@ -71,7 +75,7 @@ class WincacheBackendTest extends UnitTestCase
     {
         $backend = $this->setUpBackend();
         $data = 'Some data';
-        $identifier = $this->getUniqueId('MyIdentifier');
+        $identifier = StringUtility::getUniqueId('MyIdentifier');
         $backend->set($identifier, $data);
         $backend->remove($identifier);
         $inCache = $backend->has($identifier);
@@ -85,7 +89,7 @@ class WincacheBackendTest extends UnitTestCase
     {
         $backend = $this->setUpBackend();
         $data = 'Some data';
-        $identifier = $this->getUniqueId('MyIdentifier');
+        $identifier = StringUtility::getUniqueId('MyIdentifier');
         $backend->set($identifier, $data);
         $otherData = 'some other data';
         $backend->set($identifier, $otherData);
@@ -100,7 +104,7 @@ class WincacheBackendTest extends UnitTestCase
     {
         $backend = $this->setUpBackend();
         $data = 'Some data';
-        $identifier = $this->getUniqueId('MyIdentifier');
+        $identifier = StringUtility::getUniqueId('MyIdentifier');
         $backend->set($identifier, $data, ['UnitTestTag%tag1', 'UnitTestTag%tag2']);
         $retrieved = $backend->findIdentifiersByTag('UnitTestTag%tag1');
         self::assertEquals($identifier, $retrieved[0], 'Could not retrieve expected entry by tag.');
@@ -115,7 +119,7 @@ class WincacheBackendTest extends UnitTestCase
     {
         $backend = $this->setUpBackend();
         $data = 'Some data';
-        $identifier = $this->getUniqueId('MyIdentifier');
+        $identifier = StringUtility::getUniqueId('MyIdentifier');
         $backend->set($identifier, $data, ['UnitTestTag%tag1', 'UnitTestTag%tagX']);
         $backend->set($identifier, $data, ['UnitTestTag%tag3']);
         $retrieved = $backend->findIdentifiersByTag('UnitTestTag%tagX');
@@ -128,7 +132,7 @@ class WincacheBackendTest extends UnitTestCase
     public function hasReturnsFalseIfTheEntryDoesntExist()
     {
         $backend = $this->setUpBackend();
-        $identifier = $this->getUniqueId('NonExistingIdentifier');
+        $identifier = StringUtility::getUniqueId('NonExistingIdentifier');
         $inCache = $backend->has($identifier);
         self::assertFalse($inCache, '"has" did not return FALSE when checking on non existing identifier');
     }
@@ -139,7 +143,7 @@ class WincacheBackendTest extends UnitTestCase
     public function removeReturnsFalseIfTheEntryDoesntExist()
     {
         $backend = $this->setUpBackend();
-        $identifier = $this->getUniqueId('NonExistingIdentifier');
+        $identifier = StringUtility::getUniqueId('NonExistingIdentifier');
         $inCache = $backend->remove($identifier);
         self::assertFalse($inCache, '"remove" did not return FALSE when checking on non existing identifier');
     }
@@ -198,13 +202,13 @@ class WincacheBackendTest extends UnitTestCase
     public function flushRemovesOnlyOwnEntries()
     {
         /** @var \PHPUnit\Framework\MockObject\MockObject|\TYPO3\CMS\Core\Cache\Frontend\FrontendInterface $thisCache */
-        $thisCache = $this->createMock(\TYPO3\CMS\Core\Cache\Frontend\FrontendInterface::class);
+        $thisCache = $this->createMock(FrontendInterface::class);
         $thisCache->expects(self::any())->method('getIdentifier')->willReturn('thisCache');
         $thisBackend = new WincacheBackend('Testing');
         $thisBackend->setCache($thisCache);
 
         /** @var \PHPUnit\Framework\MockObject\MockObject|\TYPO3\CMS\Core\Cache\Frontend\FrontendInterface $thatCache */
-        $thatCache = $this->createMock(\TYPO3\CMS\Core\Cache\Frontend\FrontendInterface::class);
+        $thatCache = $this->createMock(FrontendInterface::class);
         $thatCache->expects(self::any())->method('getIdentifier')->willReturn('thatCache');
         $thatBackend = new WincacheBackend('Testing');
         $thatBackend->setCache($thatCache);
@@ -224,7 +228,7 @@ class WincacheBackendTest extends UnitTestCase
     {
         $backend = $this->setUpBackend();
         $data = str_repeat('abcde', 1024 * 1024);
-        $identifier = $this->getUniqueId('tooLargeData');
+        $identifier = StringUtility::getUniqueId('tooLargeData');
         $backend->set($identifier, $data);
         self::assertTrue($backend->has($identifier));
         self::assertEquals($backend->get($identifier), $data);
@@ -235,7 +239,7 @@ class WincacheBackendTest extends UnitTestCase
      */
     public function setTagsOnlyOnceToIdentifier()
     {
-        $identifier = $this->getUniqueId('MyIdentifier');
+        $identifier = StringUtility::getUniqueId('MyIdentifier');
         $tags = ['UnitTestTag%test', 'UnitTestTag%boring'];
 
         $backend = $this->setUpBackend(true);
@@ -261,10 +265,9 @@ class WincacheBackendTest extends UnitTestCase
     protected function setUpBackend($accessible = false)
     {
         /** @var \PHPUnit\Framework\MockObject\MockObject|\TYPO3\CMS\Core\Cache\Frontend\FrontendInterface $cache */
-        $cache = $this->createMock(\TYPO3\CMS\Core\Cache\Frontend\FrontendInterface::class);
+        $cache = $this->createMock(FrontendInterface::class);
         if ($accessible) {
-            $accessibleClassName = $this->buildAccessibleProxy(WincacheBackend::class);
-            $backend = new $accessibleClassName('Testing');
+            $backend = $this->getAccessibleMock(WincacheBackend::class, ['dummy'], ['Testing']);
         } else {
             $backend = new WincacheBackend('Testing');
         }

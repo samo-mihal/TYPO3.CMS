@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Beuser\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,11 +13,13 @@ namespace TYPO3\CMS\Beuser\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Beuser\Controller;
+
 use TYPO3\CMS\Backend\Template\Components\ButtonBar;
 use TYPO3\CMS\Backend\Tree\View\PageTreeView;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Backend\View\BackendTemplateView;
-use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -119,14 +120,6 @@ class PermissionController extends ActionController
     {
         parent::initializeView($view);
         $this->setPageInfo();
-        $view->assign(
-            'previewUrl',
-            BackendUtility::viewOnClick(
-                (int)$this->pageInfo['uid'],
-                '',
-                BackendUtility::BEgetRootLine((int)$this->pageInfo['uid'])
-            )
-        );
 
         // the view of the update action has a different view class
         if ($view instanceof BackendTemplateView) {
@@ -206,8 +199,8 @@ class PermissionController extends ActionController
         if ($this->getBackendUser()->workspace != 0) {
             // Adding section with the permission setting matrix:
             $this->addFlashMessage(
-                LocalizationUtility::translate('LLL:EXT:beuser/Resources/Private/Language/locallang_mod_permission.xlf:WorkspaceWarningText', 'beuser'),
-                LocalizationUtility::translate('LLL:EXT:beuser/Resources/Private/Language/locallang_mod_permission.xlf:WorkspaceWarning', 'beuser'),
+                LocalizationUtility::translate('LLL:EXT:beuser/Resources/Private/Language/locallang_mod_permission.xlf:WorkspaceWarningText', 'beuser') ?? '',
+                LocalizationUtility::translate('LLL:EXT:beuser/Resources/Private/Language/locallang_mod_permission.xlf:WorkspaceWarning', 'beuser') ?? '',
                 FlashMessage::WARNING
             );
         }
@@ -216,7 +209,7 @@ class PermissionController extends ActionController
         $depthOptions = [];
         $url = $this->uriBuilder->reset()->setArguments([
             'action' => 'index',
-            'depth' => '__DEPTH__',
+            'depth' => '${value}',
             'id' => $this->id
         ])->buildBackendUri();
         foreach ([1, 2, 3, 4, 10] as $depthLevel) {
@@ -257,7 +250,7 @@ class PermissionController extends ActionController
         $this->view->assign('viewTree', $tree->tree);
 
         // CSH for permissions setting
-        $this->view->assign('cshItem', BackendUtility::cshItem('xMOD_csh_corebe', 'perm_module', null, '<span class="btn btn-default btn-sm">|</span>'));
+        $this->view->assign('cshItem', BackendUtility::cshItem('xMOD_csh_corebe', 'perm_module', '', '<span class="btn btn-default btn-sm">|</span>'));
     }
 
     /**
@@ -274,8 +267,8 @@ class PermissionController extends ActionController
         if ($this->getBackendUser()->workspace != 0) {
             // Adding FlashMessage with the permission setting matrix:
             $this->addFlashMessage(
-                LocalizationUtility::translate('LLL:EXT:beuser/Resources/Private/Language/locallang_mod_permission.xlf:WorkspaceWarningText', 'beuser'),
-                LocalizationUtility::translate('LLL:EXT:beuser/Resources/Private/Language/locallang_mod_permission.xlf:WorkspaceWarning', 'beuser'),
+                LocalizationUtility::translate('LLL:EXT:beuser/Resources/Private/Language/locallang_mod_permission.xlf:WorkspaceWarningText', 'beuser') ?? '',
+                LocalizationUtility::translate('LLL:EXT:beuser/Resources/Private/Language/locallang_mod_permission.xlf:WorkspaceWarning', 'beuser') ?? '',
                 FlashMessage::WARNING
             );
         }
@@ -313,6 +306,8 @@ class PermissionController extends ActionController
      */
     protected function updateAction(array $data, array $mirror)
     {
+        $dataHandlerInput = [];
+        // Prepare the input data for data handler
         if (!empty($data['pages'])) {
             foreach ($data['pages'] as $pageUid => $properties) {
                 // if the owner and group field shouldn't be touched, unset the option
@@ -322,25 +317,25 @@ class PermissionController extends ActionController
                 if ((int)$properties['perms_groupid'] === -1) {
                     unset($properties['perms_groupid']);
                 }
-                $connection = GeneralUtility::makeInstance(ConnectionPool::class)->getConnectionForTable('pages');
-                $connection->update(
-                    'pages',
-                    $properties,
-                    ['uid' => (int)$pageUid]
-                );
-
+                $dataHandlerInput[$pageUid] = $properties;
                 if (!empty($mirror['pages'][$pageUid])) {
-                    $mirrorPages = GeneralUtility::trimExplode(',', $mirror['pages'][$pageUid]);
+                    $mirrorPages = GeneralUtility::intExplode(',', $mirror['pages'][$pageUid]);
                     foreach ($mirrorPages as $mirrorPageUid) {
-                        $connection->update(
-                            'pages',
-                            $properties,
-                            ['uid' => (int)$mirrorPageUid]
-                        );
+                        $dataHandlerInput[$mirrorPageUid] = $properties;
                     }
                 }
             }
         }
+
+        $dataHandler = GeneralUtility::makeInstance(DataHandler::class);
+        $dataHandler->start(
+            [
+                'pages' => $dataHandlerInput
+            ],
+            []
+        );
+        $dataHandler->process_datamap();
+
         $this->redirectToUri($this->returnUrl);
     }
 

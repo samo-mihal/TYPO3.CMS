@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extensionmanager\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,12 +13,18 @@ namespace TYPO3\CMS\Extensionmanager\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extensionmanager\Controller;
+
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
+use TYPO3\CMS\Core\Messaging\AbstractMessage;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
+use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Mvc\View\JsonView;
+use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 use TYPO3\CMS\Extensionmanager\Domain\Model\Extension;
 use TYPO3\CMS\Extensionmanager\Domain\Repository\ExtensionRepository;
+use TYPO3\CMS\Extensionmanager\Exception\ExtensionManagerException;
 use TYPO3\CMS\Extensionmanager\Service\ExtensionManagementService;
 use TYPO3\CMS\Extensionmanager\Utility\DownloadUtility;
 use TYPO3\CMS\Fluid\View\TemplateView;
@@ -46,7 +51,7 @@ class DownloadController extends AbstractController
     protected $downloadUtility;
 
     /**
-     * @var JsonView
+     * @var string
      */
     protected $defaultViewObjectName = JsonView::class;
 
@@ -175,7 +180,7 @@ class DownloadController extends AbstractController
      */
     public function installFromTerAction(Extension $extension, $downloadPath = 'Local')
     {
-        list($result, $errorMessages) = $this->installFromTer($extension, $downloadPath);
+        [$result, $errorMessages] = $this->installFromTer($extension, $downloadPath);
         $isAutomaticInstallationEnabled = (bool)GeneralUtility::makeInstance(ExtensionConfiguration::class)->get('extensionmanager', 'automaticInstallation');
         $this->view
             ->assign('result', $result)
@@ -204,21 +209,22 @@ class DownloadController extends AbstractController
      */
     public function installDistributionAction(Extension $extension)
     {
-        if (!\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::isLoaded('impexp')) {
+        if (!ExtensionManagementUtility::isLoaded('impexp')) {
             $this->forward('distributions', 'List');
         }
-        list($result, $errorMessages) = $this->installFromTer($extension);
+        [$result, $errorMessages] = $this->installFromTer($extension);
         if ($errorMessages) {
             foreach ($errorMessages as $extensionKey => $messages) {
                 foreach ($messages as $message) {
+                    /** @var string $message */
                     $this->addFlashMessage(
                         $message['message'],
-                        \TYPO3\CMS\Extbase\Utility\LocalizationUtility::translate(
+                        LocalizationUtility::translate(
                             'distribution.error.headline',
                             'extensionmanager',
                             [$extensionKey]
-                        ),
-                        \TYPO3\CMS\Core\Messaging\AbstractMessage::ERROR
+                        ) ?? '',
+                        AbstractMessage::ERROR
                     );
                 }
             }
@@ -231,12 +237,12 @@ class DownloadController extends AbstractController
         } else {
             // FlashMessage that extension is installed
             $this->addFlashMessage(
-                \TYPO3\CMS\Extbase\Utility\LocalizationUtility::translate(
+                LocalizationUtility::translate(
                     'distribution.welcome.message',
                     'extensionmanager',
                     [$extension->getExtensionKey()]
-                ),
-                \TYPO3\CMS\Extbase\Utility\LocalizationUtility::translate('distribution.welcome.headline', 'extensionmanager')
+                ) ?? '',
+                LocalizationUtility::translate('distribution.welcome.headline', 'extensionmanager') ?? ''
             );
 
             // Redirect to show action
@@ -265,7 +271,7 @@ class DownloadController extends AbstractController
         if (!$extension instanceof Extension) {
             $extension = $this->extensionRepository->findHighestAvailableVersion($extensionKey);
         }
-        $installedExtensions = \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::getLoadedExtensionListArray();
+        $installedExtensions = ExtensionManagementUtility::getLoadedExtensionListArray();
         try {
             if (in_array($extensionKey, $installedExtensions, true)) {
                 // To resolve new dependencies the extension is installed again
@@ -339,7 +345,7 @@ class DownloadController extends AbstractController
             if (($result = $this->managementService->installExtension($extension)) === false) {
                 $errorMessages = $this->managementService->getDependencyErrors();
             }
-        } catch (\TYPO3\CMS\Extensionmanager\Exception\ExtensionManagerException $e) {
+        } catch (ExtensionManagerException $e) {
             $errorMessages = [
                 $extension->getExtensionKey() => [
                     [

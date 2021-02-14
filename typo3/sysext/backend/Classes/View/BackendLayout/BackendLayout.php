@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\View\BackendLayout;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,11 @@ namespace TYPO3\CMS\Backend\View\BackendLayout;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\View\BackendLayout;
+
+use TYPO3\CMS\Backend\View\BackendLayoutView;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Class to represent a backend layout.
@@ -45,6 +49,13 @@ class BackendLayout
     protected $configuration;
 
     /**
+     * The structured data of the configuration represented as array.
+     *
+     * @var array
+     */
+    protected $structure = [];
+
+    /**
      * @var array
      */
     protected $data;
@@ -52,13 +63,13 @@ class BackendLayout
     /**
      * @param string $identifier
      * @param string $title
-     * @param string $configuration
+     * @param string|array $configuration
      * @return BackendLayout
      */
     public static function create($identifier, $title, $configuration)
     {
-        return \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(
-            self::class,
+        return GeneralUtility::makeInstance(
+            static::class,
             $identifier,
             $title,
             $configuration
@@ -68,13 +79,18 @@ class BackendLayout
     /**
      * @param string $identifier
      * @param string $title
-     * @param string $configuration
+     * @param string|array $configuration
      */
     public function __construct($identifier, $title, $configuration)
     {
         $this->setIdentifier($identifier);
         $this->setTitle($title);
-        $this->setConfiguration($configuration);
+        if (is_array($configuration)) {
+            $this->structure = $configuration;
+            $this->configuration = $configuration['config'] ?? '';
+        } else {
+            $this->setConfiguration($configuration);
+        }
     }
 
     /**
@@ -163,6 +179,19 @@ class BackendLayout
     public function setConfiguration($configuration)
     {
         $this->configuration = $configuration;
+        $this->structure = GeneralUtility::makeInstance(BackendLayoutView::class)->parseStructure($this);
+    }
+
+    /**
+     * Returns the columns registered for this layout as $key => $value pair where the key is the colPos
+     * and the value is the title.
+     * "1" => "Left" etc.
+     * Please note that the title can contain LLL references ready for translation.
+     * @return array
+     */
+    public function getUsedColumns(): array
+    {
+        return $this->structure['usedColumns'] ?? [];
     }
 
     /**
@@ -179,5 +208,20 @@ class BackendLayout
     public function setData(array $data)
     {
         $this->data = $data;
+    }
+
+    public function setStructure(array $structure)
+    {
+        $this->structure = $structure;
+    }
+
+    public function getStructure(): array
+    {
+        return $this->structure;
+    }
+
+    public function getColumnPositionNumbers(): array
+    {
+        return $this->structure['__colPosList'];
     }
 }

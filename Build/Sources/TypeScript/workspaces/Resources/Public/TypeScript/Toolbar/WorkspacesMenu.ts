@@ -11,9 +11,12 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import * as $ from 'jquery';
+import $ from 'jquery';
+import {AjaxResponse} from 'TYPO3/CMS/Core/Ajax/AjaxResponse';
+import AjaxRequest = require('TYPO3/CMS/Core/Ajax/AjaxRequest');
 import ModuleMenu = require('TYPO3/CMS/Backend/ModuleMenu');
 import Viewport = require('TYPO3/CMS/Backend/Viewport');
+import RegularEvent = require('TYPO3/CMS/Core/Event/RegularEvent');
 
 enum Identifiers {
   containerSelector = '#typo3-cms-workspaces-backend-toolbaritems-workspaceselectortoolbaritem',
@@ -44,6 +47,18 @@ class WorkspacesMenu {
     }
   }
 
+  private static updateWorkspaceState() {
+    // This is a poor-mans state update in case the current active workspace has been renamed
+    const selectedWorkspaceLink: HTMLElement = document.querySelector(Identifiers.containerSelector + ' .t3js-workspace-item.selected .t3js-workspaces-switchlink');
+    if (selectedWorkspaceLink !== null) {
+      const workspaceId = parseInt(selectedWorkspaceLink.dataset.workspaceid, 10);
+      const title = selectedWorkspaceLink.innerText.trim();
+
+      top.TYPO3.configuration.inWorkspace = workspaceId !== 0;
+      top.TYPO3.Backend.workspaceTitle = top.TYPO3.configuration.inWorkspace ? title : '';
+    }
+  }
+
   /**
    * adds the workspace title to the toolbar next to the username
    *
@@ -60,11 +75,13 @@ class WorkspacesMenu {
     }
   }
 
-  private static updateBackendContext(title: string = ''): void {
+  private static updateBackendContext(): void {
     let topBarTitle = '';
+    WorkspacesMenu.updateWorkspaceState();
+
     if (TYPO3.configuration.inWorkspace) {
       $('body').addClass(Classes.workspaceBodyClass);
-      topBarTitle = title || TYPO3.lang['Workspaces.workspaceTitle'];
+      topBarTitle = top.TYPO3.Backend.workspaceTitle || TYPO3.lang['Workspaces.workspaceTitle'];
     } else {
       $('body').removeClass(Classes.workspaceBodyClass);
     }
@@ -77,6 +94,13 @@ class WorkspacesMenu {
       this.initializeEvents();
       WorkspacesMenu.updateBackendContext();
     });
+
+    new RegularEvent('typo3:datahandler:process', (e: CustomEvent): void => {
+      const payload = e.detail.payload;
+      if (payload.table === 'sys_workspace' && payload.action === 'delete' && payload.hasErrors === false) {
+        Viewport.Topbar.refresh();
+      }
+    }).bindTo(document);
   }
 
   /**
@@ -84,14 +108,8 @@ class WorkspacesMenu {
    * This method is also used in the workspaces backend module.
    *
    * @param {Number} id the workspace ID
-   * @param {String} title the workspace title
    */
-  public performWorkspaceSwitch(id: number, title: string): void {
-    top.TYPO3.Backend.workspaceTitle = title;
-    top.TYPO3.configuration.inWorkspace = id !== 0;
-
-    WorkspacesMenu.updateBackendContext(title);
-
+  public performWorkspaceSwitch(id: number): void {
     // first remove all checks, then set the check in front of the selected workspace
     const stateActiveClass = 'fa fa-check';
     const stateInactiveClass = 'fa fa-empty-empty';
@@ -109,6 +127,8 @@ class WorkspacesMenu {
       .removeClass(stateInactiveClass)
       .addClass(stateActiveClass);
     $menuItem.addClass('selected');
+
+    WorkspacesMenu.updateBackendContext();
   }
 
   private initializeEvents(): void {
@@ -124,39 +144,41 @@ class WorkspacesMenu {
   }
 
   private switchWorkspace(workspaceId: number): void {
-    $.ajax({
-      url: TYPO3.settings.ajaxUrls.workspace_switch,
-      type: 'post',
-      data: {
-        workspaceId: workspaceId,
-        pageId: top.fsMod.recentIds.web,
-      },
-      success: (response: any): void => {
-        if (!response.workspaceId) {
-          response.workspaceId = 0;
-        }
+    (new AjaxRequest(TYPO3.settings.ajaxUrls.workspace_switch)).post({
+      workspaceId: workspaceId,
+      pageId: top.fsMod.recentIds.web
+    }).then(async (response: AjaxResponse): Promise<any> => {
+      const data = await response.resolve();
+      if (!data.workspaceId) {
+        data.workspaceId = 0;
+      }
 
-        this.performWorkspaceSwitch(parseInt(response.workspaceId, 10), response.title);
+      this.performWorkspaceSwitch(parseInt(data.workspaceId, 10));
 
-        // append the returned page ID to the current module URL
-        if (response.pageId) {
-          top.fsMod.recentIds.web = response.pageId;
-          let url = TYPO3.Backend.ContentContainer.getUrl();
-          url += (!url.includes('?') ? '?' : '&') + '&id=' + response.pageId;
-          WorkspacesMenu.refreshPageTree();
-          Viewport.ContentContainer.setUrl(url);
+      // append the returned page ID to the current module URL
+      if (data.pageId) {
+        top.fsMod.recentIds.web = data.pageId;
+        let url = TYPO3.Backend.ContentContainer.getUrl();
+        url += (!url.includes('?') ? '?' : '&') + '&id=' + data.pageId;
+        WorkspacesMenu.refreshPageTree();
+        Viewport.ContentContainer.setUrl(url);
 
-          // when in web module reload, otherwise send the user to the web module
-        } else if (top.currentModuleLoaded.startsWith('web_')) {
-          WorkspacesMenu.refreshPageTree();
+        // when in web module reload, otherwise send the user to the web module
+      } else if (top.currentModuleLoaded.startsWith('web_')) {
+        WorkspacesMenu.refreshPageTree();
+
+        if (top.currentModuleLoaded === 'web_WorkspacesWorkspaces') {
+          // Reload the workspace module and override the workspace id
+          ModuleMenu.App.showModule(top.currentModuleLoaded, 'workspace=' + workspaceId);
+        } else {
           ModuleMenu.App.reloadFrames();
-        } else if (TYPO3.configuration.pageModule) {
-          ModuleMenu.App.showModule(TYPO3.configuration.pageModule);
         }
+      } else if (TYPO3.configuration.pageModule) {
+        ModuleMenu.App.showModule(TYPO3.configuration.pageModule);
+      }
 
-        // reload the module menu
-        ModuleMenu.App.refreshMenu();
-      },
+      // reload the module menu
+      ModuleMenu.App.refreshMenu();
     });
   }
 }

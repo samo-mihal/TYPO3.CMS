@@ -34,6 +34,10 @@ Page TSconfig can be used to change:
       RTE.config.tt_content.bodytext.preset = myCustomPreset
       RTE.config.tx_news_domain_model_news.bodytext.preset = minimal
 
+#. Override for one field defined in flexform (:ts:`RTE.config.[tableName].[flexForm\.field\.name].preset`)::
+
+      RTE.config.tt_content.settings\.notifications\.emailText.preset = myCustomPreset
+
 #. Override for one field, if type matches (:ts:`RTE.config.[tableName].[fieldName].types.[type].preset`)::
 
       RTE.config.tt_content.bodytext.types.textmedia.preset = minimal
@@ -123,10 +127,10 @@ You can view the Global Configuration in
 
 .. _config-typo3-yaml:
 
-Yaml
+YAML
 ====
 
-Most of the configuration of `rte_ckeditor` will be done in a Yaml file.
+Most of the configuration of `rte_ckeditor` will be done in a YAML file.
 
 
 Relevant Settings for `rte_ckeditor`
@@ -137,7 +141,7 @@ See :ref:`config-ref`
 How to change values
 --------------------
 
-This is done directly in the file. The Yaml file should be included in a
+This is done directly in the file. The YAML file should be included in a
 sitepackage extension, see :ref:`best-practice-sitepackage`.
 
 
@@ -147,7 +151,7 @@ TCA
 ===
 
 The :abbr:`table configuration array (TCA)` is used to configure database fields and how they will behave in the
-backend when edited. It is for example used to define that tt_content.bodytext should be edited
+backend when edited. It is for example used to define that ``tt_content.bodytext`` should be edited
 with a rich text editor.
 
 

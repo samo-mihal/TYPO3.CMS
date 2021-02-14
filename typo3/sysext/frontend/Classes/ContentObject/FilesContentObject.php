@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Frontend\ContentObject;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Frontend\ContentObject;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Frontend\ContentObject;
 
 use TYPO3\CMS\Core\TypoScript\TypoScriptService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -80,7 +81,7 @@ class FilesContentObject extends AbstractContentObject
                 $GLOBALS['TSFE']->register['FILE_NUM_CURRENT'] = $fileObjectCounter;
             }
             $this->cObj->setCurrentFile($fileObject);
-            $content .= $this->cObj->cObjGetSingle($splitConf[$key]['renderObj'], $splitConf[$key]['renderObj.']);
+            $content .= $this->cObj->cObjGetSingle($splitConf[$key]['renderObj'], $splitConf[$key]['renderObj.'], 'renderObj');
             $fileObjectCounter++;
         }
 

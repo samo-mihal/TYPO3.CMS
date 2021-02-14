@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Tests\Unit\Domain\Repository;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,11 @@ namespace TYPO3\CMS\Extbase\Tests\Unit\Domain\Repository;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Tests\Unit\Domain\Repository;
+
+use TYPO3\CMS\Extbase\Domain\Repository\FileMountRepository;
+use TYPO3\CMS\Extbase\Object\ObjectManagerInterface;
+use TYPO3\CMS\Extbase\Persistence\Generic\Typo3QuerySettings;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -27,11 +31,11 @@ class FileMountRepositoryTest extends UnitTestCase
     public function initializeObjectSetsRespectStoragePidToFalse()
     {
         /** @var $objectManager \TYPO3\CMS\Extbase\Object\ObjectManagerInterface */
-        $objectManager = $this->createMock(\TYPO3\CMS\Extbase\Object\ObjectManagerInterface::class);
-        $fixture = new \TYPO3\CMS\Extbase\Domain\Repository\FileMountRepository($objectManager);
-        $querySettings = $this->createMock(\TYPO3\CMS\Extbase\Persistence\Generic\Typo3QuerySettings::class);
+        $objectManager = $this->createMock(ObjectManagerInterface::class);
+        $fixture = new FileMountRepository($objectManager);
+        $querySettings = $this->createMock(Typo3QuerySettings::class);
         $querySettings->expects(self::once())->method('setRespectStoragePage')->with(false);
-        $objectManager->expects(self::once())->method('get')->with(\TYPO3\CMS\Extbase\Persistence\Generic\Typo3QuerySettings::class)->willReturn($querySettings);
+        $objectManager->expects(self::once())->method('get')->with(Typo3QuerySettings::class)->willReturn($querySettings);
         $fixture->initializeObject();
     }
 }

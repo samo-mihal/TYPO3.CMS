@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Workspaces\Controller\Remote;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,11 @@ namespace TYPO3\CMS\Workspaces\Controller\Remote;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Workspaces\Controller\Remote;
+
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
-use TYPO3\CMS\Core\Exception;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -85,17 +85,13 @@ class ActionHandler
      */
     public function swapSingleRecord($table, $t3ver_oid, $orig_uid)
     {
-        $versionRecord = BackendUtility::getRecord($table, $orig_uid);
-        $currentWorkspace = $this->setTemporaryWorkspace($versionRecord['t3ver_wsid']);
-
+        $cmd = [];
         $cmd[$table][$t3ver_oid]['version'] = [
             'action' => 'swap',
             'swapWith' => $orig_uid,
             'swapIntoWS' => 1
         ];
         $this->processTcaCmd($cmd);
-
-        $this->setTemporaryWorkspace($currentWorkspace);
     }
 
     /**
@@ -107,15 +103,11 @@ class ActionHandler
      */
     public function deleteSingleRecord($table, $uid)
     {
-        $versionRecord = BackendUtility::getRecord($table, $uid);
-        $currentWorkspace = $this->setTemporaryWorkspace($versionRecord['t3ver_wsid']);
-
+        $cmd = [];
         $cmd[$table][$uid]['version'] = [
             'action' => 'clearWSID'
         ];
         $this->processTcaCmd($cmd);
-
-        $this->setTemporaryWorkspace($currentWorkspace);
     }
 
     /**
@@ -246,8 +238,6 @@ class ActionHandler
     public function sendToNextStageWindow($uid, $table, $t3ver_oid)
     {
         $elementRecord = BackendUtility::getRecord($table, $uid);
-        $currentWorkspace = $this->setTemporaryWorkspace($elementRecord['t3ver_wsid']);
-
         if (is_array($elementRecord)) {
             $workspaceRecord = WorkspaceRecord::get($elementRecord['t3ver_wsid']);
             $nextStageRecord = $workspaceRecord->getNextStage($elementRecord['t3ver_stage']);
@@ -266,8 +256,6 @@ class ActionHandler
         } else {
             $result = $this->getErrorResponse('error.sendToNextStage.noRecordFound', 1287264776);
         }
-
-        $this->setTemporaryWorkspace($currentWorkspace);
         return $result;
     }
 
@@ -281,8 +269,6 @@ class ActionHandler
     public function sendToPrevStageWindow($uid, $table)
     {
         $elementRecord = BackendUtility::getRecord($table, $uid);
-        $currentWorkspace = $this->setTemporaryWorkspace($elementRecord['t3ver_wsid']);
-
         if (is_array($elementRecord)) {
             $workspaceRecord = WorkspaceRecord::get($elementRecord['t3ver_wsid']);
             $stageRecord = $workspaceRecord->getStage($elementRecord['t3ver_stage']);
@@ -307,8 +293,6 @@ class ActionHandler
         } else {
             $result = $this->getErrorResponse('error.sendToNextStage.noRecordFound', 1287264765);
         }
-
-        $this->setTemporaryWorkspace($currentWorkspace);
         return $result;
     }
 
@@ -365,7 +349,7 @@ class ActionHandler
             }
             $beUserRecord = BackendUtility::getRecord('be_users', (int)$userUid);
             if (is_array($beUserRecord) && $beUserRecord['email'] !== '') {
-                $uc = $beUserRecord['uc'] ? unserialize($beUserRecord['uc']) : [];
+                $uc = $beUserRecord['uc'] ? unserialize($beUserRecord['uc'], ['allowed_classes' => false]) : [];
                 $recipients[$beUserRecord['email']] = [
                     'email' => $beUserRecord['email'],
                     'lang' => $uc['lang'] ?? $beUserRecord['lang']
@@ -383,7 +367,7 @@ class ActionHandler
                     continue;
                 }
                 if (!isset($recipients[$preselectedBackendUser['email']])) {
-                    $uc = (!empty($preselectedBackendUser['uc']) ? unserialize($preselectedBackendUser['uc']) : []);
+                    $uc = (!empty($preselectedBackendUser['uc']) ? unserialize($preselectedBackendUser['uc'], ['allowed_classes' => false]) : []);
                     $recipients[$preselectedBackendUser['email']] = [
                         'email' => $preselectedBackendUser['email'],
                         'lang' => $uc['lang'] ?? $preselectedBackendUser['lang']
@@ -407,7 +391,7 @@ class ActionHandler
         // and $recipients with the email address
         $allRecipients = array_merge($additionalRecipients, $recipients);
         foreach ($allRecipients as $email => $recipientInformation) {
-            if (GeneralUtility::validEmail($email)) {
+            if (GeneralUtility::validEmail((string)$email)) {
                 $finalRecipients[] = $recipientInformation;
             }
         }
@@ -537,17 +521,14 @@ class ActionHandler
     public function sendToNextStageExecute(\stdClass $parameters)
     {
         $cmdArray = [];
-        $setStageId = $parameters->affects->nextStage;
+        $setStageId = (int)$parameters->affects->nextStage;
         $comments = $parameters->comments;
         $table = $parameters->affects->table;
         $uid = $parameters->affects->uid;
         $t3ver_oid = $parameters->affects->t3ver_oid;
 
-        $elementRecord = BackendUtility::getRecord($table, $uid);
-        $currentWorkspace = $this->setTemporaryWorkspace($elementRecord['t3ver_wsid']);
-
         $recipients = $this->getRecipientList((array)$parameters->recipients, $parameters->additional, $setStageId);
-        if ($setStageId == StagesService::STAGE_PUBLISH_EXECUTE_ID) {
+        if ($setStageId === StagesService::STAGE_PUBLISH_EXECUTE_ID) {
             $cmdArray[$table][$t3ver_oid]['version']['action'] = 'swap';
             $cmdArray[$table][$t3ver_oid]['version']['swapWith'] = $uid;
             $cmdArray[$table][$t3ver_oid]['version']['comment'] = $comments;
@@ -563,7 +544,6 @@ class ActionHandler
             'success' => true
         ];
 
-        $this->setTemporaryWorkspace($currentWorkspace);
         return $result;
     }
 
@@ -589,9 +569,6 @@ class ActionHandler
         $table = $parameters->affects->table;
         $uid = $parameters->affects->uid;
 
-        $elementRecord = BackendUtility::getRecord($table, $uid);
-        $currentWorkspace = $this->setTemporaryWorkspace($elementRecord['t3ver_wsid']);
-
         $recipients = $this->getRecipientList((array)$parameters->recipients, $parameters->additional, $setStageId);
         $cmdArray[$table][$uid]['version']['action'] = 'setStage';
         $cmdArray[$table][$uid]['version']['stageId'] = $setStageId;
@@ -602,7 +579,6 @@ class ActionHandler
             'success' => true
         ];
 
-        $this->setTemporaryWorkspace($currentWorkspace);
         return $result;
     }
 
@@ -630,7 +606,7 @@ class ActionHandler
     public function sendToSpecificStageExecute(\stdClass $parameters)
     {
         $cmdArray = [];
-        $setStageId = $parameters->affects->nextStage;
+        $setStageId = (int)$parameters->affects->nextStage;
         $comments = $parameters->comments;
         $elements = $parameters->affects->elements;
         $recipients = $this->getRecipientList((array)$parameters->recipients, $parameters->additional, $setStageId);
@@ -641,7 +617,7 @@ class ActionHandler
                 continue;
             }
 
-            if ($setStageId == StagesService::STAGE_PUBLISH_EXECUTE_ID) {
+            if ($setStageId === StagesService::STAGE_PUBLISH_EXECUTE_ID) {
                 $cmdArray[$element->table][$element->t3ver_oid]['version']['action'] = 'swap';
                 $cmdArray[$element->table][$element->t3ver_oid]['version']['swapWith'] = $element->uid;
                 $cmdArray[$element->table][$element->t3ver_oid]['version']['comment'] = $comments;
@@ -754,7 +730,7 @@ class ActionHandler
             $recursionLevel = 0,
             $selectionType = 'tables_modify'
         );
-        list($currentStage, $previousStage) = $this->stageService->getPreviousStageForElementCollection($workspaceItemsArray);
+        [$currentStage, $previousStage] = $this->stageService->getPreviousStageForElementCollection($workspaceItemsArray);
         // get only the relevant items for processing
         $workspaceItemsArray = $this->workspaceService->selectVersionsInWorkspace(
             $this->stageService->getWorkspaceId(),
@@ -788,7 +764,7 @@ class ActionHandler
             $recursionLevel = 0,
             $selectionType = 'tables_modify'
         );
-        list($currentStage, $nextStage) = $this->stageService->getNextStageForElementCollection($workspaceItemsArray);
+        [$currentStage, $nextStage] = $this->stageService->getNextStageForElementCollection($workspaceItemsArray);
         // get only the relevant items for processing
         $workspaceItemsArray = $this->workspaceService->selectVersionsInWorkspace(
             $this->stageService->getWorkspaceId(),
@@ -824,8 +800,8 @@ class ActionHandler
             $recursionLevel = 0,
             $selectionType = 'tables_modify'
         );
-        list(, $nextStage) = $this->stageService->getNextStageForElementCollection($workspaceItemsArray);
-        list(, $previousStage) = $this->stageService->getPreviousStageForElementCollection($workspaceItemsArray);
+        [, $nextStage] = $this->stageService->getNextStageForElementCollection($workspaceItemsArray);
+        [, $previousStage] = $this->stageService->getPreviousStageForElementCollection($workspaceItemsArray);
 
         $view = GeneralUtility::makeInstance(StandaloneView::class);
         $extensionPath = ExtensionManagementUtility::extPath('workspaces');
@@ -844,28 +820,6 @@ class ActionHandler
         ]);
         $renderedView = $view->render();
         return $renderedView;
-    }
-
-    /**
-     * @param int $workspaceId
-     * @return int Id of the original workspace
-     * @throws Exception
-     */
-    protected function setTemporaryWorkspace($workspaceId)
-    {
-        $workspaceId = (int)$workspaceId;
-        $currentWorkspace = (int)$this->getBackendUser()->workspace;
-
-        if ($currentWorkspace !== $workspaceId) {
-            if (!$this->getBackendUser()->setTemporaryWorkspace($workspaceId)) {
-                throw new Exception(
-                    'Cannot set temporary workspace to "' . $workspaceId . '"',
-                    1371484524
-                );
-            }
-        }
-
-        return $currentWorkspace;
     }
 
     /**

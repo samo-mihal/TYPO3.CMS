@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Frontend\Tests\Unit\ContentObject\Menu;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,8 +14,13 @@ namespace TYPO3\CMS\Frontend\Tests\Unit\ContentObject\Menu;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Frontend\Tests\Unit\ContentObject\Menu;
+
 use Doctrine\DBAL\Driver\Statement;
 use Prophecy\Argument;
+use TYPO3\CMS\Core\Cache\CacheManager;
+use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
 use TYPO3\CMS\Core\Cache\Frontend\VariableFrontend;
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Context\LanguageAspect;
@@ -24,11 +29,17 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Expression\ExpressionBuilder;
 use TYPO3\CMS\Core\Domain\Repository\PageRepository;
 use TYPO3\CMS\Core\Http\ServerRequest;
+use TYPO3\CMS\Core\Localization\LanguageService;
+use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
+use TYPO3\CMS\Core\Localization\LanguageStore;
+use TYPO3\CMS\Core\Localization\Locales;
+use TYPO3\CMS\Core\Localization\LocalizationFactory;
 use TYPO3\CMS\Core\Routing\PageArguments;
 use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
 use TYPO3\CMS\Frontend\ContentObject\Menu\AbstractMenuContentObject;
+use TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -48,8 +59,7 @@ class AbstractMenuContentObjectTest extends UnitTestCase
     {
         parent::setUp();
         $GLOBALS['TYPO3_REQUEST'] = new ServerRequest('https://www.example.com', 'GET');
-        $proxyClassName = $this->buildAccessibleProxy(AbstractMenuContentObject::class);
-        $this->subject = $this->getMockForAbstractClass($proxyClassName);
+        $this->subject = $this->getAccessibleMockForAbstractClass(AbstractMenuContentObject::class);
         $site = new Site('test', 1, [
             'base' => 'https://www.example.com',
             'languages' => [
@@ -61,7 +71,17 @@ class AbstractMenuContentObjectTest extends UnitTestCase
                 ]
             ]
         ]);
-        $GLOBALS['TSFE'] = $this->getMockBuilder(\TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController::class)
+        $cacheManagerProphecy = $this->prophesize(CacheManager::class);
+        GeneralUtility::setSingletonInstance(CacheManager::class, $cacheManagerProphecy->reveal());
+        $cacheFrontendProphecy = $this->prophesize(FrontendInterface::class);
+        $cacheManagerProphecy->getCache('l10n')->willReturn($cacheFrontendProphecy->reveal());
+        $cacheFrontendProphecy->get(Argument::cetera())->willReturn(false);
+        $cacheFrontendProphecy->set(Argument::cetera())->willReturn(null);
+        $languageService = new LanguageService(new Locales(), new LocalizationFactory(new LanguageStore(), $cacheManagerProphecy->reveal()));
+        $languageServiceFactoryProphecy = $this->prophesize(LanguageServiceFactory::class);
+        $languageServiceFactoryProphecy->create(Argument::any())->willReturn($languageService);
+        GeneralUtility::addInstance(LanguageServiceFactory::class, $languageServiceFactoryProphecy->reveal());
+        $GLOBALS['TSFE'] = $this->getMockBuilder(TypoScriptFrontendController::class)
             ->setConstructorArgs([new Context(), $site, $site->getDefaultLanguage(), new PageArguments(1, '1', [])])
             ->setMethods(['initCaches'])
             ->getMock();
@@ -360,8 +380,7 @@ class AbstractMenuContentObjectTest extends UnitTestCase
         $runtimeCacheMock->expects(self::once())->method('get')->with(self::anything())->willReturn(false);
         $runtimeCacheMock->expects(self::once())->method('set')->with(self::anything(), ['result' => $expectedResult]);
 
-        $proxyClassName = $this->buildAccessibleProxy(AbstractMenuContentObject::class);
-        $this->subject = $this->getMockForAbstractClass($proxyClassName, [], '', true, true, true, ['getRuntimeCache']);
+        $this->subject = $this->getAccessibleMockForAbstractClass(AbstractMenuContentObject::class, [], '', true, true, true, ['getRuntimeCache']);
         $this->subject->expects(self::once())->method('getRuntimeCache')->willReturn($runtimeCacheMock);
         $this->prepareSectionIndexTest();
 

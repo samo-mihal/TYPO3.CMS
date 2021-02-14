@@ -39,6 +39,12 @@
 			<trans-unit id="overview.unassignedSites.description" resname="overview.unassignedSites.description">
 				<source>The following sites don't belong to any page anymore and can be removed.</source>
 			</trans-unit>
+			<trans-unit id="overview.duplicatedEntryPoints" resname="overview.duplicatedEntryPoints">
+				<source>Duplicated Entrypoints</source>
+			</trans-unit>
+			<trans-unit id="overview.duplicatedEntryPoints.listing" resname="overview.duplicatedEntryPoints.listing">
+				<source>The following entry points are used more than once:</source>
+			</trans-unit>
 			<trans-unit id="validation.identifierRenamed.title" resname="validation.identifierRenamed.title">
 				<source>Renamed identifier</source>
 			</trans-unit>
@@ -49,7 +55,7 @@
 				<source>Identifier not changed</source>
 			</trans-unit>
 			<trans-unit id="validation.identifierExists.message" resname="validation.identifierExists.message">
-				<source>Given site identifier "%1s" already exists and points to a different site. The existing identifier "%2s" for this site is kept.';</source>
+				<source>Given site identifier "%1s" already exists and points to a different site. The existing identifier "%2s" for this site is kept.</source>
 			</trans-unit>
 			<trans-unit id="validation.required.title" resname="validation.required.title">
 				<source>Site configuration not saved</source>

@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Install\Updates;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,6 +15,8 @@ namespace TYPO3\CMS\Install\Updates;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Install\Updates;
+
 use TYPO3\CMS\Core\Crypto\PasswordHashing\Argon2iPasswordHash;
 use TYPO3\CMS\Core\Crypto\PasswordHashing\PasswordHashFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -27,6 +28,9 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  */
 class Argon2iPasswordHashes implements UpgradeWizardInterface, ConfirmableInterface
 {
+    /**
+     * @var Confirmation
+     */
     protected $confirmation;
 
     public function __construct()
@@ -107,7 +111,7 @@ class Argon2iPasswordHashes implements UpgradeWizardInterface, ConfirmableInterf
     /**
      * Return a confirmation message instance
      *
-     * @return \TYPO3\CMS\Install\Updates\Confirmation
+     * @return Confirmation
      */
     public function getConfirmation(): Confirmation
     {

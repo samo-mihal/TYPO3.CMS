@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Routing;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,9 +15,13 @@ namespace TYPO3\CMS\Core\Routing;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Routing;
+
+use TYPO3\CMS\Core\Exception;
+
 /**
  * Exception thrown when a link to a page (or page in a specific translation) cannot be built.
  */
-class UnableToLinkToPageException extends \TYPO3\CMS\Core\Exception
+class UnableToLinkToPageException extends Exception
 {
 }

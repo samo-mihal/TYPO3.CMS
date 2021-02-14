@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\Domain\Configuration\FormDefinition\Validators;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Form\Domain\Configuration\FormDefinition\Validators;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Form\Domain\Configuration\FormDefinition\Validators;
 
 use TYPO3\CMS\Core\Utility\ArrayUtility;
 use TYPO3\CMS\Form\Domain\Configuration\Exception\PropertyException;
@@ -67,7 +69,7 @@ class CreatablePropertyCollectionElementPropertiesValidator extends CollectionBa
         $value,
         ValidationDto $dto
     ): void {
-        // If the property collection element is newely created, we have to compare the $value (form definition) with $predefinedDefaultValue (form setup)
+        // If the property collection element is newly created, we have to compare the $value (form definition) with $predefinedDefaultValue (form setup)
         // to check the integrity (at this time we don't have a hmac on the value to check the integrity)
         $predefinedDefaultValue = $this->getConfigurationService()->getPropertyCollectionPredefinedDefaultValueFromFormEditorSetup($dto);
         if ($value !== $predefinedDefaultValue) {

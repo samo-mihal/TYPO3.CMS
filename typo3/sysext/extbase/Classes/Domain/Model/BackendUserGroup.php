@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Domain\Model;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,12 +13,16 @@ namespace TYPO3\CMS\Extbase\Domain\Model;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Domain\Model;
+
 use TYPO3\CMS\Extbase\Annotation as Extbase;
+use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
+use TYPO3\CMS\Extbase\Persistence\ObjectStorage;
 
 /**
  * This model represents a backend usergroup.
  */
-class BackendUserGroup extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity
+class BackendUserGroup extends AbstractEntity
 {
     const FILE_OPPERATIONS = 1;
     const DIRECTORY_OPPERATIONS = 4;
@@ -107,7 +110,7 @@ class BackendUserGroup extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity
      */
     public function __construct()
     {
-        $this->subGroups = new \TYPO3\CMS\Extbase\Persistence\ObjectStorage();
+        $this->subGroups = new ObjectStorage();
     }
 
     /**
@@ -155,7 +158,7 @@ class BackendUserGroup extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity
      *
      * @param \TYPO3\CMS\Extbase\Persistence\ObjectStorage $subGroups
      */
-    public function setSubGroups(\TYPO3\CMS\Extbase\Persistence\ObjectStorage $subGroups)
+    public function setSubGroups(ObjectStorage $subGroups)
     {
         $this->subGroups = $subGroups;
     }

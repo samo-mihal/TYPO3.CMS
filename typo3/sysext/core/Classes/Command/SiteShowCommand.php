@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Command;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Core\Command;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Command;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -54,5 +55,6 @@ class SiteShowCommand extends Command
         $site = $siteFinder->getSiteByIdentifier($input->getArgument('identifier'));
         $io->title('Site configuration for ' . $input->getArgument('identifier'));
         $io->block(Yaml::dump($site->getConfiguration(), 4));
+        return 0;
     }
 }

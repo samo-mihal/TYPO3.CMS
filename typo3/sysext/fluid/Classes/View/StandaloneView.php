@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\View;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,12 @@ namespace TYPO3\CMS\Fluid\View;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Fluid\View;
+
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
 use TYPO3\CMS\Extbase\Mvc\Controller\ControllerContext;
-use TYPO3\CMS\Extbase\Mvc\Web\Request as WebRequest;
+use TYPO3\CMS\Extbase\Mvc\Web\Request;
 use TYPO3\CMS\Extbase\Mvc\Web\Routing\UriBuilder;
 use TYPO3\CMS\Extbase\Object\ObjectManager;
 use TYPO3\CMS\Extbase\Service\EnvironmentService;
@@ -55,13 +56,13 @@ class StandaloneView extends AbstractTemplateView
         }
         $configurationManager->setContentObject($contentObject);
 
-        $baseUri = \TYPO3\CMS\Core\Utility\GeneralUtility::getIndpEnv('TYPO3_SITE_URL');
+        $baseUri = GeneralUtility::getIndpEnv('TYPO3_SITE_URL');
         if ($this->objectManager->get(EnvironmentService::class)->isEnvironmentInBackendMode()) {
             $baseUri .= TYPO3_mainDir;
         }
 
-        /** @var WebRequest $request */
-        $request = $this->objectManager->get(WebRequest::class);
+        /** @var \TYPO3\CMS\Extbase\Mvc\Web\Request $request */
+        $request = $this->objectManager->get(Request::class);
         $request->setRequestUri(GeneralUtility::getIndpEnv('TYPO3_REQUEST_URL'));
         $request->setBaseUri($baseUri);
         /** @var UriBuilder $uriBuilder */
@@ -109,7 +110,7 @@ class StandaloneView extends AbstractTemplateView
     /**
      * Returns the current request object
      *
-     * @return WebRequest
+     * @return \TYPO3\CMS\Extbase\Mvc\Request
      * @throws \RuntimeException
      * @internal
      */

@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Extbase\Tests\Unit\Persistence\Generic\Mapper;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,12 +15,29 @@ namespace TYPO3\CMS\Extbase\Tests\Unit\Persistence\Generic\Mapper;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Tests\Unit\Persistence\Generic\Mapper;
+
+use Psr\Container\ContainerInterface;
+use Psr\EventDispatcher\EventDispatcherInterface;
+use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 use TYPO3\CMS\Extbase\DomainObject\DomainObjectInterface;
 use TYPO3\CMS\Extbase\Object\Container\Container;
+use TYPO3\CMS\Extbase\Object\ObjectManagerInterface;
 use TYPO3\CMS\Extbase\Persistence\Generic\Exception\UnexpectedTypeException;
+use TYPO3\CMS\Extbase\Persistence\Generic\LazyLoadingProxy;
 use TYPO3\CMS\Extbase\Persistence\Generic\Mapper\ColumnMap;
+use TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMap;
+use TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapFactory;
 use TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapper;
+use TYPO3\CMS\Extbase\Persistence\Generic\Mapper\Exception\UnknownPropertyTypeException;
+use TYPO3\CMS\Extbase\Persistence\Generic\Qom\QueryObjectModelFactory;
+use TYPO3\CMS\Extbase\Persistence\Generic\QueryFactoryInterface;
+use TYPO3\CMS\Extbase\Persistence\Generic\Session;
 use TYPO3\CMS\Extbase\Reflection\ClassSchema;
+use TYPO3\CMS\Extbase\Reflection\ReflectionService;
+use TYPO3\CMS\Extbase\Tests\Unit\Persistence\Generic\Mapper\Fixture\DummyChildEntity;
+use TYPO3\CMS\Extbase\Tests\Unit\Persistence\Generic\Mapper\Fixture\DummyEntity;
+use TYPO3\CMS\Extbase\Tests\Unit\Persistence\Generic\Mapper\Fixture\DummyParentEntity;
 use TYPO3\TestingFramework\Core\AccessibleObjectInterface;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
@@ -44,13 +61,13 @@ class DataMapperTest extends UnitTestCase
         /** @var DataMapper|AccessibleObjectInterface|\PHPUnit\Framework\MockObject\MockObject $dataMapper */
         $dataMapper = $this->getMockBuilder(DataMapper::class)
             ->setConstructorArgs([
-                $this->createMock(\TYPO3\CMS\Extbase\Reflection\ReflectionService::class),
-                $this->createMock(\TYPO3\CMS\Extbase\Persistence\Generic\Qom\QueryObjectModelFactory::class),
-                $this->createMock(\TYPO3\CMS\Extbase\Persistence\Generic\Session::class),
-                $this->createMock(\TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapFactory::class),
-                $this->createMock(\TYPO3\CMS\Extbase\Persistence\Generic\QueryFactoryInterface::class),
-                $this->createMock(\TYPO3\CMS\Extbase\Object\ObjectManagerInterface::class),
-                $this->createMock(\TYPO3\CMS\Extbase\SignalSlot\Dispatcher::class),
+                $this->createMock(ReflectionService::class),
+                $this->createMock(QueryObjectModelFactory::class),
+                $this->createMock(Session::class),
+                $this->createMock(DataMapFactory::class),
+                $this->createMock(QueryFactoryInterface::class),
+                $this->createMock(ObjectManagerInterface::class),
+                $this->createMock(EventDispatcherInterface::class),
             ])
             ->setMethods(['mapSingleRow', 'getTargetType'])
             ->getMock();
@@ -72,7 +89,7 @@ class DataMapperTest extends UnitTestCase
     {
         $row = ['uid' => '1234'];
         $object = new \stdClass();
-        $persistenceSession = $this->createMock(\TYPO3\CMS\Extbase\Persistence\Generic\Session::class);
+        $persistenceSession = $this->createMock(Session::class);
         $persistenceSession->expects(self::once())->method('hasIdentifier')->with('1234')->willReturn(true);
         $persistenceSession->expects(self::once())->method('getObjectByIdentifier')->with('1234')->willReturn($object);
 
@@ -80,13 +97,13 @@ class DataMapperTest extends UnitTestCase
             DataMapper::class,
             ['dummy'],
             [
-                $this->createMock(\TYPO3\CMS\Extbase\Reflection\ReflectionService::class),
-                $this->createMock(\TYPO3\CMS\Extbase\Persistence\Generic\Qom\QueryObjectModelFactory::class),
+                $this->createMock(ReflectionService::class),
+                $this->createMock(QueryObjectModelFactory::class),
                 $persistenceSession,
-                $this->createMock(\TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapFactory::class),
-                $this->createMock(\TYPO3\CMS\Extbase\Persistence\Generic\QueryFactoryInterface::class),
-                $this->createMock(\TYPO3\CMS\Extbase\Object\ObjectManagerInterface::class),
-                $this->createMock(\TYPO3\CMS\Extbase\SignalSlot\Dispatcher::class),
+                $this->createMock(DataMapFactory::class),
+                $this->createMock(QueryFactoryInterface::class),
+                $this->createMock(ObjectManagerInterface::class),
+                $this->createMock(EventDispatcherInterface::class),
             ]
         );
 
@@ -102,8 +119,8 @@ class DataMapperTest extends UnitTestCase
      */
     public function thawPropertiesSetsPropertyValues()
     {
-        $className = Fixture\DummyEntity::class;
-        $object = new Fixture\DummyEntity();
+        $className = DummyEntity::class;
+        $object = new DummyEntity();
         $row = [
             'uid' => '1234',
             'firstProperty' => 'firstValue',
@@ -117,32 +134,32 @@ class DataMapperTest extends UnitTestCase
             'firstProperty' => new ColumnMap('firstProperty', 'firstProperty'),
             'secondProperty' => new ColumnMap('secondProperty', 'secondProperty'),
             'thirdProperty' => new ColumnMap('thirdProperty', 'thirdProperty'),
-            'fourthProperty' => new ColumnMap('fourthProperty', 'fourthProperty')
+            'fourthProperty' => new ColumnMap('fourthProperty', 'fourthProperty'),
         ];
-        $dataMap = $this->getAccessibleMock(\TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMap::class, ['dummy'], [$className, $className]);
+        $dataMap = $this->getAccessibleMock(DataMap::class, ['dummy'], [$className, $className]);
         $dataMap->_set('columnMaps', $columnMaps);
         $dataMaps = [
             $className => $dataMap
         ];
         /** @var AccessibleObjectInterface|\TYPO3\CMS\Extbase\Reflection\ClassSchema $classSchema */
         $classSchema = new ClassSchema($className);
-        $mockReflectionService = $this->getMockBuilder(\TYPO3\CMS\Extbase\Reflection\ReflectionService::class)
-            ->setMethods(['getClassSchema'])
+        $mockReflectionService = $this->getMockBuilder(ReflectionService::class)
+            ->onlyMethods(['getClassSchema'])
             ->getMock();
         $mockReflectionService->expects(self::any())->method('getClassSchema')->willReturn($classSchema);
-        $dataMapFactory = $this->getAccessibleMock(\TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapFactory::class, ['dummy'], [], '', false);
+        $dataMapFactory = $this->getAccessibleMock(DataMapFactory::class, ['dummy'], [], '', false);
         $dataMapFactory->_set('dataMaps', $dataMaps);
         $dataMapper = $this->getAccessibleMock(
             DataMapper::class,
             ['dummy'],
             [
                 $mockReflectionService,
-                $this->createMock(\TYPO3\CMS\Extbase\Persistence\Generic\Qom\QueryObjectModelFactory::class),
-                $this->createMock(\TYPO3\CMS\Extbase\Persistence\Generic\Session::class),
+                $this->createMock(QueryObjectModelFactory::class),
+                $this->createMock(Session::class),
                 $dataMapFactory,
-                $this->createMock(\TYPO3\CMS\Extbase\Persistence\Generic\QueryFactoryInterface::class),
-                $this->createMock(\TYPO3\CMS\Extbase\Object\ObjectManagerInterface::class),
-                $this->createMock(\TYPO3\CMS\Extbase\SignalSlot\Dispatcher::class),
+                $this->createMock(QueryFactoryInterface::class),
+                $this->createMock(ObjectManagerInterface::class),
+                $this->createMock(EventDispatcherInterface::class),
             ]
         );
         $dataMapper->_call('thawProperties', $object, $row);
@@ -151,6 +168,50 @@ class DataMapperTest extends UnitTestCase
         self::assertEquals(1234, $object->secondProperty);
         self::assertEquals(1.234, $object->thirdProperty);
         self::assertFalse($object->fourthProperty);
+    }
+
+    /**
+     * @test
+     */
+    public function thawPropertiesThrowsExceptionOnUnknownPropertyType(): void
+    {
+        $className = DummyEntity::class;
+        $object = new DummyEntity();
+        $row = [
+            'uid' => '1234',
+            'unknownType' => 'What am I?'
+        ];
+        $columnMaps = [
+            'unknownType' => new ColumnMap('unknownType', 'unknownType'),
+        ];
+        $dataMap = $this->getAccessibleMock(DataMap::class, ['dummy'], [$className, $className]);
+        $dataMap->_set('columnMaps', $columnMaps);
+        $dataMaps = [
+            $className => $dataMap
+        ];
+        /** @var AccessibleObjectInterface|\TYPO3\CMS\Extbase\Reflection\ClassSchema $classSchema */
+        $classSchema = new ClassSchema($className);
+        $mockReflectionService = $this->getMockBuilder(ReflectionService::class)
+            ->onlyMethods(['getClassSchema'])
+            ->getMock();
+        $mockReflectionService->method('getClassSchema')->willReturn($classSchema);
+        $dataMapFactory = $this->getAccessibleMock(DataMapFactory::class, ['dummy'], [], '', false);
+        $dataMapFactory->_set('dataMaps', $dataMaps);
+        $dataMapper = $this->getAccessibleMock(
+            DataMapper::class,
+            ['dummy'],
+            [
+                $mockReflectionService,
+                $this->createMock(QueryObjectModelFactory::class),
+                $this->createMock(Session::class),
+                $dataMapFactory,
+                $this->createMock(QueryFactoryInterface::class),
+                $this->createMock(ObjectManagerInterface::class),
+                $this->createMock(EventDispatcherInterface::class),
+            ]
+        );
+        $this->expectException(UnknownPropertyTypeException::class);
+        $dataMapper->_call('thawProperties', $object, $row);
     }
 
     /**
@@ -165,14 +226,14 @@ class DataMapperTest extends UnitTestCase
     {
         $columnMap = new ColumnMap('columnName', 'propertyName');
         $columnMap->setTypeOfRelation(ColumnMap::RELATION_HAS_ONE);
-        $dataMap = $this->getMockBuilder(\TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMap::class)
+        $dataMap = $this->getMockBuilder(DataMap::class)
             ->setMethods(['getColumnMap'])
             ->disableOriginalConstructor()
             ->getMock();
         $dataMap->expects(self::any())->method('getColumnMap')->willReturn($columnMap);
         $dataMapper = $this->getAccessibleMock(DataMapper::class, ['getDataMap'], [], '', false);
         $dataMapper->expects(self::any())->method('getDataMap')->willReturn($dataMap);
-        $result = $dataMapper->_call('fetchRelatedEager', $this->createMock(\TYPO3\CMS\Extbase\DomainObject\AbstractEntity::class), 'SomeName', '');
+        $result = $dataMapper->_call('fetchRelatedEager', $this->createMock(AbstractEntity::class), 'SomeName', '');
         self::assertNull($result);
     }
 
@@ -188,14 +249,14 @@ class DataMapperTest extends UnitTestCase
     {
         $columnMap = new ColumnMap('columnName', 'propertyName');
         $columnMap->setTypeOfRelation(ColumnMap::RELATION_BELONGS_TO_MANY);
-        $dataMap = $this->getMockBuilder(\TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMap::class)
+        $dataMap = $this->getMockBuilder(DataMap::class)
             ->setMethods(['getColumnMap'])
             ->disableOriginalConstructor()
             ->getMock();
         $dataMap->expects(self::any())->method('getColumnMap')->willReturn($columnMap);
         $dataMapper = $this->getAccessibleMock(DataMapper::class, ['getDataMap'], [], '', false);
         $dataMapper->expects(self::any())->method('getDataMap')->willReturn($dataMap);
-        $result = $dataMapper->_call('fetchRelatedEager', $this->createMock(\TYPO3\CMS\Extbase\DomainObject\AbstractEntity::class), 'SomeName', '');
+        $result = $dataMapper->_call('fetchRelatedEager', $this->createMock(AbstractEntity::class), 'SomeName', '');
         self::assertEquals([], $result);
     }
 
@@ -212,7 +273,7 @@ class DataMapperTest extends UnitTestCase
     {
         $columnMap = new ColumnMap('columnName', 'propertyName');
         $columnMap->setTypeOfRelation(ColumnMap::RELATION_HAS_ONE);
-        $dataMap = $this->getMockBuilder(\TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMap::class)
+        $dataMap = $this->getMockBuilder(DataMap::class)
             ->setMethods(['getColumnMap'])
             ->disableOriginalConstructor()
             ->getMock();
@@ -220,7 +281,7 @@ class DataMapperTest extends UnitTestCase
         $dataMapper = $this->getAccessibleMock(DataMapper::class, ['getDataMap', 'fetchRelated'], [], '', false);
         $dataMapper->expects(self::any())->method('getDataMap')->willReturn($dataMap);
         $dataMapper->expects(self::never())->method('fetchRelated');
-        $result = $dataMapper->_call('mapObjectToClassProperty', $this->createMock(\TYPO3\CMS\Extbase\DomainObject\AbstractEntity::class), 'SomeName', '');
+        $result = $dataMapper->_call('mapObjectToClassProperty', $this->createMock(AbstractEntity::class), 'SomeName', '');
         self::assertNull($result);
     }
 
@@ -238,29 +299,29 @@ class DataMapperTest extends UnitTestCase
     {
         $columnMap = new ColumnMap('columnName', 'propertyName');
         $columnMap->setTypeOfRelation(ColumnMap::RELATION_HAS_ONE);
-        $dataMap = $this->getMockBuilder(\TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMap::class)
+        $dataMap = $this->getMockBuilder(DataMap::class)
             ->setMethods(['getColumnMap'])
             ->disableOriginalConstructor()
             ->getMock();
 
-        $object = new Fixture\DummyParentEntity();
-        $child = new Fixture\DummyChildEntity();
+        $object = new DummyParentEntity();
+        $child = new DummyChildEntity();
 
         /** @var \TYPO3\CMS\Extbase\Reflection\ClassSchema|AccessibleObjectInterface|\PHPUnit\Framework\MockObject\MockObject $classSchema1 */
-        $classSchema1 = new ClassSchema(Fixture\DummyParentEntity::class);
+        $classSchema1 = new ClassSchema(DummyParentEntity::class);
         $identifier = 1;
 
-        $psrContainer = $this->getMockBuilder(\Psr\Container\ContainerInterface::class)
+        $psrContainer = $this->getMockBuilder(ContainerInterface::class)
             ->setMethods(['has', 'get'])
             ->disableOriginalConstructor()
             ->getMock();
         $psrContainer->expects(self::any())->method('has')->willReturn(false);
         $container = new Container($psrContainer);
 
-        $session = new \TYPO3\CMS\Extbase\Persistence\Generic\Session(new Container($psrContainer));
+        $session = new Session(new Container($psrContainer));
         $session->registerObject($child, $identifier);
 
-        $mockReflectionService = $this->getMockBuilder(\TYPO3\CMS\Extbase\Reflection\ReflectionService::class)
+        $mockReflectionService = $this->getMockBuilder(ReflectionService::class)
             ->setMethods(['getClassSchema'])
             ->disableOriginalConstructor()
             ->getMock();
@@ -273,12 +334,12 @@ class DataMapperTest extends UnitTestCase
             ['getDataMap', 'getNonEmptyRelationValue'],
             [
                 $mockReflectionService,
-                $this->createMock(\TYPO3\CMS\Extbase\Persistence\Generic\Qom\QueryObjectModelFactory::class),
+                $this->createMock(QueryObjectModelFactory::class),
                 $session,
-                $this->createMock(\TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapFactory::class),
-                $this->createMock(\TYPO3\CMS\Extbase\Persistence\Generic\QueryFactoryInterface::class),
-                $this->createMock(\TYPO3\CMS\Extbase\Object\ObjectManagerInterface::class),
-                $this->createMock(\TYPO3\CMS\Extbase\SignalSlot\Dispatcher::class),
+                $this->createMock(DataMapFactory::class),
+                $this->createMock(QueryFactoryInterface::class),
+                $this->createMock(ObjectManagerInterface::class),
+                $this->createMock(EventDispatcherInterface::class),
             ]
         );
         $dataMapper->expects(self::any())->method('getDataMap')->willReturn($dataMap);
@@ -409,7 +470,7 @@ class DataMapperTest extends UnitTestCase
 
         /** @var DataMapper $dataMapper */
         $dataMapper = $this->createPartialMock(DataMapper::class, []);
-        $input = $this->createMock(\TYPO3\CMS\Extbase\Persistence\Generic\LazyLoadingProxy::class);
+        $input = $this->createMock(LazyLoadingProxy::class);
         $input->expects(self::once())->method('_loadRealInstance')->willReturn($dataMapper);
         $dataMapper->getPlainValue($input);
     }
@@ -421,7 +482,7 @@ class DataMapperTest extends UnitTestCase
     {
         /** @var DataMapper $dataMapper */
         $dataMapper = $this->createPartialMock(DataMapper::class, []);
-        $input = $this->createMock(\TYPO3\CMS\Extbase\DomainObject\DomainObjectInterface::class);
+        $input = $this->createMock(DomainObjectInterface::class);
 
         $input->expects(self::once())->method('getUid')->willReturn(23);
         self::assertSame(23, $dataMapper->getPlainValue($input));

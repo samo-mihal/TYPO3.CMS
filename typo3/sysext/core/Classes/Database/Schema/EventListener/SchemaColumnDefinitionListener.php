@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Database\Schema\EventListener;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Core\Database\Schema\EventListener;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Database\Schema\EventListener;
 
 use Doctrine\DBAL\Event\SchemaColumnDefinitionEventArgs;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
@@ -88,24 +89,24 @@ class SchemaColumnDefinitionListener
     /**
      * Extract the field type from the definition string
      *
-     * @param string $typeDefiniton
+     * @param string $typeDefinition
      * @return string
      */
-    protected function getDatabaseType(string $typeDefiniton): string
+    protected function getDatabaseType(string $typeDefinition): string
     {
-        $dbType = strtolower($typeDefiniton);
+        $dbType = strtolower($typeDefinition);
         $dbType = strtok($dbType, '(), ');
 
         return $dbType;
     }
 
     /**
-     * @param string $typeDefiniton
+     * @param string $typeDefinition
      * @return array
      */
-    protected function getUnquotedEnumerationValues(string $typeDefiniton): array
+    protected function getUnquotedEnumerationValues(string $typeDefinition): array
     {
-        $valuesDefinition = preg_replace('#^(enum|set)\((.*)\)\s*$#i', '$2', $typeDefiniton);
+        $valuesDefinition = preg_replace('#^(enum|set)\((.*)\)\s*$#i', '$2', $typeDefinition) ?? '';
         $quoteChar = $valuesDefinition[0];
         $separator = $quoteChar . ',' . $quoteChar;
 
@@ -113,9 +114,9 @@ class SchemaColumnDefinitionListener
             '#' . $quoteChar . ',\s*' . $quoteChar . '#',
             $separator,
             $valuesDefinition
-        );
+        ) ?? '';
 
-        $values = explode($quoteChar . ',' . $quoteChar, substr($valuesDefinition, 1, -1));
+        $values = explode($quoteChar . ',' . $quoteChar, substr($valuesDefinition, 1, -1)) ?: [];
 
         return array_map(
             function (string $value) use ($quoteChar) {

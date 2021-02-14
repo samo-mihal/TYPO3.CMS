@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Belog\Controller;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Belog\Controller;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Belog\Controller;
 
 use TYPO3\CMS\Backend\Backend\Event\SystemInformationToolbarCollectorEvent;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
@@ -69,7 +71,7 @@ final class SystemInformationController
             $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
             $systemInformationToolbarItem->addSystemMessage(
                 sprintf(
-                    LocalizationUtility::translate('systemmessage.errorsInPeriod', 'belog'),
+                    LocalizationUtility::translate('systemmessage.errorsInPeriod', 'belog') ?? '',
                     $count,
                     (string)$uriBuilder->buildUriFromRoute(
                         'system_BelogLog',

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
 
 use Doctrine\DBAL\Driver\Statement;
 use Prophecy\Argument;
@@ -120,6 +121,7 @@ class TcaSelectTreeItemsTest extends UnitTestCase
 
         $iconFactoryProphecy = $this->prophesize(IconFactory::class);
         GeneralUtility::addInstance(IconFactory::class, $iconFactoryProphecy->reveal());
+        GeneralUtility::addInstance(IconFactory::class, $iconFactoryProphecy->reveal());
 
         $fileRepositoryProphecy = $this->prophesize(FileRepository::class);
         $fileRepositoryProphecy->findByRelation(Argument::cetera())->shouldNotBeCalled();
@@ -136,11 +138,11 @@ class TcaSelectTreeItemsTest extends UnitTestCase
 
         $this->mockDatabaseConnection();
 
-        /** @var  DatabaseTreeDataProvider|ObjectProphecy $treeDataProviderProphecy */
+        /** @var DatabaseTreeDataProvider|ObjectProphecy $treeDataProviderProphecy */
         $treeDataProviderProphecy = $this->prophesize(DatabaseTreeDataProvider::class);
         GeneralUtility::addInstance(DatabaseTreeDataProvider::class, $treeDataProviderProphecy->reveal());
 
-        /** @var  TableConfigurationTree|ObjectProphecy $treeDataProviderProphecy */
+        /** @var TableConfigurationTree|ObjectProphecy $treeDataProviderProphecy */
         $tableConfigurationTreeProphecy = $this->prophesize(TableConfigurationTree::class);
         GeneralUtility::addInstance(TableConfigurationTree::class, $tableConfigurationTreeProphecy->reveal());
         $tableConfigurationTreeProphecy->setDataProvider(Argument::cetera())->shouldBeCalled();
@@ -178,7 +180,7 @@ class TcaSelectTreeItemsTest extends UnitTestCase
         $expected['processedTca']['columns']['aField']['config']['items'] = [
             'fake', 'tree', 'data',
         ];
-        self::assertEquals($expected, (new TcaSelectTreeItems)->addData($input));
+        self::assertEquals($expected, (new TcaSelectTreeItems())->addData($input));
     }
 
     /**
@@ -189,6 +191,7 @@ class TcaSelectTreeItemsTest extends UnitTestCase
         $GLOBALS['TCA']['foreignTable'] = [];
 
         $iconFactoryProphecy = $this->prophesize(IconFactory::class);
+        GeneralUtility::addInstance(IconFactory::class, $iconFactoryProphecy->reveal());
         GeneralUtility::addInstance(IconFactory::class, $iconFactoryProphecy->reveal());
 
         $fileRepositoryProphecy = $this->prophesize(FileRepository::class);
@@ -210,7 +213,7 @@ class TcaSelectTreeItemsTest extends UnitTestCase
         $treeDataProviderProphecy = $this->prophesize(DatabaseTreeDataProvider::class);
         GeneralUtility::addInstance(DatabaseTreeDataProvider::class, $treeDataProviderProphecy->reveal());
 
-        /** @var  TableConfigurationTree|ObjectProphecy $treeDataProviderProphecy */
+        /** @var TableConfigurationTree|ObjectProphecy $treeDataProviderProphecy */
         $tableConfigurationTreeProphecy = $this->prophesize(TableConfigurationTree::class);
         GeneralUtility::addInstance(TableConfigurationTree::class, $tableConfigurationTreeProphecy->reveal());
         $tableConfigurationTreeProphecy->render()->willReturn([]);
@@ -261,7 +264,7 @@ class TcaSelectTreeItemsTest extends UnitTestCase
             'selectTreeCompileItems' => true,
         ];
 
-        (new TcaSelectTreeItems)->addData($input);
+        (new TcaSelectTreeItems())->addData($input);
 
         $treeDataProviderProphecy->setRootUid(42)->shouldHaveBeenCalled();
         $treeDataProviderProphecy->setExpandAll(true)->shouldHaveBeenCalled();

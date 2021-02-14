@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Form\FormDataProvider;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,13 @@ namespace TYPO3\CMS\Backend\Form\FormDataProvider;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Form\FormDataProvider;
+
 use TYPO3\CMS\Backend\Form\FormDataProviderInterface;
+use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Database\ConnectionPool;
-use TYPO3\CMS\Core\Database\Query\Restriction\BackendWorkspaceRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
+use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -51,12 +53,14 @@ class DatabasePageLanguageOverlayRows implements FormDataProviderInterface
      */
     protected function getDatabaseRows(int $pid): array
     {
+        $context = GeneralUtility::makeInstance(Context::class);
+        $workspaceId = $context->getPropertyFromAspect('workspace', 'id');
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
             ->getQueryBuilderForTable('pages');
         $queryBuilder->getRestrictions()
             ->removeAll()
             ->add(GeneralUtility::makeInstance(DeletedRestriction::class))
-            ->add(GeneralUtility::makeInstance(BackendWorkspaceRestriction::class));
+            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, (int)$workspaceId));
 
         $rows = $queryBuilder->select('*')
             ->from('pages')

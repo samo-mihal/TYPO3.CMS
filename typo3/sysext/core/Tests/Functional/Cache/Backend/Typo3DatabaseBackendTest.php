@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Functional\Cache\Backend;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,15 +13,18 @@ namespace TYPO3\CMS\Core\Tests\Functional\Cache\Backend;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Functional\Cache\Backend;
+
 use TYPO3\CMS\Core\Cache\Backend\Typo3DatabaseBackend;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
 /**
  * Test case
  */
-class Typo3DatabaseBackendTest extends \TYPO3\TestingFramework\Core\Functional\FunctionalTestCase
+class Typo3DatabaseBackendTest extends FunctionalTestCase
 {
 
     /**

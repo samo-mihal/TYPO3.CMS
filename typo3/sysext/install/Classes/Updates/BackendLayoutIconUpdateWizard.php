@@ -1,8 +1,8 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Install\Updates;
 
-/**
+declare(strict_types=1);
+
+/*
  * This file is part of the TYPO3 CMS project.
  *
  * It is free software; you can redistribute it and/or modify it under
@@ -14,6 +14,9 @@ namespace TYPO3\CMS\Install\Updates;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Install\Updates;
+
 use Doctrine\DBAL\DBALException;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
@@ -283,7 +286,6 @@ class BackendLayoutIconUpdateWizard implements UpgradeWizardInterface, ChattyInt
                     'tablenames' => $this->table,
                     'crdate' => time(),
                     'tstamp' => time(),
-                    'sorting' => $i + 256,
                     'sorting_foreign' => $i,
                 ];
 

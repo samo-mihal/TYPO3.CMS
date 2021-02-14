@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Command;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,9 @@ namespace TYPO3\CMS\Backend\Command;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Command;
+
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -37,6 +39,7 @@ class UnlockBackendCommand extends Command
      *
      * @param InputInterface $input
      * @param OutputInterface $output
+     * @return int
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
@@ -47,12 +50,13 @@ class UnlockBackendCommand extends Command
             unlink($lockFile);
             if (@is_file($lockFile)) {
                 $io->caution('Could not remove lock file "' . $lockFile . '"!');
-            } else {
-                $io->success('Removed lock file "' . $lockFile . '".');
+                return 1;
             }
+            $io->success('Removed lock file "' . $lockFile . '".');
         } else {
             $io->note('No lock file "' . $lockFile . '" was found.' . LF . 'Hence no lock can be removed.');
         }
+        return 0;
     }
 
     /**

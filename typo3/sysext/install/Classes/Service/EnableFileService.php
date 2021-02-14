@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Install\Service;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,9 @@ namespace TYPO3\CMS\Install\Service;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Install\Service;
+
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -130,7 +132,7 @@ class EnableFileService
     public static function isInstallToolEnableFilePermanent()
     {
         if (self::installToolEnableFileExists()) {
-            $content = @file_get_contents(self::getInstallToolEnableFilePath());
+            $content = (string)@file_get_contents(self::getInstallToolEnableFilePath());
             if (strpos($content, 'KEEP_FILE') !== false) {
                 return true;
             }
@@ -186,7 +188,9 @@ class EnableFileService
      */
     protected static function getFirstInstallFilePaths()
     {
-        $files = array_filter(scandir(Environment::getPublicPath() . '/'), function ($file) {
+        $files = scandir(Environment::getPublicPath() . '/');
+        $files = is_array($files) ? $files : [];
+        $files = array_filter($files, function ($file) {
             return @is_file(Environment::getPublicPath() . '/' . $file) && preg_match('~^' . self::FIRST_INSTALL_FILE_PATH . '.*~i', $file);
         });
         return $files;

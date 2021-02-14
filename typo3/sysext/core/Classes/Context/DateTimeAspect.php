@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Context;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Context;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Context;
 
 use TYPO3\CMS\Core\Context\Exception\AspectPropertyNotFoundException;
 
@@ -62,6 +64,8 @@ class DateTimeAspect implements AspectInterface
                 return $this->dateTimeObject->format('e');
             case 'full':
                 return $this->dateTimeObject;
+            case 'accessTime':
+                return $this->dateTimeObject->format('U') - ($this->dateTimeObject->format('U') % 60);
         }
         throw new AspectPropertyNotFoundException('Property "' . $name . '" not found in Aspect "' . __CLASS__ . '".', 1527778767);
     }

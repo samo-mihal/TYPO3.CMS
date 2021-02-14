@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Site;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,10 @@ namespace TYPO3\CMS\Core\Site;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Site;
+
+use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
 
 /**
  * Helper trait to use a site language within a class.
@@ -31,7 +34,7 @@ trait SiteLanguageAwareTrait
     /**
      * @param Entity\SiteLanguage $siteLanguage
      */
-    public function setSiteLanguage(Entity\SiteLanguage $siteLanguage)
+    public function setSiteLanguage(SiteLanguage $siteLanguage)
     {
         $this->siteLanguage = $siteLanguage;
     }
@@ -39,7 +42,7 @@ trait SiteLanguageAwareTrait
     /**
      * @return Entity\SiteLanguage
      */
-    public function getSiteLanguage(): Entity\SiteLanguage
+    public function getSiteLanguage(): SiteLanguage
     {
         return $this->siteLanguage;
     }

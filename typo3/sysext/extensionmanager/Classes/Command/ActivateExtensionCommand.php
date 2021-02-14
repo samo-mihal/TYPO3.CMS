@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Extensionmanager\Command;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,15 +15,18 @@ namespace TYPO3\CMS\Extensionmanager\Command;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extensionmanager\Command;
+
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use TYPO3\CMS\Core\Core\Bootstrap;
+use TYPO3\CMS\Core\Package\Event\PackagesMayHaveChangedEvent;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Object\ObjectManager;
-use TYPO3\CMS\Extbase\SignalSlot\Dispatcher;
 use TYPO3\CMS\Extensionmanager\Utility\InstallUtility;
 
 /**
@@ -61,13 +64,14 @@ class ActivateExtensionCommand extends Command
         Bootstrap::initializeBackendAuthentication();
 
         $objectManager = GeneralUtility::makeInstance(ObjectManager::class);
+
         // Emits packages may have changed signal
-        $signalSlotDispatcher = $objectManager->get(Dispatcher::class);
-        $signalSlotDispatcher->dispatch('PackageManagement', 'packagesMayHaveChanged');
+        GeneralUtility::makeInstance(EventDispatcherInterface::class)->dispatch(new PackagesMayHaveChangedEvent());
 
         // Do the installation process
         $objectManager->get(InstallUtility::class)->install($extensionKey);
 
         $io->success('Activated extension ' . $extensionKey . ' successfully.');
+        return 0;
     }
 }

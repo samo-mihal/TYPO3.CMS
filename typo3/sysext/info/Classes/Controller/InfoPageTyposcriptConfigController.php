@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Info\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,13 +13,15 @@ namespace TYPO3\CMS\Info\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Info\Controller;
+
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Configuration\Loader\PageTsConfigLoader;
 use TYPO3\CMS\Core\Database\ConnectionPool;
-use TYPO3\CMS\Core\Database\Query\Restriction\BackendWorkspaceRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
+use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Localization\LanguageService;
@@ -64,8 +65,7 @@ class InfoPageTyposcriptConfigController
     public function init($pObj)
     {
         $this->iconFactory = GeneralUtility::makeInstance(IconFactory::class);
-        $languageService = $this->getLanguageService();
-        $languageService->includeLLFile('EXT:info/Resources/Private/Language/InfoPageTsConfig.xlf');
+        $this->getLanguageService()->includeLLFile('EXT:info/Resources/Private/Language/InfoPageTsConfig.xlf');
         $this->view = $this->getFluidTemplateObject();
         $this->pObj = $pObj;
         $this->id = (int)GeneralUtility::_GP('id');
@@ -92,6 +92,7 @@ class InfoPageTyposcriptConfigController
         } else {
             if ($this->pObj->MOD_SETTINGS['tsconf_parts'] == 99) {
                 $rootLine = BackendUtility::BEgetRootLine($this->id, '', true);
+                /** @var array<string, string> $TSparts */
                 $TSparts = GeneralUtility::makeInstance(PageTsConfigLoader::class)->collect($rootLine);
                 $lines = [];
                 $pUids = [];
@@ -147,7 +148,7 @@ class InfoPageTyposcriptConfigController
                 }
 
                 $this->view->assign('tsconfParts99', 1);
-                $this->view->assign('csh', BackendUtility::cshItem('_MOD_web_info', 'tsconfig_edit', null, '|'));
+                $this->view->assign('csh', BackendUtility::cshItem('_MOD_web_info', 'tsconfig_edit', '', '|'));
                 $this->view->assign('lines', $lines);
                 $this->view->assign('editIcon', $editIcon);
                 $this->view->assign('editTitle', $editTitle);
@@ -200,7 +201,7 @@ class InfoPageTyposcriptConfigController
                         // Entire array
                 }
 
-                $this->view->assign('csh', BackendUtility::cshItem('_MOD_web_info', 'tsconfig_hierarchy', null, '|'));
+                $this->view->assign('csh', BackendUtility::cshItem('_MOD_web_info', 'tsconfig_hierarchy', '', '|'));
                 $this->view->assign('tree', $tmpl->ext_getObjTree($pageTsConfig, '', '', '', '', $this->pObj->MOD_SETTINGS['tsconf_alphaSort']));
             }
             $this->view->assign('alphaSort', BackendUtility::getFuncCheck($this->id, 'SET[tsconf_alphaSort]', $this->pObj->MOD_SETTINGS['tsconf_alphaSort'], '', '', 'id="checkTsconf_alphaSort"'));
@@ -253,7 +254,7 @@ class InfoPageTyposcriptConfigController
         $queryBuilder->getRestrictions()
             ->removeAll()
             ->add(GeneralUtility::makeInstance(DeletedRestriction::class))
-            ->add(GeneralUtility::makeInstance(BackendWorkspaceRestriction::class));
+            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, 0));
 
         $res = $queryBuilder
             ->select('uid', 'TSconfig')

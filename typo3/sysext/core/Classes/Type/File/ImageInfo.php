@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Type\File;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,9 @@ namespace TYPO3\CMS\Core\Type\File;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Type\File;
+
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use TYPO3\CMS\Core\Imaging\GraphicalFunctions;
@@ -118,16 +120,23 @@ class ImageInfo extends FileInfo implements LoggerAwareInterface
         $imagesSizes = [];
 
         $fileContent = file_get_contents($this->getPathname());
+        if ($fileContent === false) {
+            return false;
+        }
         // Disables the functionality to allow external entities to be loaded when parsing the XML, must be kept
-        $previousValueOfEntityLoader = libxml_disable_entity_loader(true);
+        $previousValueOfEntityLoader = null;
+        if (PHP_MAJOR_VERSION < 8) {
+            $previousValueOfEntityLoader = libxml_disable_entity_loader(true);
+        }
         $xml = simplexml_load_string($fileContent, \SimpleXMLElement::class, LIBXML_NOERROR | LIBXML_NOWARNING);
-
+        if (PHP_MAJOR_VERSION < 8) {
+            libxml_disable_entity_loader($previousValueOfEntityLoader);
+        }
         // If something went wrong with simpleXml don't try to read information
         if ($xml === false) {
             return false;
         }
 
-        libxml_disable_entity_loader($previousValueOfEntityLoader);
         $xmlAttributes = $xml->attributes();
 
         // First check if width+height are set
@@ -137,6 +146,9 @@ class ImageInfo extends FileInfo implements LoggerAwareInterface
             // Fallback to viewBox
             $viewBox = explode(' ', $xmlAttributes['viewBox']);
             $imagesSizes = [(int)$viewBox[2], (int)$viewBox[3]];
+        } else {
+            // To not fail image processing, we just assume an SVG image dimension here
+            $imagesSizes = [64, 64];
         }
 
         return $imagesSizes !== [] ? $imagesSizes : false;

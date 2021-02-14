@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\ViewHelpers\Format;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Fluid\ViewHelpers\Format;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Fluid\ViewHelpers\Format;
 
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
 use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithContentArgumentAndRenderStatic;
@@ -72,7 +73,7 @@ class HtmlentitiesDecodeViewHelper extends AbstractEncodingViewHelper
         parent::initializeArguments();
         $this->registerArgument('value', 'string', 'string to format');
         $this->registerArgument('keepQuotes', 'bool', 'If TRUE, single and double quotes won\'t be replaced (sets ENT_NOQUOTES flag).', false, false);
-        $this->registerArgument('encoding', 'string', '');
+        $this->registerArgument('encoding', 'string', 'Define the encoding used when converting characters (Default: UTF-8).');
     }
 
     /**

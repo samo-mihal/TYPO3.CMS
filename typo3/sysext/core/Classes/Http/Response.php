@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Http;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,8 +13,11 @@ namespace TYPO3\CMS\Core\Http;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Http;
+
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamInterface;
+use TYPO3\CMS\Core\Utility\MathUtility;
 
 /**
  * Default implementation for the ResponseInterface of the PSR-7 standard.
@@ -117,7 +119,7 @@ class Response extends Message implements ResponseInterface
     /**
      * Constructor for generating new responses
      *
-     * @param StreamInterface|string $body
+     * @param StreamInterface|string|null $body
      * @param int $statusCode
      * @param array $headers
      * @param string $reasonPhrase
@@ -135,13 +137,13 @@ class Response extends Message implements ResponseInterface
         }
         $this->body = $body;
 
-        if (\TYPO3\CMS\Core\Utility\MathUtility::canBeInterpretedAsInteger($statusCode) === false || !array_key_exists((int)$statusCode, $this->availableStatusCodes)) {
+        if (MathUtility::canBeInterpretedAsInteger($statusCode) === false || !array_key_exists((int)$statusCode, $this->availableStatusCodes)) {
             throw new \InvalidArgumentException('The given status code is not a valid HTTP status code.', 1436717278);
         }
         $this->statusCode = (int)$statusCode;
 
         $this->reasonPhrase = $reasonPhrase === '' ? $this->availableStatusCodes[$this->statusCode] : $reasonPhrase;
-        list($this->lowercasedHeaderNames, $headers) = $this->filterHeaders($headers);
+        [$this->lowercasedHeaderNames, $headers] = $this->filterHeaders($headers);
         $this->assertHeaders($headers);
         $this->headers = $headers;
     }
@@ -170,7 +172,7 @@ class Response extends Message implements ResponseInterface
      * immutability of the message, and MUST return an instance that has the
      * updated status and reason phrase.
      *
-     * @link http://tools.ietf.org/html/rfc7231#section-6
+     * @link https://tools.ietf.org/html/rfc7231#section-6
      * @link http://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
      *
      * @param int $code The 3-digit integer result code to set.
@@ -182,7 +184,7 @@ class Response extends Message implements ResponseInterface
      */
     public function withStatus($code, $reasonPhrase = '')
     {
-        if (\TYPO3\CMS\Core\Utility\MathUtility::canBeInterpretedAsInteger($code) === false || !array_key_exists((int)$code, $this->availableStatusCodes)) {
+        if (MathUtility::canBeInterpretedAsInteger($code) === false || !array_key_exists((int)$code, $this->availableStatusCodes)) {
             throw new \InvalidArgumentException('The given status code is not a valid HTTP status code', 1436717279);
         }
         $clonedObject = clone $this;
@@ -200,7 +202,7 @@ class Response extends Message implements ResponseInterface
      * listed in the IANA HTTP Status Code Registry) for the response's
      * status code.
      *
-     * @link http://tools.ietf.org/html/rfc7231#section-6
+     * @link https://tools.ietf.org/html/rfc7231#section-6
      * @link http://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
      * @return string Reason phrase; must return an empty string if none present.
      */

@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Install\Service;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,9 +15,11 @@ namespace TYPO3\CMS\Install\Service;
  * The TYPO3 project - inspiring people to share!
  */
 
-use TYPO3\CMS\Core\Registry;
+namespace TYPO3\CMS\Install\Service;
+
+use TYPO3\CMS\Core\Information\Typo3Version;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Core\Utility\VersionNumberUtility;
+use TYPO3\CMS\Install\Service\Exception\RemoteFetchException;
 
 /**
  * Core version service
@@ -27,24 +28,11 @@ use TYPO3\CMS\Core\Utility\VersionNumberUtility;
 class CoreVersionService
 {
     /**
-     * @var \TYPO3\CMS\Core\Registry
-     */
-    protected $registry;
-
-    /**
      * Base URI for TYPO3 Version REST api
      *
      * @var string
      */
     protected $apiBaseUrl = 'https://get.typo3.org/v1/api/';
-
-    /**
-     * Initialize update URI
-     */
-    public function __construct()
-    {
-        $this->registry = GeneralUtility::makeInstance(Registry::class);
-    }
 
     /**
      * Development git checkout versions always end with '-dev'. They are
@@ -80,7 +68,7 @@ class CoreVersionService
      */
     public function getInstalledVersion(): string
     {
-        return VersionNumberUtility::getCurrentTypo3Version();
+        return (string)GeneralUtility::makeInstance(Typo3Version::class);
     }
 
     /**
@@ -165,19 +153,7 @@ class CoreVersionService
      */
     protected function getInstalledMajorVersion(): string
     {
-        return $this->getMajorVersion($this->getInstalledVersion());
-    }
-
-    /**
-     * Get 'major version' of version, e.g., '7' from '7.3.0'
-     *
-     * @param string $version to check
-     * @return string Major version, e.g., '7'
-     */
-    protected function getMajorVersion(string $version): string
-    {
-        $explodedVersion = explode('.', $version);
-        return $explodedVersion[0];
+        return (string)GeneralUtility::makeInstance(Typo3Version::class)->getMajorVersion();
     }
 
     /**
@@ -188,7 +164,7 @@ class CoreVersionService
      */
     protected function throwFetchException(string $url): void
     {
-        throw new Exception\RemoteFetchException(
+        throw new RemoteFetchException(
             'Fetching ' .
             $url .
             ' failed. Maybe this instance can not connect to the remote system properly.',

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Reports\Report\Status;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Reports\Report\Status;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Reports\Report\Status;
 
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
@@ -67,6 +68,7 @@ class FalStatus implements StatusProviderInterface
             }
         }
 
+        $queryBuilder = null;
         if (!empty($storages)) {
             $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('sys_file');
 

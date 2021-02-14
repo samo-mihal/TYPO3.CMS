@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Routing\Aspect;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Core\Routing\Aspect;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Routing\Aspect;
 
 use TYPO3\CMS\Core\Site\SiteLanguageAwareInterface;
 use TYPO3\CMS\Core\Site\SiteLanguageAwareTrait;
@@ -37,6 +38,18 @@ use TYPO3\CMS\Core\Site\SiteLanguageAwareTrait;
  *           2k17: '2017'
  *           2k18: '2018'
  *           next: '2019'
+ *         # (optional)
+ *         localeMap:
+ *           - locale: 'en_US.*|en_GB.*'
+ *             map:
+ *               twenty-seventeen: '2017'
+ *               twenty-eighteen: '2018'
+ *               next: '2019'
+ *           - locale: 'fr_FR'
+ *             map:
+ *               vingt-dix-sept: '2017'
+ *               vingt-dix-huit: '2018'
+ *               prochain: '2019'
  */
 class StaticValueMapper implements StaticMappableAspectInterface, SiteLanguageAwareInterface, \Countable
 {

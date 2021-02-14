@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Unit\Log\Fixtures;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,15 @@ namespace TYPO3\CMS\Core\Tests\Unit\Log\Fixtures;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\Log\Fixtures;
+
+use TYPO3\CMS\Core\Log\LogRecord;
+use TYPO3\CMS\Core\Log\Processor\AbstractProcessor;
+
 /**
  * A processor dedicated for testing
  */
-class ProcessorFixture extends \TYPO3\CMS\Core\Log\Processor\AbstractProcessor
+class ProcessorFixture extends AbstractProcessor
 {
     /**
      * Processing the record
@@ -25,7 +29,7 @@ class ProcessorFixture extends \TYPO3\CMS\Core\Log\Processor\AbstractProcessor
      * @param \TYPO3\CMS\Core\Log\LogRecord $record
      * @return \TYPO3\CMS\Core\Log\LogRecord
      */
-    public function processLogRecord(\TYPO3\CMS\Core\Log\LogRecord $record)
+    public function processLogRecord(LogRecord $record)
     {
         return $record;
     }

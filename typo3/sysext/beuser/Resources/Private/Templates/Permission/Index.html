@@ -8,10 +8,10 @@
 </f:section>
 
 <f:section name="content">
-
     <div class="form-group">
         <label for="depth"><f:translate key="LLL:EXT:beuser/Resources/Private/Language/locallang_mod_permission.xlf:Depth" />:</label>
-        <f:form.select class="form-control" id="depth" value="{depth}" options="{depthOptions}" additionalAttributes="{onchange: 'window.location.href = \'{depthBaseUrl}\'.replace(\'__DEPTH__\', this.options[this.selectedIndex].value);'}" />
+        <f:form.select class="form-control" id="depth" value="{depth}" options="{depthOptions}"
+                        additionalAttributes="{data-global-event: 'change', data-action-navigate: '$data=~s/$value/', data-navigate-value:depthBaseUrl}" />
     </div>
 
     <div class="panel panel-default panel-space">
@@ -91,24 +91,26 @@
                                     <span id="el_{data.row.uid}">
                                         <f:if condition="{data.row.editlock}">
                                             <f:then>
-                                                <a
+                                                <button
+                                                    type="button"
                                                     class="editlock btn btn-default"
                                                     data-page="{data.row.uid}"
                                                     data-lockstate="1"
                                                     title="{f:translate(key: 'LLL:EXT:beuser/Resources/Private/Language/locallang_mod_permission.xlf:EditLock_descr')}"
                                                 >
                                                     <core:icon identifier="actions-lock" />
-                                                </a>
+                                                </button>
                                             </f:then>
                                             <f:else>
-                                                <a
+                                                <button
+                                                    type="button"
                                                     class="editlock btn btn-default"
                                                     data-page="{data.row.uid}"
                                                     data-lockstate="0"
                                                     title="{f:translate(key: 'LLL:EXT:beuser/Resources/Private/Language/locallang_mod_permission.xlf:EditLock_descr2')}"
                                                 >
                                                     <core:icon identifier="actions-unlock" />
-                                                </a>
+                                                </button>
                                             </f:else>
                                         </f:if>
                                     </span>
@@ -139,7 +141,7 @@
     <f:format.raw>{cshItem}</f:format.raw>
 
     <h3><f:translate key="LLL:EXT:beuser/Resources/Private/Language/locallang_mod_permission.xlf:Legend" />:</h3>
-    <div class="beuser-legend">
+    <div class="access-legend">
         <table>
             <tr>
                 <td class="edge nowrap"><span><span></span></span></td>

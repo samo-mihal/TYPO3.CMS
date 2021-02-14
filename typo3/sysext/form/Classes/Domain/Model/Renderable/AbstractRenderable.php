@@ -1,11 +1,9 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\Domain\Model\Renderable;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
- *
- * It originated from the Neos.Form package (www.neos.io)
  *
  * It is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, either version 2
@@ -16,6 +14,12 @@ namespace TYPO3\CMS\Form\Domain\Model\Renderable;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+/*
+ * Inspired by and partially taken from the Neos.Form package (www.neos.io)
+ */
+
+namespace TYPO3\CMS\Form\Domain\Model\Renderable;
 
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Utility\ArrayUtility;
@@ -169,8 +173,7 @@ abstract class AbstractRenderable implements RenderableInterface, VariableRender
 
             foreach ($options['validators'] as $validatorConfiguration) {
                 $configurationHash = md5(
-                    $this->getRootForm()->getIdentifier() .
-                    $this->getIdentifier() .
+                    spl_object_hash($this) .
                     json_encode($validatorConfiguration)
                 );
                 if (in_array($configurationHash, $configurationHashes)) {
@@ -211,6 +214,7 @@ abstract class AbstractRenderable implements RenderableInterface, VariableRender
 
             ArrayUtility::mergeRecursiveWithOverrule($defaultOptions, $options);
 
+            /** @var ValidatorInterface $validator */
             $validator = GeneralUtility::makeInstance(ObjectManager::class)
                 ->get($implementationClassName, $defaultOptions);
             $this->addValidator($validator);
@@ -410,6 +414,16 @@ abstract class AbstractRenderable implements RenderableInterface, VariableRender
     public function setLabel(string $label)
     {
         $this->label = $label;
+    }
+
+    public function setDefaultValue($defaultValue)
+    {
+        // todo: this method must either be abstract and implemented in sub classes or get a proper method body.
+    }
+
+    public function setProperty(string $key, $value)
+    {
+        // todo: this method must either be abstract and implemented in sub classes or get a proper method body.
     }
 
     /**

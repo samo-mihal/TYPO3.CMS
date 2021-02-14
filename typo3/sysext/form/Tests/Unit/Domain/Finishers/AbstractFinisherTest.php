@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\Tests\Unit\Domain\Finishers;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Form\Tests\Unit\Domain\Finishers;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Form\Tests\Unit\Domain\Finishers;
 
 use Prophecy\Argument;
 use Prophecy\Prophecy\ObjectProphecy;
@@ -139,7 +141,7 @@ class AbstractFinisherTest extends UnitTestCase
         $finisherContextProphecy->getFormRuntime(Argument::cetera())
             ->willReturn($formRuntimeProphecy->reveal());
         $finisherContextProphecy->getFinisherVariableProvider(Argument::cetera())
-            ->willReturn(new FinisherVariableProvider);
+            ->willReturn(new FinisherVariableProvider());
 
         $mockAbstractFinisher->_set('finisherContext', $finisherContextProphecy->reveal());
 
@@ -418,7 +420,7 @@ class AbstractFinisherTest extends UnitTestCase
         ]);
 
         $finisherContextProphecy = $this->prophesize(FinisherContext::class);
-        $finisherContextProphecy->getFinisherVariableProvider(Argument::cetera())->willReturn(new FinisherVariableProvider);
+        $finisherContextProphecy->getFinisherVariableProvider(Argument::cetera())->willReturn(new FinisherVariableProvider());
         $mockAbstractFinisher->_set('finisherContext', $finisherContextProphecy->reveal());
 
         self::assertSame($expected, $mockAbstractFinisher->_call('substituteRuntimeReferences', $input, $formRuntimeProphecy->reveal()));
@@ -447,7 +449,7 @@ class AbstractFinisherTest extends UnitTestCase
     /**
      * @test
      */
-    public function substituteRuntimeReferencesReturnsResolvesElementIdentiiersInArrayKeys(): void
+    public function substituteRuntimeReferencesReturnsResolvesElementIdentifiersInArrayKeys(): void
     {
         $mockAbstractFinisher = $this->getAccessibleMockForAbstractClass(
             AbstractFinisher::class,
@@ -492,7 +494,7 @@ class AbstractFinisherTest extends UnitTestCase
             'date-1' => $date,
         ]);
 
-        $stringableElement = new class implements StringableFormElementInterface {
+        $stringableElement = new class() implements StringableFormElementInterface {
             /**
              * @param \DateTimeInterface $value
              */
@@ -570,7 +572,7 @@ class AbstractFinisherTest extends UnitTestCase
         ]);
 
         $finisherContextProphecy = $this->prophesize(FinisherContext::class);
-        $finisherContextProphecy->getFinisherVariableProvider(Argument::cetera())->willReturn(new FinisherVariableProvider);
+        $finisherContextProphecy->getFinisherVariableProvider(Argument::cetera())->willReturn(new FinisherVariableProvider());
         $mockAbstractFinisher->_set('finisherContext', $finisherContextProphecy->reveal());
 
         $this->expectException(FinisherException::class);

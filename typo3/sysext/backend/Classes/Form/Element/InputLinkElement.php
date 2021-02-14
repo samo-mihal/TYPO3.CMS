@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Form\Element;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Form\Element;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Form\Element;
 
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Imaging\Icon;
@@ -160,16 +161,16 @@ class InputLinkElement extends AbstractFormElement
                 'hasDefaultValue',
             ]),
             'data-formengine-validation-rules' => $this->getValidationDataAsJsonString($config),
-            'data-formengine-input-params' => json_encode([
+            'data-formengine-input-params' => (string)json_encode([
                 'field' => $parameterArray['itemFormElName'],
                 'evalList' => implode(',', $evalList)
             ]),
-            'data-formengine-input-name' => $parameterArray['itemFormElName'],
+            'data-formengine-input-name' => (string)($parameterArray['itemFormElName'] ?? ''),
         ];
 
         $maxLength = $config['max'] ?? 0;
         if ((int)$maxLength > 0) {
-            $attributes['maxlength'] = (int)$maxLength;
+            $attributes['maxlength'] = (string)(int)$maxLength;
         }
         if (!empty($config['placeholder'])) {
             $attributes['placeholder'] = trim($config['placeholder']);
@@ -222,8 +223,8 @@ class InputLinkElement extends AbstractFormElement
         $expansionHtml[] =      '<div class="form-wizards-element">';
         $expansionHtml[] =          '<div class="input-group t3js-form-field-inputlink">';
         $expansionHtml[] =              '<span class="t3js-form-field-inputlink-icon input-group-addon">' . $linkExplanation['icon'] . '</span>';
-        $expansionHtml[] =              '<input class="form-control form-field-inputlink-explanation t3js-form-field-inputlink-explanation" data-toggle="tooltip" data-title="' . $explanation . '" value="' . $explanation . '" readonly>';
-        $expansionHtml[] =              '<input type="text"' . GeneralUtility::implodeAttributes($attributes, true) . ' />';
+        $expansionHtml[] =              '<input class="form-control t3js-form-field-inputlink-explanation" data-toggle="tooltip" data-title="' . $explanation . '" value="' . $explanation . '" readonly>';
+        $expansionHtml[] =              '<input type="text" ' . GeneralUtility::implodeAttributes($attributes, true) . ' />';
         $expansionHtml[] =              '<span class="input-group-btn">';
         $expansionHtml[] =                  '<button class="btn btn-default t3js-form-field-inputlink-explanation-toggle" type="button" title="' . htmlspecialchars($toggleButtonTitle) . '">';
         $expansionHtml[] =                      $this->iconFactory->getIcon('actions-version-workspaces-preview-link', Icon::SIZE_SMALL)->render();
@@ -295,7 +296,7 @@ class InputLinkElement extends AbstractFormElement
             $fullElement[] = '</div>';
             $fullElement[] = '<div class="t3js-formengine-placeholder-placeholder">';
             $fullElement[] =    '<div class="form-control-wrap" style="max-width:' . $width . 'px">';
-            $fullElement[] =        '<input type="text" class="form-control" disabled="disabled" value="' . $shortenedPlaceholder . '" />';
+            $fullElement[] =        '<input type="text" class="form-control" disabled="disabled" value="' . htmlspecialchars($shortenedPlaceholder) . '" />';
             $fullElement[] =    '</div>';
             $fullElement[] = '</div>';
             $fullElement[] = '<div class="t3js-formengine-placeholder-formfield">';
@@ -329,13 +330,7 @@ class InputLinkElement extends AbstractFormElement
 
         try {
             $linkData = $linkService->resolve($linkParts['url']);
-        } catch (FileDoesNotExistException $e) {
-            return $data;
-        } catch (FolderDoesNotExistException $e) {
-            return $data;
-        } catch (UnknownLinkHandlerException $e) {
-            return $data;
-        } catch (InvalidPathException $e) {
+        } catch (FileDoesNotExistException|FolderDoesNotExistException|UnknownLinkHandlerException|InvalidPathException $e) {
             return $data;
         }
 
@@ -357,7 +352,7 @@ class InputLinkElement extends AbstractFormElement
                         $label = $this->getLanguageService()->sL('LLL:EXT:recordlist/Resources/Private/Language/locallang_browse_links.xlf:params');
                         break;
                     default:
-                        $label = $key;
+                        $label = (string)$key;
                 }
 
                 $additionalAttributes[] = '<span><strong>' . htmlspecialchars($label) . ': </strong> ' . htmlspecialchars($value) . '</span>';
@@ -384,7 +379,7 @@ class InputLinkElement extends AbstractFormElement
                 break;
             case LinkService::TYPE_URL:
                 $data = [
-                    'text' => $this->getDomainByUrl($linkData['url']),
+                    'text' => $linkData['url'],
                     'icon' => $this->iconFactory->getIcon('apps-pagetree-page-shortcut-external', Icon::SIZE_SMALL)->render()
 
                 ];
@@ -426,6 +421,15 @@ class InputLinkElement extends AbstractFormElement
                     ];
                 }
                 break;
+            case LinkService::TYPE_TELEPHONE:
+                $telephone = $linkData['telephone'];
+                if ($telephone) {
+                    $data = [
+                        'text' => $telephone,
+                        'icon' => $this->iconFactory->getIcon('actions-device-mobile', Icon::SIZE_SMALL)->render()
+                    ];
+                }
+                break;
             default:
                 // Please note that this hook is preliminary and might change, as this element could become its own
                 // TCA type in the future
@@ -442,17 +446,6 @@ class InputLinkElement extends AbstractFormElement
 
         $data['additionalAttributes'] = '<div class="help-block">' . implode(' - ', $additionalAttributes) . '</div>';
         return $data;
-    }
-
-    /**
-     * @param string $uriString
-     *
-     * @return string
-     */
-    protected function getDomainByUrl(string $uriString): string
-    {
-        $data = parse_url($uriString);
-        return $data['host'] ?? '';
     }
 
     /**

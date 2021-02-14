@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Template\Components\Buttons;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Template\Components\Buttons;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Template\Components\Buttons;
 
 /**
  * SplitButton
@@ -119,13 +120,9 @@ class SplitButton extends AbstractButton
     public function isValid()
     {
         $subject = $this->getButton();
-        if (isset($subject['primary'])
-            && ($subject['primary'] instanceof AbstractButton)
-            && isset($subject['options'])
-        ) {
-            return true;
-        }
-        return false;
+        return isset($subject['primary'])
+               && ($subject['primary'] instanceof AbstractButton)
+               && isset($subject['options']);
     }
 
     /**
@@ -139,13 +136,17 @@ class SplitButton extends AbstractButton
         $attributes = [
             'type' => 'submit',
             'class' => 'btn btn-sm btn-default ' . $items['primary']->getClasses(),
-            'name' => $items['primary']->getName(),
-            'value' => $items['primary']->getValue()
         ];
+        if (method_exists($items['primary'], 'getName')) {
+            $attributes['name'] = $items['primary']->getName();
+        }
+        if (method_exists($items['primary'], 'getValue')) {
+            $attributes['value'] = $items['primary']->getValue();
+        }
         if (!empty($items['primary']->getOnClick())) {
             $attributes['onclick'] = $items['primary']->getOnClick();
         }
-        if (!empty($items['primary']->getForm())) {
+        if (method_exists($items['primary'], 'getForm') && !empty($items['primary']->getForm())) {
             $attributes['form'] = $items['primary']->getForm();
         }
         $attributesString = '';
@@ -164,28 +165,37 @@ class SplitButton extends AbstractButton
             </button>
             <ul class="dropdown-menu">';
 
-        /** @var InputButton $option */
+        /** @var AbstractButton $option */
         foreach ($items['options'] as $option) {
-            $optionAttributes = [
-                'href' => '#',
-                'data-name' => $option->getName(),
-                'data-value' => $option->getValue(),
-                'data-form' => $option->getForm()
-            ];
-            if (!empty($option->getClasses())) {
-                $optionAttributes['class'] = $option->getClasses();
+            if ($option instanceof InputButton) {
+                // if the option is an InputButton we have to create a custom rendering
+                $optionAttributes = [
+                    'href' => '#',
+                    'data-name' => $option->getName(),
+                    'data-value' => $option->getValue(),
+                    'data-form' => $option->getForm()
+                ];
+
+                if (!empty($option->getClasses())) {
+                    $optionAttributes['class'] = $option->getClasses();
+                }
+                if (!empty($option->getOnClick())) {
+                    $optionAttributes['onclick'] = $option->getOnClick();
+                }
+                $optionAttributesString = '';
+                foreach ($optionAttributes as $key => $value) {
+                    $optionAttributesString .= ' ' . htmlspecialchars($key) . '="' . htmlspecialchars($value) . '"';
+                }
+                $html =  '<a' . $optionAttributesString . '>' . $option->getIcon()->render('inline') . ' '
+                    . htmlspecialchars($option->getTitle()) . '</a>';
+            } else {
+                // for any other kind of button we simply use what comes along (e.g. LinkButton)
+                $html = $option->render();
             }
-            if (!empty($option->getOnClick())) {
-                $optionAttributes['onclick'] = $option->getOnClick();
-            }
-            $optionAttributesString = '';
-            foreach ($optionAttributes as $key => $value) {
-                $optionAttributesString .= ' ' . htmlspecialchars($key) . '="' . htmlspecialchars($value) . '"';
-            }
+
             $content .= '
                 <li>
-                    <a' . $optionAttributesString . '>' . $option->getIcon()->render('inline') . ' '
-                    . htmlspecialchars($option->getTitle()) . '</a>
+                   ' . $html . '
                 </li>
             ';
         }

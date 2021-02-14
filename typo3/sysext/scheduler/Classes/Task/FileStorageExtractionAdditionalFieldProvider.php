@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Scheduler\Task;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,9 +13,12 @@ namespace TYPO3\CMS\Scheduler\Task;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Scheduler\Task;
+
 use TYPO3\CMS\Core\Resource\Index\ExtractorInterface;
 use TYPO3\CMS\Core\Resource\Index\ExtractorRegistry;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
+use TYPO3\CMS\Core\Resource\StorageRepository;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
 use TYPO3\CMS\Scheduler\AdditionalFieldProviderInterface;
@@ -42,6 +44,7 @@ class FileStorageExtractionAdditionalFieldProvider implements AdditionalFieldPro
         if ($task !== null && !$task instanceof FileStorageExtractionTask) {
             throw new \InvalidArgumentException('Task not of type FileStorageExtractionTask', 1384275695);
         }
+        $additionalFields = [];
         $additionalFields['scheduler_fileStorageIndexing_storage'] = $this->getAllStoragesField($task);
         $additionalFields['scheduler_fileStorageIndexing_fileCount'] = $this->getFileCountField($task);
         $additionalFields['scheduler_fileStorageIndexing_registeredExtractors'] = $this->getRegisteredExtractorsField($task);
@@ -57,7 +60,7 @@ class FileStorageExtractionAdditionalFieldProvider implements AdditionalFieldPro
     protected function getAllStoragesField(FileStorageExtractionTask $task = null)
     {
         /** @var \TYPO3\CMS\Core\Resource\ResourceStorage[] $storages */
-        $storages = GeneralUtility::makeInstance(\TYPO3\CMS\Core\Resource\StorageRepository::class)->findAll();
+        $storages = GeneralUtility::makeInstance(StorageRepository::class)->findAll();
         $options = [];
         foreach ($storages as $storage) {
             if ($task !== null && $task->storageUid === $storage->getUid()) {
@@ -90,7 +93,7 @@ class FileStorageExtractionAdditionalFieldProvider implements AdditionalFieldPro
     {
         $fieldName = 'tx_scheduler[scheduler_fileStorageIndexing_fileCount]';
         $fieldId = 'scheduler_fileStorageIndexing_fileCount';
-        $fieldValue = $task !== null ? (int)$task->maxFileCount : 100;
+        $fieldValue = (string)($task !== null ? (int)$task->maxFileCount : 100);
         $fieldHtml = '<input type="text" class="form-control" name="' . $fieldName . '" id="' . $fieldId . '" value="' . htmlspecialchars($fieldValue) . '">';
 
         $fieldConfiguration = [
@@ -160,7 +163,7 @@ class FileStorageExtractionAdditionalFieldProvider implements AdditionalFieldPro
         ) {
             return false;
         }
-        if (ResourceFactory::getInstance()->getStorageObject($submittedData['scheduler_fileStorageIndexing_storage']) === null) {
+        if (GeneralUtility::makeInstance(ResourceFactory::class)->getStorageObject($submittedData['scheduler_fileStorageIndexing_storage']) === null) {
             return false;
         }
         if (!MathUtility::isIntegerInRange($submittedData['scheduler_fileStorageIndexing_fileCount'], 1, 9999)) {

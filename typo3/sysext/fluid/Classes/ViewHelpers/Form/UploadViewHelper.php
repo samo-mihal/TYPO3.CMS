@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\ViewHelpers\Form;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Fluid\ViewHelpers\Form;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Fluid\ViewHelpers\Form;
 
 /**
  * A ViewHelper which generates an :html:`<input type="file">` HTML element.
@@ -29,7 +30,7 @@ namespace TYPO3\CMS\Fluid\ViewHelpers\Form;
  *
  *    <input type="file" name="file" />
  */
-class UploadViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormFieldViewHelper
+class UploadViewHelper extends AbstractFormFieldViewHelper
 {
     /**
      * @var string

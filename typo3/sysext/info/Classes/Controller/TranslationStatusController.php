@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Info\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,13 +13,15 @@ namespace TYPO3\CMS\Info\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Info\Controller;
+
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Tree\View\PageTreeView;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\ConnectionPool;
-use TYPO3\CMS\Core\Database\Query\Restriction\BackendWorkspaceRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
+use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Localization\LanguageService;
@@ -90,7 +91,7 @@ class TranslationStatusController
             $h_func .= BackendUtility::getDropdownMenu($this->id, 'SET[lang]', $this->pObj->MOD_SETTINGS['lang'], $this->pObj->MOD_MENU['lang']);
             $theOutput .= $h_func;
             // Add CSH:
-            $theOutput .= BackendUtility::cshItem('_MOD_web_info', 'lang', null, '<div class="form-group"><span class="btn btn-default btn-sm">|</span></div><br />');
+            $theOutput .= BackendUtility::cshItem('_MOD_web_info', 'lang', '', '<div class="form-group"><span class="btn btn-default btn-sm">|</span></div><br />');
             $theOutput .= '</div>';
             // Showing the tree:
             // Initialize starting point of page tree:
@@ -150,7 +151,7 @@ class TranslationStatusController
     /**
      * Rendering the localization information table.
      *
-     * @param array $tree The Page tree data
+     * @param PageTreeView $tree The Page tree data
      * @return string HTML for the localization information table.
      */
     protected function renderL10nTable(&$tree)
@@ -239,8 +240,7 @@ class TranslationStatusController
                     if (is_array($row)) {
                         $langRecUids[$languageId][] = $row['uid'];
                         $status = $row['_HIDDEN'] ? (GeneralUtility::hideIfNotTranslated($data['row']['l18n_cfg']) || GeneralUtility::hideIfDefaultLanguage($data['row']['l18n_cfg']) ? 'danger' : '') : 'success';
-                        $icon = $this->iconFactory->getIconForRecord('pages', $row, Icon::SIZE_SMALL)->render();
-                        $info = $icon . ($showPageId ? ' [' . (int)$row['uid'] . ']' : '') . ' ' . htmlspecialchars(
+                        $info = ($showPageId ? ' [' . (int)$row['uid'] . ']' : '') . ' ' . htmlspecialchars(
                             GeneralUtility::fixed_lgd_cs($row['title'], $titleLen)
                         ) . ((string)$row['nav_title'] !== '' ? ' [Nav: <em>' . htmlspecialchars(
                             GeneralUtility::fixed_lgd_cs($row['nav_title'], $titleLen)
@@ -248,6 +248,7 @@ class TranslationStatusController
                             'LLL:EXT:info/Resources/Private/Language/locallang_webinfo.xlf:lang_renderl10n_badThingThereAre'
                         ) . '</div>' : '');
                         $tCells[] = '<td class="' . $status . ' col-border-left">' .
+                            BackendUtility::wrapClickMenuOnIcon($tree->getIcon($row), 'pages', (int)$row['uid']) .
                             '<a href="#" onclick="' . htmlspecialchars(
                                 'top.loadEditId(' . (int)$data['row']['uid'] . ',"&SET[language]=' . $languageId . '"); return false;'
                             ) . '" title="' . $lang->sL(
@@ -263,7 +264,7 @@ class TranslationStatusController
                             ],
                             'returnUrl' => GeneralUtility::getIndpEnv('REQUEST_URI')
                         ]);
-                        $info = str_replace('###LANG_UID###', $languageId, $viewPageLink);
+                        $info = str_replace('###LANG_UID###', (string)$languageId, $viewPageLink);
                         $info .= '<a href="' . htmlspecialchars($editUrl)
                             . '" class="btn btn-default" title="' . $lang->sL(
                                 'LLL:EXT:info/Resources/Private/Language/locallang_webinfo.xlf:lang_renderl10n_editLanguageOverlayRecord'
@@ -346,14 +347,8 @@ class TranslationStatusController
                     $editButton = '';
                 }
                 // Create new overlay records:
-                $createLink = (string)$uriBuilder->buildUriFromRoute('record_edit', [
-                    'columnsOnly' => 'title,hidden,sys_language_uid',
-                    'overrideVals' => [
-                        'pages' => [
-                            'sys_language_uid' => $languageId,
-                        ],
-                    ],
-                    'returnUrl' => GeneralUtility::getIndpEnv('REQUEST_URI')
+                $createLink = (string)$uriBuilder->buildUriFromRoute('tce_db', [
+                    'redirect' => GeneralUtility::getIndpEnv('REQUEST_URI')
                 ]);
                 $newButton = '<a href="' . htmlspecialchars($createLink) . '" data-edit-url="' . htmlspecialchars($createLink) . '" class="btn btn-default disabled t3js-language-new-' . $languageId . '" title="' . $lang->sL(
                     'LLL:EXT:info/Resources/Private/Language/locallang_webinfo.xlf:lang_getlangsta_createNewTranslationHeaders'
@@ -394,7 +389,7 @@ class TranslationStatusController
         $queryBuilder
             ->getRestrictions()
             ->removeAll()
-            ->add(GeneralUtility::makeInstance(BackendWorkspaceRestriction::class))
+            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, (int)$this->getBackendUser()->workspace))
             ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
         $result = $queryBuilder
             ->select('*')
@@ -437,7 +432,7 @@ class TranslationStatusController
         $queryBuilder->getRestrictions()
             ->removeAll()
             ->add(GeneralUtility::makeInstance(DeletedRestriction::class))
-            ->add(GeneralUtility::makeInstance(BackendWorkspaceRestriction::class));
+            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, (int)$this->getBackendUser()->workspace));
         $count = $queryBuilder
             ->count('uid')
             ->from('tt_content')

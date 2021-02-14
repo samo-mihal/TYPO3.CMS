@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\Tests\Unit\Service;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,11 +15,14 @@ namespace TYPO3\CMS\Form\Tests\Unit\Service;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Form\Tests\Unit\Service;
+
 use Prophecy\Argument;
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Localization\LanguageStore;
+use TYPO3\CMS\Core\Localization\Locales;
 use TYPO3\CMS\Core\Localization\LocalizationFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Configuration\ConfigurationManager;
@@ -100,10 +103,11 @@ class TranslationServiceTest extends UnitTestCase
             'getLanguageService'
         ], [], '', false);
 
+        $languageService = new LanguageService(new Locales(), new LocalizationFactory(new LanguageStore(), $cacheManagerProphecy->reveal()));
         $this->mockTranslationService
             ->expects(self::any())
             ->method('getLanguageService')
-            ->willReturn(GeneralUtility::makeInstance(LanguageService::class));
+            ->willReturn($languageService);
 
         $this->mockTranslationService
             ->expects(self::any())
@@ -864,7 +868,7 @@ class TranslationServiceTest extends UnitTestCase
     /**
      * @test
      */
-    public function translateFormElementValueTranslateLabelForConcreteFormAndConcreteElementFromFormRumtimeTranslationFilesIfElementRenderingOptionsContainsNoTranslationFilesAndElementLabelIsNotEmptyAndPropertyShouldBeTranslatedAndTranslationExists(): void
+    public function translateFormElementValueTranslateLabelForConcreteFormAndConcreteElementFromFormRuntimeTranslationFilesIfElementRenderingOptionsContainsNoTranslationFilesAndElementLabelIsNotEmptyAndPropertyShouldBeTranslatedAndTranslationExists(): void
     {
         $formRuntimeXlfPaths = ['EXT:form/Tests/Unit/Service/Fixtures/locallang_form.xlf'];
         $textElementXlfPaths = ['EXT:form/Tests/Unit/Service/Fixtures/locallang_text.xlf'];
@@ -1011,7 +1015,7 @@ class TranslationServiceTest extends UnitTestCase
     public function translateFormElementValueTranslateLabelFromAdditionalTranslationForConcreteFormAndConcreteElementIfElementRenderingOptionsContainsATranslationFilesAndElementLabelIsNotEmptyAndPropertyShouldBeTranslatedAndTranslationExists(): void
     {
         $formRuntimeXlfPaths = ['EXT:form/Tests/Unit/Service/Fixtures/locallang_form.xlf'];
-        $textElementXlfPathss = [
+        $textElementXlfPaths = [
             10 => 'EXT:form/Tests/Unit/Service/Fixtures/locallang_text.xlf',
             20 => 'EXT:form/Tests/Unit/Service/Fixtures/locallang_additional_text.xlf'
          ];
@@ -1028,7 +1032,7 @@ class TranslationServiceTest extends UnitTestCase
 
         $formElementRenderingOptions = [
             'translation' => [
-                'translationFiles' => $textElementXlfPathss,
+                'translationFiles' => $textElementXlfPaths,
                 'translatePropertyValueIfEmpty' => true
             ],
         ];
@@ -1037,7 +1041,7 @@ class TranslationServiceTest extends UnitTestCase
 
         $this->store->flushData($formRuntimeXlfPaths);
 
-        foreach ($textElementXlfPathss as $textElementXlfPaths) {
+        foreach ($textElementXlfPaths as $textElementXlfPaths) {
             $this->store->flushData($textElementXlfPaths);
         }
 

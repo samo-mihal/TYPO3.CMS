@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Unit\Resource;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,11 @@ namespace TYPO3\CMS\Core\Tests\Unit\Resource;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\Resource;
+
+use TYPO3\CMS\Core\Resource\File;
+use TYPO3\CMS\Core\Resource\FileReference;
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -28,8 +32,8 @@ class FileReferenceTest extends UnitTestCase
      */
     protected function prepareFixture(array $fileReferenceProperties, array $originalFileProperties)
     {
-        $fixture = $this->getAccessibleMock(\TYPO3\CMS\Core\Resource\FileReference::class, ['dummy'], [], '', false);
-        $originalFileMock = $this->getAccessibleMock(\TYPO3\CMS\Core\Resource\File::class, [], [], '', false);
+        $fixture = $this->getAccessibleMock(FileReference::class, ['dummy'], [], '', false);
+        $originalFileMock = $this->getAccessibleMock(File::class, [], [], '', false);
         $originalFileMock->expects(self::any())
             ->method('getProperties')
             ->willReturn(
@@ -126,7 +130,7 @@ class FileReferenceTest extends UnitTestCase
         $this->expectExceptionCode(1314226805);
 
         $fixture = $this->prepareFixture($fileReferenceProperties, $originalFileProperties);
-        $fixture->getProperty($this->getUniqueId('nothingHere'));
+        $fixture->getProperty(StringUtility::getUniqueId('nothingHere'));
     }
 
     /**

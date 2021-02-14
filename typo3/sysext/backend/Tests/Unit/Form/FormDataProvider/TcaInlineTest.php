@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
+
 use Prophecy\Prophecy\ObjectProphecy;
 use TYPO3\CMS\Backend\Form\FormDataProvider\TcaInline;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
@@ -25,7 +26,7 @@ use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 class TcaInlineTest extends UnitTestCase
 {
     /**
-     * @var BackendUserAuthentication | ObjectProphecy
+     * @var BackendUserAuthentication|ObjectProphecy
      */
     protected $beUserProphecy;
 
@@ -65,7 +66,7 @@ class TcaInlineTest extends UnitTestCase
 
         $expected = $input;
         $expected['processedTca']['columns']['aField']['children'] = [];
-        self::assertEquals($expected, (new TcaInline)->addData($input));
+        self::assertEquals($expected, (new TcaInline())->addData($input));
     }
 
     /**
@@ -96,7 +97,7 @@ class TcaInlineTest extends UnitTestCase
 
         $expected = $input;
         $expected['processedTca']['columns']['aField']['config']['type'] = 'input';
-        self::assertEquals($expected, (new TcaInline)->addData($input));
+        self::assertEquals($expected, (new TcaInline())->addData($input));
     }
 
     /**
@@ -129,6 +130,6 @@ class TcaInlineTest extends UnitTestCase
 
         $expected = $input;
         $expected['processedTca']['columns']['aField']['children'] = [];
-        self::assertEquals($expected, (new TcaInline)->addData($input));
+        self::assertEquals($expected, (new TcaInline())->addData($input));
     }
 }

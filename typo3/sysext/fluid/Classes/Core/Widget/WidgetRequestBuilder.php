@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Fluid\Core\Widget;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Fluid\Core\Widget;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Fluid\Core\Widget;
 
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Mvc\RequestInterface;
@@ -44,24 +46,12 @@ class WidgetRequestBuilder extends RequestBuilder
      */
     public function build(): RequestInterface
     {
-        $baseUri = \TYPO3\CMS\Core\Utility\GeneralUtility::getIndpEnv('TYPO3_SITE_URL');
+        $baseUri = GeneralUtility::getIndpEnv('TYPO3_SITE_URL');
         if ($this->environmentService->isEnvironmentInBackendMode()) {
             $baseUri .= TYPO3_mainDir;
         }
 
-        $request = $this->objectManager->get(WidgetRequest::class);
-        $request->setRequestUri(GeneralUtility::getIndpEnv('TYPO3_REQUEST_URL'));
-        $request->setBaseUri($baseUri);
-        $request->setMethod($_SERVER['REQUEST_METHOD'] ?? null);
-        if (strtolower($_SERVER['REQUEST_METHOD']) === 'post') {
-            $request->setArguments(GeneralUtility::_POST());
-        } else {
-            $request->setArguments(GeneralUtility::_GET());
-        }
         $rawGetArguments = GeneralUtility::_GET();
-        if (isset($rawGetArguments['action'])) {
-            $request->setControllerActionName($rawGetArguments['action']);
-        }
         if (!isset($rawGetArguments['fluid-widget-id'])) {
             // Low level test, WidgetRequestHandler returns false in canHandleRequest () if this is not set
             throw new \InvalidArgumentException(
@@ -70,6 +60,19 @@ class WidgetRequestBuilder extends RequestBuilder
             );
         }
         $widgetContext = $this->ajaxWidgetContextHolder->get($rawGetArguments['fluid-widget-id']);
+
+        $request = $this->objectManager->get(WidgetRequest::class, $widgetContext->getControllerObjectName());
+        $request->setRequestUri(GeneralUtility::getIndpEnv('TYPO3_REQUEST_URL'));
+        $request->setBaseUri($baseUri);
+        $request->setMethod($_SERVER['REQUEST_METHOD'] ?? null);
+        if (strtolower($_SERVER['REQUEST_METHOD']) === 'post') {
+            $request->setArguments(GeneralUtility::_POST());
+        } else {
+            $request->setArguments(GeneralUtility::_GET());
+        }
+        if (isset($rawGetArguments['action'])) {
+            $request->setControllerActionName($rawGetArguments['action']);
+        }
         $request->setWidgetContext($widgetContext);
         return $request;
     }

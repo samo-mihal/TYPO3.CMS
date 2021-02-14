@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Install\Command;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Install\Command;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Install\Command;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -41,6 +42,11 @@ use TYPO3\CMS\Install\Updates\UpgradeWizardInterface;
 class UpgradeWizardRunCommand extends Command
 {
     /**
+     * @var LateBootService
+     */
+    private $lateBootService;
+
+    /**
      * @var UpgradeWizardsService
      */
     private $upgradeWizardsService;
@@ -55,16 +61,25 @@ class UpgradeWizardRunCommand extends Command
      */
     private $input;
 
+    public function __construct(
+        string $name,
+        LateBootService $lateBootService,
+        UpgradeWizardsService $upgradeWizardsService
+    ) {
+        $this->lateBootService = $lateBootService;
+        $this->upgradeWizardsService = $upgradeWizardsService;
+        parent::__construct($name);
+    }
+
     /**
      * Bootstrap running of upgrade wizard,
      * ensure database is utf-8
      */
     protected function bootstrap(): void
     {
-        GeneralUtility::makeInstance(LateBootService::class)->loadExtLocalconfDatabaseAndExtTables();
+        $this->lateBootService->loadExtLocalconfDatabaseAndExtTables();
         Bootstrap::initializeBackendUser(CommandLineUserAuthentication::class);
         Bootstrap::initializeBackendAuthentication();
-        $this->upgradeWizardsService = new UpgradeWizardsService();
         $this->upgradeWizardsService->isDatabaseCharsetUtf8() ?: $this->upgradeWizardsService->setDatabaseCharsetUtf8();
     }
 
@@ -100,6 +115,7 @@ class UpgradeWizardRunCommand extends Command
         $result = 0;
         if ($input->getArgument('wizardName')) {
             $wizardToExecute = $input->getArgument('wizardName');
+            $wizardToExecute = is_string($wizardToExecute) ? $wizardToExecute : '';
             if (isset($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['ext/install']['update'][$wizardToExecute])) {
                 $className = $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['ext/install']['update'][$wizardToExecute];
                 $upgradeWizard = $this->getWizard($className, $wizardToExecute);
@@ -125,8 +141,8 @@ class UpgradeWizardRunCommand extends Command
      * Get Wizard instance by class name and identifier
      * Returns null if wizard is already done
      *
-     * @param $className
-     * @param $identifier
+     * @param string $className
+     * @param string $identifier
      * @return \TYPO3\CMS\Install\Updates\UpgradeWizardInterface|null
      */
     protected function getWizard(string $className, string $identifier): ?UpgradeWizardInterface

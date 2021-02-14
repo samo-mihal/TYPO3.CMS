@@ -11,11 +11,11 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import * as $ from 'jquery';
-import 'datatables';
+import $ from 'jquery';
+import 'tablesort';
 import DocumentSaveActions = require('TYPO3/CMS/Backend/DocumentSaveActions');
 import Modal = require('TYPO3/CMS/Backend/Modal');
-import MessageUtility = require('TYPO3/CMS/Backend/Utility/MessageUtility');
+import { MessageUtility } from 'TYPO3/CMS/Backend/Utility/MessageUtility';
 
 interface TableNumberMapping {
   [s: string]: number;
@@ -163,14 +163,17 @@ class Scheduler {
       this.actOnChangeSchedulerTableGarbageCollectionTable($(evt.currentTarget));
     });
 
-    $('.taskGroup').on('click', (evt: JQueryEventObject): void => {
-      this.toggleTaskGroups($(evt.currentTarget));
+    $('[data-update-task-frequency]').change((evt: JQueryEventObject): void => {
+      const $target = $(evt.currentTarget);
+      const $taskFrequency = $('#task_frequency');
+      $taskFrequency.val($target.val());
+      $target.val($target.attr('value')).blur();
     });
 
-    $('table.taskGroup-table').DataTable({
-      'paging': false,
-      'searching': false,
-    });
+    const taskGroupTable = document.querySelector('table.taskGroup-table');
+    if (taskGroupTable !== null) {
+      new Tablesort(taskGroupTable);
+    }
 
     $(document).on('click', '.t3js-element-browser', (e: JQueryEventObject): void => {
       e.preventDefault();
@@ -202,7 +205,7 @@ class Scheduler {
   }
 
   private listenOnElementBrowser = (e: MessageEvent): void => {
-    if (!MessageUtility.MessageUtility.verifyOrigin(e.origin)) {
+    if (!MessageUtility.verifyOrigin(e.origin)) {
       throw 'Denied message sent by ' + e.origin;
     }
 

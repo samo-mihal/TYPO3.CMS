@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Reports\Report\Status;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,8 +12,10 @@ namespace TYPO3\CMS\Reports\Report\Status;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Reports\Report\Status;
+
 use TYPO3\CMS\Core\Localization\LanguageService;
-use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Reports\Status as ReportStatus;
 use TYPO3\CMS\Reports\StatusProviderInterface;
@@ -33,7 +34,6 @@ class Typo3Status implements StatusProviderInterface
     {
         $statuses = [
             'registeredXclass' => $this->getRegisteredXclassStatus(),
-            'compatibility7' => $this->getCompatibility7Status(),
         ];
         return $statuses;
     }
@@ -64,7 +64,7 @@ class Typo3Status implements StatusProviderInterface
             foreach ($xclassFoundArray as $originalClass => $xClassName) {
                 $messageDetail = sprintf(
                     $this->getLanguageService()->getLL('status_xclassUsageFound_message_detail'),
-                    '<code>' . htmlspecialchars($originalClass) . '</code>',
+                    '<code>' . htmlspecialchars((string)$originalClass) . '</code>',
                     '<code>' . htmlspecialchars($xClassName) . '</code>'
                 );
                 $message .= '<li>' . $messageDetail . '</li>';
@@ -76,32 +76,6 @@ class Typo3Status implements StatusProviderInterface
         return GeneralUtility::makeInstance(
             ReportStatus::class,
             $this->getLanguageService()->getLL('status_xclassUsage'),
-            $value,
-            $message,
-            $severity
-        );
-    }
-
-    /**
-     * Check for usage of EXT:compatibility7
-     *
-     * @return \TYPO3\CMS\Reports\Status
-     */
-    protected function getCompatibility7Status()
-    {
-        $message = '';
-        $value = $this->getLanguageService()->getLL('status_disabled');
-        $severity = ReportStatus::OK;
-
-        if (ExtensionManagementUtility::isLoaded('compatibility7')) {
-            $value = $this->getLanguageService()->getLL('status_enabled');
-            $message = $this->getLanguageService()->getLL('status_compatibility7Usage_message');
-            $severity = ReportStatus::WARNING;
-        }
-
-        return GeneralUtility::makeInstance(
-            ReportStatus::class,
-            $this->getLanguageService()->getLL('status_compatibility7Usage'),
             $value,
             $message,
             $severity

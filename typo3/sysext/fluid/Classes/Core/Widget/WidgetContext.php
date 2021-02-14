@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\Core\Widget;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,11 @@ namespace TYPO3\CMS\Fluid\Core\Widget;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Fluid\Core\Widget;
+
+use TYPO3Fluid\Fluid\Core\Parser\SyntaxTree\RootNode;
+use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
 
 /**
  * The WidgetContext stores all information a widget needs to know about the
@@ -241,7 +245,7 @@ class WidgetContext
      * @param \TYPO3Fluid\Fluid\Core\Parser\SyntaxTree\RootNode $viewHelperChildNodes
      * @param \TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface $viewHelperChildNodeRenderingContext
      */
-    public function setViewHelperChildNodes(\TYPO3Fluid\Fluid\Core\Parser\SyntaxTree\RootNode $viewHelperChildNodes, \TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface $viewHelperChildNodeRenderingContext)
+    public function setViewHelperChildNodes(RootNode $viewHelperChildNodes, RenderingContextInterface $viewHelperChildNodeRenderingContext)
     {
         $this->viewHelperChildNodes = $viewHelperChildNodes;
         $this->viewHelperChildNodeRenderingContext = $viewHelperChildNodeRenderingContext;

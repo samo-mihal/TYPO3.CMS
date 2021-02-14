@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\ViewHelpers\Uri;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Fluid\ViewHelpers\Uri;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Fluid\ViewHelpers\Uri;
 
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\PathUtility;
@@ -35,7 +36,7 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
  *
  * Output::
  *
- *    <link href="typo3conf/ext/example_extension/Resources/Resources/Public/css/stylesheet.css" rel="stylesheet" />
+ *    <link href="typo3conf/ext/example_extension/Resources/Public/css/stylesheet.css" rel="stylesheet" />
  *
  * Depending on current extension.
  *
@@ -48,7 +49,7 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
  *
  * Output::
  *
- *    <link href="typo3conf/ext/another_extension/Resources/Resources/Public/css/stylesheet.css" rel="stylesheet" />
+ *    <link href="typo3conf/ext/another_extension/Resources/Public/css/stylesheet.css" rel="stylesheet" />
  */
 class ResourceViewHelper extends AbstractViewHelper
 {

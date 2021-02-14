@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
 
 use TYPO3\CMS\Backend\Form\FormDataProvider\TcaColumnsProcessRecordTitle;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
@@ -40,13 +41,13 @@ class TcaColumnsProcessRecordTitleTest extends UnitTestCase
 
         $expected = $input;
         $expected['columnsToProcess'] = ['uid'];
-        self::assertSame($expected, (new TcaColumnsProcessRecordTitle)->addData($input));
+        self::assertSame($expected, (new TcaColumnsProcessRecordTitle())->addData($input));
     }
 
     /**
      * @test
      */
-    public function addDataRegistersAlternativeLabelColumnn()
+    public function addDataRegistersAlternativeLabelColumn()
     {
         $input = [
             'columnsToProcess' => [],
@@ -62,7 +63,7 @@ class TcaColumnsProcessRecordTitleTest extends UnitTestCase
 
         $expected = $input;
         $expected['columnsToProcess'] = ['uid', 'aField', 'anotherField'];
-        self::assertSame($expected, (new TcaColumnsProcessRecordTitle)->addData($input));
+        self::assertSame($expected, (new TcaColumnsProcessRecordTitle())->addData($input));
     }
 
     /**
@@ -80,7 +81,7 @@ class TcaColumnsProcessRecordTitleTest extends UnitTestCase
 
         $expected = $input;
         $expected['columnsToProcess'] = [ 'aForeignLabelField' ];
-        self::assertSame($expected, (new TcaColumnsProcessRecordTitle)->addData($input));
+        self::assertSame($expected, (new TcaColumnsProcessRecordTitle())->addData($input));
     }
 
     /**
@@ -98,6 +99,6 @@ class TcaColumnsProcessRecordTitleTest extends UnitTestCase
 
         $expected = $input;
         $expected['columnsToProcess'] = [ 'aSymmetricLabelField' ];
-        self::assertSame($expected, (new TcaColumnsProcessRecordTitle)->addData($input));
+        self::assertSame($expected, (new TcaColumnsProcessRecordTitle())->addData($input));
     }
 }

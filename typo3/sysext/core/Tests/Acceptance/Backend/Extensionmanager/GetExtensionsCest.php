@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Acceptance\Backend\Extensionmanager;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Acceptance\Backend\Extensionmanager;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Acceptance\Backend\Extensionmanager;
 
 use Facebook\WebDriver\WebDriverKeys;
 use TYPO3\CMS\Core\Tests\Acceptance\Support\BackendTester;
@@ -30,12 +32,12 @@ class GetExtensionsCest
     {
         $I->useExistingSession('admin');
 
-        $I->click('Extensions', '#menu');
+        $I->click('Extensions', '#modulemenu');
         $I->switchToContentFrame();
         $I->waitForElementVisible('#typo3-extension-list');
 
         $I->selectOption('[name="ExtensionManagerModuleMenu"]', 'Get Extensions');
-        $I->waitForElementVisible('#terTable_wrapper');
+        $I->waitForElementVisible('#terTable');
 
         // We expect exact two extensions created from the Fixtures
         $I->seeNumberOfElements('#terTable tbody tr', 2);

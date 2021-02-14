@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Extbase\Tests\Unit\Persistence\Generic;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,9 @@ namespace TYPO3\CMS\Extbase\Tests\Unit\Persistence\Generic;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Tests\Unit\Persistence\Generic;
+
+use Psr\Container\ContainerInterface;
 use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 use TYPO3\CMS\Extbase\Object\Container\Container;
 use TYPO3\CMS\Extbase\Persistence\Generic\Session;
@@ -24,7 +27,7 @@ class SessionTest extends UnitTestCase
 {
     protected function createContainer(): Container
     {
-        $psrContainer = $this->getMockBuilder(\Psr\Container\ContainerInterface::class)->setMethods(['has', 'get'])->getMock();
+        $psrContainer = $this->getMockBuilder(ContainerInterface::class)->setMethods(['has', 'get'])->getMock();
         $psrContainer->expects(self::any())->method('has')->willReturn(false);
         return new Container($psrContainer);
     }

@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\Mvc;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,10 +15,14 @@ namespace TYPO3\CMS\Form\Mvc;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Form\Mvc;
+
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Error\Result;
 use TYPO3\CMS\Extbase\Object\ObjectManager;
+use TYPO3\CMS\Extbase\Property\PropertyMapper;
 use TYPO3\CMS\Extbase\Property\PropertyMappingConfiguration;
+use TYPO3\CMS\Extbase\Validation\Validator\ConjunctionValidator;
 use TYPO3\CMS\Extbase\Validation\Validator\ValidatorInterface;
 
 /**
@@ -62,7 +66,7 @@ class ProcessingRule
      * @param \TYPO3\CMS\Extbase\Property\PropertyMappingConfiguration $propertyMappingConfiguration
      * @internal
      */
-    public function injectPropertyMappingConfiguration(\TYPO3\CMS\Extbase\Property\PropertyMappingConfiguration $propertyMappingConfiguration)
+    public function injectPropertyMappingConfiguration(PropertyMappingConfiguration $propertyMappingConfiguration)
     {
         $this->propertyMappingConfiguration = $propertyMappingConfiguration;
     }
@@ -71,7 +75,7 @@ class ProcessingRule
      * @param \TYPO3\CMS\Extbase\Validation\Validator\ConjunctionValidator $validator
      * @internal
      */
-    public function injectConjunctionValidator(\TYPO3\CMS\Extbase\Validation\Validator\ConjunctionValidator $validator)
+    public function injectConjunctionValidator(ConjunctionValidator $validator)
     {
         $this->validator = $validator;
     }
@@ -80,7 +84,7 @@ class ProcessingRule
      * @param \TYPO3\CMS\Extbase\Property\PropertyMapper $propertyMapper
      * @internal
      */
-    public function injectPropertyMapper(\TYPO3\CMS\Extbase\Property\PropertyMapper $propertyMapper)
+    public function injectPropertyMapper(PropertyMapper $propertyMapper)
     {
         $this->propertyMapper = $propertyMapper;
     }

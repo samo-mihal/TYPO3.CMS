@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Frontend\Tests\Unit\Middleware;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Frontend\Tests\Unit\Middleware;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Frontend\Tests\Unit\Middleware;
 
 use PHPUnit\Framework\MockObject\MockObject;
 use Psr\Http\Message\ResponseInterface;
@@ -64,7 +65,7 @@ class PageResolverTest extends UnitTestCase
         $this->controller = $this->getAccessibleMock(TypoScriptFrontendController::class, ['getSiteScript', 'determineId', 'isBackendUserLoggedIn'], [], '', false);
 
         // A request handler which expects a site with some more details are found.
-        $this->responseOutputHandler = new class implements RequestHandlerInterface {
+        $this->responseOutputHandler = new class() implements RequestHandlerInterface {
             public function handle(ServerRequestInterface $request): ResponseInterface
             {
                 /** @var SiteInterface $site */

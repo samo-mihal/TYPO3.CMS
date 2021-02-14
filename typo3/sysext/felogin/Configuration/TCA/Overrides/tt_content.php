@@ -1,7 +1,8 @@
 <?php
+
 defined('TYPO3_MODE') or die();
 
-(static function (): void {
+call_user_func(static function () {
     $feloginExtbase = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Core\Configuration\Features::class)
         ->isFeatureEnabled('felogin.extbase');
 
@@ -11,10 +12,23 @@ defined('TYPO3_MODE') or die();
         \TYPO3\CMS\Extbase\Utility\ExtensionUtility::registerPlugin(
             'Felogin',
             'Login',
-            'Login Form'
+            'Login Form',
+            null,
+            'forms'
         );
     } else {
         $contentTypeName = 'login';
+        // Add CType=login
+        \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addTcaSelectItem(
+            'tt_content',
+            'CType',
+            [
+                'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.I.10',
+                'login',
+                'content-elements-login',
+                'forms'
+            ]
+        );
     }
     // Add the FlexForm
     \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addPiFlexFormValue(
@@ -24,51 +38,11 @@ defined('TYPO3_MODE') or die();
     );
     $GLOBALS['TCA']['tt_content']['ctrl']['typeicon_classes'][$contentTypeName] = 'mimetypes-x-content-login';
 
-    // check if there is already a forms tab and add the item after that, otherwise
-    // add the tab item as well
-    $additionalCTypeItem = [
-        'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.I.10',
-        $contentTypeName,
-        'content-elements-login'
-    ];
-
-    $existingCTypeItems = $GLOBALS['TCA']['tt_content']['columns']['CType']['config']['items'];
-    $groupFound = false;
-    $groupPosition = false;
-    foreach ($existingCTypeItems as $position => $item) {
-        if ($item[0] === 'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.div.forms') {
-            $groupFound = true;
-            $groupPosition = $position;
-            break;
-        }
-    }
-
-    if ($groupFound && $groupPosition) {
-        // add the new CType item below CType
-        array_splice(
-            $GLOBALS['TCA']['tt_content']['columns']['CType']['config']['items'],
-            $groupPosition,
-            0,
-            [0 => $additionalCTypeItem]
-        );
-    } else {
-        // nothing found, add two items (group + new CType) at the bottom of the list
-        \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addTcaSelectItem(
-            'tt_content',
-            'CType',
-            ['LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.div.forms', '--div--']
-        );
-        \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addTcaSelectItem(
-            'tt_content',
-            'CType',
-            $additionalCTypeItem
-        );
-    }
-
     $GLOBALS['TCA']['tt_content']['types'][$contentTypeName]['showitem'] = '
         --div--;LLL:EXT:core/Resources/Private/Language/Form/locallang_tabs.xlf:general,
             --palette--;;general,
             --palette--;;headers,
+        --div--;LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:tabs.plugin,
             pi_flexform,
         --div--;LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:tabs.appearance,
             --palette--;;frames,
@@ -84,4 +58,4 @@ defined('TYPO3_MODE') or die();
             rowDescription,
         --div--;LLL:EXT:core/Resources/Private/Language/Form/locallang_tabs.xlf:extended,
     ';
-})();
+});

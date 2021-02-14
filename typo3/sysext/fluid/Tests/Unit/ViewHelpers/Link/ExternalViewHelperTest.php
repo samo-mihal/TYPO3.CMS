@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\Tests\Unit\ViewHelpers\Link;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,9 @@ namespace TYPO3\CMS\Fluid\Tests\Unit\ViewHelpers\Link;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Fluid\Tests\Unit\ViewHelpers\Link;
+
+use TYPO3\CMS\Fluid\ViewHelpers\Link\ExternalViewHelper;
 use TYPO3\TestingFramework\Fluid\Unit\ViewHelpers\ViewHelperBaseTestcase;
 use TYPO3Fluid\Fluid\Core\ViewHelper\TagBuilder;
 
@@ -30,7 +32,7 @@ class ExternalViewHelperTest extends ViewHelperBaseTestcase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->viewHelper = $this->getAccessibleMock(\TYPO3\CMS\Fluid\ViewHelpers\Link\ExternalViewHelper::class, ['renderChildren']);
+        $this->viewHelper = $this->getAccessibleMock(ExternalViewHelper::class, ['renderChildren']);
         $this->injectDependenciesIntoViewHelper($this->viewHelper);
     }
 

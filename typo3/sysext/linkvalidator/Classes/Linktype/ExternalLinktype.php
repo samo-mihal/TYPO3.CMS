@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Linkvalidator\Linktype;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,7 +13,12 @@ namespace TYPO3\CMS\Linkvalidator\Linktype;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Linkvalidator\Linktype;
+
 use GuzzleHttp\Cookie\CookieJar;
+use GuzzleHttp\Exception\ClientException;
+use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Exception\TooManyRedirectsException;
 use TYPO3\CMS\Core\Http\RequestFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\HttpUtility;
@@ -54,7 +58,7 @@ class ExternalLinktype extends AbstractLinktype
      * Preferred method of fetching (HEAD | GET).
      * If HEAD is used, we fallback to GET
      *
-     * @var array
+     * @var string
      */
     protected $method = 'HEAD';
 
@@ -66,6 +70,14 @@ class ExternalLinktype extends AbstractLinktype
      * @var string
      */
     protected $range = '0-4048';
+
+    /**
+     *  Total timeout of the request in seconds. Using 0 (which is usually the default) may
+     *  cause the request to take indefinitely, which means the scheduler task never ends.
+     *
+     * @var int
+     */
+    protected $timeout = 0;
 
     /**
      * @var RequestFactory
@@ -112,6 +124,9 @@ class ExternalLinktype extends AbstractLinktype
         if ($config['range'] ?? false) {
             $this->range = $config['range'];
         }
+        if (isset($config['timeout'])) {
+            $this->timeout = (int)$config['timeout'];
+        }
     }
 
     /**
@@ -136,6 +151,9 @@ class ExternalLinktype extends AbstractLinktype
             'allow_redirects' => ['strict' => true],
             'headers'         => $this->headers
         ];
+        if ($this->timeout > 0) {
+            $options['timeout'] = $this->timeout;
+        }
         $url = $this->preprocessUrl($origUrl);
         if (!empty($url)) {
             if ($this->method === 'HEAD') {
@@ -174,13 +192,13 @@ class ExternalLinktype extends AbstractLinktype
             } else {
                 $isValidUrl = true;
             }
-        } catch (\GuzzleHttp\Exception\TooManyRedirectsException $e) {
+        } catch (TooManyRedirectsException $e) {
             // redirect loop or too many redirects
             // todo: change errorType to 'redirect' (breaking change)
             $this->errorParams['errorType'] = 'loop';
             $this->errorParams['exception'] = $e->getMessage();
             $this->errorParams['message'] = $this->getErrorMessage($this->errorParams);
-        } catch (\GuzzleHttp\Exception\ClientException $e) {
+        } catch (ClientException $e) {
             if ($e->hasResponse()) {
                 $this->errorParams['errorType'] = $e->getResponse()->getStatusCode();
             } else {
@@ -188,7 +206,7 @@ class ExternalLinktype extends AbstractLinktype
             }
             $this->errorParams['exception'] = $e->getMessage();
             $this->errorParams['message'] = $this->getErrorMessage($this->errorParams);
-        } catch (\GuzzleHttp\Exception\RequestException $e) {
+        } catch (RequestException $e) {
             $this->errorParams['errorType'] = 'network';
             $this->errorParams['exception'] = $e->getMessage();
             $this->errorParams['message'] = $this->getErrorMessage($this->errorParams);
@@ -272,11 +290,18 @@ class ExternalLinktype extends AbstractLinktype
      */
     protected function preprocessUrl(string $url): string
     {
+        $url = html_entity_decode($url);
         $parts = parse_url($url);
-        $newDomain = (string)HttpUtility::idn_to_ascii($parts['host']);
-        if (strcmp($parts['host'], $newDomain) !== 0) {
-            $parts['host'] = $newDomain;
-            $url = HttpUtility::buildUrl($parts);
+        if ($parts['host'] ?? false) {
+            try {
+                $newDomain = (string)HttpUtility::idn_to_ascii($parts['host']);
+                if (strcmp($parts['host'], $newDomain) !== 0) {
+                    $parts['host'] = $newDomain;
+                    $url = HttpUtility::buildUrl($parts);
+                }
+            } catch (\Exception | \Throwable $e) {
+                // ignore error and proceed with link checking
+            }
         }
         return $url;
     }

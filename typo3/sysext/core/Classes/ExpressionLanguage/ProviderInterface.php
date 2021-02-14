@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\ExpressionLanguage;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,8 @@ namespace TYPO3\CMS\Core\ExpressionLanguage;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\ExpressionLanguage;
+
 use Symfony\Component\ExpressionLanguage\ExpressionFunctionProviderInterface;
 
 /**
@@ -23,9 +25,9 @@ use Symfony\Component\ExpressionLanguage\ExpressionFunctionProviderInterface;
 interface ProviderInterface
 {
     /**
-     * An array of objects which implements the ExpressionFunctionProviderInterface
+     * An array of class names which implements the ExpressionFunctionProviderInterface
      *
-     * @return ExpressionFunctionProviderInterface[]
+     * @return array<int, class-string>
      */
     public function getExpressionLanguageProviders(): array;
 

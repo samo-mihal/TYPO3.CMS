@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Acceptance\Backend\Scheduler;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Acceptance\Backend\Scheduler;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Acceptance\Backend\Scheduler;
 
 use TYPO3\CMS\Core\Tests\Acceptance\Support\BackendTester;
 use TYPO3\CMS\Core\Tests\Acceptance\Support\Helper\ModalDialog;
@@ -29,8 +31,9 @@ class TasksCest
     public function _before(BackendTester $I)
     {
         $I->useExistingSession('admin');
+        $I->scrollTo('#system_txschedulerM1');
         $I->see('Scheduler', '#system_txschedulerM1');
-        $I->click('Scheduler', '#system_txschedulerM1');
+        $I->click('#system_txschedulerM1');
         $I->switchToContentFrame();
     }
 
@@ -156,7 +159,7 @@ class TasksCest
         $this->createASchedulerTask($I);
 
         $I->amGoingTo('test the new task group button on task edit view');
-        $I->click('#DataTables_Table_0 > tbody > tr > td.nowrap > span > div:nth-child(1) > a:nth-child(1)');
+        $I->click('.taskGroup-table > tbody > tr > td.nowrap > span > div:nth-child(1) > a:nth-child(1)');
         $I->waitForElementNotVisible('#t3js-ui-block');
         $I->canSee('Edit task', 'h2');
         $I->click('#task_group_row > div > div > div > div > a');
@@ -176,6 +179,6 @@ class TasksCest
         $I->click('a[title="Cancel"]');
         $I->waitForElementVisible('div.tx_scheduler_mod1');
 
-        $I->canSee('new task group', '.taskGroup');
+        $I->canSee('new task group', '.panel-heading');
     }
 }

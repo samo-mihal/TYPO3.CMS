@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Database\Schema;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Database\Schema;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Database\Schema;
 
 use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Schema\Schema;
@@ -197,7 +199,7 @@ class SchemaMigrator
             // Only handle insert statements and extract the table at the same time. Extracting
             // the table name is required to perform the inserts on the right connection.
             if (preg_match('/^INSERT\s+INTO\s+`?(\w+)`?(.*)/i', $statement, $matches)) {
-                list(, $tableName, $sqlFragment) = $matches;
+                [, $tableName, $sqlFragment] = $matches;
                 $insertStatements[$tableName][] = sprintf(
                     'INSERT INTO %s %s',
                     $connectionPool->getConnectionForTable($tableName)->quoteIdentifier($tableName),

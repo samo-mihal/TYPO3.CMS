@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\T3editor\Form\Element;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,11 +15,11 @@ namespace TYPO3\CMS\T3editor\Form\Element;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\T3editor\Form\Element;
+
 use TYPO3\CMS\Backend\Form\Element\AbstractFormElement;
-use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
-use TYPO3\CMS\Core\Utility\PathUtility;
 use TYPO3\CMS\T3editor\Exception\InvalidModeException;
 use TYPO3\CMS\T3editor\Mode;
 use TYPO3\CMS\T3editor\Registry\AddonRegistry;
@@ -41,13 +41,6 @@ class T3editorElement extends AbstractFormElement
      * @var string
      */
     protected $mode = '';
-
-    /**
-     * Relative path to EXT:t3editor
-     *
-     * @var string
-     */
-    protected $extPath = '';
 
     /**
      * Default field information enabled for this element.
@@ -93,14 +86,11 @@ class T3editorElement extends AbstractFormElement
      */
     public function render(): array
     {
-        $this->extPath = PathUtility::getAbsoluteWebPath(ExtensionManagementUtility::extPath('t3editor'));
-        $codeMirrorPath = $this->extPath . 'Resources/Public/JavaScript/Contrib/cm';
-
         $this->resultArray = $this->initializeResultArray();
-        $this->resultArray['stylesheetFiles'][] = $codeMirrorPath . '/lib/codemirror.css';
-        $this->resultArray['stylesheetFiles'][] = $this->extPath . '/Resources/Public/Css/t3editor.css';
+        $this->resultArray['stylesheetFiles'][] = 'EXT:t3editor/Resources/Public/JavaScript/Contrib/cm/lib/codemirror.css';
+        $this->resultArray['stylesheetFiles'][] = 'EXT:t3editor/Resources/Public/Css/t3editor.css';
         $this->resultArray['requireJsModules'][] = [
-            'TYPO3/CMS/T3editor/T3editor' => 'function(T3editor) {T3editor.findAndInitializeEditors()}'
+            'TYPO3/CMS/T3editor/T3editor' => 'function(T3editor) {T3editor.observeEditorCandidates()}'
         ];
 
         // Compile and register t3editor configuration
@@ -115,19 +105,16 @@ class T3editorElement extends AbstractFormElement
 
         $parameterArray = $this->data['parameterArray'];
 
-        $rows = MathUtility::forceIntegerInRange($parameterArray['fieldConf']['config']['rows'] ?: 10, 1, 40);
-
         $attributes = [];
-        $attributes['rows'] = $rows;
+        if (isset($parameterArray['fieldConf']['config']['rows']) && MathUtility::canBeInterpretedAsInteger($parameterArray['fieldConf']['config']['rows'])) {
+            $attributes['rows'] = $parameterArray['fieldConf']['config']['rows'];
+        }
+
         $attributes['wrap'] = 'off';
         $attributes['style'] = 'width:100%;';
         $attributes['onchange'] = GeneralUtility::quoteJSvalue($parameterArray['fieldChangeFunc']['TBE_EDITOR_fieldChanged']);
 
-        $attributeString = '';
-        foreach ($attributes as $param => $value) {
-            $attributeString .= $param . '="' . htmlspecialchars((string)$value) . '" ';
-        }
-
+        $attributeString = GeneralUtility::implodeAttributes($attributes, true);
         $editorHtml = $this->getHTMLCodeForEditor(
             $parameterArray['itemFormElName'],
             'text-monospace enable-tab',
@@ -190,7 +177,7 @@ class T3editorElement extends AbstractFormElement
      * @param string $class Class attribute of HTML tag
      * @param string $content Content of the editor
      * @param string $additionalParams Any additional editor parameters
-     * @param string $alt Alt attribute
+     * @param string $label Codemirror panel label
      * @param array $hiddenfields
      *
      * @return string Generated HTML code for editor
@@ -201,7 +188,7 @@ class T3editorElement extends AbstractFormElement
         string $class = '',
         string $content = '',
         string $additionalParams = '',
-        string $alt = '',
+        string $label = '',
         array $hiddenfields = []
     ): string {
         $code = [];
@@ -210,7 +197,6 @@ class T3editorElement extends AbstractFormElement
         $registeredAddons = AddonRegistry::getInstance()->getForMode($mode->getFormatCode());
 
         $attributes['class'] = $class . ' t3editor';
-        $attributes['alt'] = $alt;
         $attributes['id'] = 't3editor_' . md5($name);
         $attributes['name'] = $name;
 
@@ -222,6 +208,7 @@ class T3editorElement extends AbstractFormElement
 
         $attributes['data-codemirror-config'] = json_encode([
             'mode' => $mode->getIdentifier(),
+            'label' => $label,
             'addons' => json_encode($addons),
             'options' => json_encode($settings)
         ]);
@@ -236,7 +223,7 @@ class T3editorElement extends AbstractFormElement
 
         if (!empty($hiddenfields)) {
             foreach ($hiddenfields as $attributeName => $value) {
-                $code[] = '<input type="hidden" name="' . htmlspecialchars($attributeName) . '" value="' . htmlspecialchars((string)$value) . '" />';
+                $code[] = '<input type="hidden" name="' . htmlspecialchars((string)$attributeName) . '" value="' . htmlspecialchars((string)$value) . '" />';
             }
         }
         return implode(LF, $code);

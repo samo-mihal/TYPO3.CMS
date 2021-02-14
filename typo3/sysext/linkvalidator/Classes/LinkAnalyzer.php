@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Linkvalidator;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,15 +13,21 @@ namespace TYPO3\CMS\Linkvalidator;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Linkvalidator;
+
 use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryHelper;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
+use TYPO3\CMS\Core\Database\Query\Restriction\HiddenRestriction;
 use TYPO3\CMS\Core\Html\HtmlParser;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Linkvalidator\Event\BeforeRecordIsAnalyzedEvent;
+use TYPO3\CMS\Linkvalidator\Linktype\AbstractLinktype;
+use TYPO3\CMS\Linkvalidator\Repository\BrokenLinkRepository;
 
 /**
  * This class provides Processing plugin implementation
@@ -34,7 +39,7 @@ class LinkAnalyzer
     /**
      * Array of tables and fields to search for broken links
      *
-     * @var array
+     * @var array<string, array<int, string>>
      */
     protected $searchFields = [];
 
@@ -60,16 +65,9 @@ class LinkAnalyzer
     protected $brokenLinkCounts = [];
 
     /**
-     * Array of tables and records containing broken links
-     *
-     * @var array
-     */
-    protected $recordsWithBrokenLinks = [];
-
-    /**
      * Array for hooks for own checks
      *
-     * @var \TYPO3\CMS\Linkvalidator\Linktype\AbstractLinktype[]
+     * @var Linktype\AbstractLinktype[]
      */
     protected $hookObjectsArr = [];
 
@@ -79,13 +77,6 @@ class LinkAnalyzer
      * @var string
      */
     protected $recordReference = '';
-
-    /**
-     * Linked page together with a possible anchor, e.g. 85#c105
-     *
-     * @var string
-     */
-    protected $pageWithAnchor = '';
 
     /**
      * The currently active TSconfig. Will be passed to the init function.
@@ -99,23 +90,29 @@ class LinkAnalyzer
      */
     protected $eventDispatcher;
 
-    public function __construct(EventDispatcherInterface $eventDispatcher)
+    /**
+     * @var BrokenLinkRepository
+     */
+    protected $brokenLinkRepository;
+
+    public function __construct(EventDispatcherInterface $eventDispatcher, BrokenLinkRepository $brokenLinkRepository)
     {
         $this->eventDispatcher = $eventDispatcher;
+        $this->brokenLinkRepository = $brokenLinkRepository;
         $this->getLanguageService()->includeLLFile('EXT:linkvalidator/Resources/Private/Language/Module/locallang.xlf');
     }
 
     /**
      * Store all the needed configuration values in class variables
      *
-     * @param array $searchField List of fields in which to search for links
-     * @param string $pidList List of comma separated page uids in which to search for links
+     * @param array $searchFields List of fields in which to search for links
+     * @param string|array $pidList List of comma separated page uids in which to search for links, can be an array too
      * @param array $tsConfig The currently active TSconfig.
      */
-    public function init(array $searchField, $pidList, $tsConfig)
+    public function init(array $searchFields, $pidList, $tsConfig)
     {
-        $this->searchFields = $searchField;
-        $this->pids = GeneralUtility::intExplode(',', $pidList, true);
+        $this->searchFields = $searchFields;
+        $this->pids = is_array($pidList) ? $pidList : GeneralUtility::intExplode(',', $pidList, true);
         $this->tsConfig = $tsConfig;
 
         // Hook to handle own checks
@@ -140,38 +137,10 @@ class LinkAnalyzer
             return;
         }
 
-        $checkKeys = array_keys($checkOptions);
-
-        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getQueryBuilderForTable('tx_linkvalidator_link');
-
-        $queryBuilder->delete('tx_linkvalidator_link')
-            ->where(
-                $queryBuilder->expr()->orX(
-                    $queryBuilder->expr()->andX(
-                        $queryBuilder->expr()->in(
-                            'record_uid',
-                            $queryBuilder->createNamedParameter($this->pids, Connection::PARAM_INT_ARRAY)
-                        ),
-                        $queryBuilder->expr()->eq('table_name', $queryBuilder->createNamedParameter('pages'))
-                    ),
-                    $queryBuilder->expr()->andX(
-                        $queryBuilder->expr()->in(
-                            'record_pid',
-                            $queryBuilder->createNamedParameter($this->pids, Connection::PARAM_INT_ARRAY)
-                        ),
-                        $queryBuilder->expr()->neq(
-                            'table_name',
-                            $queryBuilder->createNamedParameter('pages')
-                        )
-                    )
-                ),
-                $queryBuilder->expr()->in(
-                    'link_type',
-                    $queryBuilder->createNamedParameter($checkKeys, Connection::PARAM_STR_ARRAY)
-                )
-            )
-            ->execute();
+        $this->brokenLinkRepository->removeAllBrokenLinksOfRecordsOnPageIds(
+            $this->pids,
+            array_keys($checkOptions)
+        );
 
         // Traverse all configured tables
         foreach ($this->searchFields as $table => $fields) {
@@ -191,6 +160,14 @@ class LinkAnalyzer
 
             // Re-init selectFields for table
             $selectFields = array_merge(['uid', 'pid', $GLOBALS['TCA'][$table]['ctrl']['label']], $fields);
+            if ($GLOBALS['TCA'][$table]['ctrl']['languageField'] ?? false) {
+                $selectFields[] = $GLOBALS['TCA'][$table]['ctrl']['languageField'];
+            }
+            if ($GLOBALS['TCA'][$table]['ctrl']['type'] ?? false) {
+                if (isset($GLOBALS['TCA'][$table]['columns'][$GLOBALS['TCA'][$table]['ctrl']['type']])) {
+                    $selectFields[] = $GLOBALS['TCA'][$table]['ctrl']['type'];
+                }
+            }
 
             $result = $queryBuilder->select(...$selectFields)
                 ->from($table)
@@ -207,58 +184,119 @@ class LinkAnalyzer
                 $this->analyzeRecord($results, $table, $fields, $row);
             }
         }
+        $this->checkLinks($results, $checkOptions);
+    }
 
+    protected function checkLinks(array $links, array $checkOptions)
+    {
         foreach ($this->hookObjectsArr as $key => $hookObj) {
-            if (!is_array($results[$key]) || (!empty($checkOptions) && !$checkOptions[$key])) {
+            if (!is_array($links[$key]) || (!empty($checkOptions) && !$checkOptions[$key])) {
                 continue;
             }
 
             //  Check them
-            foreach ($results[$key] as $entryKey => $entryValue) {
+            foreach ($links[$key] as $entryKey => $entryValue) {
                 $table = $entryValue['table'];
                 $record = [];
                 $record['headline'] = BackendUtility::getRecordTitle($table, $entryValue['row']);
                 $record['record_pid'] = $entryValue['row']['pid'];
                 $record['record_uid'] = $entryValue['uid'];
                 $record['table_name'] = $table;
+                $record['link_type'] = $key;
                 $record['link_title'] = $entryValue['link_title'];
                 $record['field'] = $entryValue['field'];
                 $record['last_check'] = time();
+                $typeField = $GLOBALS['TCA'][$table]['ctrl']['type'] ?? false;
+                if ($entryValue['row'][$typeField] ?? false) {
+                    $record['element_type'] = $entryValue['row'][$typeField];
+                }
+                $languageField = $GLOBALS['TCA'][$table]['ctrl']['languageField'] ?? false;
+                if ($languageField && isset($entryValue['row'][$languageField])) {
+                    $record['language'] = $entryValue['row'][$languageField];
+                } else {
+                    $record['language'] = -1;
+                }
                 $this->recordReference = $entryValue['substr']['recordRef'];
-                $this->pageWithAnchor = $entryValue['pageAndAnchor'];
-                if (!empty($this->pageWithAnchor)) {
+                if (!empty($entryValue['pageAndAnchor'] ?? '')) {
                     // Page with anchor, e.g. 18#1580
-                    $url = $this->pageWithAnchor;
+                    $url = $entryValue['pageAndAnchor'];
                 } else {
                     $url = $entryValue['substr']['tokenValue'];
                 }
+                $record['url'] = $url;
                 $this->linkCounts[$table]++;
                 $checkUrl = $hookObj->checkLink($url, $entryValue, $this);
 
                 // Broken link found
                 if (!$checkUrl) {
-                    $response = [];
-                    $response['valid'] = false;
-                    $response['errorParams'] = $hookObj->getErrorParams();
+                    $this->brokenLinkRepository->addBrokenLink($record, false, $hookObj->getErrorParams());
                     $this->brokenLinkCounts[$table]++;
-                    $record['link_type'] = $key;
-                    $record['url'] = $url;
-                    $record['url_response'] = serialize($response);
-                    GeneralUtility::makeInstance(ConnectionPool::class)
-                        ->getConnectionForTable('tx_linkvalidator_link')
-                        ->insert('tx_linkvalidator_link', $record);
                 } elseif (GeneralUtility::_GP('showalllinks')) {
-                    $response = [];
-                    $response['valid'] = true;
+                    $this->brokenLinkRepository->addBrokenLink($record, true);
                     $this->brokenLinkCounts[$table]++;
-                    $record['url'] = $url;
-                    $record['link_type'] = $key;
-                    $record['url_response'] = serialize($response);
-                    GeneralUtility::makeInstance(ConnectionPool::class)
-                        ->getConnectionForTable('tx_linkvalidator_link')
-                        ->insert('tx_linkvalidator_link', $record);
                 }
             }
+        }
+    }
+
+    /**
+     * Recheck for broken links for one field in table for record.
+     *
+     * @param array $checkOptions
+     * @param string $recordUid uid of record to check
+     * @param string $table
+     * @param string $field
+     * @param int $timestamp - only recheck if timestamp changed
+     * @param bool $considerHidden
+     */
+    public function recheckLinks(
+        array $checkOptions,
+        string $recordUid,
+        string $table,
+        string $field,
+        int $timestamp,
+        bool $considerHidden = true
+    ): void {
+        // If table is not configured, assume the extension is not installed
+        // and therefore no need to check it
+        if (!is_array($GLOBALS['TCA'][$table])) {
+            return;
+        }
+
+        // get all links for $record / $table / $field combination
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getQueryBuilderForTable($table);
+        if ($considerHidden) {
+            $queryBuilder->getRestrictions()->removeByType(HiddenRestriction::class);
+        }
+
+        $row = $queryBuilder->select('uid', 'pid', $GLOBALS['TCA'][$table]['ctrl']['label'], $field, 'tstamp')
+            ->from($table)
+            ->where(
+                $queryBuilder->expr()->eq(
+                    'uid',
+                    $queryBuilder->createNamedParameter($recordUid, Connection::PARAM_INT)
+                )
+            )
+            ->execute()
+            ->fetch();
+
+        if (!$row) {
+            // missing record: remove existing links
+            $this->brokenLinkRepository->removeBrokenLinksForRecord($table, $recordUid);
+            return;
+        }
+        if (($row['tstamp'] ?? 0) && $timestamp && ((int)($row['tstamp']) < $timestamp)) {
+            // timestamp has not changed: no need to recheck
+            return;
+        }
+        $resultsLinks = [];
+        $this->analyzeRecord($resultsLinks, $table, [$field], $row);
+        if ($resultsLinks) {
+            // remove existing broken links from table
+            $this->brokenLinkRepository->removeBrokenLinksForRecord($table, $recordUid);
+            // find all broken links for list of links
+            $this->checkLinks($resultsLinks, $checkOptions);
         }
     }
 
@@ -272,14 +310,13 @@ class LinkAnalyzer
      */
     public function analyzeRecord(array &$results, $table, array $fields, array $record)
     {
-        $event = new Event\BeforeRecordIsAnalyzedEvent($table, $record, $fields, $this, $results);
+        $event = new BeforeRecordIsAnalyzedEvent($table, $record, $fields, $this, $results);
         $this->eventDispatcher->dispatch($event);
         $results = $event->getResults();
         $record = $event->getRecord();
 
         // Put together content of all relevant fields
         $haystack = '';
-        /** @var HtmlParser $htmlParser */
         $htmlParser = GeneralUtility::makeInstance(HtmlParser::class);
         $idRecord = $record['uid'];
         // Get all references
@@ -316,7 +353,7 @@ class LinkAnalyzer
 
                 // Do processing
                 $resultArray = $softRefObj->findRef($table, $field, $idRecord, $valueField, $spKey, $softRefParams);
-                if (empty($resultArray['elements'])) {
+                if (!is_array($resultArray) || !isset($resultArray['elements']) || !is_array($resultArray['elements'])) {
                     continue;
                 }
 
@@ -361,7 +398,7 @@ class LinkAnalyzer
                 continue;
             }
 
-            /** @var \TYPO3\CMS\Linkvalidator\Linktype\AbstractLinktype $hookObj */
+            /** @var AbstractLinktype $hookObj */
             foreach ($this->hookObjectsArr as $keyArr => $hookObj) {
                 $type = $hookObj->fetchType($r, $type, $keyArr);
                 // Store the type that was found
@@ -419,7 +456,7 @@ class LinkAnalyzer
                 }
                 $title = strip_tags($linkTags[$i]);
             }
-            /** @var \TYPO3\CMS\Linkvalidator\Linktype\AbstractLinktype $hookObj */
+            /** @var AbstractLinktype $hookObj */
             foreach ($this->hookObjectsArr as $keyArr => $hookObj) {
                 $type = $hookObj->fetchType($currentR, $type, $keyArr);
                 // Store the type that was found
@@ -441,46 +478,11 @@ class LinkAnalyzer
     /**
      * Fill a marker array with the number of links found in a list of pages
      *
-     * @param string $curPage Comma separated list of page uids
-     * @return array Marker array with the number of links found
+     * @return array array with the number of links found
      */
-    public function getLinkCounts($curPage)
+    public function getLinkCounts()
     {
-        $markerArray = [];
-
-        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getQueryBuilderForTable('tx_linkvalidator_link');
-        $queryBuilder->getRestrictions()->removeAll();
-
-        $result = $queryBuilder->select('link_type')
-            ->addSelectLiteral($queryBuilder->expr()->count('uid', 'nbBrokenLinks'))
-            ->from('tx_linkvalidator_link')
-            ->where(
-                $queryBuilder->expr()->orX(
-                    $queryBuilder->expr()->andX(
-                        $queryBuilder->expr()->in(
-                            'record_uid',
-                            $queryBuilder->createNamedParameter($this->pids, Connection::PARAM_INT_ARRAY)
-                        ),
-                        $queryBuilder->expr()->eq('table_name', $queryBuilder->createNamedParameter('pages'))
-                    ),
-                    $queryBuilder->expr()->andX(
-                        $queryBuilder->expr()->in(
-                            'record_pid',
-                            $queryBuilder->createNamedParameter($this->pids, Connection::PARAM_INT_ARRAY)
-                        ),
-                        $queryBuilder->expr()->neq('table_name', $queryBuilder->createNamedParameter('pages'))
-                    )
-                )
-            )
-            ->groupBy('link_type')
-            ->execute();
-
-        while ($row = $result->fetch()) {
-            $markerArray[$row['link_type']] = $row['nbBrokenLinks'];
-            $markerArray['brokenlinkCount'] += $row['nbBrokenLinks'];
-        }
-        return $markerArray;
+        return $this->brokenLinkRepository->getNumberOfBrokenLinksForRecordsOnPages($this->pids, $this->searchFields);
     }
 
     /**
@@ -493,12 +495,12 @@ class LinkAnalyzer
      *
      * @param int $id Start page id
      * @param int $depth Depth to traverse down the page tree.
-     * @param int $begin is an optional integer that determines at which
+     * @param int $begin is an optional integer that determines at which level to start. use "0" from outside usage
      * @param string $permsClause Perms clause
      * @param bool $considerHidden Whether to consider hidden pages or not
      * @return string Returns the list with a comma in the end (if any pages selected!)
      */
-    public function extGetTreeList($id, $depth, $begin = 0, $permsClause, $considerHidden = false)
+    public function extGetTreeList($id, $depth, $begin, $permsClause, $considerHidden = false)
     {
         $depth = (int)$depth;
         $begin = (int)$begin;

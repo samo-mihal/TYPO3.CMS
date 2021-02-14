@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Functional\TypoScript\Parser;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,15 @@ namespace TYPO3\CMS\Core\Tests\Functional\TypoScript\Parser;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Functional\TypoScript\Parser;
+
+use TYPO3\CMS\Core\TypoScript\Parser\TypoScriptParser;
+use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
+
 /**
  * Functional test for TypoScriptParser
  */
-class TypoScriptParserTest extends \TYPO3\TestingFramework\Core\Functional\FunctionalTestCase
+class TypoScriptParserTest extends FunctionalTestCase
 {
     /**
      * This tests triggers an error if the serialize(unserialize())) call
@@ -43,7 +47,7 @@ class TypoScriptParserTest extends \TYPO3\TestingFramework\Core\Functional\Funct
             '',
         ]);
 
-        $typoScriptParser = new \TYPO3\CMS\Core\TypoScript\Parser\TypoScriptParser();
+        $typoScriptParser = new TypoScriptParser();
         $typoScriptParser->parse($typoScript);
         $res = ['TSconfig' => $typoScriptParser->setup];
         // The issue only pops up if the TS was cached. This call simulates the unserialize(serialize())

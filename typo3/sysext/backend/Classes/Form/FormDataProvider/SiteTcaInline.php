@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Backend\Form\FormDataProvider;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,6 +15,8 @@ namespace TYPO3\CMS\Backend\Form\FormDataProvider;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Form\FormDataProvider;
+
 use TYPO3\CMS\Backend\Form\FormDataCompiler;
 use TYPO3\CMS\Backend\Form\FormDataGroup\OnTheFly;
 use TYPO3\CMS\Backend\Form\FormDataGroup\SiteConfigurationDataGroup;
@@ -26,6 +27,7 @@ use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\MathUtility;
 
 /**
  * Special data provider for the sites configuration module.
@@ -87,17 +89,24 @@ class SiteTcaInline extends AbstractDatabaseRecordProvider implements FormDataPr
             if ($table === 'pages') {
                 $liveVersionId = BackendUtility::getLiveVersionIdOfRecord('pages', $row['uid']);
                 $pid = $liveVersionId ?? $row['uid'];
-            } elseif ($row['pid'] < 0) {
-                $prevRec = BackendUtility::getRecord($table, abs($row['pid']));
+            } elseif (($row['pid'] ?? 0) < 0) {
+                $prevRec = BackendUtility::getRecord($table, (int)abs($row['pid']));
                 $pid = $prevRec['pid'];
             } else {
-                $pid = $row['pid'];
+                $pid = $row['pid'] ?? 0;
             }
-            $pageRecord = BackendUtility::getRecord('pages', $pid);
-            if ((int)$pageRecord[$GLOBALS['TCA']['pages']['ctrl']['transOrigPointerField']] > 0) {
-                $pid = (int)$pageRecord[$GLOBALS['TCA']['pages']['ctrl']['transOrigPointerField']];
+            if (MathUtility::canBeInterpretedAsInteger($pid)) {
+                $pageRecord = BackendUtility::getRecord('pages', (int)$pid);
+                if ((int)$pageRecord[$GLOBALS['TCA']['pages']['ctrl']['transOrigPointerField']] > 0) {
+                    $pid = (int)$pageRecord[$GLOBALS['TCA']['pages']['ctrl']['transOrigPointerField']];
+                }
+            } elseif (strpos($pid, 'NEW') !== 0) {
+                throw new \RuntimeException(
+                    'inlineFirstPid should either be an integer or a "NEW..." string',
+                    1521220141
+                );
             }
-            $result['inlineFirstPid'] = (int)$pid;
+            $result['inlineFirstPid'] = $pid;
         }
         return $result;
     }

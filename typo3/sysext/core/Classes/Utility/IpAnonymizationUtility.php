@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Utility;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Utility;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Utility;
 
 /**
  * Anonymize a given IP
@@ -72,7 +74,10 @@ class IpAnonymizationUtility
             return '';
         }
 
-        $packedAddress = inet_pton($address);
+        $packedAddress = @inet_pton($address);
+        if ($packedAddress === false) {
+            return '';
+        }
         $length = strlen($packedAddress);
 
         if ($length === 4) {

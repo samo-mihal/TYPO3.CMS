@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Resource\Search\Result;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,10 +15,13 @@ namespace TYPO3\CMS\Core\Resource\Search\Result;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Resource\Search\Result;
+
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\Resource\Search\FileSearchDemand;
 use TYPO3\CMS\Core\Resource\Search\FileSearchQuery;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Represents a search result for a given search query
@@ -27,7 +30,7 @@ use TYPO3\CMS\Core\Resource\Search\FileSearchQuery;
 class FileSearchResult implements FileSearchResultInterface
 {
     /**
-     * @var FileSearchQuery
+     * @var FileSearchDemand
      */
     private $searchDemand;
 
@@ -121,7 +124,7 @@ class FileSearchResult implements FileSearchResultInterface
         $this->resultCount = count($this->result);
         $this->result = array_map(
             function (array $fileRow) {
-                return ResourceFactory::getInstance()->getFileObject($fileRow['uid'], $fileRow);
+                return GeneralUtility::makeInstance(ResourceFactory::class)->getFileObject($fileRow['uid'], $fileRow);
             },
             $this->result
         );

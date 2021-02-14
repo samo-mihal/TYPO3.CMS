@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Beuser\Domain\Repository;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,12 +13,15 @@ namespace TYPO3\CMS\Beuser\Domain\Repository;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Beuser\Domain\Repository;
+
 use TYPO3\CMS\Beuser\Domain\Model\Demand;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Session\Backend\SessionBackendInterface;
 use TYPO3\CMS\Core\Session\SessionManager;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\MathUtility;
 use TYPO3\CMS\Extbase\Domain\Repository\BackendUserGroupRepository;
 use TYPO3\CMS\Extbase\Persistence\Generic\QueryResult;
 use TYPO3\CMS\Extbase\Persistence\QueryInterface;
@@ -55,18 +57,19 @@ class BackendUserRepository extends BackendUserGroupRepository
     {
         $constraints = [];
         $query = $this->createQuery();
-        // Find invisible as well, but not deleted
-        $constraints[] = $query->equals('deleted', 0);
         $query->setOrderings(['userName' => QueryInterface::ORDER_ASCENDING]);
         // Username
         if ($demand->getUserName() !== '') {
             $searchConstraints = [];
             $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('be_users');
-            foreach (['userName', 'uid', 'realName'] as $field) {
+            foreach (['userName', 'realName'] as $field) {
                 $searchConstraints[] = $query->like(
                     $field,
                     '%' . $queryBuilder->escapeLikeWildcards($demand->getUserName()) . '%'
                 );
+            }
+            if (MathUtility::canBeInterpretedAsInteger($demand->getUserName())) {
+                $searchConstraints[] = $query->equals('uid', (int)$demand->getUserName());
             }
             $constraints[] = $query->logicalOr($searchConstraints);
         }
@@ -104,7 +107,9 @@ class BackendUserRepository extends BackendUserGroupRepository
                 $query->like('usergroup', '%,' . (int)$demand->getBackendUserGroup() . ',%')
             ]);
         }
-        $query->matching($query->logicalAnd($constraints));
+        if ($constraints !== []) {
+            $query->matching($query->logicalAnd($constraints));
+        }
         /** @var QueryResult $result */
         $result = $query->execute();
         return $result;
@@ -140,7 +145,6 @@ class BackendUserRepository extends BackendUserGroupRepository
     {
         $query = parent::createQuery();
         $query->getQuerySettings()->setIgnoreEnableFields(true);
-        $query->getQuerySettings()->setIncludeDeleted(true);
         return $query;
     }
 

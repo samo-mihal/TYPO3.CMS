@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Frontend\Http;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,13 +15,20 @@ namespace TYPO3\CMS\Frontend\Http;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Frontend\Http;
+
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Http\NullResponse;
 use TYPO3\CMS\Core\Http\Response;
+use TYPO3\CMS\Core\Information\Typo3Information;
+use TYPO3\CMS\Core\Localization\LanguageService;
+use TYPO3\CMS\Core\Page\AssetCollector;
 use TYPO3\CMS\Core\Page\PageRenderer;
+use TYPO3\CMS\Core\Resource\Exception;
 use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
 use TYPO3\CMS\Core\TimeTracker\TimeTracker;
 use TYPO3\CMS\Core\Type\File\ImageInfo;
@@ -31,6 +37,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\PathUtility;
 use TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
 use TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController;
+use TYPO3\CMS\Frontend\Event\ModifyHrefLangTagsEvent;
 use TYPO3\CMS\Frontend\Resource\FilePathSanitizer;
 
 /**
@@ -63,6 +70,16 @@ class RequestHandler implements RequestHandlerInterface
     protected $timeTracker;
 
     /**
+     * @var EventDispatcherInterface
+     */
+    protected $eventDispatcher;
+
+    public function __construct(EventDispatcherInterface $eventDispatcher)
+    {
+        $this->eventDispatcher = $eventDispatcher;
+    }
+
+    /**
      * Sets the global GET and POST to the values, so if people access $_GET and $_POST
      * Within hooks starting NOW (e.g. cObject), they get the "enriched" data from query params.
      *
@@ -92,7 +109,7 @@ class RequestHandler implements RequestHandlerInterface
      * Handles a frontend request, after finishing running middlewares
      *
      * @param ServerRequestInterface $request
-     * @return ResponseInterface|null
+     * @return ResponseInterface
      */
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
@@ -113,7 +130,7 @@ class RequestHandler implements RequestHandlerInterface
             $this->timeTracker->incStackPointer();
             $this->timeTracker->push($controller->sPre, 'PAGE');
 
-            $controller->content = $this->generatePageContent($controller);
+            $controller->content = $this->generatePageContent($controller, $request);
 
             $this->timeTracker->pull($this->timeTracker->LR ? $controller->content : '');
             $this->timeTracker->decStackPointer();
@@ -138,19 +155,25 @@ class RequestHandler implements RequestHandlerInterface
         $response = new Response();
 
         // Output content
-        $isOutputting = $controller->isOutputting();
+        // The if() condition can be removed in TYPO3 v11, which means that TYPO3 will not return a NullResponse
+        // by default anymore, which it hasn't done without any extensions anyway already.
+        $isOutputting = $controller->isOutputting(true);
         if ($isOutputting) {
             $this->timeTracker->push('Print Content');
             $response = $controller->applyHttpHeadersToResponse($response);
-            $controller->processContentForOutput();
+            $controller->processContentForOutput(true);
             $this->timeTracker->pull();
         }
 
         // Hook for "end-of-frontend"
         $_params = ['pObj' => &$controller];
+        if (!empty($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['tslib/class.tslib_fe.php']['hook_eofe'])) {
+            trigger_error('The hook $TYPO3_CONF_VARS[SC_OPTIONS][tslib/class.tslib_fe.php][hook_eofe] will be removed in TYPO3 v11.0. The same functionality can be achieved by using a PSR-15 middleware.', E_USER_DEPRECATED);
+        }
         foreach ($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['tslib/class.tslib_fe.php']['hook_eofe'] ?? [] as $_funcRef) {
             GeneralUtility::callUserFunction($_funcRef, $_params, $controller);
         }
+        $this->displayPreviewInfoMessage($controller);
 
         if ($isOutputting) {
             $response->getBody()->write($controller->content);
@@ -164,9 +187,10 @@ class RequestHandler implements RequestHandlerInterface
      * pageRenderer to evaluate includeCSS, headTag etc. TypoScript processing to populate the pageRenderer.
      *
      * @param TypoScriptFrontendController $controller
+     * @param ServerRequestInterface $request
      * @return string
      */
-    protected function generatePageContent(TypoScriptFrontendController $controller): string
+    protected function generatePageContent(TypoScriptFrontendController $controller, ServerRequestInterface $request): string
     {
         // Generate the main content between the <body> tags
         // This has to be done first, as some additional TSFE-related code could have been written
@@ -176,13 +200,17 @@ class RequestHandler implements RequestHandlerInterface
             return $pageContent;
         }
         // Now, populate pageRenderer with all additional data
-        $this->processHtmlBasedRenderingSettings($controller, $controller->getLanguage());
+        $this->processHtmlBasedRenderingSettings($controller, $controller->getLanguage(), $request);
         $pageRenderer = $this->getPageRenderer();
         // Add previously generated page content within the <body> tag afterwards
         $pageRenderer->addBodyContent(LF . $pageContent);
         if ($controller->isINTincScript()) {
             // Store the serialized pageRenderer in configuration
+            // @todo: serialize $pageRenderer->getState() in TYPO3 v11
             $controller->config['INTincScript_ext']['pageRenderer'] = serialize($pageRenderer);
+            // Store the serialized AssetCollector in configuration
+            // @todo: serialize $assetCollector->getState() in TYPO3 v11
+            $controller->config['INTincScript_ext']['assetCollector'] = serialize(GeneralUtility::makeInstance(AssetCollector::class));
             // Render complete page, keep placeholders for JavaScript and CSS
             return $pageRenderer->renderPageWithUncachedObjects($controller->config['INTincScript_ext']['divKey']);
         }
@@ -214,15 +242,14 @@ class RequestHandler implements RequestHandlerInterface
      * At this point, the cacheable content has just been generated (thus, all content is available but hasn't been added
      * to PageRenderer yet). The method is called after the "main" page content, since some JS may be inserted at that point
      * that has been registered by cacheable plugins.
-     *
      * PageRenderer is now populated with all <head> data and additional JavaScript/CSS/FooterData/HeaderData that can be cached.
-     *
      * Once finished, the content is added to the >addBodyContent() functionality.
      *
      * @param TypoScriptFrontendController $controller
      * @param SiteLanguage $siteLanguage
+     * @param ServerRequestInterface $request
      */
-    protected function processHtmlBasedRenderingSettings(TypoScriptFrontendController $controller, SiteLanguage $siteLanguage): void
+    protected function processHtmlBasedRenderingSettings(TypoScriptFrontendController $controller, SiteLanguage $siteLanguage, ServerRequestInterface $request): void
     {
         $pageRenderer = $this->getPageRenderer();
         if ($controller->config['config']['moveJsFromHeaderToFooter'] ?? false) {
@@ -232,7 +259,7 @@ class RequestHandler implements RequestHandlerInterface
             try {
                 $file = GeneralUtility::makeInstance(FilePathSanitizer::class)->sanitize($controller->config['config']['pageRendererTemplateFile']);
                 $pageRenderer->setTemplateFile($file);
-            } catch (\TYPO3\CMS\Core\Resource\Exception $e) {
+            } catch (Exception $e) {
                 // do nothing
             }
         }
@@ -362,11 +389,7 @@ class RequestHandler implements RequestHandlerInterface
         $pageRenderer->setHeadTag($headTag);
         // Setting charset meta tag:
         $pageRenderer->setCharSet($theCharset);
-        $pageRenderer->addInlineComment('	This website is powered by TYPO3 - inspiring people to share!
-	TYPO3 is a free open source Content Management Framework initially created by Kasper Skaarhoj and licensed under GNU/GPL.
-	TYPO3 is copyright ' . TYPO3_copyright_year . ' of Kasper Skaarhoj. Extensions are copyright of their respective owners.
-	Information and contribution at ' . TYPO3_URL_GENERAL . '
-');
+        $pageRenderer->addInlineComment(GeneralUtility::makeInstance(Typo3Information::class)->getInlineHeaderComment());
         if ($controller->baseUrl) {
             $pageRenderer->setBaseUrl($controller->baseUrl);
         }
@@ -382,7 +405,7 @@ class RequestHandler implements RequestHandlerInterface
                     }
                     $pageRenderer->setFavIcon(PathUtility::getAbsoluteWebPath($controller->absRefPrefix . $favIcon));
                 }
-            } catch (\TYPO3\CMS\Core\Resource\Exception $e) {
+            } catch (Exception $e) {
                 // do nothing
             }
         }
@@ -428,7 +451,7 @@ class RequestHandler implements RequestHandlerInterface
                     } else {
                         try {
                             $ss = GeneralUtility::makeInstance(FilePathSanitizer::class)->sanitize($CSSfile);
-                        } catch (\TYPO3\CMS\Core\Resource\Exception $e) {
+                        } catch (Exception $e) {
                             $ss = null;
                         }
                     }
@@ -446,7 +469,7 @@ class RequestHandler implements RequestHandlerInterface
                                 $cssFileConfig['alternate'] ? 'alternate stylesheet' : 'stylesheet',
                                 $cssFileConfig['media'] ?: 'all',
                                 $cssFileConfig['title'] ?: '',
-                                $cssFileConfig['external'] ? false : empty($cssFileConfig['disableCompression']),
+                                $cssFileConfig['external']  || (bool)$cssFileConfig['inline'] ? false : empty($cssFileConfig['disableCompression']),
                                 (bool)$cssFileConfig['forceOnTop'],
                                 $cssFileConfig['allWrap'],
                                 (bool)$cssFileConfig['excludeFromConcatenation'] || (bool)$cssFileConfig['inline'],
@@ -471,7 +494,7 @@ class RequestHandler implements RequestHandlerInterface
                     } else {
                         try {
                             $ss = GeneralUtility::makeInstance(FilePathSanitizer::class)->sanitize($CSSfile);
-                        } catch (\TYPO3\CMS\Core\Resource\Exception $e) {
+                        } catch (Exception $e) {
                             $ss = null;
                         }
                     }
@@ -489,7 +512,7 @@ class RequestHandler implements RequestHandlerInterface
                                 $cssFileConfig['alternate'] ? 'alternate stylesheet' : 'stylesheet',
                                 $cssFileConfig['media'] ?: 'all',
                                 $cssFileConfig['title'] ?: '',
-                                $cssFileConfig['external'] ? false : empty($cssFileConfig['disableCompression']),
+                                $cssFileConfig['external'] || (bool)$cssFileConfig['inline'] ? false : empty($cssFileConfig['disableCompression']),
                                 (bool)$cssFileConfig['forceOnTop'],
                                 $cssFileConfig['allWrap'],
                                 (bool)$cssFileConfig['excludeFromConcatenation'] || (bool)$cssFileConfig['inline'],
@@ -521,7 +544,7 @@ class RequestHandler implements RequestHandlerInterface
                     } else {
                         try {
                             $ss = GeneralUtility::makeInstance(FilePathSanitizer::class)->sanitize($JSfile);
-                        } catch (\TYPO3\CMS\Core\Resource\Exception $e) {
+                        } catch (Exception $e) {
                             $ss = null;
                         }
                     }
@@ -563,7 +586,7 @@ class RequestHandler implements RequestHandlerInterface
                     } else {
                         try {
                             $ss = GeneralUtility::makeInstance(FilePathSanitizer::class)->sanitize($JSfile);
-                        } catch (\TYPO3\CMS\Core\Resource\Exception $e) {
+                        } catch (Exception $e) {
                             $ss = null;
                         }
                     }
@@ -606,7 +629,7 @@ class RequestHandler implements RequestHandlerInterface
                     } else {
                         try {
                             $ss = GeneralUtility::makeInstance(FilePathSanitizer::class)->sanitize($JSfile);
-                        } catch (\TYPO3\CMS\Core\Resource\Exception $e) {
+                        } catch (Exception $e) {
                             $ss = null;
                         }
                     }
@@ -647,7 +670,7 @@ class RequestHandler implements RequestHandlerInterface
                     } else {
                         try {
                             $ss = GeneralUtility::makeInstance(FilePathSanitizer::class)->sanitize($JSfile);
-                        } catch (\TYPO3\CMS\Core\Resource\Exception $e) {
+                        } catch (Exception $e) {
                             $ss = null;
                         }
                     }
@@ -689,11 +712,12 @@ class RequestHandler implements RequestHandlerInterface
 
         // @internal hook for EXT:seo, will be gone soon, do not use it in your own extensions
         $_params = ['page' => $controller->page];
-        $_ref = '';
+        $_ref = null;
         foreach ($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['TYPO3\CMS\Frontend\Page\PageGenerator']['generateMetaTags'] ?? [] as $_funcRef) {
             GeneralUtility::callUserFunction($_funcRef, $_params, $_ref);
         }
 
+        $this->generateHrefLangTags($controller, $request);
         $this->generateMetaTagHtml(
             $controller->pSetup['meta.'] ?? [],
             $controller->cObj
@@ -917,7 +941,7 @@ class RequestHandler implements RequestHandlerInterface
             $replace = false;
             if (is_array($properties)) {
                 $nodeValue = $properties['_typoScriptNodeValue'] ?? '';
-                $value = trim($cObj->stdWrap($nodeValue, $metaTagTypoScript[$key . '.']) ?? '');
+                $value = trim((string)$cObj->stdWrap($nodeValue, $metaTagTypoScript[$key . '.']));
                 if ($value === '' && !empty($properties['value'])) {
                     $value = $properties['value'];
                     $replace = false;
@@ -1025,5 +1049,71 @@ class RequestHandler implements RequestHandlerInterface
             $htmlTag = $cObj->stdWrap($htmlTag, $configuration['htmlTag_stdWrap.']);
         }
         return $htmlTag;
+    }
+
+    protected function generateHrefLangTags(TypoScriptFrontendController $controller, ServerRequestInterface $request): void
+    {
+        $hrefLangs = $this->eventDispatcher->dispatch(
+            new ModifyHrefLangTagsEvent($request)
+        )->getHrefLangs();
+        if (count($hrefLangs) > 1) {
+            $data = [];
+            foreach ($hrefLangs as $hrefLang => $href) {
+                $data[] = sprintf('<link %s/>', GeneralUtility::implodeAttributes([
+                    'rel' => 'alternate',
+                    'hreflang' => $hrefLang,
+                    'href' => $href,
+                ], true));
+            }
+            $controller->additionalHeaderData[] = implode(LF, $data);
+        }
+    }
+
+    /**
+     * Include the preview block in case we're looking at a hidden page in the LIVE workspace
+     *
+     * @param TypoScriptFrontendController $controller
+     * @internal this method might get moved to a PSR-15 middleware at some point
+     */
+    protected function displayPreviewInfoMessage(TypoScriptFrontendController $controller)
+    {
+        $isInPreviewMode = $controller->getContext()->hasAspect('frontend.preview')
+            && $controller->getContext()->getPropertyFromAspect('frontend.preview', 'isPreview');
+        if (!$isInPreviewMode || $controller->doWorkspacePreview() || ($controller->config['config']['disablePreviewNotification'] ?? false)) {
+            return;
+        }
+        if ($controller->config['config']['message_preview']) {
+            $message = $controller->config['config']['message_preview'];
+        } else {
+            $label = $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_tsfe.xlf:preview');
+            $styles = [];
+            $styles[] = 'position: fixed';
+            $styles[] = 'top: 15px';
+            $styles[] = 'right: 15px';
+            $styles[] = 'padding: 8px 18px';
+            $styles[] = 'background: #fff3cd';
+            $styles[] = 'border: 1px solid #ffeeba';
+            $styles[] = 'font-family: sans-serif';
+            $styles[] = 'font-size: 14px';
+            $styles[] = 'font-weight: bold';
+            $styles[] = 'color: #856404';
+            $styles[] = 'z-index: 20000';
+            $styles[] = 'user-select: none';
+            $styles[] = 'pointer-events: none';
+            $styles[] = 'text-align: center';
+            $styles[] = 'border-radius: 2px';
+            $message = '<div id="typo3-preview-info" style="' . implode(';', $styles) . '">' . htmlspecialchars($label) . '</div>';
+        }
+        if (!empty($message)) {
+            $controller->content = str_ireplace('</body>', $message . '</body>', $controller->content);
+        }
+    }
+
+    /**
+     * @return LanguageService
+     */
+    protected function getLanguageService()
+    {
+        return $GLOBALS['LANG'];
     }
 }

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Scheduler\Task;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Scheduler\Task;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Scheduler\Task;
 
 use TYPO3\CMS\Core\Resource\Folder;
 use TYPO3\CMS\Core\Resource\StorageRepository;
@@ -29,7 +30,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  * does a "touch()" after the file is moved into the recycler folder.
  * @internal This class is a specific scheduler task implementation is not considered part of the Public TYPO3 API.
  */
-class RecyclerGarbageCollectionTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask
+class RecyclerGarbageCollectionTask extends AbstractTask
 {
     /**
      * Elapsed period since last modification before a file will

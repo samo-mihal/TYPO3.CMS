@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Error;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,12 +13,15 @@ namespace TYPO3\CMS\Core\Error;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Error;
+
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Log\LogLevel;
 use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
+use TYPO3\CMS\Core\Messaging\FlashMessageService;
 use TYPO3\CMS\Core\SysLog\Action as SystemLogGenericAction;
 use TYPO3\CMS\Core\SysLog\Error as SystemLogErrorClassification;
 use TYPO3\CMS\Core\SysLog\Type as SystemLogType;
@@ -65,7 +67,7 @@ class ErrorHandler implements ErrorHandlerInterface, LoggerAwareInterface
     {
         $excludedErrors = E_COMPILE_WARNING | E_COMPILE_ERROR | E_CORE_WARNING | E_CORE_ERROR | E_PARSE | E_ERROR;
         // reduces error types to those a custom error handler can process
-        $this->errorHandlerErrors = $errorHandlerErrors & ~$excludedErrors;
+        $this->errorHandlerErrors = (int)$errorHandlerErrors & ~$excludedErrors;
         set_error_handler([$this, 'handleError'], $this->errorHandlerErrors);
     }
 
@@ -106,6 +108,7 @@ class ErrorHandler implements ErrorHandlerInterface, LoggerAwareInterface
      */
     public function handleError($errorLevel, $errorMessage, $errorFile, $errorLine)
     {
+        $flashMessageSeverity = FlashMessage::OK;
         // Don't do anything if error_reporting is disabled by an @ sign or $errorLevel is something we won't handle
         $shouldHandleErrorLevel = (bool)($this->errorHandlerErrors & $errorLevel);
         if (error_reporting() === 0 || !$shouldHandleErrorLevel) {
@@ -153,10 +156,11 @@ class ErrorHandler implements ErrorHandlerInterface, LoggerAwareInterface
             $this->logger->log(LogLevel::normalizeLevel(LogLevel::NOTICE) - $severity, $message);
         }
 
-        // Write error message to TSlog (admin panel)
-        $timeTracker = $this->getTimeTracker();
-        if (is_object($timeTracker)) {
-            $timeTracker->setTSlogMessage($message, $severity + 1);
+        try {
+            // Write error message to TSlog (admin panel)
+            $this->getTimeTracker()->setTSlogMessage($message, $severity + 1);
+        } catch (\Throwable $e) {
+            // Silently catch in case an error occurs before the DI container is in place
         }
         // Write error message to sys_log table (ext: belog, Tools->Log)
         if ($errorLevel & $GLOBALS['TYPO3_CONF_VARS']['SYS']['belogErrorReporting']) {
@@ -173,13 +177,13 @@ class ErrorHandler implements ErrorHandlerInterface, LoggerAwareInterface
         if ($this->debugMode) {
             /** @var \TYPO3\CMS\Core\Messaging\FlashMessage $flashMessage */
             $flashMessage = GeneralUtility::makeInstance(
-                \TYPO3\CMS\Core\Messaging\FlashMessage::class,
+                FlashMessage::class,
                 $message,
                 $errorLevels[$errorLevel],
                 $flashMessageSeverity
             );
             /** @var \TYPO3\CMS\Core\Messaging\FlashMessageService $flashMessageService */
-            $flashMessageService = GeneralUtility::makeInstance(\TYPO3\CMS\Core\Messaging\FlashMessageService::class);
+            $flashMessageService = GeneralUtility::makeInstance(FlashMessageService::class);
             /** @var \TYPO3\CMS\Core\Messaging\FlashMessageQueue $defaultFlashMessageQueue */
             $defaultFlashMessageQueue = $flashMessageService->getMessageQueueByIdentifier();
             $defaultFlashMessageQueue->enqueue($flashMessage);

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Tests\Unit\Tree;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,10 @@ namespace TYPO3\CMS\Backend\Tests\Unit\Tree;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Tests\Unit\Tree;
+
+use TYPO3\CMS\Backend\Tree\SortedTreeNodeCollection;
+use TYPO3\CMS\Backend\Tree\TreeNode;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -23,22 +26,22 @@ class SortedTreeNodeCollectionTest extends UnitTestCase
 {
     protected function createTestCollection()
     {
-        $nodeCollection = new \TYPO3\CMS\Backend\Tree\SortedTreeNodeCollection();
-        $node = new \TYPO3\CMS\Backend\Tree\TreeNode(['id' => 5]);
+        $nodeCollection = new SortedTreeNodeCollection();
+        $node = new TreeNode(['id' => 5]);
         $nodeCollection->append($node);
-        $node = new \TYPO3\CMS\Backend\Tree\TreeNode(['id' => 15]);
+        $node = new TreeNode(['id' => 15]);
         $nodeCollection->append($node);
-        $node = new \TYPO3\CMS\Backend\Tree\TreeNode(['id' => 3]);
+        $node = new TreeNode(['id' => 3]);
         $nodeCollection->append($node);
         return $nodeCollection;
     }
 
     protected function createTestCollectionWithTwoNodes()
     {
-        $nodeCollection = new \TYPO3\CMS\Backend\Tree\SortedTreeNodeCollection();
-        $node = new \TYPO3\CMS\Backend\Tree\TreeNode(['id' => 5]);
+        $nodeCollection = new SortedTreeNodeCollection();
+        $node = new TreeNode(['id' => 5]);
         $nodeCollection->append($node);
-        $node = new \TYPO3\CMS\Backend\Tree\TreeNode(['id' => 3]);
+        $node = new TreeNode(['id' => 3]);
         $nodeCollection->append($node);
         return $nodeCollection;
     }
@@ -63,7 +66,7 @@ class SortedTreeNodeCollectionTest extends UnitTestCase
     public function collectionContainsNode()
     {
         $nodeCollection = $this->createTestCollection();
-        $node = new \TYPO3\CMS\Backend\Tree\TreeNode(['id' => 5]);
+        $node = new TreeNode(['id' => 5]);
         self::assertTrue($nodeCollection->contains($node));
     }
 
@@ -73,14 +76,14 @@ class SortedTreeNodeCollectionTest extends UnitTestCase
     public function searchDataWithBinarySearch()
     {
         $nodeCollection = $this->createTestCollection();
-        $node = new \TYPO3\CMS\Backend\Tree\TreeNode(['id' => 15]);
+        $node = new TreeNode(['id' => 15]);
         self::assertTrue($nodeCollection->contains($node));
-        $node = new \TYPO3\CMS\Backend\Tree\TreeNode(['id' => 99]);
+        $node = new TreeNode(['id' => 99]);
         self::assertFalse($nodeCollection->contains($node));
         $nodeCollection = $this->createTestCollectionWithTwoNodes();
-        $node = new \TYPO3\CMS\Backend\Tree\TreeNode(['id' => 3]);
+        $node = new TreeNode(['id' => 3]);
         self::assertTrue($nodeCollection->contains($node));
-        $node = new \TYPO3\CMS\Backend\Tree\TreeNode(['id' => 99]);
+        $node = new TreeNode(['id' => 99]);
         self::assertFalse($nodeCollection->contains($node));
     }
 }

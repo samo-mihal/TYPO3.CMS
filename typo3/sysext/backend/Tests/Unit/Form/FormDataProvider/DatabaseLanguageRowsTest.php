@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
 
 use Prophecy\Prophecy\ObjectProphecy;
 use TYPO3\CMS\Backend\Configuration\TranslationConfigurationProvider;
@@ -33,7 +34,7 @@ class DatabaseLanguageRowsTest extends UnitTestCase
     protected $subject;
 
     /**
-     * @var BackendUserAuthentication | ObjectProphecy
+     * @var BackendUserAuthentication|ObjectProphecy
      */
     protected $beUserProphecy;
 
@@ -238,21 +239,17 @@ class DatabaseLanguageRowsTest extends UnitTestCase
             'text' => 'default language text',
             'sys_language_uid' => 0,
         ];
-        $this->subject->expects(self::at(0))
-            ->method('getRecordWorkspaceOverlay')
-            ->with('tt_content', 23)
-            ->willReturn($defaultLanguageRow);
 
         /** @var TranslationConfigurationProvider|ObjectProphecy $translationProphecy */
         $translationProphecy = $this->prophesize(TranslationConfigurationProvider::class);
         GeneralUtility::addInstance(TranslationConfigurationProvider::class, $translationProphecy->reveal());
         $translationProphecy->translationInfo('tt_content', 23, 3)->shouldBeCalled()->willReturn($translationResult);
 
-        // This is the real check: The "additional overlay" should be fetched
-        $this->subject->expects(self::at(1))
+        // The second call is the real check: The "additional overlay" should be fetched
+        $this->subject->expects(self::exactly(2))
             ->method('getRecordWorkspaceOverlay')
-            ->with('tt_content', 43)
-            ->willReturn($recordWsolResult);
+            ->withConsecutive(['tt_content', 23], ['tt_content', 43])
+            ->willReturnOnConsecutiveCalls($defaultLanguageRow, $recordWsolResult);
 
         $expected = $input;
         $expected['defaultLanguageRow'] = $defaultLanguageRow;
@@ -333,10 +330,6 @@ class DatabaseLanguageRowsTest extends UnitTestCase
             'text' => 'default language text',
             'sys_language_uid' => 0,
         ];
-        $this->subject->expects(self::at(0))
-            ->method('getRecordWorkspaceOverlay')
-            ->with('tt_content', 23)
-            ->willReturn($defaultLanguageRow);
 
         /** @var TranslationConfigurationProvider|ObjectProphecy $translationProphecy */
         $translationProphecy = $this->prophesize(TranslationConfigurationProvider::class);
@@ -344,11 +337,11 @@ class DatabaseLanguageRowsTest extends UnitTestCase
         $translationProphecy->translationInfo('tt_content', 23, 3)->shouldBeCalled()->willReturn($translationResult);
         $translationProphecy->translationInfo('tt_content', 23, 2)->shouldNotBeCalled();
 
-        // This is the real check: The "additional overlay" should be fetched
-        $this->subject->expects(self::at(1))
+        // The second call is the real check: The "additional overlay" should be fetched
+        $this->subject->expects(self::exactly(2))
             ->method('getRecordWorkspaceOverlay')
-            ->with('tt_content', 43)
-            ->willReturn($recordWsolResult);
+            ->withConsecutive(['tt_content', 23], ['tt_content', 43])
+            ->willReturnOnConsecutiveCalls($defaultLanguageRow, $recordWsolResult);
 
         $expected = $input;
         $expected['defaultLanguageRow'] = $defaultLanguageRow;
@@ -420,14 +413,10 @@ class DatabaseLanguageRowsTest extends UnitTestCase
             'text' => 'default language text',
             'sys_language_uid' => 0,
         ];
-        $this->subject->expects(self::at(0))
+        $this->subject->expects(self::exactly(2))
             ->method('getRecordWorkspaceOverlay')
-            ->with('tt_content', 23)
-            ->willReturn($defaultLanguageRow);
-        $this->subject->expects(self::at(1))
-            ->method('getRecordWorkspaceOverlay')
-            ->with('tt_content', 24)
-            ->willReturn($sourceLanguageRow);
+            ->withConsecutive(['tt_content', 23], ['tt_content', 24])
+            ->willReturn($defaultLanguageRow, $sourceLanguageRow);
 
         $expected = $input;
         $expected['defaultLanguageRow'] = $defaultLanguageRow;

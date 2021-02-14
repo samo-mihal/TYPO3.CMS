@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Acceptance\InstallTool;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,10 +15,15 @@ namespace TYPO3\CMS\Core\Tests\Acceptance\InstallTool;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Acceptance\InstallTool;
+
 use TYPO3\CMS\Core\Tests\Acceptance\Support\BackendTester;
 
 class LoginCest extends AbstractCest
 {
+    /**
+     * @param BackendTester $I
+     */
     public function installToolLogin(BackendTester $I)
     {
         $I->amGoingTo('assert the install tool is locked in the first place');

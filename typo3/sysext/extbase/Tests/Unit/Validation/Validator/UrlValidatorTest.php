@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Extbase\Tests\Unit\Validation\Validator;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,9 @@ namespace TYPO3\CMS\Extbase\Tests\Unit\Validation\Validator;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Tests\Unit\Validation\Validator;
+
+use TYPO3\CMS\Extbase\Validation\Validator\UrlValidator;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -25,7 +28,7 @@ class UrlValidatorTest extends UnitTestCase
     /**
      * @var string
      */
-    protected $validatorClassName = \TYPO3\CMS\Extbase\Validation\Validator\UrlValidator::class;
+    protected $validatorClassName = UrlValidator::class;
 
     /**
      * @var \TYPO3\CMS\Extbase\Validation\Validator\UrlValidator
@@ -107,7 +110,7 @@ class UrlValidatorTest extends UnitTestCase
                 'isValid' => false,
             ],
             'Invalid value is object' => [
-                'value' => new \stdClass,
+                'value' => new \stdClass(),
                 'isValid' => false,
             ],
             'Invalid value is closure' => [

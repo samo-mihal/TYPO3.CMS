@@ -1,6 +1,6 @@
 #!/usr/bin/env php
 <?php
-declare(strict_types = 1);
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -21,7 +21,6 @@ use PhpParser\Node;
 use PhpParser\NodeTraverser;
 use PhpParser\ParserFactory;
 use Symfony\Component\Console\Output\ConsoleOutput;
-use TYPO3\CMS\Extbase\Reflection\DocBlock\Tags\Var_;
 
 require_once __DIR__ . '/../../vendor/autoload.php';
 
@@ -76,7 +75,6 @@ class NodeVisitor implements \PhpParser\NodeVisitor
     public function beforeTraverse(array $nodes)
     {
         $this->docBlockFactory = DocBlockFactory::createInstance();
-        $this->docBlockFactory->registerTagHandler('var', Var_::class);
         return null;
     }
 
@@ -204,12 +202,13 @@ class NodeVisitor implements \PhpParser\NodeVisitor
     }
 }
 
-$parser = (new ParserFactory)->create(ParserFactory::ONLY_PHP7);
+$parser = (new ParserFactory())->create(ParserFactory::ONLY_PHP7);
 
 $finder = new Symfony\Component\Finder\Finder();
 $finder->files()
     ->in(__DIR__ . '/../../typo3/sysext/*/Classes/')
     ->in(__DIR__ . '/../../typo3/sysext/*/Tests/')
+    ->notPath('_generated')
     ->name('/\.php$/')
 //    ->notName('ServiceProviderRegistry.php')
 ;
@@ -230,7 +229,13 @@ foreach ($finder as $file) {
     $traverser = new NodeTraverser();
     $traverser->addVisitor($visitor);
 
-    $ast = $traverser->traverse($ast);
+    try {
+        $ast = $traverser->traverse($ast);
+    } catch (\Throwable $e) {
+        $errors[$file->getRealPath()]['error'] = $e->getMessage();
+        $output->write('<error>F</error>');
+        continue;
+    }
 
     if ($visitor->className === null || $visitor->namespace === null) {
         // only process files that contain classes for now

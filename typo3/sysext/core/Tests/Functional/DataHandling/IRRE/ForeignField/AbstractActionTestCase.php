@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Functional\DataHandling\IRRE\ForeignField;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,12 +13,15 @@ namespace TYPO3\CMS\Core\Tests\Functional\DataHandling\IRRE\ForeignField;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Functional\DataHandling\IRRE\ForeignField;
+
+use TYPO3\CMS\Core\Tests\Functional\DataHandling\AbstractDataHandlerActionTestCase;
 use TYPO3\CMS\Core\Utility\StringUtility;
 
 /**
  * Functional test for the DataHandler
  */
-abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\DataHandling\AbstractDataHandlerActionTestCase
+abstract class AbstractActionTestCase extends AbstractDataHandlerActionTestCase
 {
     const VALUE_PageId = 89;
     const VALUE_PageIdTarget = 90;
@@ -70,7 +72,7 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
      */
 
     /**
-     * See DataSet/createParentContentRecord.csv
+     * Create a new parent content element
      */
     public function createParentContent()
     {
@@ -78,34 +80,22 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         $this->recordIds['newContentId'] = $newTableIds[self::TABLE_Content][0];
     }
 
-    /**
-     * See DataSet/modifyParentContentRecord.csv
-     */
     public function modifyParentContent()
     {
         $this->actionService->modifyRecord(self::TABLE_Content, self::VALUE_ContentIdLast, ['header' => 'Testing #1']);
     }
 
-    /**
-     * See DataSet/deleteParentContentRecord.csv
-     */
     public function deleteParentContent()
     {
         $this->actionService->deleteRecord(self::TABLE_Content, self::VALUE_ContentIdLast);
     }
 
-    /**
-     * See DataSet/copyParentContentRecord.csv
-     */
     public function copyParentContent()
     {
         $newTableIds = $this->actionService->copyRecord(self::TABLE_Content, self::VALUE_ContentIdLast, self::VALUE_PageId);
         $this->recordIds['newContentId'] = $newTableIds[self::TABLE_Content][self::VALUE_ContentIdLast];
     }
 
-    /**
-     * See DataSet/copyParentContentToDifferentPage.csv
-     */
     public function copyParentContentToDifferentPage()
     {
         $newTableIds = $this->actionService->copyRecord(self::TABLE_Content, self::VALUE_ContentIdLast, self::VALUE_PageIdTarget);
@@ -157,9 +147,6 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         $this->recordIds['localizedContentId'] = $newTableIds[self::TABLE_Content][self::VALUE_ContentIdLast];
     }
 
-    /**
-     * See DataSet/localizeParentContentWAllChildren.csv
-     */
     public function localizeParentContentWithAllChildren()
     {
         $newTableIds = $this->actionService->localizeRecord(self::TABLE_Content, self::VALUE_ContentIdLast, self::VALUE_LanguageId);
@@ -243,25 +230,24 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         );
     }
 
-    /**
-     * See DataSet/changeParentContentRecordSorting.csv
-     */
     public function changeParentContentSorting()
     {
         $this->actionService->moveRecord(self::TABLE_Content, self::VALUE_ContentIdFirst, -self::VALUE_ContentIdLast);
     }
 
-    /**
-     * See DataSet/moveParentContentRecordToDifferentPage.csv
-     */
     public function moveParentContentToDifferentPage()
     {
-        $this->actionService->moveRecord(self::TABLE_Content, self::VALUE_ContentIdLast, self::VALUE_PageIdTarget);
+        $newRecordIds = $this->actionService->moveRecord(self::TABLE_Content, self::VALUE_ContentIdLast, self::VALUE_PageIdTarget);
+        $this->recordIds['newContentId'] = $newRecordIds[self::TABLE_Content][self::VALUE_ContentIdLast];
     }
 
-    /**
-     * See DataSet/moveParentContentRecordToDifferentPageAndChangeSorting.csv
-     */
+    public function moveParentContentToDifferentPageTwice()
+    {
+        $newRecordIds = $this->actionService->moveRecord(self::TABLE_Content, self::VALUE_ContentIdLast, self::VALUE_PageIdTarget);
+        $this->recordIds['newContentId'] = $newRecordIds[self::TABLE_Content][self::VALUE_ContentIdLast];
+        $this->actionService->moveRecord(self::TABLE_Content, self::VALUE_ContentIdLast, self::VALUE_PageIdWebsite);
+    }
+
     public function moveParentContentToDifferentPageAndChangeSorting()
     {
         $this->actionService->moveRecord(self::TABLE_Content, self::VALUE_ContentIdLast, self::VALUE_PageIdTarget);
@@ -273,24 +259,18 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
      */
 
     /**
-     * See DataSet/modifyPageRecord.csv
+     * Modify a page record
      */
     public function modifyPage()
     {
         $this->actionService->modifyRecord(self::TABLE_Page, self::VALUE_PageId, ['title' => 'Testing #1']);
     }
 
-    /**
-     * See DataSet/deletePageRecord.csv
-     */
     public function deletePage()
     {
         $this->actionService->deleteRecord(self::TABLE_Page, self::VALUE_PageId);
     }
 
-    /**
-     * See DataSet/copyPageRecord.csv
-     */
     public function copyPage()
     {
         $newTableIds = $this->actionService->copyRecord(self::TABLE_Page, self::VALUE_PageId, self::VALUE_PageIdTarget);
@@ -299,9 +279,6 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         $this->recordIds['newContentIdLast'] = $newTableIds[self::TABLE_Content][self::VALUE_ContentIdLast];
     }
 
-    /**
-     * See DataSet/copyPageWHotelBeforeParentContent.csv
-     */
     public function copyPageWithHotelBeforeParentContent()
     {
         // Ensure hotels get processed first
@@ -321,7 +298,7 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
      */
 
     /**
-     * See DataSet/createParentContentRecordWithHotelAndOfferChildRecords.csv
+     * Create a parent content and add a hotel and offer
      */
     public function createParentContentWithHotelAndOfferChildren()
     {
@@ -336,9 +313,6 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         $this->recordIds['newContentId'] = $newTableIds[self::TABLE_Content][0];
     }
 
-    /**
-     * See DataSet/createAndCopyParentContentRecordWithHotelAndOfferChildRecords.csv
-     */
     public function createAndCopyParentContentWithHotelAndOfferChildren()
     {
         $newTableIds = $this->actionService->createNewRecords(
@@ -356,9 +330,6 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         $this->recordIds['copiedHotelId'] = $copiedTableIds[self::TABLE_Hotel][$this->recordIds['newHotelId']];
     }
 
-    /**
-     * See DataSet/createAndLocalizeParentContentRecordWithHotelAndOfferChildRecords.csv
-     */
     public function createAndLocalizeParentContentWithHotelAndOfferChildren()
     {
         $newTableIds = $this->actionService->createNewRecords(
@@ -375,9 +346,6 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         $this->recordIds['localizedContentId'] = $localizedTableIds[self::TABLE_Content][$this->recordIds['newContentId']];
     }
 
-    /**
-     * See DataSet/createAndLocalizeParentContentRecordWithHotelAndOfferChildRecords.csv
-     */
     public function createAndLocalizeParentContentWithHotelAndOfferChildrenWithoutSortByConfiguration()
     {
         unset($GLOBALS['TCA'][self::TABLE_Hotel]['ctrl']['sortby']);
@@ -395,25 +363,16 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         $this->recordIds['localizedContentId'] = $localizedTableIds[self::TABLE_Content][$this->recordIds['newContentId']];
     }
 
-    /**
-     * See DataSet/modifyOnlyHotelChildRecord.csv
-     */
     public function modifyOnlyHotelChild()
     {
         $this->actionService->modifyRecord(self::TABLE_Hotel, 4, ['title' => 'Testing #1']);
     }
 
-    /**
-     * See DataSet/modifyParentRecordAndChangeHotelChildRecordsSorting.csv
-     */
     public function modifyParentAndChangeHotelChildrenSorting()
     {
         $this->actionService->modifyRecord(self::TABLE_Content, self::VALUE_ContentIdFirst, [self::FIELD_ContentHotel => '4,3']);
     }
 
-    /**
-     * See DataSet/modifyParentRecordWithHotelChildRecord.csv
-     */
     public function modifyParentWithHotelChild()
     {
         $this->actionService->modifyRecords(
@@ -425,9 +384,6 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         );
     }
 
-    /**
-     * See DataSet/modifyParentRecordAndAddHotelChildRecord.csv
-     */
     public function modifyParentAndAddHotelChild()
     {
         $this->actionService->modifyRecords(
@@ -439,9 +395,6 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         );
     }
 
-    /**
-     * See DataSet/modifyParentRecordAndDeleteHotelChildRecord.csv
-     */
     public function modifyParentAndDeleteHotelChild()
     {
         $this->actionService->modifyRecord(

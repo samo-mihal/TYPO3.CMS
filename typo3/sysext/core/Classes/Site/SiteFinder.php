@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Site;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,8 +15,9 @@ namespace TYPO3\CMS\Core\Site;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Site;
+
 use TYPO3\CMS\Core\Configuration\SiteConfiguration;
-use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Exception\Page\PageNotFoundException;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Site\Entity\Site;
@@ -42,30 +42,32 @@ class SiteFinder
     protected $mappingRootPageIdToIdentifier = [];
 
     /**
+     * @var SiteConfiguration
+     */
+    protected $siteConfiguration;
+
+    /**
      * Fetches all existing configurations as Site objects
      *
      * @param SiteConfiguration $siteConfiguration
      */
     public function __construct(SiteConfiguration $siteConfiguration = null)
     {
-        $siteConfiguration = $siteConfiguration ?? GeneralUtility::makeInstance(
-            SiteConfiguration::class,
-            Environment::getConfigPath() . '/sites'
-        );
-        $sites = $siteConfiguration->getAllExistingSites();
-        foreach ($sites as $identifier => $site) {
-            $this->sites[$identifier] = $site;
-            $this->mappingRootPageIdToIdentifier[$site->getRootPageId()] = $identifier;
-        }
+        $this->siteConfiguration = $siteConfiguration ?? GeneralUtility::makeInstance(SiteConfiguration::class);
+        $this->fetchAllSites();
     }
 
     /**
      * Return a list of all configured sites
      *
+     * @param bool $useCache
      * @return Site[]
      */
-    public function getAllSites(): array
+    public function getAllSites(bool $useCache = true): array
     {
+        if ($useCache === false) {
+            $this->fetchAllSites($useCache);
+        }
         return $this->sites;
     }
 
@@ -105,10 +107,11 @@ class SiteFinder
      *
      * @param int $pageId
      * @param array $rootLine
+     * @param string|null $mountPointParameter
      * @return Site
      * @throws SiteNotFoundException
      */
-    public function getSiteByPageId(int $pageId, array $rootLine = null): Site
+    public function getSiteByPageId(int $pageId, array $rootLine = null, string $mountPointParameter = null): Site
     {
         if ($pageId === 0) {
             // page uid 0 has no root line. We don't need to ask the root line resolver to know that.
@@ -116,7 +119,7 @@ class SiteFinder
         }
         if (!is_array($rootLine)) {
             try {
-                $rootLine = GeneralUtility::makeInstance(RootlineUtility::class, $pageId)->get();
+                $rootLine = GeneralUtility::makeInstance(RootlineUtility::class, $pageId, $mountPointParameter)->get();
             } catch (PageNotFoundException $e) {
                 // Usually when a page was hidden or disconnected
                 // This could be improved by handing in a Context object and decide whether hidden pages
@@ -130,5 +133,16 @@ class SiteFinder
             }
         }
         throw new SiteNotFoundException('No site found in root line of page ' . $pageId, 1521716622);
+    }
+
+    /**
+     * @param bool $useCache
+     */
+    protected function fetchAllSites(bool $useCache = true): void
+    {
+        $this->sites = $this->siteConfiguration->getAllExistingSites($useCache);
+        foreach ($this->sites as $identifier => $site) {
+            $this->mappingRootPageIdToIdentifier[$site->getRootPageId()] = $identifier;
+        }
     }
 }

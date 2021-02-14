@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Cache;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,8 +13,11 @@ namespace TYPO3\CMS\Core\Cache;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Cache;
+
 use TYPO3\CMS\Core\Cache\Backend\BackendInterface;
 use TYPO3\CMS\Core\Cache\Backend\NullBackend;
+use TYPO3\CMS\Core\Cache\Backend\TransientMemoryBackend;
 use TYPO3\CMS\Core\Cache\Backend\Typo3DatabaseBackend;
 use TYPO3\CMS\Core\Cache\Exception\DuplicateIdentifierException;
 use TYPO3\CMS\Core\Cache\Exception\InvalidBackendException;
@@ -86,22 +88,33 @@ class CacheManager implements SingletonInterface
      * If one of the options is not specified, the default value is assumed.
      * Existing cache configurations are preserved.
      *
-     * @param array $cacheConfigurations The cache configurations to set
+     * @param array<string, array> $cacheConfigurations The cache configurations to set
      * @throws \InvalidArgumentException If $cacheConfigurations is not an array
      */
     public function setCacheConfigurations(array $cacheConfigurations)
     {
+        $newConfiguration = [];
+        $migratedConfiguration = [];
         foreach ($cacheConfigurations as $identifier => $configuration) {
+            if (empty($identifier)) {
+                throw new \InvalidArgumentException('A cache identifier was not set.', 1596980032);
+            }
             if (!is_array($configuration)) {
                 throw new \InvalidArgumentException('The cache configuration for cache "' . $identifier . '" was not an array as expected.', 1231259656);
             }
             // Fallback layer, will be removed in TYPO3 v11.0.
             if (strpos($identifier, 'cache_') === 0) {
-                trigger_error('Accessing a cache with the "cache_" prefix as in "' . $identifier . '" is not necessary anymore, and should be called without the cache prefix.', E_USER_DEPRECATED);
                 $identifier = substr($identifier, 6);
+                if (empty($identifier)) {
+                    throw new \InvalidArgumentException('A cache identifier was not set.', 1596980033);
+                }
+                trigger_error('Accessing a cache with the "cache_" prefix as in "' . $identifier . '" is not necessary anymore, and should be called without the cache prefix.', E_USER_DEPRECATED);
+                $migratedConfiguration[$identifier] = $configuration;
+            } else {
+                $newConfiguration[$identifier] = $configuration;
             }
-            $this->cacheConfigurations[$identifier] = $configuration;
         }
+        $this->cacheConfigurations = array_replace_recursive($newConfiguration, $migratedConfiguration);
     }
 
     /**
@@ -305,7 +318,7 @@ class CacheManager implements SingletonInterface
             $backendOptions = $this->defaultCacheConfiguration['options'];
         }
 
-        if ($this->disableCaching) {
+        if ($this->disableCaching && $backend !== TransientMemoryBackend::class) {
             $backend = NullBackend::class;
             $backendOptions = [];
         }

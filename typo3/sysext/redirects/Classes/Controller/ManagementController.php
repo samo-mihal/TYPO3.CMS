@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Redirects\Controller;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Redirects\Controller;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Redirects\Controller;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -67,6 +69,7 @@ class ManagementController
     {
         $this->moduleTemplate = GeneralUtility::makeInstance(ModuleTemplate::class);
         $this->moduleTemplate->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/Backend/Modal');
+        $this->moduleTemplate->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/Redirects/RedirectsModule');
         $this->iconFactory = GeneralUtility::makeInstance(IconFactory::class);
         $this->getLanguageService()->includeLLFile('EXT:redirects/Resources/Private/Language/locallang_module_redirect.xlf');
     }
@@ -80,13 +83,8 @@ class ManagementController
     public function handleRequest(ServerRequestInterface $request): ResponseInterface
     {
         $this->request = $request;
-        $action = $request->getQueryParams()['action'] ?? $request->getParsedBody()['action'] ?? 'overview';
-        $this->initializeView($action);
-
-        $result = call_user_func_array([$this, $action . 'Action'], [$request]);
-        if ($result instanceof ResponseInterface) {
-            return $result;
-        }
+        $this->initializeView('overview');
+        $this->overviewAction($request);
         $this->moduleTemplate->setContent($this->view->render());
         return new HtmlResponse($this->moduleTemplate->renderContent());
     }

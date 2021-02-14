@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Redirects\Hooks;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Redirects\Hooks;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Redirects\Hooks;
 
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
@@ -66,7 +68,7 @@ class DataHandlerSlugUpdateHook
             return;
         }
 
-        $record = BackendUtility::getRecordWSOL($table, $id, 'slug');
+        $record = BackendUtility::getRecordWSOL($table, (int)$id, 'slug');
         $this->persistedSlugValues[(int)$id] = $record['slug'];
     }
 

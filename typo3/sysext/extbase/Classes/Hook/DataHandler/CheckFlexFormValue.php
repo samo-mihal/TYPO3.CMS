@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Hook\DataHandler;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,21 +13,24 @@ namespace TYPO3\CMS\Extbase\Hook\DataHandler;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Hook\DataHandler;
+
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 
 /**
  * @internal this is not part of TYPO3 Core API as it is a concrete hook implementation.
+ * @deprecated since TYPO3 v10, will be removed when support for switchable controller actions is removed
  */
 class CheckFlexFormValue
 {
     /**
      * Check flexform value before merge
      *
-     * @param DataHandler $dataHander
-     * @param array &$currentValue
-     * @param array &$newValue
+     * @param DataHandler $dataHandler
+     * @param array $currentValue
+     * @param array $newValue
      */
-    public function checkFlexFormValue_beforeMerge(DataHandler $dataHander, array &$currentValue, array &$newValue)
+    public function checkFlexFormValue_beforeMerge(DataHandler $dataHandler, array &$currentValue, array &$newValue)
     {
         $currentValue = $this->removeSwitchableControllerActionsRecursive($currentValue);
     }

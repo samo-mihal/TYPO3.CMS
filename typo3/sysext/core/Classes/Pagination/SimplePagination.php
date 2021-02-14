@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Pagination;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Core\Pagination;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Pagination;
 
 final class SimplePagination implements PaginationInterface
 {
@@ -78,5 +79,13 @@ final class SimplePagination implements PaginationInterface
         }
 
         return $this->paginator->getKeyOfLastPaginatedItem() + 1;
+    }
+
+    /**
+     * @return int[]
+     */
+    public function getAllPageNumbers(): array
+    {
+        return range($this->getFirstPageNumber(), $this->getLastPageNumber());
     }
 }

@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Database\Query\Restriction;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,8 @@ namespace TYPO3\CMS\Core\Database\Query\Restriction;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Database\Query\Restriction;
+
 use TYPO3\CMS\Core\Database\Query\Expression\CompositeExpression;
 use TYPO3\CMS\Core\Database\Query\Expression\ExpressionBuilder;
 
@@ -24,16 +26,20 @@ use TYPO3\CMS\Core\Database\Query\Expression\ExpressionBuilder;
 class DocumentTypeExclusionRestriction implements QueryRestrictionInterface
 {
     /**
-     * @var int
+     * @var int[]
      */
-    protected $doktype;
+    protected $doktypes;
 
     /**
-     * @param int $doktype
+     * @param int[]|int $doktype
      */
-    public function __construct(int $doktype)
+    public function __construct($doktype)
     {
-        $this->doktype = (int)$doktype;
+        if (is_array($doktype)) {
+            $this->doktypes = $doktype;
+        } else {
+            $this->doktypes = [$doktype];
+        }
     }
 
     /**
@@ -52,7 +58,7 @@ class DocumentTypeExclusionRestriction implements QueryRestrictionInterface
                 continue;
             }
 
-            $constraints[] = $expressionBuilder->neq($tableAlias . '.doktype', $this->doktype);
+            $constraints[] = $expressionBuilder->notIn($tableAlias . '.doktype', $this->doktypes);
         }
 
         return $expressionBuilder->andX(...$constraints);

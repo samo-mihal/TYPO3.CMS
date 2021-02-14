@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Tree\View;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Tree\View;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Tree\View;
 
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
@@ -110,7 +111,7 @@ class BrowseTreeView extends AbstractTreeView
      */
     public function getTitleAttrib($row)
     {
-        return BackendUtility::titleAttribForPages($row, '1=1 ' . $this->clause, 0);
+        return BackendUtility::titleAttribForPages($row, '1=1 ' . $this->clause, false);
     }
 
     /**
@@ -126,7 +127,7 @@ class BrowseTreeView extends AbstractTreeView
         // Wrap icon in click-menu link.
         $theIcon = '';
         if (!$this->ext_IconMode) {
-            $theIcon = BackendUtility::wrapClickMenuOnIcon($icon, $this->treeName, $this->getId($row), 0);
+            $theIcon = BackendUtility::wrapClickMenuOnIcon($icon, $this->treeName, $this->getId($row), '0');
         } elseif ($this->ext_IconMode === 'titlelink') {
             $aOnClick = 'return jumpTo(' . GeneralUtility::quoteJSvalue($this->getJumpToParam($row)) . ',this,'
                         . GeneralUtility::quoteJSvalue($this->domIdPrefix . $this->getId($row)) . ',' . $this->bank . ');';

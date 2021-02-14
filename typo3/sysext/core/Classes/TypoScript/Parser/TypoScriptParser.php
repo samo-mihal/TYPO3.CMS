@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\TypoScript\Parser;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,12 +13,15 @@ namespace TYPO3\CMS\Core\TypoScript\Parser;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\TypoScript\Parser;
+
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Finder\Finder;
 use TYPO3\CMS\Backend\Configuration\TypoScript\ConditionMatching\ConditionMatcher as BackendConditionMatcher;
 use TYPO3\CMS\Core\Configuration\TypoScript\ConditionMatching\AbstractConditionMatcher;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Log\LogManager;
+use TYPO3\CMS\Core\Resource\Security\FileNameValidator;
 use TYPO3\CMS\Core\TimeTracker\TimeTracker;
 use TYPO3\CMS\Core\TypoScript\ExtendedTemplateService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -43,7 +45,7 @@ class TypoScriptParser
     /**
      * Raw data, the input string exploded by LF
      *
-     * @var array
+     * @var string[]
      */
     protected $raw;
 
@@ -303,7 +305,7 @@ class TypoScriptParser
      * Parsing the $this->raw TypoScript lines from pointer, $this->rawP
      *
      * @param array $setup Reference to the setup array in which to accumulate the values.
-     * @return string|null Returns the string of the condition found, the exit signal or possible nothing (if it completed parsing with no interruptions)
+     * @return string Returns the string of the condition found, the exit signal or possible nothing (if it completed parsing with no interruptions)
      */
     protected function parseSub(array &$setup)
     {
@@ -355,6 +357,10 @@ class TypoScriptParser
                         $this->multiLineValue[] = $this->raw[$this->rawP - 1];
                     }
                 } elseif ($this->inBrace === 0 && $line[0] === '[') {
+                    if (substr(trim($line), -1, 1) !== ']') {
+                        $this->error('Line ' . ($this->lineNumberOffset + $this->rawP - 1) . ': Invalid condition found, any condition must end with "]": ' . $line);
+                        return $line;
+                    }
                     // Beginning of condition (only on level zero compared to brace-levels
                     if ($this->syntaxHighLight) {
                         $this->regHighLight('condition', $lineP);
@@ -471,7 +477,7 @@ class TypoScriptParser
                                             }
                                             // unserialize(serialize(...)) may look stupid but is needed because of some reference issues.
                                             // See forge issue #76919 and functional test hasFlakyReferences()
-                                            $this->setVal($objStrName, $setup, unserialize(serialize($res)), 1);
+                                            $this->setVal($objStrName, $setup, unserialize(serialize($res), ['allowed_classes' => false]), true);
                                             break;
                                         case '>':
                                             if ($this->syntaxHighLight) {
@@ -522,7 +528,7 @@ class TypoScriptParser
                 }
             }
         }
-        return null;
+        return '';
     }
 
     /**
@@ -536,44 +542,46 @@ class TypoScriptParser
      */
     protected function executeValueModifier($modifierName, $modifierArgument = null, $currentValue = null)
     {
+        $modifierArgumentAsString = (string)$modifierArgument;
+        $currentValueAsString = (string)$currentValue;
         $newValue = null;
         switch ($modifierName) {
             case 'prependString':
-                $newValue = $modifierArgument . $currentValue;
+                $newValue = $modifierArgumentAsString . $currentValueAsString;
                 break;
             case 'appendString':
-                $newValue = $currentValue . $modifierArgument;
+                $newValue = $currentValueAsString . $modifierArgumentAsString;
                 break;
             case 'removeString':
-                $newValue = str_replace($modifierArgument, '', $currentValue);
+                $newValue = str_replace($modifierArgumentAsString, '', $currentValueAsString);
                 break;
             case 'replaceString':
-                $modifierArgumentArray = explode('|', $modifierArgument, 2);
+                $modifierArgumentArray = explode('|', $modifierArgumentAsString, 2);
                 $fromStr = $modifierArgumentArray[0] ?? '';
                 $toStr = $modifierArgumentArray[1] ?? '';
-                $newValue = str_replace($fromStr, $toStr, $currentValue);
+                $newValue = str_replace($fromStr, $toStr, $currentValueAsString);
                 break;
             case 'addToList':
-                $newValue = ((string)$currentValue !== '' ? $currentValue . ',' : '') . $modifierArgument;
+                $newValue = ($currentValueAsString !== '' ? $currentValueAsString . ',' : '') . $modifierArgumentAsString;
                 break;
             case 'removeFromList':
-                $existingElements = GeneralUtility::trimExplode(',', $currentValue);
-                $removeElements = GeneralUtility::trimExplode(',', $modifierArgument);
+                $existingElements = GeneralUtility::trimExplode(',', $currentValueAsString);
+                $removeElements = GeneralUtility::trimExplode(',', $modifierArgumentAsString);
                 if (!empty($removeElements)) {
                     $newValue = implode(',', array_diff($existingElements, $removeElements));
                 }
                 break;
             case 'uniqueList':
-                $elements = GeneralUtility::trimExplode(',', $currentValue);
+                $elements = GeneralUtility::trimExplode(',', $currentValueAsString);
                 $newValue = implode(',', array_unique($elements));
                 break;
             case 'reverseList':
-                $elements = GeneralUtility::trimExplode(',', $currentValue);
+                $elements = GeneralUtility::trimExplode(',', $currentValueAsString);
                 $newValue = implode(',', array_reverse($elements));
                 break;
             case 'sortList':
-                $elements = GeneralUtility::trimExplode(',', $currentValue);
-                $arguments = GeneralUtility::trimExplode(',', $modifierArgument);
+                $elements = GeneralUtility::trimExplode(',', $currentValueAsString);
+                $arguments = GeneralUtility::trimExplode(',', $modifierArgumentAsString);
                 $arguments = array_map('strtolower', $arguments);
                 $sort_flags = SORT_REGULAR;
                 if (in_array('numeric', $arguments)) {
@@ -584,7 +592,7 @@ class TypoScriptParser
                     // See also the warning on http://us.php.net/manual/en/function.sort.php
                     foreach ($elements as $element) {
                         if (!is_numeric($element)) {
-                            throw new \InvalidArgumentException('The list "' . $currentValue . '" should be sorted numerically but contains a non-numeric value', 1438191758);
+                            throw new \InvalidArgumentException('The list "' . $currentValueAsString . '" should be sorted numerically but contains a non-numeric value', 1438191758);
                         }
                     }
                 }
@@ -595,7 +603,7 @@ class TypoScriptParser
                 $newValue = implode(',', $elements);
                 break;
             case 'getEnv':
-                $environmentValue = getenv(trim($modifierArgument));
+                $environmentValue = getenv(trim($modifierArgumentAsString));
                 if ($environmentValue !== false) {
                     $newValue = $environmentValue;
                 }
@@ -604,7 +612,7 @@ class TypoScriptParser
                 if (isset($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tsparser.php']['preParseFunc'][$modifierName])) {
                     $hookMethod = $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tsparser.php']['preParseFunc'][$modifierName];
                     $params = ['currentValue' => $currentValue, 'functionArgument' => $modifierArgument];
-                    $fakeThis = false;
+                    $fakeThis = null;
                     $newValue = GeneralUtility::callUserFunction($hookMethod, $params, $fakeThis);
                 } else {
                     self::getLogger()->warning('Missing function definition for ' . $modifierName . ' on TypoScript');
@@ -628,7 +636,7 @@ class TypoScriptParser
             return '';
         }
 
-        list($key, $remainingKey) = $this->parseNextKeySegment($string);
+        [$key, $remainingKey] = $this->parseNextKeySegment($string);
         $key .= '.';
         if (!isset($setup[$key])) {
             $setup[$key] = [];
@@ -653,7 +661,7 @@ class TypoScriptParser
             return [];
         }
 
-        list($key, $remainingKey) = $this->parseNextKeySegment($string);
+        [$key, $remainingKey] = $this->parseNextKeySegment($string);
         $subKey = $key . '.';
         if ($remainingKey === '') {
             $retArr = [];
@@ -686,7 +694,7 @@ class TypoScriptParser
             return;
         }
 
-        list($key, $remainingKey) = $this->parseNextKeySegment($string);
+        [$key, $remainingKey] = $this->parseNextKeySegment($string);
         $subKey = $key . '.';
         if ($remainingKey === '') {
             if ($value === 'UNSET') {
@@ -773,7 +781,7 @@ class TypoScriptParser
             $keySegment = str_replace('\\.', '.', $keySegment);
         } else {
             // no backslash in the key, we're fine off
-            list($keySegment, $remainingKey) = explode('.', $key, 2);
+            [$keySegment, $remainingKey] = explode('.', $key, 2);
         }
         return [$keySegment, $remainingKey];
     }
@@ -834,8 +842,10 @@ class TypoScriptParser
         if (strpos($string, '<INCLUDE_TYPOSCRIPT:') !== false) {
             $splitRegEx = '/\r?\n\s*<INCLUDE_TYPOSCRIPT:\s*(?i)source\s*=\s*"((?i)file|dir):\s*([^"]*)"(.*)>[\ \t]*/';
             $parts = preg_split($splitRegEx, LF . $string . LF, -1, PREG_SPLIT_DELIM_CAPTURE);
+            $parts = is_array($parts) ? $parts : [];
+
             // First text part goes through
-            $newString = $parts[0] . LF;
+            $newString = ($parts[0] ?? '') . LF;
             $partCount = count($parts);
             for ($i = 1; $i + 3 < $partCount; $i += 4) {
                 // $parts[$i] contains 'FILE' or 'DIR'
@@ -850,6 +860,8 @@ class TypoScriptParser
 
                 // Check condition
                 $matches = preg_split('#(?i)condition\\s*=\\s*"((?:\\\\\\\\|\\\\"|[^\\"])*)"(\\s*|>)#', $optionalProperties, 2, PREG_SPLIT_DELIM_CAPTURE);
+                $matches = is_array($matches) ? $matches : [];
+
                 // If there was a condition
                 if (count($matches) > 1) {
                     // Unescape the condition
@@ -907,7 +919,7 @@ class TypoScriptParser
                     $filePointerPathParts = explode('/', substr($filename, 4));
 
                     // remove file part, determine whether to load setup or constants
-                    list($includeType, ) = explode('.', array_pop($filePointerPathParts));
+                    [$includeType, ] = explode('.', (string)array_pop($filePointerPathParts));
 
                     if (in_array($includeType, ['setup', 'constants'])) {
                         // adapt extension key to required format (no underscores)
@@ -951,6 +963,7 @@ class TypoScriptParser
         if (strpos($typoScript, '@import \'') !== false || strpos($typoScript, '@import "') !== false) {
             $splitRegEx = '/\r?\n\s*@import\s[\'"]([^\'"]*)[\'"][\ \t]?/';
             $parts = preg_split($splitRegEx, LF . $typoScript . LF, -1, PREG_SPLIT_DELIM_CAPTURE);
+            $parts = is_array($parts) ? $parts : [];
             // First text part goes through
             $newString = $parts[0] . LF;
             $partCount = count($parts);
@@ -977,8 +990,8 @@ class TypoScriptParser
      *
      * @param string $filename Full absolute path+filename to the typoscript file to be included
      * @param int $cycleCounter Counter for detecting endless loops
-     * @param bool $returnFiles When set, filenames of included files will be prepended to the array &$includedFiles
-     * @param array &$includedFiles Array to which the filenames of included files will be prepended (referenced)
+     * @param bool $returnFiles When set, filenames of included files will be prepended to the array $includedFiles
+     * @param array $includedFiles Array to which the filenames of included files will be prepended (referenced)
      * @return string the unparsed TypoScript content from external files
      */
     protected static function importExternalTypoScriptFile($filename, $cycleCounter, $returnFiles, array &$includedFiles)
@@ -1003,7 +1016,9 @@ class TypoScriptParser
 
         // Search all files in the folder
         if (is_dir($absoluteFileName)) {
-            $finder->in($absoluteFileName);
+            $finder
+                ->in($absoluteFileName)
+                ->name('*.typoscript');
             // Used for the TypoScript comments
             $readableFilePrefix = $filename;
         } else {
@@ -1028,7 +1043,7 @@ class TypoScriptParser
             $readableFileName = rtrim($readableFilePrefix, '/') . '/' . $fileObject->getFilename();
             $content .= LF . '### @import \'' . $readableFileName . '\' begin ###' . LF;
             // Check for allowed files
-            if (!GeneralUtility::verifyFilenameAgainstDenyPattern($fileObject->getFilename())) {
+            if (!GeneralUtility::makeInstance(FileNameValidator::class)->isValid($fileObject->getFilename())) {
                 $content .= self::typoscriptIncludeError('File "' . $readableFileName . '" was not included since it is not allowed due to fileDenyPattern.');
             } else {
                 $includedFiles[] = $fileObject->getPathname();
@@ -1050,7 +1065,7 @@ class TypoScriptParser
             if (strpos(strtoupper($filename), 'EXT:') === 0) {
                 $filePointerPathParts = explode('/', substr($filename, 4));
                 // remove file part, determine whether to load setup or constants
-                list($includeType) = explode('.', array_pop($filePointerPathParts));
+                [$includeType] = explode('.', (string)array_pop($filePointerPathParts));
 
                 if (in_array($includeType, ['setup', 'constants'], true)) {
                     // adapt extension key to required format (no underscores)
@@ -1077,9 +1092,9 @@ class TypoScriptParser
      *
      * @param string $filename Relative path to the typoscript file to be included
      * @param int $cycle_counter Counter for detecting endless loops
-     * @param bool $returnFiles When set, filenames of included files will be prepended to the array &$includedFiles
-     * @param string &$newString The output string to which the content of the file will be prepended (referenced
-     * @param array &$includedFiles Array to which the filenames of included files will be prepended (referenced)
+     * @param bool $returnFiles When set, filenames of included files will be prepended to the array $includedFiles
+     * @param string $newString The output string to which the content of the file will be prepended (referenced
+     * @param array $includedFiles Array to which the filenames of included files will be prepended (referenced)
      * @param string $optionalProperties
      * @param string $parentFilenameOrPath The parent file (with absolute path) or path for relative includes
      * @static
@@ -1099,7 +1114,7 @@ class TypoScriptParser
         if ((string)$filename !== '') {
             // Must exist and must not contain '..' and must be relative
             // Check for allowed files
-            if (!GeneralUtility::verifyFilenameAgainstDenyPattern($absfilename)) {
+            if (!GeneralUtility::makeInstance(FileNameValidator::class)->isValid($absfilename)) {
                 $newString .= self::typoscriptIncludeError('File "' . $filename . '" was not included since it is not allowed due to fileDenyPattern.');
             } else {
                 $fileExists = false;
@@ -1110,7 +1125,7 @@ class TypoScriptParser
                 if ($fileExists) {
                     $includedFiles[] = $absfilename;
                     // check for includes in included text
-                    $included_text = self::checkIncludeLines(file_get_contents($absfilename), $cycle_counter + 1, $returnFiles, $absfilename);
+                    $included_text = self::checkIncludeLines((string)file_get_contents($absfilename), $cycle_counter + 1, $returnFiles, $absfilename);
                     // If the method also has to return all included files, merge currently included
                     // files with files included by recursively calling itself
                     if ($returnFiles && is_array($included_text)) {
@@ -1134,9 +1149,9 @@ class TypoScriptParser
      *
      * @param string $dirPath Relative path to the directory to be included
      * @param int $cycle_counter Counter for detecting endless loops
-     * @param bool $returnFiles When set, filenames of included files will be prepended to the array &$includedFiles
-     * @param string &$newString The output string to which the content of the file will be prepended (referenced)
-     * @param array &$includedFiles Array to which the filenames of included files will be prepended (referenced)
+     * @param bool $returnFiles When set, filenames of included files will be prepended to the array $includedFiles
+     * @param string $newString The output string to which the content of the file will be prepended (referenced)
+     * @param array $includedFiles Array to which the filenames of included files will be prepended (referenced)
      * @param string $optionalProperties
      * @param string $parentFilenameOrPath The parent file (with absolute path) or path for relative includes
      * @static
@@ -1145,6 +1160,7 @@ class TypoScriptParser
     {
         // Extract the value of the property extensions="..."
         $matches = preg_split('#(?i)extensions\s*=\s*"([^"]*)"(\s*|>)#', $optionalProperties, 2, PREG_SPLIT_DELIM_CAPTURE);
+        $matches = is_array($matches) ? $matches : [];
         if (count($matches) > 1) {
             $includedFileExtensions = $matches[1];
         } else {
@@ -1263,7 +1279,7 @@ class TypoScriptParser
 
                     $expectedEndTag = '### <INCLUDE_TYPOSCRIPT: source="' . $inIncludePart . ':' . $fileName . '"' . $optionalProperties . '> END';
                     // Strip all whitespace characters to make comparison safer
-                    $expectedEndTag = strtolower(preg_replace('/\s/', '', $expectedEndTag));
+                    $expectedEndTag = strtolower(preg_replace('/\s/', '', $expectedEndTag) ?? '');
                 } else {
                     // If this is not a beginning commented include statement this line goes into the rest content
                     $restContent[] = $line;
@@ -1288,7 +1304,7 @@ class TypoScriptParser
 
                     if ($inIncludePart === 'FILE') {
                         // Some file checks
-                        if (!GeneralUtility::verifyFilenameAgainstDenyPattern($realFileName)) {
+                        if (!GeneralUtility::makeInstance(FileNameValidator::class)->isValid($realFileName)) {
                             throw new \UnexpectedValueException(sprintf('File "%s" was not included since it is not allowed due to fileDenyPattern.', $fileName), 1382651858);
                         }
                         if (empty($realFileName)) {
@@ -1438,7 +1454,7 @@ class TypoScriptParser
             $lineC = '';
             if (is_array($this->highLightData[$rawP])) {
                 foreach ($this->highLightData[$rawP] as $set) {
-                    $len = $strlen - $start - $set[1];
+                    $len = $strlen - $start - (int)$set[1];
                     if ($len > 0) {
                         $part = substr($value, $start, $len);
                         $start += $len;
@@ -1460,7 +1476,7 @@ class TypoScriptParser
                 $lineC .= $this->highLightStyles['error'][0] . '<strong> - ERROR:</strong> ' . htmlspecialchars(implode(';', $errA[$rawP])) . $this->highLightStyles['error'][1];
             }
             if ($highlightBlockMode && $this->highLightData_bracelevel[$rawP]) {
-                $lineC = str_pad('', $this->highLightData_bracelevel[$rawP] * 2, ' ', STR_PAD_LEFT) . '<span style="' . $this->highLightBlockStyles . ($this->highLightBlockStyles_basecolor ? 'background-color: ' . $this->modifyHTMLColorAll($this->highLightBlockStyles_basecolor, -$this->highLightData_bracelevel[$rawP] * 16) : '') . '">' . ($lineC !== '' ? $lineC : '&nbsp;') . '</span>';
+                $lineC = str_pad('', $this->highLightData_bracelevel[$rawP] * 2, ' ', STR_PAD_LEFT) . '<span style="' . $this->highLightBlockStyles . ($this->highLightBlockStyles_basecolor ? 'background-color: ' . $this->modifyHTMLColorAll($this->highLightBlockStyles_basecolor, -(int)($this->highLightData_bracelevel[$rawP] * 16)) : '') . '">' . ($lineC !== '' ? $lineC : '&nbsp;') . '</span>';
             }
             if (is_array($lineNumDat)) {
                 $lineNum = $rawP + $lineNumDat[0];
@@ -1495,9 +1511,9 @@ class TypoScriptParser
     protected function modifyHTMLColor($color, $R, $G, $B)
     {
         // This takes a hex-color (# included!) and adds $R, $G and $B to the HTML-color (format: #xxxxxx) and returns the new color
-        $nR = MathUtility::forceIntegerInRange(hexdec(substr($color, 1, 2)) + $R, 0, 255);
-        $nG = MathUtility::forceIntegerInRange(hexdec(substr($color, 3, 2)) + $G, 0, 255);
-        $nB = MathUtility::forceIntegerInRange(hexdec(substr($color, 5, 2)) + $B, 0, 255);
+        $nR = MathUtility::forceIntegerInRange((int)hexdec(substr($color, 1, 2)) + $R, 0, 255);
+        $nG = MathUtility::forceIntegerInRange((int)hexdec(substr($color, 3, 2)) + $G, 0, 255);
+        $nB = MathUtility::forceIntegerInRange((int)hexdec(substr($color, 5, 2)) + $B, 0, 255);
         return '#' . substr('0' . dechex($nR), -2) . substr('0' . dechex($nG), -2) . substr('0' . dechex($nB), -2);
     }
 

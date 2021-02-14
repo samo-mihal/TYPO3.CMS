@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Context;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Context;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Context;
 
 use TYPO3\CMS\Core\Authentication\AbstractUserAuthentication;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
@@ -35,14 +37,14 @@ use TYPO3\CMS\Frontend\Authentication\FrontendUserAuthentication;
 class UserAspect implements AspectInterface
 {
     /**
-     * @var AbstractUserAuthentication
+     * @var AbstractUserAuthentication|\stdClass
      */
     protected $user;
 
     /**
      * Alternative list of groups, usually useful for frontend logins with "magic" groups like "-1" and "-2"
      *
-     * @var int[]
+     * @var int[]|null
      */
     protected $groups;
 
@@ -57,11 +59,11 @@ class UserAspect implements AspectInterface
     }
 
     /**
-     * @return object
+     * @return \stdClass
      */
-    private function createPseudoUser(): object
+    private function createPseudoUser(): \stdClass
     {
-        $user = new \stdClass;
+        $user = new \stdClass();
         $user->user = [];
         return $user;
     }
@@ -93,16 +95,18 @@ class UserAspect implements AspectInterface
     }
 
     /**
-     * If a frontend user is checked, he/she also needs to have a group, otherwise it is only
-     * checked if the frontend user has a uid > 0
+     * A user is logged in if the user has a UID, but does not care about groups.
+     *
+     * For frontend purposes, it is possible to e.g. simulate groups, but this would still be defined as "not logged in".
+     * This is also possible in frontend where there are cases that a user can be marked as NOT logged IN, but
+     * be logged in but the groups are explicitly NOT defined (see pages.fe_login_mode)
+     *
+     * For backend, only the check on the user ID is used.
      *
      * @return bool
      */
     public function isLoggedIn(): bool
     {
-        if ($this->user instanceof FrontendUserAuthentication) {
-            return ($this->user->user[$this->user->userid_column ?? 'uid'] ?? 0) > 0 && !empty($this->user->groupData['uid'] ?? null);
-        }
         return ($this->user->user[$this->user->userid_column ?? 'uid'] ?? 0) > 0;
     }
 
@@ -131,15 +135,16 @@ class UserAspect implements AspectInterface
      */
     public function getGroupIds(): array
     {
-        $groups = [];
-        if ($this->user instanceof BackendUserAuthentication) {
-            $groups = GeneralUtility::intExplode(',', $this->user->groupList, true);
+        // Alternative groups are set
+        if (is_array($this->groups)) {
+            return $this->groups;
         }
+        if ($this->user instanceof BackendUserAuthentication) {
+            return GeneralUtility::intExplode(',', $this->user->groupList, true);
+        }
+        $groups = [];
         if ($this->user instanceof FrontendUserAuthentication) {
-            // Alternative groups are set
-            if (is_array($this->groups)) {
-                $groups = $this->groups;
-            } elseif ($this->isLoggedIn()) {
+            if ($this->isLoggedIn()) {
                 // If a user is logged in, always add "-2"
                 $groups = [0, -2];
                 if (!empty($this->user->groupData['uid'])) {
@@ -180,7 +185,7 @@ class UserAspect implements AspectInterface
     {
         if ($this->user instanceof FrontendUserAuthentication) {
             $groups = $this->getGroupIds();
-            return is_array($this->user->user ?? null) || implode(',', $groups) !== '0,-1';
+            return $this->isLoggedIn() || implode(',', $groups) !== '0,-1';
         }
         return $this->isLoggedIn();
     }

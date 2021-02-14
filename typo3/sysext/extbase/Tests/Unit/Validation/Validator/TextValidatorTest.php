@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Tests\Unit\Validation\Validator;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,15 +13,21 @@ namespace TYPO3\CMS\Extbase\Tests\Unit\Validation\Validator;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Tests\Unit\Validation\Validator;
+
+use TYPO3\CMS\Extbase\Validation\Error;
+use TYPO3\CMS\Extbase\Validation\Validator\TextValidator;
+use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
+
 /**
  * Testcase for the text validator
  */
-class TextValidatorTest extends \TYPO3\TestingFramework\Core\Unit\UnitTestCase
+class TextValidatorTest extends UnitTestCase
 {
     /**
      * @var string
      */
-    protected $validatorClassName = \TYPO3\CMS\Extbase\Validation\Validator\TextValidator::class;
+    protected $validatorClassName = TextValidator::class;
 
     public function setup(): void
     {
@@ -72,7 +77,7 @@ class TextValidatorTest extends \TYPO3\TestingFramework\Core\Unit\UnitTestCase
     public function textValidatorCreatesTheCorrectErrorIfTheSubjectContainsHtmlEntities()
     {
         // we only test for the error code, after the translation Method for message is mocked anyway
-        $expected = [new \TYPO3\CMS\Extbase\Validation\Error('', 1221565786)];
+        $expected = [new Error('', 1221565786)];
         self::assertEquals($expected, $this->validator->validate('<span style="color: #BBBBBB;">a nice text</span>')->getErrors());
     }
 }

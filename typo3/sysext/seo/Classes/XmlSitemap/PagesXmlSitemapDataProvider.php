@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Seo\XmlSitemap;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Seo\XmlSitemap;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Seo\XmlSitemap;
 
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Context\Context;
@@ -35,42 +36,25 @@ class PagesXmlSitemapDataProvider extends AbstractXmlSitemapDataProvider
     {
         parent::__construct($request, $key, $config, $cObj);
 
-        $this->generateItems($this->request);
+        $this->generateItems();
     }
 
-    /**
-     * @param ServerRequestInterface $request
-     * @throws \TYPO3\CMS\Core\Context\Exception\AspectNotFoundException
-     */
-    public function generateItems(ServerRequestInterface $request): void
+    protected function generateItems(): void
     {
-        $languageId = $this->getCurrentLanguageAspect()->getId();
-        foreach ($this->getPages() as $page) {
-            /**
-             * @todo Checking if the page has to be shown/hidden should normally be handled by the
-             * PageRepository but to prevent major breaking changes this is checked here for now
-             */
-            if (
-                !(
-                    GeneralUtility::hideIfDefaultLanguage($page['l18n_cfg'])
-                    && (!$languageId || ($languageId && !$page['_PAGES_OVERLAY']))
-                )
-                &&
-                !(
-                    $languageId
-                    && GeneralUtility::hideIfNotTranslated($page['l18n_cfg'])
-                    && !$page['_PAGES_OVERLAY']
-                )
-            ) {
-                $lastMod = $page['SYS_LASTCHANGED'] ?: $page['tstamp'];
-
-                $this->items[] = [
-                    'uid' => $page['uid'],
-                    'lastMod' => (int)$lastMod,
-                    'changefreq' => $page['sitemap_changefreq'],
-                    'priority' => (float)$page['sitemap_priority'],
-                ];
+        $pageRepository = GeneralUtility::makeInstance(PageRepository::class);
+        $pages = $pageRepository->getPagesOverlay($this->getPages());
+        $languageAspect = $this->getCurrentLanguageAspect();
+        foreach ($pages as $page) {
+            if (!$pageRepository->isPageSuitableForLanguage($page, $languageAspect)) {
+                continue;
             }
+
+            $this->items[] = [
+                'uid' => $page['uid'],
+                'lastMod' => (int)($page['SYS_LASTCHANGED'] ?: $page['tstamp']),
+                'changefreq' => $page['sitemap_changefreq'],
+                'priority' => (float)$page['sitemap_priority'],
+            ];
         }
     }
 
@@ -114,13 +98,11 @@ class PagesXmlSitemapDataProvider extends AbstractXmlSitemapDataProvider
             ->execute()
             ->fetchAll();
 
-        $pageRepository = GeneralUtility::makeInstance(PageRepository::class);
-        return $pageRepository->getPagesOverlay($pages);
+        return $pages;
     }
 
     /**
      * @return LanguageAspect
-     * @throws \TYPO3\CMS\Core\Context\Exception\AspectNotFoundException
      */
     protected function getCurrentLanguageAspect(): LanguageAspect
     {

@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Unit\Category;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,7 +15,10 @@ namespace TYPO3\CMS\Core\Tests\Unit\Category;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\Category;
+
 use TYPO3\CMS\Core\Category\CategoryRegistry;
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -43,8 +46,8 @@ class CategoryRegistryTest extends UnitTestCase
         $GLOBALS['TCA']['pages']['columns'] = [];
         $this->subject = new CategoryRegistry();
         $this->tables = [
-            'first' => $this->getUniqueId('first'),
-            'second' => $this->getUniqueId('second')
+            'first' => StringUtility::getUniqueId('first'),
+            'second' => StringUtility::getUniqueId('second')
         ];
         foreach ($this->tables as $tableName) {
             $GLOBALS['TCA'][$tableName] = [

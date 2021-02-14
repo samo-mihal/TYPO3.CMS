@@ -1,4 +1,5 @@
 <?php
+
 return [
     'ctrl' => [
         'label' => 'header',
@@ -23,6 +24,7 @@ return [
         'transOrigDiffSourceField' => 'l18n_diffsource',
         'languageField' => 'sys_language_uid',
         'translationSource' => 'l10n_source',
+        'previewRenderer' => \TYPO3\CMS\Backend\Preview\StandardContentPreviewRenderer::class,
         'enablecolumns' => [
             'disabled' => 'hidden',
             'starttime' => 'starttime',
@@ -61,7 +63,6 @@ return [
     ],
     'interface' => [
         'always_description' => 0,
-        'showRecordFieldList' => 'CType,header,rowDescription,header_link,bodytext,image,media,imagewidth,imageorient,records,colPos,starttime,endtime,fe_group'
     ],
     'columns' => [
         'CType' => [
@@ -72,135 +73,173 @@ return [
                 'items' => [
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.div.standard',
-                        '--div--'
+                        '--div--',
+                        null,
+                        'default'
                     ],
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.I.0',
                         'header',
-                        'content-header'
+                        'content-header',
+                        'default'
                     ],
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.I.1',
                         'text',
-                        'content-text'
+                        'content-text',
+                        'default'
                     ],
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.I.2',
                         'textpic',
-                        'content-textpic'
+                        'content-textpic',
+                        'default'
                     ],
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.I.3',
                         'image',
-                        'content-image'
+                        'content-image',
+                        'default'
                     ],
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.textmedia',
                         'textmedia',
-                        'content-textmedia'
+                        'content-textmedia',
+                        'default'
                     ],
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.div.lists',
-                        '--div--'
+                        '--div--',
+                        null,
+                        'lists'
                     ],
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.I.4',
                         'bullets',
-                        'content-bullets'
+                        'content-bullets',
+                        'lists'
                     ],
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.I.5',
                         'table',
-                        'content-table'
+                        'content-table',
+                        'lists'
                     ],
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.I.6',
                         'uploads',
-                        'content-special-uploads'
+                        'content-special-uploads',
+                        'lists'
                     ],
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.div.menu',
-                        '--div--'
+                        '--div--',
+                        null,
+                        'menu'
                     ],
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.menu_abstract',
                         'menu_abstract',
-                        'content-menu-abstract'
+                        'content-menu-abstract',
+                        'menu'
                     ],
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.menu_categorized_content',
                         'menu_categorized_content',
-                        'content-menu-categorized'
+                        'content-menu-categorized',
+                        'menu'
                     ],
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.menu_categorized_pages',
                         'menu_categorized_pages',
-                        'content-menu-categorized'
+                        'content-menu-categorized',
+                        'menu'
                     ],
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.menu_pages',
                         'menu_pages',
-                        'content-menu-pages'
+                        'content-menu-pages',
+                        'menu'
                     ],
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.menu_subpages',
                         'menu_subpages',
-                        'content-menu-pages'
+                        'content-menu-pages',
+                        'menu'
                     ],
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.menu_recently_updated',
                         'menu_recently_updated',
-                        'content-menu-recently-updated'
+                        'content-menu-recently-updated',
+                        'menu'
                     ],
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.menu_related_pages',
                         'menu_related_pages',
-                        'content-menu-related'
+                        'content-menu-related',
+                        'menu'
                     ],
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.menu_section',
                         'menu_section',
-                        'content-menu-section'
+                        'content-menu-section',
+                        'menu'
                     ],
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.menu_section_pages',
                         'menu_section_pages',
-                        'content-menu-section'
+                        'content-menu-section',
+                        'menu'
                     ],
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.menu_sitemap',
                         'menu_sitemap',
-                        'content-menu-sitemap'
+                        'content-menu-sitemap',
+                        'menu'
                     ],
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.menu_sitemap_pages',
                         'menu_sitemap_pages',
-                        'content-menu-sitemap-pages'
+                        'content-menu-sitemap-pages',
+                        'menu'
                     ],
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.div.special',
-                        '--div--'
+                        '--div--',
+                        null,
+                        'special'
                     ],
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.I.13',
                         'shortcut',
-                        'content-special-shortcut'
+                        'content-special-shortcut',
+                        'special'
                     ],
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.I.14',
                         'list',
-                        'content-plugin'
+                        'content-plugin',
+                        'special'
                     ],
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.I.16',
                         'div',
-                        'content-special-div'
+                        'content-special-div',
+                        'special'
                     ],
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.I.17',
                         'html',
-                        'content-special-html'
+                        'content-special-html',
+                        'special'
                     ]
+                ],
+                'itemGroups' => [
+                    'default' => 'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.div.standard',
+                    'lists' => 'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.div.lists',
+                    'menu' => 'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.div.menu',
+                    'forms' => 'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.div.forms',
+                    'special' => 'LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:CType.div.special',
                 ],
                 'default' => 'text',
                 'authMode' => $GLOBALS['TYPO3_CONF_VARS']['BE']['explicitADmode'],
@@ -209,6 +248,7 @@ return [
         ],
         'editlock' => [
             'exclude' => true,
+            'displayCond' => 'HIDE_FOR_NON_ADMINS',
             'label' => 'LLL:EXT:core/Resources/Private/Language/locallang_tca.xlf:editlock',
             'config' => [
                 'type' => 'check',
@@ -307,7 +347,6 @@ return [
             ]
         ],
         'l18n_parent' => [
-            'exclude' => true,
             'displayCond' => 'FIELD:sys_language_uid:>:0',
             'label' => 'LLL:EXT:core/Resources/Private/Language/locallang_general.xlf:LGL.l18n_parent',
             'config' => [
@@ -381,7 +420,7 @@ return [
                 'type' => 'select',
                 'renderType' => 'selectSingle',
                 'items' => [
-                    ['LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:space_class_none', ''],
+                    ['LLL:EXT:core/Resources/Private/Language/locallang_general.xlf:LGL.default_value', ''],
                     ['LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:space_class_extra_small', 'extra-small'],
                     ['LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:space_class_small', 'small'],
                     ['LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:space_class_medium', 'medium'],
@@ -398,7 +437,7 @@ return [
                 'type' => 'select',
                 'renderType' => 'selectSingle',
                 'items' => [
-                    ['LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:space_class_none', ''],
+                    ['LLL:EXT:core/Resources/Private/Language/locallang_general.xlf:LGL.default_value', ''],
                     ['LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:space_class_extra_small', 'extra-small'],
                     ['LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:space_class_small', 'small'],
                     ['LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:space_class_medium', 'medium'],
@@ -680,10 +719,8 @@ return [
             'config' => [
                 'type' => 'input',
                 'size' => 4,
-                'max' => 4,
                 'eval' => 'int',
                 'range' => [
-                    'upper' => 1999,
                     'lower' => 0,
                 ],
                 'default' => 0
@@ -695,10 +732,8 @@ return [
             'config' => [
                 'type' => 'input',
                 'size' => 4,
-                'max' => 4,
                 'eval' => 'int',
                 'range' => [
-                    'upper' => 1999,
                     'lower' => 0,
                 ],
                 'default' => 0
@@ -952,10 +987,16 @@ return [
                     [
                         '',
                         '',
-                        ''
+                        '',
+                        'none'
                     ]
                 ],
-                'itemsProcFunc' => \TYPO3\CMS\Frontend\Hooks\TableColumnHooks::class . '->sortPluginList',
+                'itemGroups' => [
+                    'default' => 'LLL:EXT:core/Resources/Private/Language/locallang_general.xlf:LGL.default_value'
+                ],
+                'sortItems' => [
+                    'label' => 'asc'
+                ],
                 'default' => '',
                 'authMode' => $GLOBALS['TYPO3_CONF_VARS']['BE']['explicitADmode'],
                 'authMode_enforce' => 'strict'

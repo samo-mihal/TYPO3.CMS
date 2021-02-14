@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Scheduler\Task;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,11 +13,18 @@ namespace TYPO3\CMS\Scheduler\Task;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Scheduler\Task;
+
+use TYPO3\CMS\Core\Resource\Index\Indexer;
+use TYPO3\CMS\Core\Resource\ResourceFactory;
+use TYPO3\CMS\Core\Resource\ResourceStorage;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+
 /**
  * This task which indexes files in storage
  * @internal This class is a specific scheduler task implementation is not considered part of the Public TYPO3 API.
  */
-class FileStorageExtractionTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask
+class FileStorageExtractionTask extends AbstractTask
 {
     /**
      * Storage Uid
@@ -43,7 +49,8 @@ class FileStorageExtractionTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask
     {
         $success = false;
         if ((int)$this->storageUid > 0) {
-            $storage = \TYPO3\CMS\Core\Resource\ResourceFactory::getInstance()->getStorageObject($this->storageUid);
+            $storage = GeneralUtility::makeInstance(ResourceFactory::class)->getStorageObject($this->storageUid);
+            $currentEvaluatePermissionsValue = $storage->getEvaluatePermissions();
             $storage->setEvaluatePermissions(false);
             $indexer = $this->getIndexer($storage);
             try {
@@ -53,7 +60,7 @@ class FileStorageExtractionTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask
                 $success = false;
                 $this->logException($e);
             }
-            $storage->setEvaluatePermissions(true);
+            $storage->setEvaluatePermissions($currentEvaluatePermissionsValue);
         }
         return $success;
     }
@@ -64,8 +71,8 @@ class FileStorageExtractionTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask
      * @param \TYPO3\CMS\Core\Resource\ResourceStorage $storage
      * @return \TYPO3\CMS\Core\Resource\Index\Indexer
      */
-    protected function getIndexer(\TYPO3\CMS\Core\Resource\ResourceStorage $storage)
+    protected function getIndexer(ResourceStorage $storage)
     {
-        return \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Core\Resource\Index\Indexer::class, $storage);
+        return GeneralUtility::makeInstance(Indexer::class, $storage);
     }
 }

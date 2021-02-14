@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Redirects\Evaluation;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,6 +15,8 @@ namespace TYPO3\CMS\Redirects\Evaluation;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Redirects\Evaluation;
+
 /**
  * Class SourceHost
  * Triggered from DataHandler as TCA formevals hook for validation / sanitation of domain values.
@@ -25,6 +26,7 @@ class SourceHost
 {
     /**
      * JavaScript code for client side validation/evaluation
+     * (invoked by FormEngine when editing redirect entities)
      *
      * @return string JavaScript code for client side validation/evaluation
      */

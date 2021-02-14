@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Unit\Core;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,10 @@ namespace TYPO3\CMS\Core\Tests\Unit\Core;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\Core;
+
+use TYPO3\CMS\Core\Core\SystemEnvironmentBuilder;
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -32,7 +35,7 @@ class SystemEnvironmentBuilderTest extends UnitTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->subject = $this->getAccessibleMock(\TYPO3\CMS\Core\Core\SystemEnvironmentBuilder::class, ['dummy']);
+        $this->subject = $this->getAccessibleMock(SystemEnvironmentBuilder::class, ['dummy']);
     }
 
     /**
@@ -42,9 +45,9 @@ class SystemEnvironmentBuilderTest extends UnitTestCase
      */
     public function fileDenyPatternMatchesPhpExtensionDataProvider()
     {
-        $fileName = $this->getUniqueId('filename');
+        $fileName = StringUtility::getUniqueId('filename');
         $data = [];
-        $phpExtensions = \TYPO3\CMS\Core\Utility\GeneralUtility::trimExplode(',', 'php,php3,php4,php5,php6,phpsh,phtml,pht', true);
+        $phpExtensions = ['php', 'php3', 'php4', 'php5', 'php7', 'phpsh', 'phtml', 'pht'];
         foreach ($phpExtensions as $extension) {
             $data[] = [$fileName . '.' . $extension];
             $data[] = [$fileName . '.' . $extension . '.txt'];
@@ -69,7 +72,7 @@ class SystemEnvironmentBuilderTest extends UnitTestCase
      */
     public function getPathThisScriptCliReadsLocalPartFromArgv()
     {
-        $fakedLocalPart = $this->getUniqueId('Test');
+        $fakedLocalPart = StringUtility::getUniqueId('Test');
         $GLOBALS['_SERVER']['argv'][0] = $fakedLocalPart;
         self::assertStringEndsWith($fakedLocalPart, $this->subject->_call('getPathThisScriptCli'));
     }
@@ -79,7 +82,7 @@ class SystemEnvironmentBuilderTest extends UnitTestCase
      */
     public function getPathThisScriptCliReadsLocalPartFromEnv()
     {
-        $fakedLocalPart = $this->getUniqueId('Test');
+        $fakedLocalPart = StringUtility::getUniqueId('Test');
         unset($GLOBALS['_SERVER']['argv']);
         $GLOBALS['_ENV']['_'] = $fakedLocalPart;
         self::assertStringEndsWith($fakedLocalPart, $this->subject->_call('getPathThisScriptCli'));
@@ -90,7 +93,7 @@ class SystemEnvironmentBuilderTest extends UnitTestCase
      */
     public function getPathThisScriptCliReadsLocalPartFromServer()
     {
-        $fakedLocalPart = $this->getUniqueId('Test');
+        $fakedLocalPart = StringUtility::getUniqueId('Test');
         unset($GLOBALS['_SERVER']['argv']);
         unset($GLOBALS['_ENV']['_']);
         $GLOBALS['_SERVER']['_'] = $fakedLocalPart;
@@ -103,7 +106,7 @@ class SystemEnvironmentBuilderTest extends UnitTestCase
     public function getPathThisScriptCliAddsCurrentWorkingDirectoryFromServerEnvironmentToLocalPathOnUnix()
     {
         $GLOBALS['_SERVER']['argv'][0] = 'foo';
-        $fakedAbsolutePart = '/' . $this->getUniqueId('Absolute') . '/';
+        $fakedAbsolutePart = '/' . StringUtility::getUniqueId('Absolute') . '/';
         $_SERVER['PWD'] = $fakedAbsolutePart;
         self::assertStringStartsWith($fakedAbsolutePart, $this->subject->_call('getPathThisScriptCli'));
     }
@@ -161,41 +164,5 @@ class SystemEnvironmentBuilderTest extends UnitTestCase
     {
         $this->subject->_call('initializeGlobalTimeTrackingVariables');
         self::assertEquals(0, $GLOBALS['SIM_ACCESS_TIME'] % 60);
-    }
-
-    /**
-     * @test
-     */
-    public function initializeBasicErrorReportingExcludesStrict()
-    {
-        $backupReporting = error_reporting();
-        $this->subject->_call('initializeBasicErrorReporting');
-        $actualReporting = error_reporting();
-        error_reporting($backupReporting);
-        self::assertEquals(0, $actualReporting & E_STRICT);
-    }
-
-    /**
-     * @test
-     */
-    public function initializeBasicErrorReportingExcludesNotice()
-    {
-        $backupReporting = error_reporting();
-        $this->subject->_call('initializeBasicErrorReporting');
-        $actualReporting = error_reporting();
-        error_reporting($backupReporting);
-        self::assertEquals(0, $actualReporting & E_NOTICE);
-    }
-
-    /**
-     * @test
-     */
-    public function initializeBasicErrorReportingExcludesDeprecated()
-    {
-        $backupReporting = error_reporting();
-        $this->subject->_call('initializeBasicErrorReporting');
-        $actualReporting = error_reporting();
-        error_reporting($backupReporting);
-        self::assertEquals(0, $actualReporting & E_DEPRECATED);
     }
 }

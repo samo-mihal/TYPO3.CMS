@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\Core\Widget;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,12 +13,21 @@ namespace TYPO3\CMS\Fluid\Core\Widget;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Fluid\Core\Widget;
+
+use TYPO3\CMS\Extbase\Mvc\Request;
+
 /**
  * Represents a widget request.
  * @internal It is a purely internal class which should not be used outside of Fluid.
  */
-class WidgetRequest extends \TYPO3\CMS\Extbase\Mvc\Web\Request
+class WidgetRequest extends Request
 {
+    /**
+     * @var string The requested representation format
+     */
+    protected $format = 'html';
+
     /**
      * @var \TYPO3\CMS\Fluid\Core\Widget\WidgetContext
      */
@@ -36,7 +44,7 @@ class WidgetRequest extends \TYPO3\CMS\Extbase\Mvc\Web\Request
     /**
      * @param \TYPO3\CMS\Fluid\Core\Widget\WidgetContext $widgetContext
      */
-    public function setWidgetContext(\TYPO3\CMS\Fluid\Core\Widget\WidgetContext $widgetContext)
+    public function setWidgetContext(WidgetContext $widgetContext)
     {
         $this->widgetContext = $widgetContext;
         $this->setControllerObjectName($widgetContext->getControllerObjectName());

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Resource\Index;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Resource\Index;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Resource\Index;
 
 use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\Database\Connection;
@@ -69,7 +70,7 @@ class FileIndexRepository implements SingletonInterface
      */
     protected function getResourceFactory()
     {
-        return ResourceFactory::getInstance();
+        return GeneralUtility::makeInstance(ResourceFactory::class);
     }
 
     /**
@@ -95,15 +96,15 @@ class FileIndexRepository implements SingletonInterface
      */
     public function findOneByCombinedIdentifier($combinedIdentifier)
     {
-        list($storageUid, $identifier) = GeneralUtility::trimExplode(':', $combinedIdentifier, false, 2);
-        return $this->findOneByStorageUidAndIdentifier($storageUid, $identifier);
+        [$storageUid, $identifier] = GeneralUtility::trimExplode(':', $combinedIdentifier, false, 2);
+        return $this->findOneByStorageUidAndIdentifier((int)$storageUid, $identifier);
     }
 
     /**
      * Retrieves Index record for a given $fileUid
      *
      * @param int $fileUid
-     * @return array|bool
+     * @return array|false
      */
     public function findOneByUid($fileUid)
     {
@@ -142,7 +143,7 @@ class FileIndexRepository implements SingletonInterface
      *
      * @param int $storageUid
      * @param string $identifierHash
-     * @return array|bool
+     * @return array|false
      *
      * @internal only for use from FileRepository
      */

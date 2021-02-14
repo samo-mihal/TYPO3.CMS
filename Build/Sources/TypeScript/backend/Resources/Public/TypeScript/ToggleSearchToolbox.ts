@@ -11,7 +11,7 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import * as $ from 'jquery';
+import $ from 'jquery';
 import DocumentHeader = require('./DocumentHeader');
 import 'TYPO3/CMS/Backend/Input/Clearable';
 
@@ -38,7 +38,7 @@ class ToggleSearchToolbox {
     });
 
     let searchField: HTMLInputElement;
-    if ((searchField = document.querySelector('#search_field')) !== null) {
+    if ((searchField = document.getElementById('search_field') as HTMLInputElement) !== null) {
       const searchResultShown = ('' !== searchField.value);
 
       // make search field clearable

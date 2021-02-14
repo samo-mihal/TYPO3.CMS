@@ -24,6 +24,15 @@
 			<trans-unit id="hdg.cliScript" resname="hdg.cliScript">
 				<source>CLI script</source>
 			</trans-unit>
+			<trans-unit id="hdg.composerMode" resname="hdg.composerMode">
+				<source>System is running in Composer Mode</source>
+			</trans-unit>
+			<trans-unit id="msg.composerMode" resname="msg.composerMode">
+				<source>
+					The system is running in composer mode, the path to the `typo3` executable could not be reliably determined.
+					By default, the command to run in composer mode is `vendor/bin/typo3 scheduler:run`.
+				</source>
+			</trans-unit>
 			<trans-unit id="hdg.lastRun" resname="hdg.lastRun">
 				<source>Last run</source>
 			</trans-unit>
@@ -180,6 +189,9 @@
 			<trans-unit id="label.saveAndCreateNewTask" resname="label.saveAndCreateNewTask">
 				<source>Save and create new task</source>
 			</trans-unit>
+			<trans-unit id="label.addOptionToCommand" resname="label.addOptionToCommand">
+				<source>Add option</source>
+			</trans-unit>
 			<trans-unit id="msg.addError" resname="msg.addError">
 				<source>The task could not be added.</source>
 			</trans-unit>
@@ -333,6 +345,12 @@
 			<trans-unit id="msg.unregisteredCommand" resname="msg.unregisteredCommand">
 				<source>Command with identifier "%s" has not been registered.</source>
 			</trans-unit>
+			<trans-unit id="msg.errorParsingArguments" resname="msg.errorParsingArguments">
+				<source>Error parsing current set of arguments: "%s".</source>
+			</trans-unit>
+			<trans-unit id="msg.errorParsingOptions" resname="msg.errorParsingOptions">
+				<source>Error parsing current set of options: "%s".</source>
+			</trans-unit>
 			<trans-unit id="msg.mandatoryArgumentMissing" resname="msg.mandatoryArgumentMissing">
 				<source>Argument "%s" is mandatory</source>
 			</trans-unit>
@@ -460,7 +478,7 @@
 				<source>Last 2 bytes for IPv4 / Interface &amp; SLA ID for IPv6</source>
 			</trans-unit>
 			<trans-unit id="command.example1" resname="command.example1">
-				<source>Every day-of-week from Monday through Friday. at 09:00 and 15:00</source>
+				<source>Every day-of-week from Monday through Friday at 09:00 and 15:00</source>
 			</trans-unit>
 			<trans-unit id="command.example2" resname="command.example2">
 				<source>Every 2 hours</source>

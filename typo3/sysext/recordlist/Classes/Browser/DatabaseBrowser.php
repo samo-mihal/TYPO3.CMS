@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Recordlist\Browser;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Recordlist\Browser;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Recordlist\Browser;
 
 use TYPO3\CMS\Backend\RecordList\ElementBrowserRecordList;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
@@ -76,9 +77,8 @@ class DatabaseBrowser extends AbstractElementBrowser implements ElementBrowserIn
         $userTsConfig = $this->getBackendUser()->getTSConfig();
 
         $this->setTemporaryDbMounts();
-        list(, , , $allowedTables) = explode('|', $this->bparams);
+        [, , , $allowedTables] = explode('|', $this->bparams);
 
-        // Making the browsable pagetree:
         $pageTree = GeneralUtility::makeInstance(ElementBrowserPageTreeView::class);
         $pageTree->setLinkParameterProvider($this);
         $pageTree->ext_pArrPages = $allowedTables === 'pages';
@@ -108,51 +108,30 @@ class DatabaseBrowser extends AbstractElementBrowser implements ElementBrowserIn
 
         $renderedRecordList = $this->renderTableRecords($allowedTables);
 
-        $this->initDocumentTemplate();
-        $content = $this->doc->startPage(htmlspecialchars($this->getLanguageService()->getLL('recordSelector')));
+        $this->setBodyTagParameters();
 
-        // Putting the parts together, side by side:
-        $markup = [];
-        $markup[] = '<!-- Wrapper table for folder tree / filelist: -->';
-        $markup[] = '<div class="element-browser">';
-        $markup[] = '   <div class="element-browser-panel element-browser-main">';
-        if ($withTree) {
-            $markup[] = '   <div class="element-browser-main-sidebar">';
-            $markup[] = '       <div class="element-browser-body">';
-            $markup[] = '           ' . $this->getTemporaryTreeMountCancelNotice();
-            $markup[] = '           ' . $tree;
-            $markup[] = '       </div>';
-            $markup[] = '   </div>';
-        }
-        $markup[] = '       <div class="element-browser-main-content">';
-        $markup[] = '           <div class="element-browser-body">';
-        $markup[] = '               ' . $this->doc->getFlashMessages();
-        $markup[] = '               ' . $renderedRecordList;
-        $markup[] = '           </div>';
-        $markup[] = '       </div>';
-        $markup[] = '   </div>';
-        $markup[] = '</div>';
-        $content .= implode('', $markup);
-
-        // Ending page, returning content:
-        $content .= $this->doc->endPage();
-        return $this->doc->insertStylesAndJS($content);
+        $this->moduleTemplate->setTitle($this->getLanguageService()->getLL('recordSelector'));
+        $view = $this->moduleTemplate->getView();
+        $view->assignMultiple([
+            'treeEnabled' => $withTree,
+            'temporaryTreeMountCancelUrl' => $this->getTemporaryTreeMountCancelNotice(),
+            'tree' => $tree,
+            'content' => $renderedRecordList
+        ]);
+        return $this->moduleTemplate->renderContent();
     }
 
     /**
-     * Check if a temporary tree mount is set and return a cancel button
+     * Check if a temporary tree mount is set and return a cancel link
      *
-     * @return string HTML code
+     * @return string URL
      */
     protected function getTemporaryTreeMountCancelNotice()
     {
         if ((int)$this->getBackendUser()->getSessionData('pageTree_temporaryMountPoint') === 0) {
             return '';
         }
-        $link = '<p><a href="' . htmlspecialchars(GeneralUtility::linkThisScript(['setTempDBmount' => 0])) . '" class="btn btn-primary">'
-            . htmlspecialchars($this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.temporaryDBmount')) . '</a></p>';
-
-        return $link;
+        return GeneralUtility::linkThisScript(['setTempDBmount' => 0]);
     }
 
     /**
@@ -229,7 +208,7 @@ class DatabaseBrowser extends AbstractElementBrowser implements ElementBrowserIn
         $dbList->tableList = implode(',', $tablesArr);
 
         // a string like "data[pages][79][storage_pid]"
-        list($fieldPointerString) = explode('|', $this->bparams);
+        [$fieldPointerString] = explode('|', $this->bparams);
         // parts like: data, pages], 79], storage_pid]
         $fieldPointerParts = explode('[', $fieldPointerString);
         $relatingTableName = substr($fieldPointerParts[1], 0, -1);

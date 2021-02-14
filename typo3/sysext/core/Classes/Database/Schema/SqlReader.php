@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Database\Schema;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Database\Schema;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Database\Schema;
 
 use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\Database\Event\AlterTableDefinitionStatementsEvent;
@@ -62,10 +64,10 @@ class SqlReader
         foreach ($this->packageManager->getActivePackages() as $package) {
             $packagePath = $package->getPackagePath();
             if (@file_exists($packagePath . 'ext_tables.sql')) {
-                $sqlString[] = file_get_contents($packagePath . 'ext_tables.sql');
+                $sqlString[] = (string)file_get_contents($packagePath . 'ext_tables.sql');
             }
             if ($withStatic && @file_exists($packagePath . 'ext_tables_static+adt.sql')) {
-                $sqlString[] = file_get_contents($packagePath . 'ext_tables_static+adt.sql');
+                $sqlString[] = (string)file_get_contents($packagePath . 'ext_tables_static+adt.sql');
             }
         }
 
@@ -89,11 +91,21 @@ class SqlReader
     {
         $statementArray = [];
         $statementArrayPointer = 0;
+        $isInMultilineComment = false;
         foreach (explode(LF, $dumpContent) as $lineContent) {
             $lineContent = trim($lineContent);
 
             // Skip empty lines and comments
-            if ($lineContent === '' || $lineContent[0] === '#' || strpos($lineContent, '--') === 0) {
+            if ($lineContent === '' || $lineContent[0] === '#' || strpos($lineContent, '--') === 0 ||
+                strpos($lineContent, '/*') === 0 || substr($lineContent, -2) === '*/' || $isInMultilineComment
+            ) {
+                // skip c style multiline comments
+                if (strpos($lineContent, '/*') === 0 && substr($lineContent, -2) !== '*/') {
+                    $isInMultilineComment = true;
+                }
+                if (substr($lineContent, -2) === '*/') {
+                    $isInMultilineComment = false;
+                }
                 continue;
             }
 

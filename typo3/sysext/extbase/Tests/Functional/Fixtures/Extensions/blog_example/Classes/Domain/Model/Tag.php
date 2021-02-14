@@ -1,5 +1,4 @@
 <?php
-namespace ExtbaseTeam\BlogExample\Domain\Model;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,14 @@ namespace ExtbaseTeam\BlogExample\Domain\Model;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace ExtbaseTeam\BlogExample\Domain\Model;
+
+use TYPO3\CMS\Extbase\DomainObject\AbstractValueObject;
+
 /**
  * A blog post tag
  */
-class Tag extends \TYPO3\CMS\Extbase\DomainObject\AbstractValueObject
+class Tag extends AbstractValueObject
 {
     /**
      * @var string

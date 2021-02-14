@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Filelist\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,9 +13,12 @@ namespace TYPO3\CMS\Filelist\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Filelist\Controller;
+
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use TYPO3\CMS\Backend\Clipboard\Clipboard;
+use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Template\Components\ButtonBar;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Backend\View\BackendTemplateView;
@@ -27,8 +29,11 @@ use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Resource\DuplicationBehavior;
 use TYPO3\CMS\Core\Resource\Exception;
+use TYPO3\CMS\Core\Resource\Exception\InsufficientFolderAccessPermissionsException;
+use TYPO3\CMS\Core\Resource\FileRepository;
 use TYPO3\CMS\Core\Resource\Folder;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
+use TYPO3\CMS\Core\Resource\ResourceStorage;
 use TYPO3\CMS\Core\Resource\Search\FileSearchDemand;
 use TYPO3\CMS\Core\Resource\Utility\ListUtility;
 use TYPO3\CMS\Core\Type\Bitmask\JsConfirmation;
@@ -39,6 +44,7 @@ use TYPO3\CMS\Extbase\Mvc\Controller\ActionController;
 use TYPO3\CMS\Extbase\Mvc\View\ViewInterface;
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 use TYPO3\CMS\Filelist\Configuration\ThumbnailConfiguration;
+use TYPO3\CMS\Filelist\FileFacade;
 use TYPO3\CMS\Filelist\FileList;
 
 /**
@@ -134,14 +140,14 @@ class FileListController extends ActionController implements LoggerAwareInterfac
     /**
      * BackendTemplateView Container
      *
-     * @var BackendTemplateView
+     * @var string
      */
     protected $defaultViewObjectName = BackendTemplateView::class;
 
     /**
      * @param \TYPO3\CMS\Core\Resource\FileRepository $fileRepository
      */
-    public function injectFileRepository(\TYPO3\CMS\Core\Resource\FileRepository $fileRepository)
+    public function injectFileRepository(FileRepository $fileRepository)
     {
         $this->fileRepository = $fileRepository;
     }
@@ -166,7 +172,7 @@ class FileListController extends ActionController implements LoggerAwareInterfac
 
         try {
             if ($combinedIdentifier) {
-                /** @var ResourceFactory $resourceFactory */
+                $this->getBackendUser()->evaluateUserSpecificFileFilterSettings();
                 $resourceFactory = GeneralUtility::makeInstance(ResourceFactory::class);
                 $storage = $resourceFactory->getStorageObjectFromCombinedIdentifier($combinedIdentifier);
                 $identifier = substr($combinedIdentifier, strpos($combinedIdentifier, ':') + 1);
@@ -177,7 +183,7 @@ class FileListController extends ActionController implements LoggerAwareInterfac
                 $this->folderObject = $resourceFactory->getFolderObjectFromCombinedIdentifier($storage->getUid() . ':' . $identifier);
                 // Disallow access to fallback storage 0
                 if ($storage->getUid() === 0) {
-                    throw new Exception\InsufficientFolderAccessPermissionsException(
+                    throw new InsufficientFolderAccessPermissionsException(
                         'You are not allowed to access files outside your storages',
                         1434539815
                     );
@@ -200,7 +206,7 @@ class FileListController extends ActionController implements LoggerAwareInterfac
             if ($this->folderObject && !$this->folderObject->getStorage()->isWithinFileMountBoundaries($this->folderObject)) {
                 throw new \RuntimeException('Folder not accessible.', 1430409089);
             }
-        } catch (Exception\InsufficientFolderAccessPermissionsException $permissionException) {
+        } catch (InsufficientFolderAccessPermissionsException $permissionException) {
             $this->folderObject = null;
             $this->errorMessage = GeneralUtility::makeInstance(
                 FlashMessage::class,
@@ -217,7 +223,7 @@ class FileListController extends ActionController implements LoggerAwareInterfac
             // Take the first object of the first storage
             $fileStorages = $this->getBackendUser()->getFileStorages();
             $fileStorage = reset($fileStorages);
-            if ($fileStorage instanceof \TYPO3\CMS\Core\Resource\ResourceStorage) {
+            if ($fileStorage instanceof ResourceStorage) {
                 $this->folderObject = $fileStorage->getRootLevelFolder();
                 if (!$fileStorage->isWithinFileMountBoundaries($this->folderObject)) {
                     $this->folderObject = null;
@@ -289,9 +295,17 @@ class FileListController extends ActionController implements LoggerAwareInterfac
         parent::initializeView($view);
         $pageRenderer = $this->view->getModuleTemplate()->getPageRenderer();
         $pageRenderer->loadRequireJsModule('TYPO3/CMS/Filelist/FileListLocalisation');
+        $pageRenderer->loadRequireJsModule('TYPO3/CMS/Filelist/FileList');
         $pageRenderer->loadRequireJsModule('TYPO3/CMS/Filelist/FileSearch');
         $pageRenderer->loadRequireJsModule('TYPO3/CMS/Backend/ContextMenu');
         $this->registerDocHeaderButtons();
+        if ($this->folderObject instanceof Folder) {
+            $view->assign(
+                'currentFolderHash',
+                'folder' . GeneralUtility::md5int($this->folderObject->getCombinedIdentifier())
+            );
+        }
+        $view->assign('currentIdentifier', $this->id);
     }
 
     protected function initializeIndexAction()
@@ -335,13 +349,10 @@ class FileListController extends ActionController implements LoggerAwareInterfac
 
         // There there was access to this file path, continue, make the list
         if ($this->folderObject) {
+            $this->initClipboard();
             $userTsConfig = $this->getBackendUser()->getTSConfig();
             $this->filelist = GeneralUtility::makeInstance(FileList::class);
             $this->filelist->thumbs = $GLOBALS['TYPO3_CONF_VARS']['GFX']['thumbnails'] && $this->MOD_SETTINGS['displayThumbs'];
-            // Create clipboard object and initialize that
-            $this->filelist->clipObj = GeneralUtility::makeInstance(Clipboard::class);
-            $this->filelist->clipObj->fileMode = true;
-            $this->filelist->clipObj->initializeClipboard();
             $CB = GeneralUtility::_GET('CB');
             if ($this->cmd === 'setCB') {
                 $CB['el'] = $this->filelist->clipObj->cleanUpCBC(array_merge(
@@ -356,14 +367,16 @@ class FileListController extends ActionController implements LoggerAwareInterfac
             $this->filelist->clipObj->cleanCurrent();
             // Saves
             $this->filelist->clipObj->endClipboard();
+
             // If the "cmd" was to delete files from the list (clipboard thing), do that:
             if ($this->cmd === 'delete') {
                 $items = $this->filelist->clipObj->cleanUpCBC(GeneralUtility::_POST('CBC'), '_FILE', 1);
                 if (!empty($items)) {
                     // Make command array:
                     $FILE = [];
-                    foreach ($items as $v) {
-                        $FILE['delete'][] = ['data' => $v];
+                    foreach ($items as $clipboardIdentifier => $combinedIdentifier) {
+                        $FILE['delete'][] = ['data' => $combinedIdentifier];
+                        $this->filelist->clipObj->removeElement($clipboardIdentifier);
                     }
                     // Init file processing object for deleting and pass the cmd array.
                     /** @var ExtendedFileUtility $fileProcessor */
@@ -372,26 +385,31 @@ class FileListController extends ActionController implements LoggerAwareInterfac
                     $fileProcessor->setExistingFilesConflictMode($this->overwriteExistingFiles);
                     $fileProcessor->start($FILE);
                     $fileProcessor->processData();
+                    // Clean & Save clipboard state
+                    $this->filelist->clipObj->cleanCurrent();
+                    $this->filelist->clipObj->endClipboard();
                 }
             }
             // Start up filelisting object, include settings.
-            $this->pointer = MathUtility::forceIntegerInRange($this->pointer, 0, 100000);
             $this->filelist->start(
                 $this->folderObject,
-                $this->pointer,
+                MathUtility::forceIntegerInRange($this->pointer, 0, 100000),
                 $this->MOD_SETTINGS['sort'],
-                $this->MOD_SETTINGS['reverse'],
-                $this->MOD_SETTINGS['clipBoard'],
-                $this->MOD_SETTINGS['bigControlPanel']
+                (bool)$this->MOD_SETTINGS['reverse'],
+                (bool)$this->MOD_SETTINGS['clipBoard'],
+                (bool)$this->MOD_SETTINGS['bigControlPanel']
             );
-            // Generate the list
-            $this->filelist->generateList();
-            // Set top JavaScript:
-            $this->view->getModuleTemplate()->addJavaScriptCode(
-                'FileListIndex',
-                'if (top.fsMod) top.fsMod.recentIds["file"] = "' . rawurlencode($this->id) . '";
-                '
-            );
+            // Generate the list, if accessible
+            if ($this->folderObject->getStorage()->isBrowsable()) {
+                $this->view->assign('listHtml', $this->filelist->getTable());
+            } else {
+                $this->addFlashMessage(
+                    $this->getLanguageService()->getLL('storageNotBrowsableMessage'),
+                    $this->getLanguageService()->getLL('storageNotBrowsableTitle'),
+                    FlashMessage::INFO
+                );
+            }
+
             $pageRenderer->loadRequireJsModule('TYPO3/CMS/Backend/ClipboardComponent');
             $pageRenderer->loadRequireJsModule('TYPO3/CMS/Filelist/FileDelete');
             $pageRenderer->addInlineLanguageLabelFile('EXT:backend/Resources/Private/Language/locallang_alt_doc.xlf', 'buttons');
@@ -418,7 +436,6 @@ class FileListController extends ActionController implements LoggerAwareInterfac
             $this->view->getModuleTemplate()->getDocHeaderComponent()->setMetaInformation($pageRecord);
 
             $this->view->assign('headline', $this->getModuleHeadline());
-            $this->view->assign('listHtml', $this->filelist->HTMLcode);
 
             $this->view->assign('checkboxes', [
                 'bigControlPanel' => [
@@ -464,6 +481,7 @@ class FileListController extends ActionController implements LoggerAwareInterfac
             $this->view->assign('fileDenyPattern', $GLOBALS['TYPO3_CONF_VARS']['BE']['fileDenyPattern']);
             $this->view->assign('maxFileSize', GeneralUtility::getMaxUploadFileSize() * 1024);
             $this->view->assign('defaultAction', $this->getDefaultAction());
+            $this->buildListOptionCheckboxes();
         } else {
             $this->forward('missingFolder');
         }
@@ -517,23 +535,18 @@ class FileListController extends ActionController implements LoggerAwareInterfac
         if (count($files) === 0) {
             $this->controllerContext->getFlashMessageQueue('core.template.flashMessages')->addMessage(
                 new FlashMessage(
-                    LocalizationUtility::translate('flashmessage.no_results', 'filelist'),
+                    LocalizationUtility::translate('flashmessage.no_results', 'filelist') ?? '',
                     '',
                     FlashMessage::INFO
                 )
             );
         } else {
             foreach ($files as $file) {
-                $fileFacades[] = new \TYPO3\CMS\Filelist\FileFacade($file);
+                $fileFacades[] = new FileFacade($file);
             }
         }
 
-        /** @var \TYPO3\CMS\Backend\Routing\UriBuilder $uriBuilder */
-        $uriBuilder = GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Routing\UriBuilder::class);
-
-        $pageRenderer = $this->view->getModuleTemplate()->getPageRenderer();
-        $pageRenderer->addInlineSetting('ShowItem', 'moduleUrl', (string)$uriBuilder->buildUriFromRoute('show_item'));
-        $pageRenderer->loadRequireJsModule('TYPO3/CMS/Filelist/FileList');
+        $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
 
         $thumbnailConfiguration = GeneralUtility::makeInstance(ThumbnailConfiguration::class);
         $this->view->assign('thumbnail', [
@@ -547,9 +560,14 @@ class FileListController extends ActionController implements LoggerAwareInterfac
         $this->view->assign('settings', [
             'jsConfirmationDelete' => $this->getBackendUser()->jsConfirmation(JsConfirmation::DELETE)
         ]);
+        $this->view->assign('moduleSettings', $this->MOD_SETTINGS);
 
+        $pageRenderer = $this->view->getModuleTemplate()->getPageRenderer();
         $pageRenderer->loadRequireJsModule('TYPO3/CMS/Filelist/FileDelete');
         $pageRenderer->addInlineLanguageLabelFile('EXT:backend/Resources/Private/Language/locallang_alt_doc.xlf', 'buttons');
+
+        $this->initClipboard();
+        $this->buildListOptionCheckboxes($searchWord);
     }
 
     /**
@@ -606,7 +624,7 @@ class FileListController extends ActionController implements LoggerAwareInterfac
 
         $lang = $this->getLanguageService();
 
-        $uriBuilder = GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Routing\UriBuilder::class);
+        $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
 
         // Refresh page
         $refreshLink = GeneralUtility::linkThisScript(
@@ -628,11 +646,11 @@ class FileListController extends ActionController implements LoggerAwareInterfac
             if ($parentFolder->getIdentifier() !== $this->folderObject->getIdentifier()
                 && $currentStorage->isWithinFileMountBoundaries($parentFolder)
             ) {
-                $levelUpClick = 'top.document.getElementsByName("nav_frame")[0].contentWindow.Tree.highlightActiveItem("file","folder'
-                    . GeneralUtility::md5int($parentFolder->getCombinedIdentifier()) . '_"+top.fsMod.currentBank)';
                 $levelUpButton = $buttonBar->makeLinkButton()
+                    ->setDataAttributes([
+                        'tree-update-request' => htmlspecialchars('folder' . GeneralUtility::md5int($parentFolder->getCombinedIdentifier())),
+                    ])
                     ->setHref((string)$uriBuilder->buildUriFromRoute('file_FilelistList', ['id' => $parentFolder->getCombinedIdentifier()]))
-                    ->setOnClick($levelUpClick)
                     ->setTitle($lang->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.upOneLevel'))
                     ->setIcon($iconFactory->getIcon('actions-view-go-up', Icon::SIZE_SMALL));
                 $buttonBar->addButton($levelUpButton, ButtonBar::BUTTON_POSITION_LEFT, 1);
@@ -741,5 +759,90 @@ class FileListController extends ActionController implements LoggerAwareInterfac
     protected function getBackendUser(): BackendUserAuthentication
     {
         return $GLOBALS['BE_USER'];
+    }
+
+    /**
+     * build option checkboxes for filelist
+     */
+    protected function buildListOptionCheckboxes(string $searchWord = ''): void
+    {
+        $backendUser = $this->getBackendUser();
+        $userTsConfig = $backendUser->getTSConfig();
+
+        $addParams = '';
+        if ($searchWord) {
+            $addParams = '&tx_filelist_file_filelistlist%5Baction%5D=search';
+            $addParams .= '&tx_filelist_file_filelistlist%5Bcontroller%5D=FileList';
+            $addParams .= '&tx_filelist_file_filelistlist%5BsearchWord%5D=' . htmlspecialchars($searchWord);
+        }
+        $this->view->assign('checkboxes', [
+            'bigControlPanel' => [
+                'enabled' => $userTsConfig['options.']['file_list.']['enableDisplayBigControlPanel'] === 'selectable',
+                'label' => htmlspecialchars($this->getLanguageService()->getLL('bigControlPanel')),
+                'html' => BackendUtility::getFuncCheck(
+                    $this->id,
+                    'SET[bigControlPanel]',
+                    $this->MOD_SETTINGS['bigControlPanel'] ?? '',
+                    '',
+                    $addParams,
+                    'id="bigControlPanel"'
+                ),
+            ],
+            'displayThumbs' => [
+                'enabled' => $GLOBALS['TYPO3_CONF_VARS']['GFX']['thumbnails'] && $userTsConfig['options.']['file_list.']['enableDisplayThumbnails'] === 'selectable',
+                'label' => htmlspecialchars($this->getLanguageService()->getLL('displayThumbs')),
+                'html' => BackendUtility::getFuncCheck(
+                    $this->id,
+                    'SET[displayThumbs]',
+                    $this->MOD_SETTINGS['displayThumbs'] ?? '',
+                    '',
+                    $addParams,
+                    'id="checkDisplayThumbs"'
+                ),
+            ],
+            'enableClipBoard' => [
+                'enabled' => $userTsConfig['options.']['file_list.']['enableClipBoard'] === 'selectable',
+                'label' => htmlspecialchars($this->getLanguageService()->getLL('clipBoard')),
+                'html' => BackendUtility::getFuncCheck(
+                    $this->id,
+                    'SET[clipBoard]',
+                    $this->MOD_SETTINGS['clipBoard'] ?? '',
+                    '',
+                    $addParams,
+                    'id="checkClipBoard"'
+                ),
+            ]
+        ]);
+    }
+
+    /**
+     * init and assign clipboard to view
+     */
+    protected function initClipboard(): void
+    {
+        // Create fileListing object
+        $this->filelist = GeneralUtility::makeInstance(FileList::class, $this);
+        $this->filelist->thumbs = $GLOBALS['TYPO3_CONF_VARS']['GFX']['thumbnails'] && $this->MOD_SETTINGS['displayThumbs'];
+        // Create clipboard object and initialize that
+        $this->filelist->clipObj = GeneralUtility::makeInstance(Clipboard::class);
+        $this->filelist->clipObj->fileMode = true;
+        $this->filelist->clipObj->initializeClipboard();
+        $CB = GeneralUtility::_GET('CB');
+        if ($this->cmd === 'setCB') {
+            $CB['el'] = $this->filelist->clipObj->cleanUpCBC(array_merge(
+                GeneralUtility::_POST('CBH'),
+                (array)GeneralUtility::_POST('CBC')
+            ), '_FILE');
+        }
+        if (!$this->MOD_SETTINGS['clipBoard']) {
+            $CB['setP'] = 'normal';
+        }
+        $this->filelist->clipObj->setCmd($CB);
+        $this->filelist->clipObj->cleanCurrent();
+        // Saves
+        $this->filelist->clipObj->endClipboard();
+
+        $this->view->assign('showClipBoard', (bool)$this->MOD_SETTINGS['clipBoard']);
+        $this->view->assign('clipBoardHtml', $this->filelist->clipObj->printClipboard());
     }
 }

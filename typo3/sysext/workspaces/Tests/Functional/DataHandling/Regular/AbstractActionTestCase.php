@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Regular;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Regular;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Regular;
 
 /**
  * Functional test for the DataHandler
@@ -50,46 +51,32 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         $this->setWorkspaceId(self::VALUE_WorkspaceId);
     }
 
-    /**
-     * Content records
-     */
-
-    /**
-     * See DataSet/createContentRecordAndDiscardCreatedContentRecord.csv
-     */
-    public function createContentAndDiscardCreatedContent()
-    {
-        $newTableIds = $this->actionService->createNewRecord(self::TABLE_Content, self::VALUE_PageId, ['header' => 'Testing #1']);
-        $this->recordIds['newContentId'] = $newTableIds[self::TABLE_Content][0];
-        $versionedNewContentId = $this->actionService->getDataHandler()->getAutoVersionId(self::TABLE_Content, $this->recordIds['newContentId']);
-        $this->actionService->clearWorkspaceRecord(self::TABLE_Content, $versionedNewContentId);
-    }
-
-    /**
-     * See DataSet/createAndCopyContentRecordAndDiscardCopiedContentRecord.csv
-     */
-    public function createAndCopyContentAndDiscardCopiedContent()
+    public function createContentAndCopyContent()
     {
         $newTableIds = $this->actionService->createNewRecord(self::TABLE_Content, self::VALUE_PageId, ['header' => 'Testing #1']);
         $this->recordIds['newContentId'] = $newTableIds[self::TABLE_Content][0];
         $copiedTableIds = $this->actionService->copyRecord(self::TABLE_Content, $this->recordIds['newContentId'], self::VALUE_PageId);
         $this->recordIds['copiedContentId'] = $copiedTableIds[self::TABLE_Content][$this->recordIds['newContentId']];
-        $versionedCopiedContentId = $this->actionService->getDataHandler()->getAutoVersionId(self::TABLE_Content, $this->recordIds['copiedContentId']);
-        $this->actionService->clearWorkspaceRecord(self::TABLE_Content, $versionedCopiedContentId);
+        $this->recordIds['versionedCopiedContentId'] = $this->actionService->getDataHandler()->getAutoVersionId(self::TABLE_Content, $this->recordIds['copiedContentId']);
     }
 
-    /**
-     * See DataSet/changeContentSortingNDeleteMovedRecord.csv
-     */
+    public function createContentAndLocalize()
+    {
+        // Create translated page first
+        $this->actionService->copyRecordToLanguage(self::TABLE_Page, self::VALUE_PageId, self::VALUE_LanguageId);
+        $newTableIds = $this->actionService->createNewRecord(self::TABLE_Content, self::VALUE_PageId, ['header' => 'Testing #1']);
+        $this->recordIds['newContentId'] = $newTableIds[self::TABLE_Content][0];
+        $localizedContentId = $this->actionService->localizeRecord(self::TABLE_Content, $this->recordIds['newContentId'], self::VALUE_LanguageId);
+        $this->recordIds['localizedContentId'] = $localizedContentId[self::TABLE_Content][$this->recordIds['newContentId']];
+        $this->recordIds['versionedCopiedContentId'] = $this->actionService->getDataHandler()->getAutoVersionId(self::TABLE_Content, $this->recordIds['copiedContentId']);
+    }
+
     public function changeContentSortingAndDeleteMovedRecord()
     {
         $this->actionService->moveRecord(self::TABLE_Content, self::VALUE_ContentIdFirst, -self::VALUE_ContentIdSecond);
         $this->actionService->deleteRecord(self::TABLE_Content, self::VALUE_ContentIdFirst);
     }
 
-    /**
-     * See DataSet/changeContentSortingNDeleteLiveRecord.csv
-     */
     public function changeContentSortingAndDeleteLiveRecord()
     {
         $this->actionService->moveRecord(self::TABLE_Content, self::VALUE_ContentIdFirst, -self::VALUE_ContentIdSecond);
@@ -100,22 +87,12 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         $this->setWorkspaceId(self::VALUE_WorkspaceId);
     }
 
-    /**
-     * Page records
-     */
-
-    /**
-     * See DataSet/deleteContentAndPage.csv
-     */
     public function deleteContentAndPage()
     {
         $this->actionService->deleteRecord(self::TABLE_Content, self::VALUE_ContentIdSecond);
         $this->actionService->deleteRecord(self::TABLE_Page, self::VALUE_PageId);
     }
 
-    /**
-     * See DataSet/copyPageFreeMode.csv
-     */
     public function copyPageFreeMode()
     {
         $newTableIds = $this->actionService->copyRecord(self::TABLE_Page, self::VALUE_PageIdTarget, self::VALUE_PageIdTarget);
@@ -126,9 +103,8 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
     }
 
     /**
-     * See DataSet/movePageRecordToDifferentPageAndCreatePageRecordAfterMovedPageRecord.csv
-     * @see http://forge.typo3.org/issues/33104
-     * @see http://forge.typo3.org/issues/55573
+     * @see https://forge.typo3.org/issues/33104
+     * @see https://forge.typo3.org/issues/55573
      */
     public function movePageToDifferentPageAndCreatePageAfterMovedPage()
     {
@@ -178,6 +154,7 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         $newTableIds = $this->actionService->copyRecord(static::TABLE_Page, static::VALUE_PageId, static::VALUE_PageIdTarget);
         $this->recordIds['copiedPageId'] = $newTableIds[static::TABLE_Page][static::VALUE_PageId];
     }
+
     /**
      * Creates a page in a draft workspace and copies the parent page in live workspace.
      */
@@ -271,7 +248,8 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
      */
     public function changeContentSortingAndCopyDraftPage()
     {
-        $this->actionService->moveRecord(self::TABLE_Content, self::VALUE_ContentIdFirst, -self::VALUE_ContentIdSecond);
+        $newTableIds = $this->actionService->moveRecord(self::TABLE_Content, self::VALUE_ContentIdFirst, -self::VALUE_ContentIdSecond);
+        $this->recordIds['newContentId'] = $newTableIds[self::TABLE_Content][0];
         $newTableIds = $this->actionService->copyRecord(self::TABLE_Page, self::VALUE_PageId, self::VALUE_PageIdTarget);
         $this->recordIds['copiedPageId'] = $newTableIds[self::TABLE_Page][self::VALUE_PageId];
     }
@@ -336,7 +314,7 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
     }
 
     /**
-     * Creates new and move placeholders for pages and deleted the parent page in live workspace.
+     * Creates new and move placeholders for pages and deletes the parent page in live workspace.
      */
     public function createPlaceholdersAndDeleteLiveParentPage()
     {

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Frontend\DataProcessing;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Frontend\DataProcessing;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Frontend\DataProcessing;
 
 use TYPO3\CMS\Core\Utility\CsvUtility;
 use TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
@@ -85,10 +86,10 @@ class CommaSeparatedValueProcessor implements DataProcessorInterface
         $maximumColumns = $cObj->stdWrapValue('maximumColumns', $processorConfiguration, 0);
 
         // Set the field delimiter which is "," by default
-        $fieldDelimiter = $cObj->stdWrapValue('fieldDelimiter', $processorConfiguration, ',');
+        $fieldDelimiter = (string)$cObj->stdWrapValue('fieldDelimiter', $processorConfiguration, ',');
 
         // Set the field enclosure which is " by default
-        $fieldEnclosure = $cObj->stdWrapValue('fieldEnclosure', $processorConfiguration, '"');
+        $fieldEnclosure = (string)$cObj->stdWrapValue('fieldEnclosure', $processorConfiguration, '"');
 
         $processedData[$targetVariableName] = CsvUtility::csvToArray(
             $originalValue,

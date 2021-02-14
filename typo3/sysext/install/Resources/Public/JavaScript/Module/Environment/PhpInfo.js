@@ -10,4 +10,4 @@
  *
  * The TYPO3 project - inspiring people to share!
  */
-define(["require","exports","../AbstractInteractableModule","jquery","../../Router","TYPO3/CMS/Backend/Notification"],function(e,t,r,a,n,s){"use strict";return new class extends r.AbstractInteractableModule{initialize(e){this.currentModal=e,this.getData()}getData(){const e=this.getModalBody();a.ajax({url:n.getUrl("phpInfoGetData"),cache:!1,success:t=>{!0===t.success?e.empty().append(t.html):s.error("Something went wrong")},error:t=>{n.handleAjaxError(t,e)}})}}});
+define(["require","exports","TYPO3/CMS/Backend/Notification","TYPO3/CMS/Core/Ajax/AjaxRequest","../../Router","../AbstractInteractableModule"],(function(e,t,a,s,n,r){"use strict";class o extends r.AbstractInteractableModule{initialize(e){this.currentModal=e,this.getData()}getData(){const e=this.getModalBody();new s(n.getUrl("phpInfoGetData")).get({cache:"no-cache"}).then(async t=>{const s=await t.resolve();!0===s.success?e.empty().append(s.html):a.error("Something went wrong","The request was not processed successfully. Please check the browser's console and TYPO3's log.")},t=>{n.handleAjaxError(t,e)})}}return new o}));

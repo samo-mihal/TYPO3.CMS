@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Unit\DependencyInjection;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\DependencyInjection;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\DependencyInjection;
 
 use Prophecy\Argument;
 use Psr\Container\ContainerInterface;
@@ -36,14 +38,14 @@ class ServiceProviderCompilationPassTest extends UnitTestCase
         $serviceProviderRegistryProphecy = $this->prophesize(ServiceProviderRegistry::class);
         $serviceProviderRegistryProphecy->getIterator()->will(function () use ($serviceProviders): \Generator {
             foreach ($serviceProviders as $id => $serviceProvider) {
-                yield (string)$id => new $serviceProvider;
+                yield (string)$id => new $serviceProvider();
             }
         });
 
         foreach ($serviceProviders as $id => $serviceProvider) {
             $packageKey = (string)$id;
 
-            $instance = new $serviceProvider;
+            $instance = new $serviceProvider();
             $factories = $instance->getFactories();
             $extensions = $instance->getExtensions();
 
@@ -139,7 +141,7 @@ class ServiceProviderCompilationPassTest extends UnitTestCase
                 TestServiceProviderFactoryOverride::class,
             ],
             function (ContainerBuilder $container) {
-                $definition = new \Symfony\Component\DependencyInjection\Definition('stdClass');
+                $definition = new Definition('stdClass');
                 // property should be overridden by service provider
                 $definition->setProperty('parameter', 'remotehost');
                 // property should not be "deleted" by service provider
@@ -163,7 +165,7 @@ class ServiceProviderCompilationPassTest extends UnitTestCase
                 TestServiceProviderFactoryOverride::class,
             ],
             function (ContainerBuilder $container) {
-                $definition = new \Symfony\Component\DependencyInjection\Definition('stdClass');
+                $definition = new Definition('stdClass');
                 // property should be overridden by service provider
                 $definition->setProperty('parameter', 'remotehost');
                 // property should not be "deleted" by service provider
@@ -196,7 +198,7 @@ class ServiceProviderCompilationPassTest extends UnitTestCase
         $this->expectException(\TypeError::class);
 
         $registry = new ServiceProviderRegistry([
-            new class implements ServiceProviderInterface {
+            new class() implements ServiceProviderInterface {
                 public function getFactories()
                 {
                     return [

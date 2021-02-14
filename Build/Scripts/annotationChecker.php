@@ -1,6 +1,6 @@
 #!/usr/bin/env php
 <?php
-declare(strict_types = 1);
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -95,7 +95,7 @@ class NodeVisitor extends NodeVisitorAbstract
     }
 }
 
-$parser = (new ParserFactory)->create(ParserFactory::ONLY_PHP7);
+$parser = (new ParserFactory())->create(ParserFactory::ONLY_PHP7);
 
 $finder = new Symfony\Component\Finder\Finder();
 $finder->files()

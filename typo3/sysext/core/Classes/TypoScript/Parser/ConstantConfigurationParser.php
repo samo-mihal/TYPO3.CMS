@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\TypoScript\Parser;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\TypoScript\Parser;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\TypoScript\Parser;
 
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Utility\ArrayUtility;
@@ -92,7 +94,7 @@ class ConstantConfigurationParser
                 }
                 unset($subcatConfigurationArray);
             }
-            unset($tempConfiguration, $catConfigurationArray);
+            unset($catConfigurationArray);
             $resultArray = $hierarchicConfiguration;
         }
         return $resultArray;
@@ -215,7 +217,7 @@ class ConstantConfigurationParser
      * Returns an array with the constants from the whole template which may be edited by the module.
      *
      * @param array $flatSetup
-     * @param $default
+     * @param array|null $default
      * @return array
      */
     public function parseComments($flatSetup, $default = null): array
@@ -232,7 +234,7 @@ class ConstantConfigurationParser
             $counter++;
             $comment = trim($flatSetup[$key]);
             foreach (explode(LF, $comment) as $k => $v) {
-                $line = trim(preg_replace('/^[#\\/]*/', '', $v));
+                $line = trim(preg_replace('/^[#\\/]*/', '', $v) ?? '');
                 if (!$line) {
                     continue;
                 }
@@ -293,7 +295,7 @@ class ConstantConfigurationParser
             if (isset($editableComments[$const])) {
                 $editableComments[$const]['name'] = $const;
                 $editableComments[$const]['value'] = trim($value);
-                $editableComments[$const]['default_value'] = trim($default[$const]);
+                $editableComments[$const]['default_value'] = trim((string)($default[$const] ?? ''));
             }
         }
         return $editableComments;

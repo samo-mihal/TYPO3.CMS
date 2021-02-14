@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Functional\Collection;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,16 +13,21 @@ namespace TYPO3\CMS\Core\Tests\Functional\Collection;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Functional\Collection;
+
+use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Platforms\SQLServerPlatform;
 use TYPO3\CMS\Core\Collection\RecordCollectionRepository;
 use TYPO3\CMS\Core\Collection\StaticRecordCollection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\StringUtility;
+use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
 /**
  * Test case for \TYPO3\CMS\Core\Collection\RecordCollectionRepository
  */
-class RecordCollectionRepositoryTest extends \TYPO3\TestingFramework\Core\Functional\FunctionalTestCase
+class RecordCollectionRepositoryTest extends FunctionalTestCase
 {
     /**
      * @var RecordCollectionRepository|\PHPUnit\Framework\MockObject\MockObject
@@ -45,7 +49,7 @@ class RecordCollectionRepositoryTest extends \TYPO3\TestingFramework\Core\Functi
         $this->subject = $this->getMockBuilder(RecordCollectionRepository::class)
             ->setMethods(['getEnvironmentMode'])
             ->getMock();
-        $this->testTableName = $this->getUniqueId('tx_testtable');
+        $this->testTableName = StringUtility::getUniqueId('tx_testtable');
     }
 
     protected function tearDown(): void
@@ -301,7 +305,7 @@ class RecordCollectionRepositoryTest extends \TYPO3\TestingFramework\Core\Functi
             try {
                 $connection->exec('SET IDENTITY_INSERT sys_collection ON');
                 $sqlServerIdentityDisabled = true;
-            } catch (\Doctrine\DBAL\DBALException $e) {
+            } catch (DBALException $e) {
                 // Some tables like sys_refindex don't have an auto-increment uid field and thus no
                 // IDENTITY column. Instead of testing existence, we just try to set IDENTITY ON
                 // and catch the possible error that occurs.

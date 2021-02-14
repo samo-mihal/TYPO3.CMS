@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\ViewHelpers\Be\Menus;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Fluid\ViewHelpers\Be\Menus;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Fluid\ViewHelpers\Be\Menus;
 
 use TYPO3Fluid\Fluid\Core\Parser\SyntaxTree\ViewHelperNode;
 
@@ -52,7 +53,7 @@ class ActionMenuItemGroupViewHelper extends ActionMenuViewHelper
     public function initializeArguments()
     {
         parent::initializeArguments();
-        $this->registerArgument('label', 'string', 'label', false, '');
+        $this->registerArgument('label', 'string', 'The label of the option group', false, '');
     }
 
     /**
@@ -65,7 +66,7 @@ class ActionMenuItemGroupViewHelper extends ActionMenuViewHelper
         $this->tag->addAttribute('label', $label);
         $options = '';
         foreach ($this->childNodes as $childNode) {
-            if ($childNode instanceof ViewHelperNode && $childNode->getViewHelperClassName() === ActionMenuItemViewHelper::class) {
+            if ($childNode instanceof ViewHelperNode) {
                 $options .= $childNode->evaluate($this->renderingContext);
             }
         }

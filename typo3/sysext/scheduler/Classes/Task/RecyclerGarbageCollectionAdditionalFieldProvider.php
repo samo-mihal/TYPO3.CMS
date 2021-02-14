@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Scheduler\Task;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Scheduler\Task;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Scheduler\Task;
 
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
@@ -41,7 +42,7 @@ class RecyclerGarbageCollectionAdditionalFieldProvider extends AbstractAdditiona
      * and file modification time in days to select from
      *
      * @param array $taskInfo Reference to the array containing the info used in the add/edit form
-     * @param AbstractTask|null $task When editing, reference to the current task. NULL when adding.
+     * @param RecyclerGarbageCollectionTask|null $task When editing, reference to the current task. NULL when adding.
      * @param SchedulerModuleController $schedulerModule Reference to the calling object (Scheduler's BE module)
      * @return array Array containing all the information pertaining to the additional fields
      */
@@ -58,8 +59,9 @@ class RecyclerGarbageCollectionAdditionalFieldProvider extends AbstractAdditiona
         }
         $fieldName = 'tx_scheduler[scheduler_recyclerGarbageCollection_numberOfDays]';
         $fieldId = 'task_recyclerGarbageCollection_numberOfDays';
-        $fieldValue = (int)$taskInfo['scheduler_recyclerGarbageCollection_numberOfDays'];
+        $fieldValue = (string)(int)$taskInfo['scheduler_recyclerGarbageCollection_numberOfDays'];
         $fieldHtml = '<input class="form-control" type="text" name="' . $fieldName . '" id="' . $fieldId . '" value="' . htmlspecialchars($fieldValue) . '">';
+        $additionalFields = [];
         $additionalFields[$fieldId] = [
             'code' => $fieldHtml,
             'label' => 'LLL:EXT:scheduler/Resources/Private/Language/locallang.xlf:label.recyclerGarbageCollection.numberOfDays',
@@ -92,7 +94,7 @@ class RecyclerGarbageCollectionAdditionalFieldProvider extends AbstractAdditiona
      * Saves given integer value in task object
      *
      * @param array $submittedData Contains data submitted by the user
-     * @param AbstractTask $task Reference to the current task object
+     * @param RecyclerGarbageCollectionTask $task Reference to the current task object
      */
     public function saveAdditionalFields(array $submittedData, AbstractTask $task)
     {

@@ -1,4 +1,5 @@
 <?php
+
 return [
     // Removed classes
     'RemoveXSS' => [
@@ -1346,5 +1347,190 @@ return [
         'restFiles' => [
             'Deprecation-89718-LegacyPageTSconfigParsingLowlevelAPI.rst',
         ],
-    ]
+    ],
+    'TYPO3\CMS\Backend\Template\DocumentTemplate' => [
+        'restFiles' => [
+            'Deprecation-90421-DocumentTemplate.rst',
+        ],
+    ],
+    'TYPO3\CMS\Felogin\Hooks\CmsLayout' => [
+        'restFiles' => [
+            'Deprecation-88740-ExtFeloginPibasePlugin.rst',
+        ],
+    ],
+    'TYPO3\CMS\Felogin\Controller\FrontendLoginController' => [
+        'restFiles' => [
+            'Deprecation-88740-ExtFeloginPibasePlugin.rst',
+        ],
+    ],
+    'TYPO3\CMS\FrontendLogin\Hooks\CmsLayout' => [
+        'restFiles' => [
+            'Deprecation-88740-ExtFeloginPibasePlugin.rst',
+        ],
+    ],
+    'TYPO3\CMS\Extbase\SignalSlot\Dispatcher' => [
+        'restFiles' => [
+            'Deprecation-90625-ExtbaseSignalSlotDispatcher.rst',
+        ],
+    ],
+    'TYPO3\CMS\Extbase\Domain\Model\FileMount' => [
+        'restFiles' => [
+            'Deprecation-90686-ModelFileMount.rst',
+        ],
+    ],
+    'TYPO3\CMS\Extbase\Domain\Model\StaticFileCollection' => [
+        'restFiles' => [
+            'Deprecation-90692-FileCollectionModels.rst',
+        ],
+    ],
+    'TYPO3\CMS\Extbase\Domain\Model\FolderBasedFileCollection' => [
+        'restFiles' => [
+            'Deprecation-90692-FileCollectionModels.rst',
+        ],
+    ],
+    'TYPO3\CMS\Extbase\Domain\Model\AbstractFileCollection' => [
+        'restFiles' => [
+            'Deprecation-90692-FileCollectionModels.rst',
+        ],
+    ],
+    'TYPO3\CMS\Extbase\Property\TypeConverter\StaticFileCollectionConverter' => [
+        'restFiles' => [
+            'Deprecation-90692-FileCollectionModels.rst',
+        ],
+    ],
+    'TYPO3\CMS\Extbase\Property\TypeConverter\FolderBasedFileCollectionConverter' => [
+        'restFiles' => [
+            'Deprecation-90692-FileCollectionModels.rst',
+        ],
+    ],
+    'TYPO3\CMS\Extbase\Property\TypeConverter\AbstractFileCollectionConverter' => [
+        'restFiles' => [
+            'Deprecation-90692-FileCollectionModels.rst',
+        ],
+    ],
+    'TYPO3\CMS\Frontend\ContentObject\ContentObjectGetSingleHookInterface' => [
+        'restFiles' => [
+            'Deprecation-90937-VariousHooksInContentObjectRenderer.rst',
+        ],
+    ],
+    'TYPO3\CMS\Dashboard\Widgets\AbstractBarChartWidget' => [
+        'restFiles' => [
+            'Breaking-90660-RegistrationOfWidgetsChanged.rst',
+        ],
+    ],
+    'TYPO3\CMS\Dashboard\Widgets\AbstractChartWidget' => [
+        'restFiles' => [
+            'Breaking-90660-RegistrationOfWidgetsChanged.rst',
+        ],
+    ],
+    'TYPO3\CMS\Dashboard\Widgets\AbstractCtaButtonWidget' => [
+        'restFiles' => [
+            'Breaking-90660-RegistrationOfWidgetsChanged.rst',
+        ],
+    ],
+    'TYPO3\CMS\Dashboard\Widgets\AbstractDoughnutChartWidget' => [
+        'restFiles' => [
+            'Breaking-90660-RegistrationOfWidgetsChanged.rst',
+        ],
+    ],
+    'TYPO3\CMS\Dashboard\Widgets\AbstractListWidget' => [
+        'restFiles' => [
+            'Breaking-90660-RegistrationOfWidgetsChanged.rst',
+        ],
+    ],
+    'TYPO3\CMS\Dashboard\Widgets\AbstractNumberWithIconWidget' => [
+        'restFiles' => [
+            'Breaking-90660-RegistrationOfWidgetsChanged.rst',
+        ],
+    ],
+    'TYPO3\CMS\Dashboard\Widgets\AbstractRssWidget' => [
+        'restFiles' => [
+            'Breaking-90660-RegistrationOfWidgetsChanged.rst',
+        ],
+    ],
+    'TYPO3\CMS\Dashboard\Widgets\AbstractWidget' => [
+        'restFiles' => [
+            'Breaking-90660-RegistrationOfWidgetsChanged.rst',
+        ],
+    ],
+    'TYPO3\CMS\Dashboard\Widgets\DocumentationGettingStartedWidget' => [
+        'restFiles' => [
+            'Breaking-90660-RegistrationOfWidgetsChanged.rst',
+        ],
+    ],
+    'TYPO3\CMS\Dashboard\Widgets\DocumentationTSconfigReferenceWidget' => [
+        'restFiles' => [
+            'Breaking-90660-RegistrationOfWidgetsChanged.rst',
+        ],
+    ],
+    'TYPO3\CMS\Dashboard\Widgets\T3GeneralInformation' => [
+        'restFiles' => [
+            'Breaking-90660-RegistrationOfWidgetsChanged.rst',
+        ],
+    ],
+    'TYPO3\CMS\Dashboard\Widgets\T3NewsWidget' => [
+        'restFiles' => [
+            'Breaking-90660-RegistrationOfWidgetsChanged.rst',
+        ],
+    ],
+    'TYPO3\CMS\Dashboard\Widgets\T3SecurityAdvisoriesWidget' => [
+        'restFiles' => [
+            'Breaking-90660-RegistrationOfWidgetsChanged.rst',
+        ],
+    ],
+    'TYPO3\CMS\Dashboard\Widgets\Interfaces\AdditionalCssInterface' => [
+        'restFiles' => [
+            'Breaking-91066-MovedInterfacesOfDashboard.rst',
+        ],
+    ],
+    'TYPO3\CMS\Dashboard\Widgets\Interfaces\AdditionalJavascriptInterface' => [
+        'restFiles' => [
+            'Breaking-91066-MovedInterfacesOfDashboard.rst',
+        ],
+    ],
+    'TYPO3\CMS\Dashboard\Widgets\Interfaces\ButtonProviderInterface' => [
+        'restFiles' => [
+            'Breaking-91066-MovedInterfacesOfDashboard.rst',
+        ],
+    ],
+    'TYPO3\CMS\Dashboard\Widgets\Interfaces\ChartDataProviderInterface' => [
+        'restFiles' => [
+            'Breaking-91066-MovedInterfacesOfDashboard.rst',
+        ],
+    ],
+    'TYPO3\CMS\Dashboard\Widgets\Interfaces\EventDataProviderInterface' => [
+        'restFiles' => [
+            'Breaking-91066-MovedInterfacesOfDashboard.rst',
+        ],
+    ],
+    'TYPO3\CMS\Dashboard\Widgets\Interfaces\ListDataProviderInterface' => [
+        'restFiles' => [
+            'Breaking-91066-MovedInterfacesOfDashboard.rst',
+        ],
+    ],
+    'TYPO3\CMS\Dashboard\Widgets\Interfaces\NumberWithIconDataProviderInterface' => [
+        'restFiles' => [
+            'Breaking-91066-MovedInterfacesOfDashboard.rst',
+        ],
+    ],
+    'TYPO3\CMS\Dashboard\Widgets\Interfaces\RequireJsModuleInterface' => [
+        'restFiles' => [
+            'Breaking-91066-MovedInterfacesOfDashboard.rst',
+        ],
+    ],
+    'TYPO3\CMS\Dashboard\Widgets\Interfaces\WidgetConfigurationInterface' => [
+        'restFiles' => [
+            'Breaking-91066-MovedInterfacesOfDashboard.rst',
+        ],
+    ],
+    'TYPO3\CMS\Dashboard\Widgets\Interfaces\WidgetInterface' => [
+        'restFiles' => [
+            'Breaking-91066-MovedInterfacesOfDashboard.rst',
+        ],
+    ],
+    'TYPO3\CMS\Dashboard\Utility\ButtonUtility' => [
+        'restFiles' => [
+            'Breaking-91066-RemovedButtonUtility.rst',
+        ],
+    ],
 ];

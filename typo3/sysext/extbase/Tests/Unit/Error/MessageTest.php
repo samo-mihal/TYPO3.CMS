@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Tests\Unit\Error;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,9 @@ namespace TYPO3\CMS\Extbase\Tests\Unit\Error;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Tests\Unit\Error;
+
+use TYPO3\CMS\Extbase\Error\Message;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -27,7 +29,7 @@ class MessageTest extends UnitTestCase
     public function theConstructorSetsTheMessageMessageCorrectly()
     {
         $messageMessage = 'The message';
-        $error = new \TYPO3\CMS\Extbase\Error\Message($messageMessage, 0);
+        $error = new Message($messageMessage, 0);
         self::assertEquals($messageMessage, $error->getMessage());
     }
 
@@ -37,7 +39,7 @@ class MessageTest extends UnitTestCase
     public function theConstructorSetsTheMessageCodeCorrectly()
     {
         $messageCode = 123456789;
-        $error = new \TYPO3\CMS\Extbase\Error\Message('', $messageCode);
+        $error = new Message('', $messageCode);
         self::assertEquals($messageCode, $error->getCode());
     }
 
@@ -47,7 +49,7 @@ class MessageTest extends UnitTestCase
     public function theConstructorSetsTheMessageArgumentsCorrectly()
     {
         $messageArguments = ['foo', 'bar'];
-        $error = new \TYPO3\CMS\Extbase\Error\Message('', 1, $messageArguments);
+        $error = new Message('', 1, $messageArguments);
         self::assertEquals($messageArguments, $error->getArguments());
     }
 
@@ -57,7 +59,7 @@ class MessageTest extends UnitTestCase
     public function theConstructorSetsTheMessageTitleCorrectly()
     {
         $messageTitle = 'Title';
-        $error = new \TYPO3\CMS\Extbase\Error\Message('', 1, [], $messageTitle);
+        $error = new Message('', 1, [], $messageTitle);
         self::assertEquals($messageTitle, $error->getTitle());
     }
 
@@ -66,7 +68,7 @@ class MessageTest extends UnitTestCase
      */
     public function renderRendersCorrectlyWithoutArguments()
     {
-        $error = new \TYPO3\CMS\Extbase\Error\Message('Message', 1);
+        $error = new Message('Message', 1);
         self::assertEquals('Message', $error->render());
     }
 
@@ -75,7 +77,7 @@ class MessageTest extends UnitTestCase
      */
     public function renderRendersCorrectlyWithArguments()
     {
-        $error = new \TYPO3\CMS\Extbase\Error\Message('Foo is %s and Bar is %s', 1, ['baz', 'qux']);
+        $error = new Message('Foo is %s and Bar is %s', 1, ['baz', 'qux']);
         self::assertEquals('Foo is baz and Bar is qux', $error->render());
     }
 
@@ -84,7 +86,7 @@ class MessageTest extends UnitTestCase
      */
     public function toStringCallsRender()
     {
-        $error = new \TYPO3\CMS\Extbase\Error\Message('Foo is %s and Bar is %s', 1, ['baz', 'qux']);
+        $error = new Message('Foo is %s and Bar is %s', 1, ['baz', 'qux']);
         self::assertEquals('Foo is baz and Bar is qux', $error);
     }
 }

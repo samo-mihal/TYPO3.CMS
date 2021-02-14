@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Recycler\Task;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,9 @@ namespace TYPO3\CMS\Recycler\Task;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Recycler\Task;
+
+use Doctrine\DBAL\DBALException;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Scheduler\Task\AbstractTask;
@@ -85,7 +87,7 @@ class CleanerTask extends AbstractTask
                 $queryBuilder->delete($tableName)
                     ->where(...$constraints)
                     ->execute();
-            } catch (\Doctrine\DBAL\DBALException $e) {
+            } catch (DBALException $e) {
                 return false;
             }
         }

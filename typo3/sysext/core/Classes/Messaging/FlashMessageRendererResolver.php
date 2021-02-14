@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Messaging;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,8 +15,13 @@ namespace TYPO3\CMS\Core\Messaging;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Messaging;
+
 use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\Messaging\Renderer\BootstrapRenderer;
 use TYPO3\CMS\Core\Messaging\Renderer\FlashMessageRendererInterface;
+use TYPO3\CMS\Core\Messaging\Renderer\ListRenderer;
+use TYPO3\CMS\Core\Messaging\Renderer\PlaintextRenderer;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -28,10 +33,10 @@ class FlashMessageRendererResolver
      * @var array
      */
     protected $renderer = [
-        'BE' => Renderer\BootstrapRenderer::class,
-        'FE' => Renderer\ListRenderer::class,
-        'CLI' => Renderer\PlaintextRenderer::class,
-        '_default' => Renderer\PlaintextRenderer::class,
+        'BE' => BootstrapRenderer::class,
+        'FE' => ListRenderer::class,
+        'CLI' => PlaintextRenderer::class,
+        '_default' => PlaintextRenderer::class,
     ];
 
     /**

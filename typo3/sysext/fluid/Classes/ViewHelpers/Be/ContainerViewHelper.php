@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\ViewHelpers\Be;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,7 +13,8 @@ namespace TYPO3\CMS\Fluid\ViewHelpers\Be;
  * The TYPO3 project - inspiring people to share!
  */
 
-use TYPO3\CMS\Core\Utility\GeneralUtility;
+namespace TYPO3\CMS\Fluid\ViewHelpers\Be;
+
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 
 /**
@@ -66,13 +66,13 @@ class ContainerViewHelper extends AbstractBackendViewHelper
         $this->registerArgument('includeJsFiles', 'array', 'List of custom JavaScript file to be loaded');
         $this->registerArgument('addJsInlineLabels', 'array', 'Custom labels to add to JavaScript inline labels');
         $this->registerArgument('includeRequireJsModules', 'array', 'List of RequireJS modules to be loaded');
+        $this->registerArgument('enableDocHeader', 'bool', 'Add an empty doc header', false);
     }
 
     /**
-     * Render start page with \TYPO3\CMS\Backend\Template\DocumentTemplate and pageTitle
+     * Render start page with \TYPO3\CMS\Backend\Template\ModuleTemplate and pageTitle
      *
      * @return string
-     * @see \TYPO3\CMS\Backend\Template\DocumentTemplate
      * @see \TYPO3\CMS\Core\Page\PageRenderer
      */
     public function render()
@@ -83,9 +83,8 @@ class ContainerViewHelper extends AbstractBackendViewHelper
         $addJsInlineLabels = $this->arguments['addJsInlineLabels'];
         $includeRequireJsModules = $this->arguments['includeRequireJsModules'];
 
-        $pageRenderer = $this->getPageRenderer();
-        $doc = $this->getDocInstance();
-        $doc->JScode .= GeneralUtility::wrapJS($doc->redirectUrls());
+        $moduleTemplate = $this->getModuleTemplate();
+        $pageRenderer = $moduleTemplate->getPageRenderer();
 
         // Include custom CSS and JS files
         if (is_array($includeCssFiles) && count($includeCssFiles) > 0) {
@@ -113,8 +112,14 @@ class ContainerViewHelper extends AbstractBackendViewHelper
         }
         // Render the content and return it
         $output = $this->renderChildren();
-        $output = $doc->startPage($pageTitle) . $output;
-        $output .= $doc->endPage();
-        return $output;
+        if ($this->arguments['enableDocHeader'] ?? false) {
+            $moduleTemplate->getDocHeaderComponent()->enable();
+        } else {
+            $moduleTemplate->getDocHeaderComponent()->disable();
+            $moduleTemplate->getView()->setTemplate('EmptyModule.html');
+        }
+        $moduleTemplate->setTitle($pageTitle);
+        $moduleTemplate->setContent($output);
+        return $moduleTemplate->renderContent();
     }
 }

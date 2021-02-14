@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\T3editor\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,9 @@ namespace TYPO3\CMS\T3editor\Controller;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\T3editor\Controller;
+
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Http\HtmlResponse;
@@ -86,23 +88,24 @@ class CodeCompletionController
     {
         $cleanedTreeBranch = [];
         foreach ($treeBranch as $key => $value) {
-            $dotCount = substr_count($key, '.');
             //type definition or value-assignment
-            if ($dotCount === 0) {
+            if (substr($key, -1) !== '.') {
                 if ($value != '') {
-                    if (strlen($value) > 20) {
-                        $value = substr($value, 0, 20);
+                    if (mb_strlen($value) > 20) {
+                        $value = mb_substr($value, 0, 20);
                     }
                     if (!isset($cleanedTreeBranch[$key])) {
                         $cleanedTreeBranch[$key] = [];
                     }
                     $cleanedTreeBranch[$key]['v'] = $value;
                 }
-            } elseif ($dotCount == 1) {
+            } else {
                 // subtree (definition of properties)
                 $subBranch = $this->treeWalkCleanup($value);
                 if ($subBranch) {
-                    $key = str_replace('.', '', $key);
+                    if (substr($key, -1) === '.') {
+                        $key = rtrim($key, '.');
+                    }
                     if (!isset($cleanedTreeBranch[$key])) {
                         $cleanedTreeBranch[$key] = [];
                     }

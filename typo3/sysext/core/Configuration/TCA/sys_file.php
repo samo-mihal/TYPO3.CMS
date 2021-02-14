@@ -1,4 +1,5 @@
 <?php
+
 return [
     'ctrl' => [
         'title' => 'LLL:EXT:core/Resources/Private/Language/locallang_tca.xlf:sys_file',
@@ -23,13 +24,10 @@ return [
         ],
         'searchFields' => 'name, type, mime_type, sha1'
     ],
-    'interface' => [
-        'showRecordFieldList' => 'storage, name, type, mime_type, size, sha1, missing'
-    ],
     'columns' => [
         'fileinfo' => [
             'config' => [
-                'type' => 'user',
+                'type' => 'none',
                 'renderType' => 'fileInfo',
             ]
         ],

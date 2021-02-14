@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Command;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,6 +15,8 @@ namespace TYPO3\CMS\Core\Command;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Command;
+
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Input\InputInterface;
@@ -28,6 +29,17 @@ use TYPO3\CMS\Core\Site\SiteFinder;
  */
 class SiteListCommand extends Command
 {
+    /**
+     * @var SiteFinder
+     */
+    protected $siteFinder;
+
+    public function __construct(SiteFinder $siteFinder)
+    {
+        $this->siteFinder = $siteFinder;
+        parent::__construct();
+    }
+
     /**
      * Defines the allowed options for this command
      */
@@ -44,13 +56,12 @@ class SiteListCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $io = new SymfonyStyle($input, $output);
-        $siteFinder = new SiteFinder();
-        $sites = $siteFinder->getAllSites();
+        $sites = $this->siteFinder->getAllSites();
 
         if (empty($sites)) {
             $io->title('No sites configured');
             $io->note('Configure new sites in the "Sites" module.');
-            return;
+            return 0;
         }
 
         $io->title('All configured sites');
@@ -66,6 +77,8 @@ class SiteListCommand extends Command
         foreach ($sites as $site) {
             $baseUrls = [];
             $languages = [];
+            $locales = [];
+            $status = [];
             foreach ($site->getLanguages() as $language) {
                 $baseUrls[] = (string)$language->getBase();
                 $languages[] = sprintf(
@@ -90,5 +103,6 @@ class SiteListCommand extends Command
             );
         }
         $table->render();
+        return 0;
     }
 }

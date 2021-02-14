@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Frontend\Middleware;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,8 @@ namespace TYPO3\CMS\Frontend\Middleware;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Frontend\Middleware;
+
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
@@ -27,7 +29,6 @@ use TYPO3\CMS\Core\Routing\PageArguments;
 use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Frontend\Aspect\PreviewAspect;
 use TYPO3\CMS\Frontend\Controller\ErrorController;
 use TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController;
 use TYPO3\CMS\Frontend\Page\PageAccessFailureReasons;
@@ -75,7 +76,6 @@ class TypoScriptFrontendInitialization implements MiddlewareInterface
                 ['code' => PageAccessFailureReasons::INVALID_PAGE_ARGUMENTS]
             );
         }
-        $this->context->setAspect('frontend.preview', GeneralUtility::makeInstance(PreviewAspect::class));
 
         $controller = GeneralUtility::makeInstance(
             TypoScriptFrontendController::class,
@@ -93,14 +93,14 @@ class TypoScriptFrontendInitialization implements MiddlewareInterface
             $controller->no_cache = 1;
         }
 
-        $controller->determineId();
+        $controller->determineId($request);
 
         // No access? Then remove user and re-evaluate the page id
         if ($controller->isBackendUserLoggedIn() && !$GLOBALS['BE_USER']->doesUserHaveAccess($controller->page, Permission::PAGE_SHOW)) {
             unset($GLOBALS['BE_USER']);
             // Register an empty backend user as aspect
             $this->setBackendUserAspect(null);
-            $controller->determineId();
+            $controller->determineId($request);
         }
 
         // Make TSFE globally available

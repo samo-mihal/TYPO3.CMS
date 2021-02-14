@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Functional\IO;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Functional\IO;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Functional\IO;
 
 use TYPO3\PharStreamWrapper\Exception;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
@@ -140,7 +142,7 @@ class PharStreamWrapperInterceptorTest extends FunctionalTestCase
     public function directoryActionDeniesInvocation(string $path)
     {
         self::expectException(Exception::class);
-        self::expectExceptionCode(1530103998);
+        self::expectExceptionCode(1539625084);
 
         $path = $this->instancePath . '/' . $path;
         opendir('phar://' . $path);
@@ -277,7 +279,7 @@ class PharStreamWrapperInterceptorTest extends FunctionalTestCase
     public function urlStatDeniesInvocation(string $functionName, string $path)
     {
         self::expectException(Exception::class);
-        self::expectExceptionCode(1530103998);
+        self::expectExceptionCode(1539625084);
 
         $path = $this->instancePath . '/' . $path;
         call_user_func($functionName, 'phar://' . $path);
@@ -358,7 +360,7 @@ class PharStreamWrapperInterceptorTest extends FunctionalTestCase
     public function streamOpenDeniesInvocationForFileOpen()
     {
         self::expectException(Exception::class);
-        self::expectExceptionCode(1530103998);
+        self::expectExceptionCode(1539625084);
 
         $allowedPath = $this->instancePath . '/fileadmin/bundle.phar';
         fopen('phar://' . $allowedPath . '/Resources/content.txt', 'r');
@@ -370,21 +372,30 @@ class PharStreamWrapperInterceptorTest extends FunctionalTestCase
     public function streamOpenDeniesInvocationForFileGetContents()
     {
         self::expectException(Exception::class);
-        self::expectExceptionCode(1530103998);
+        self::expectExceptionCode(1539625084);
 
         $allowedPath = $this->instancePath . '/fileadmin/bundle.phar';
         file_get_contents('phar://' . $allowedPath . '/Resources/content.txt');
     }
 
+    public function streamOpenDeniesInvocationForIncludeDataProvider(): array
+    {
+        return [
+            'fileadmin/bundle.phar' => ['fileadmin/bundle.phar'],
+            'EXT:test_resources/compromised.phar' => ['typo3conf/ext/test_resources/compromised.phar'],
+        ];
+    }
+
     /**
      * @test
+     * @dataProvider streamOpenDeniesInvocationForIncludeDataProvider
      */
-    public function streamOpenDeniesInvocationForInclude()
+    public function streamOpenDeniesInvocationForInclude(string $path)
     {
         self::expectException(Exception::class);
-        self::expectExceptionCode(1530103998);
+        self::expectExceptionCode(1539625084);
 
-        $allowedPath = $this->instancePath . '/fileadmin/bundle.phar';
+        $allowedPath = $this->instancePath . '/' . $path;
         include('phar://' . $allowedPath . '/Classes/Domain/Model/DemoModel.php');
     }
 }

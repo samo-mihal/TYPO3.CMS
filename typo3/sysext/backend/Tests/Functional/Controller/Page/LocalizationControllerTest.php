@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Backend\Tests\Functional\Controller\Page;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Backend\Tests\Functional\Controller\Page;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Tests\Functional\Controller\Page;
 
 use TYPO3\CMS\Backend\Controller\Page\LocalizationController;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
@@ -40,6 +41,12 @@ class LocalizationControllerTest extends AbstractDataHandlerActionTestCase
      * @var \TYPO3\CMS\Core\Authentication\BackendUserAuthentication
      */
     protected $backendUser;
+
+    /**
+     * @var bool
+     * @todo: Test setup should be updated to have true here
+     */
+    protected $assertCleanReferenceIndex = false;
 
     /**
      * @var array

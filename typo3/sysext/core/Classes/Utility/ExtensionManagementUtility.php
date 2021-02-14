@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Utility;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Core\Utility;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Utility;
+
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Finder\Finder;
 use TYPO3\CMS\Backend\Routing\Route;
@@ -24,10 +25,13 @@ use TYPO3\CMS\Core\Category\CategoryRegistry;
 use TYPO3\CMS\Core\Configuration\Event\AfterTcaCompilationEvent;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Imaging\IconRegistry;
+use TYPO3\CMS\Core\Information\Typo3Version;
 use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\Migrations\TcaMigration;
+use TYPO3\CMS\Core\Package\Exception;
 use TYPO3\CMS\Core\Package\PackageManager;
 use TYPO3\CMS\Core\Preparations\TcaPreparation;
+use TYPO3\CMS\Core\Resource\Filter\FileExtensionFilter;
 
 /**
  * Extension Management functions
@@ -164,7 +168,7 @@ class ExtensionManagementUtility
         }
         $version = static::$packageManager->getPackage($key)->getPackageMetaData()->getVersion();
         if (empty($version)) {
-            throw new \TYPO3\CMS\Core\Package\Exception('Version number in composer manifest of package "' . $key . '" is missing or invalid', 1395614959);
+            throw new Exception('Version number in composer manifest of package "' . $key . '" is missing or invalid', 1395614959);
         }
         return $version;
     }
@@ -213,7 +217,7 @@ class ExtensionManagementUtility
             return;
         }
         if ($position !== '') {
-            list($positionIdentifier, $entityName) = GeneralUtility::trimExplode(':', $position);
+            [$positionIdentifier, $entityName] = GeneralUtility::trimExplode(':', $position);
         } else {
             $positionIdentifier = '';
             $entityName = '';
@@ -478,6 +482,66 @@ class ExtensionManagementUtility
     }
 
     /**
+     * Adds an item group to a TCA select field, allows to add a group so addTcaSelectItem() can add a groupId
+     * with a label and its position within other groups.
+     *
+     * @param string $table the table name in TCA - e.g. tt_content
+     * @param string $field the field name in TCA - e.g. CType
+     * @param string $groupId the unique identifier for a group, where all items from addTcaSelectItem() with a group ID are connected
+     * @param string $groupLabel the label e.g. LLL:my_extension/Resources/Private/Language/locallang_tca.xlf:group.mygroupId
+     * @param string|null $position e.g. "before:special", "after:default" (where the part after the colon is an existing groupId) or "top" or "bottom"
+     */
+    public static function addTcaSelectItemGroup(string $table, string $field, string $groupId, string $groupLabel, ?string $position = 'bottom'): void
+    {
+        if (!is_array($GLOBALS['TCA'][$table]['columns'][$field]['config'] ?? null)) {
+            throw new \RuntimeException('Given select field item list was not found.', 1586728563);
+        }
+        $itemGroups = $GLOBALS['TCA'][$table]['columns'][$field]['config']['itemGroups'] ?? [];
+        // Group has been defined already, nothing to do
+        if (isset($itemGroups[$groupId])) {
+            return;
+        }
+        $position = (string)$position;
+        $positionGroupId = '';
+        if (strpos($position, ':') !== false) {
+            [$position, $positionGroupId] = explode(':', $position, 2);
+        }
+        // Referenced group was not not found, just append to the bottom
+        if (!isset($itemGroups[$positionGroupId])) {
+            $position = 'bottom';
+        }
+        switch ($position) {
+            case 'after':
+                $newItemGroups = [];
+                foreach ($itemGroups as $existingGroupId => $existingGroupLabel) {
+                    $newItemGroups[$existingGroupId] = $existingGroupLabel;
+                    if ($positionGroupId === $existingGroupId) {
+                        $newItemGroups[$groupId] = $groupLabel;
+                    }
+                }
+                $itemGroups = $newItemGroups;
+                break;
+            case 'before':
+                $newItemGroups = [];
+                foreach ($itemGroups as $existingGroupId => $existingGroupLabel) {
+                    if ($positionGroupId === $existingGroupId) {
+                        $newItemGroups[$groupId] = $groupLabel;
+                    }
+                    $newItemGroups[$existingGroupId] = $existingGroupLabel;
+                }
+                $itemGroups = $newItemGroups;
+                break;
+            case 'top':
+                $itemGroups = array_merge([$groupId => $groupLabel], $itemGroups);
+                break;
+            case 'bottom':
+            default:
+                $itemGroups[$groupId] = $groupLabel;
+        }
+        $GLOBALS['TCA'][$table]['columns'][$field]['config']['itemGroups'] = $itemGroups;
+    }
+
+    /**
      * Gets the TCA configuration for a field handling (FAL) files.
      *
      * @param string $fieldName Name of the field to be used
@@ -514,7 +578,7 @@ class ExtensionManagementUtility
             ],
             'filter' => [
                 [
-                    'userFunc' => \TYPO3\CMS\Core\Resource\Filter\FileExtensionFilter::class . '->filterInlineChildren',
+                    'userFunc' => FileExtensionFilter::class . '->filterInlineChildren',
                     'parameters' => [
                         'allowedFileExtensions' => $allowedFileExtensions,
                         'disallowedFileExtensions' => $disallowedFileExtensions
@@ -525,8 +589,7 @@ class ExtensionManagementUtility
                 'useSortable' => true,
                 'headerThumbnail' => [
                     'field' => 'uid_local',
-                    'width' => '45',
-                    'height' => '45c',
+                    'height' => '45m',
                 ],
 
                 'enabledControls' => [
@@ -578,7 +641,7 @@ class ExtensionManagementUtility
         $list = $newList = trim($list, ", \t\n\r\0\x0B");
 
         if ($insertionPosition !== '') {
-            list($location, $positionName) = GeneralUtility::trimExplode(':', $insertionPosition, false, 2);
+            [$location, $positionName] = GeneralUtility::trimExplode(':', $insertionPosition, false, 2);
         } else {
             $location = '';
             $positionName = '';
@@ -760,10 +823,13 @@ class ExtensionManagementUtility
      */
     public static function addModule($main, $sub = '', $position = '', $path = null, $moduleConfiguration = [])
     {
+        if (!isset($GLOBALS['TBE_MODULES'])) {
+            $GLOBALS['TBE_MODULES'] = [];
+        }
         // If there is already a main module by this name:
         // Adding the submodule to the correct position:
         if (isset($GLOBALS['TBE_MODULES'][$main]) && $sub) {
-            list($place, $modRef) = array_pad(GeneralUtility::trimExplode(':', $position, true), 2, null);
+            [$place, $modRef] = array_pad(GeneralUtility::trimExplode(':', $position, true), 2, null);
             $modules = ',' . $GLOBALS['TBE_MODULES'][$main] . ',';
             if ($place === null || ($modRef !== null && !GeneralUtility::inList($modules, $modRef))) {
                 $place = 'bottom';
@@ -787,6 +853,48 @@ class ExtensionManagementUtility
             }
             // Re-inserting the submodule list:
             $GLOBALS['TBE_MODULES'][$main] = trim($modules, ',');
+        } elseif (!isset($GLOBALS['TBE_MODULES'][$main]) && empty($sub)) {
+            // Create a new main module, respecting the order, which is only possible when the module does not exist yet
+            $conf = $GLOBALS['TBE_MODULES']['_configuration'] ?? [];
+            unset($GLOBALS['TBE_MODULES']['_configuration']);
+            $navigationComponents = $GLOBALS['TBE_MODULES']['_navigationComponents'] ?? [];
+            unset($GLOBALS['TBE_MODULES']['_navigationComponents']);
+
+            $modules = array_keys($GLOBALS['TBE_MODULES']);
+            [$place, $moduleReference] = array_pad(GeneralUtility::trimExplode(':', $position, true), 2, null);
+            if ($place === null || ($moduleReference !== null && !in_array($moduleReference, $modules, true))) {
+                $place = 'bottom';
+            }
+            $newModules = [];
+            switch (strtolower($place)) {
+                case 'after':
+                    foreach ($modules as $existingMainModule) {
+                        $newModules[$existingMainModule] = $GLOBALS['TBE_MODULES'][$existingMainModule];
+                        if ($moduleReference === $existingMainModule) {
+                            $newModules[$main] = '';
+                        }
+                    }
+                    break;
+                case 'before':
+                    foreach ($modules as $existingMainModule) {
+                        if ($moduleReference === $existingMainModule) {
+                            $newModules[$main] = '';
+                        }
+                        $newModules[$existingMainModule] = $GLOBALS['TBE_MODULES'][$existingMainModule];
+                    }
+                    break;
+                case 'top':
+                    $newModules[$main] = '';
+                    $newModules += $GLOBALS['TBE_MODULES'];
+                    break;
+                case 'bottom':
+                default:
+                    $newModules = $GLOBALS['TBE_MODULES'];
+                    $newModules[$main] = '';
+            }
+            $GLOBALS['TBE_MODULES'] = $newModules;
+            $GLOBALS['TBE_MODULES']['_configuration'] = $conf;
+            $GLOBALS['TBE_MODULES']['_navigationComponents'] = $navigationComponents;
         } else {
             // Create new main modules with only one submodule, $sub (or none if $sub is blank)
             $GLOBALS['TBE_MODULES'][$main] = $sub;
@@ -795,6 +903,13 @@ class ExtensionManagementUtility
         // add additional configuration
         $fullModuleSignature = $main . ($sub ? '_' . $sub : '');
         if (is_array($moduleConfiguration) && !empty($moduleConfiguration)) {
+            // remove default icon if an icon identifier is available
+            if (!empty($moduleConfiguration['iconIdentifier'])
+                && !empty($moduleConfiguration['icon'])
+                && $moduleConfiguration['icon'] === 'EXT:extbase/Resources/Public/Icons/Extension.png'
+            ) {
+                unset($moduleConfiguration['icon']);
+            }
             if (!empty($moduleConfiguration['icon'])) {
                 $iconRegistry = GeneralUtility::makeInstance(IconRegistry::class);
                 $iconIdentifier = 'module-' . $fullModuleSignature;
@@ -817,6 +932,7 @@ class ExtensionManagementUtility
         if (!empty($moduleConfiguration['path'])) {
             $path = $moduleConfiguration['path'];
             $path = '/' . ltrim($path, '/');
+            $legacyPath = '';
         } else {
             $path = str_replace('_', '/', $fullModuleSignature);
             $path = trim($path, '/');
@@ -1121,10 +1237,11 @@ class ExtensionManagementUtility
      * Adds an entry to the list of plugins in content elements of type "Insert plugin"
      * Takes the $itemArray (label, value[,icon]) and adds to the items-array of $GLOBALS['TCA'][tt_content] elements with CType "listtype" (or another field if $type points to another fieldname)
      * If the value (array pos. 1) is already found in that items-array, the entry is substituted, otherwise the input array is added to the bottom.
-     * Use this function to add a frontend plugin to this list of plugin-types - or more generally use this function to add an entry to any selectorbox/radio-button set in the TCEFORMS
+     * Use this function to add a frontend plugin to this list of plugin-types - or more generally use this function to add an entry to any selectorbox/radio-button set in the FormEngine
+     *
      * FOR USE IN files in Configuration/TCA/Overrides/*.php Use in ext_tables.php FILES may break the frontend.
      *
-     * @param array $itemArray Numerical array: [0] => Plugin label, [1] => Underscored extension key, [2] => Path to plugin icon relative to TYPO3_mainDir
+     * @param array $itemArray Numerical array: [0] => Plugin label, [1] => Plugin identifier / plugin key, ideally prefixed with an extension-specific name (e.g. "events2_list"), [2] => Path to plugin icon, [3] => an optional "group" ID, falls back to "default"
      * @param string $type Type (eg. "list_type") - basically a field from "tt_content" table
      * @param string $extensionKey The extension key
      * @throws \RuntimeException
@@ -1144,6 +1261,9 @@ class ExtensionManagementUtility
         if (!isset($itemArray[2]) || !$itemArray[2]) {
             // @todo do we really set $itemArray[2], even if we cannot find an icon? (as that means it's set to 'EXT:foobar/')
             $itemArray[2] = 'EXT:' . $extensionKey . '/' . static::getExtensionIcon(static::$packageManager->getPackage($extensionKey)->getPackagePath());
+        }
+        if (!isset($itemArray[3])) {
+            $itemArray[3] = 'default';
         }
         if (is_array($GLOBALS['TCA']['tt_content']['columns']) && is_array($GLOBALS['TCA']['tt_content']['columns'][$type]['config']['items'])) {
             foreach ($GLOBALS['TCA']['tt_content']['columns'][$type]['config']['items'] as $k => $v) {
@@ -1202,7 +1322,6 @@ class ExtensionManagementUtility
      *
      * $type determines the type of frontend plugin:
      * + list_type (default) - the good old "Insert plugin" entry
-     * + menu_type - a "Menu/Sitemap" entry
      * + CType - a new content element type
      * + header_layout - an additional header type (added to the selection of layout1-5)
      * + includeLib - just includes the library for manual use somewhere in TypoScript.
@@ -1230,9 +1349,6 @@ plugin.' . $cN . $suffix . '.userFunc = ' . $cN . $suffix . '->main
         switch ($type) {
             case 'list_type':
                 $addLine = 'tt_content.list.20.' . $key . $suffix . ' = < plugin.' . $cN . $suffix;
-                break;
-            case 'menu_type':
-                $addLine = 'tt_content.menu.20.' . $key . $suffix . ' = < plugin.' . $cN . $suffix;
                 break;
             case 'CType':
                 $addLine = trim('
@@ -1353,7 +1469,7 @@ tt_content.' . $key . $suffix . ' {
      * @param string $key Is the extension key (informative only).
      * @param string $type Is either "setup" or "constants" and obviously determines which kind of TypoScript code we are adding.
      * @param string $content Is the TS content, will be prefixed with a [GLOBAL] line and a comment-header.
-     * @param int|string string pointing to the "key" of a static_file template ([reduced extension_key]/[local path]). The points is that the TypoScript you add is included only IF that static template is included (and in that case, right after). So effectively the TypoScript you set can specifically overrule settings from those static templates.
+     * @param int|string $afterStaticUid string pointing to the "key" of a static_file template ([reduced extension_key]/[local path]). The points is that the TypoScript you add is included only IF that static template is included (and in that case, right after). So effectively the TypoScript you set can specifically overrule settings from those static templates.
      * @throws \InvalidArgumentException
      */
     public static function addTypoScript(string $key, string $type, string $content, $afterStaticUid = 0)
@@ -1441,9 +1557,8 @@ tt_content.' . $key . $suffix . ' {
         if ($allowCaching) {
             $codeCache = $codeCache ?? self::getCacheManager()->getCache('core');
             $cacheIdentifier = self::getExtLocalconfCacheIdentifier();
-            if ($codeCache->has($cacheIdentifier)) {
-                $codeCache->require($cacheIdentifier);
-            } else {
+            $hasCache = $codeCache->require($cacheIdentifier) !== false;
+            if (!$hasCache) {
                 self::loadSingleExtLocalconfFiles();
                 self::createExtLocalconfCacheEntry($codeCache);
             }
@@ -1490,7 +1605,7 @@ tt_content.' . $key . $suffix . ' {
                 $phpCodeToCache[] = ' */';
                 $phpCodeToCache[] = '';
                 // Add ext_localconf.php content of extension
-                $phpCodeToCache[] = trim(file_get_contents($extLocalconfPath));
+                $phpCodeToCache[] = trim((string)file_get_contents($extLocalconfPath));
                 $phpCodeToCache[] = '';
                 $phpCodeToCache[] = '';
             }
@@ -1508,7 +1623,7 @@ tt_content.' . $key . $suffix . ' {
      */
     protected static function getExtLocalconfCacheIdentifier()
     {
-        return 'ext_localconf_' . sha1(TYPO3_version . Environment::getProjectPath() . 'extLocalconf' . serialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['runtimeActivatedPackages']));
+        return 'ext_localconf_' . sha1((string)(new Typo3Version()) . Environment::getProjectPath() . 'extLocalconf' . serialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['runtimeActivatedPackages']));
     }
 
     /**
@@ -1646,7 +1761,7 @@ tt_content.' . $key . $suffix . ' {
      */
     protected static function getBaseTcaCacheIdentifier()
     {
-        return 'tca_base_' . sha1(TYPO3_version . Environment::getProjectPath() . 'tca_code' . serialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['runtimeActivatedPackages']));
+        return 'tca_base_' . sha1((string)(new Typo3Version()) . Environment::getProjectPath() . 'tca_code' . serialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['runtimeActivatedPackages']));
     }
 
     /**
@@ -1667,9 +1782,8 @@ tt_content.' . $key . $suffix . ' {
             $cacheIdentifier = self::getExtTablesCacheIdentifier();
             /** @var \TYPO3\CMS\Core\Cache\Frontend\FrontendInterface $codeCache */
             $codeCache = self::getCacheManager()->getCache('core');
-            if ($codeCache->has($cacheIdentifier)) {
-                $codeCache->require($cacheIdentifier);
-            } else {
+            $hasCache = $codeCache->require($cacheIdentifier) !== false;
+            if (!$hasCache) {
                 self::loadSingleExtTablesFiles();
                 self::createExtTablesCacheEntry();
             }
@@ -1715,7 +1829,7 @@ tt_content.' . $key . $suffix . ' {
                 $phpCodeToCache[] = ' */';
                 $phpCodeToCache[] = '';
                 // Add ext_tables.php content of extension
-                $phpCodeToCache[] = trim(file_get_contents($extTablesPath));
+                $phpCodeToCache[] = trim((string)file_get_contents($extTablesPath));
                 $phpCodeToCache[] = '';
             }
         }
@@ -1732,7 +1846,7 @@ tt_content.' . $key . $suffix . ' {
      */
     protected static function getExtTablesCacheIdentifier()
     {
-        return 'ext_tables_' . sha1(TYPO3_version . Environment::getProjectPath() . 'extTables' . serialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['runtimeActivatedPackages']));
+        return 'ext_tables_' . sha1((string)(new Typo3Version()) . Environment::getProjectPath() . 'extTables' . serialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['runtimeActivatedPackages']));
     }
 
     /**

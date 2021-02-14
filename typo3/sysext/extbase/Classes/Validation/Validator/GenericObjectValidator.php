@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Validation\Validator;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,9 @@ namespace TYPO3\CMS\Extbase\Validation\Validator;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Validation\Validator;
+
+use TYPO3\CMS\Extbase\Error\Result;
 use TYPO3\CMS\Extbase\Reflection\ObjectAccess;
 
 /**
@@ -39,7 +41,7 @@ class GenericObjectValidator extends AbstractValidator implements ObjectValidato
             return $this->result;
         }
 
-        $this->result = new \TYPO3\CMS\Extbase\Error\Result();
+        $this->result = new Result();
         if ($this->acceptsEmptyValues === false || $this->isEmpty($value) === false) {
             if (!is_object($value)) {
                 $this->addError('Object expected, %1$s given.', 1241099149, [gettype($value)]);
@@ -163,7 +165,7 @@ class GenericObjectValidator extends AbstractValidator implements ObjectValidato
     }
 
     /**
-     * @param $object
+     * @param object $object
      */
     protected function markInstanceAsValidated($object): void
     {

@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Tests\Unit\TypoScript;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,6 +15,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\TypoScript;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\TypoScript;
+
 use Prophecy\Argument;
 use Prophecy\Prophecy\ObjectProphecy;
 use TYPO3\CMS\Core\Context\Context;
@@ -23,10 +24,12 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Package\Package;
 use TYPO3\CMS\Core\Package\PackageManager;
+use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Tests\Unit\Utility\AccessibleProxies\ExtensionManagementUtilityAccessibleProxy;
 use TYPO3\CMS\Core\TypoScript\TemplateService;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController;
 use TYPO3\TestingFramework\Core\AccessibleObjectInterface;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
@@ -64,11 +67,28 @@ class TemplateServiceTest extends UnitTestCase
         $GLOBALS['SIM_ACCESS_TIME'] = time();
         $GLOBALS['ACCESS_TIME'] = time();
         $this->packageManagerProphecy = $this->prophesize(PackageManager::class);
-        $this->templateService = new TemplateService(new Context(), $this->packageManagerProphecy->reveal());
-        $this->templateServiceMock = $this->getAccessibleMock(
-            TemplateService::class,
-            ['dummy'],
-            [new Context(), $this->packageManagerProphecy->reveal()]
+        $frontendController = $this->prophesize(TypoScriptFrontendController::class);
+        $frontendController->getSite()->willReturn(new Site('dummy', 13, [
+            'base' => 'https://example.com',
+            'settings' => [
+                'random' => 'value',
+                'styles' => [
+                    'content' => [
+                        'loginform' => [
+                            'pid' => 123
+                        ],
+                    ],
+                ],
+                'numberedThings' => [
+                    1 => 'foo',
+                    99 => 'bar',
+                ]
+            ]
+        ]));
+        $this->templateService = new TemplateService(
+            new Context(),
+            $this->packageManagerProphecy->reveal(),
+            $frontendController->reveal()
         );
         $this->backupPackageManager = ExtensionManagementUtilityAccessibleProxy::getPackageManager();
     }
@@ -95,8 +115,9 @@ class TemplateServiceTest extends UnitTestCase
         $this->packageManagerProphecy->getActivePackages()->shouldNotBeCalled();
 
         $this->templateService->runThroughTemplates([], 0);
-        self::assertFalse(
-            in_array('test.Core.TypoScript = 1', $this->templateService->config, true)
+        self::assertNotContains(
+            'test.Core.TypoScript = 1',
+            $this->templateService->config
         );
     }
 
@@ -129,8 +150,9 @@ class TemplateServiceTest extends UnitTestCase
         $this->templateService->setProcessExtensionStatics(true);
         $this->templateService->runThroughTemplates([], 0);
 
-        self::assertTrue(
-            in_array('test.Core.TypoScript = 1', $this->templateService->config, true)
+        self::assertContains(
+            'test.Core.TypoScript = 1',
+            $this->templateService->config
         );
     }
 
@@ -155,9 +177,9 @@ class TemplateServiceTest extends UnitTestCase
             1 => ['uid' => 3, 'title' => 'newTitle3'],
         ];
 
-        $this->templateServiceMock->_set('rootLine', $originalRootline);
-        $this->templateServiceMock->updateRootlineData($updatedRootline);
-        self::assertEquals($expectedRootline, $this->templateServiceMock->_get('rootLine'));
+        $this->templateService->rootLine = $originalRootline;
+        $this->templateService->updateRootlineData($updatedRootline);
+        self::assertEquals($expectedRootline, $this->templateService->rootLine);
     }
 
     /**
@@ -178,7 +200,7 @@ class TemplateServiceTest extends UnitTestCase
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionCode(1370419654);
 
-        $this->templateServiceMock->_set('rootLine', $originalRootline);
-        $this->templateServiceMock->updateRootlineData($newInvalidRootline);
+        $this->templateService->rootLine = $originalRootline;
+        $this->templateService->updateRootlineData($newInvalidRootline);
     }
 }

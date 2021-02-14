@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Frontend\Tests\Functional\SiteHandling;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,7 +15,10 @@ namespace TYPO3\CMS\Frontend\Tests\Functional\SiteHandling;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Frontend\Tests\Functional\SiteHandling;
+
 use TYPO3\CMS\Core\Core\Bootstrap;
+use TYPO3\CMS\Core\Utility\PermutationUtility;
 use TYPO3\TestingFramework\Core\Functional\Framework\DataHandling\Scenario\DataHandlerFactory;
 use TYPO3\TestingFramework\Core\Functional\Framework\DataHandling\Scenario\DataHandlerWriter;
 use TYPO3\TestingFramework\Core\Functional\Framework\Frontend\InternalRequest;
@@ -303,7 +306,7 @@ class SlugSiteRequestTest extends AbstractTestCase
     /**
      * @test
      */
-    public function unconfiguredTypeNumResultsIn404Error()
+    public function unconfiguredTypeNumResultsIn500Error()
     {
         $this->writeSiteConfiguration(
             'website-local',
@@ -311,17 +314,20 @@ class SlugSiteRequestTest extends AbstractTestCase
             [
                 $this->buildDefaultLanguageConfiguration('EN', '/en-en/')
             ],
-            $this->buildErrorHandlingConfiguration('Fluid', [404])
+            $this->buildErrorHandlingConfiguration('Fluid', [500])
         );
 
         $uri = 'https://website.local/en-en/?type=13';
+
+        $settings = ['TYPO3_CONF_VARS' => static::TYPO3_CONF_VARS];
+        $settings['TYPO3_CONF_VARS']['SYS']['devIPmask'] = '';
         $response = $this->executeFrontendRequest(
             new InternalRequest($uri),
-            $this->internalRequestContext
+            (new InternalRequestContext())->withGlobalSettings($settings)
         );
 
         self::assertSame(
-            404,
+            500,
             $response->getStatusCode()
         );
         self::assertStringContainsString(
@@ -696,6 +702,50 @@ class SlugSiteRequestTest extends AbstractTestCase
     /**
      * @return array
      */
+    public function hiddenPageSends404ResponseRegardlessOfVisitorGroupDataProvider(): array
+    {
+        $instructions = [
+            // hidden page, always 404
+            ['https://website.local/never-visible-working-on-it', 0],
+            ['https://website.local/never-visible-working-on-it', 1],
+        ];
+
+        return $this->keysFromTemplate($instructions, '%1$s (user:%2$s)');
+    }
+
+    /**
+     * @test
+     * @dataProvider hiddenPageSends404ResponseRegardlessOfVisitorGroupDataProvider
+     */
+    public function hiddenPageSends404ResponseRegardlessOfVisitorGroup(string $uri, int $frontendUserId)
+    {
+        $this->writeSiteConfiguration(
+            'website-local',
+            $this->buildSiteConfiguration(1000, 'https://website.local/'),
+            [],
+            $this->buildErrorHandlingConfiguration('PHP', [404])
+        );
+
+        $response = $this->executeFrontendRequest(
+            new InternalRequest($uri),
+            $this->internalRequestContext
+                ->withFrontendUserId($frontendUserId)
+        );
+        $json = json_decode((string)$response->getBody(), true);
+
+        self::assertSame(
+            404,
+            $response->getStatusCode()
+        );
+        self::assertThat(
+            $json['message'] ?? null,
+            self::identicalTo('The requested page does not exist!')
+        );
+    }
+
+    /**
+     * @return array
+     */
     public function pageRenderingStopsWithInvalidCacheHashDataProvider(): array
     {
         $domainPaths = [
@@ -715,7 +765,7 @@ class SlugSiteRequestTest extends AbstractTestCase
 
         return $this->wrapInArray(
             $this->keysFromValues(
-                $this->meltStrings([$domainPaths, $queries, $customQueries])
+                PermutationUtility::meltStringItems([$domainPaths, $queries, $customQueries])
             )
         );
     }
@@ -860,7 +910,7 @@ class SlugSiteRequestTest extends AbstractTestCase
 
         $dataSet = $this->wrapInArray(
             $this->keysFromValues(
-                $this->meltStrings([$domainPaths, $queries, $customQueries])
+                PermutationUtility::meltStringItems([$domainPaths, $queries, $customQueries])
             )
         );
 

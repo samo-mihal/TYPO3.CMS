@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Domain\Model;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,15 @@ namespace TYPO3\CMS\Extbase\Domain\Model;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Domain\Model;
+
+use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
+use TYPO3\CMS\Extbase\Persistence\ObjectStorage;
+
 /**
  * A Frontend User Group
  */
-class FrontendUserGroup extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity
+class FrontendUserGroup extends AbstractEntity
 {
     /**
      * @var string
@@ -47,7 +51,7 @@ class FrontendUserGroup extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity
     public function __construct($title = '')
     {
         $this->setTitle($title);
-        $this->subgroup = new \TYPO3\CMS\Extbase\Persistence\ObjectStorage();
+        $this->subgroup = new ObjectStorage();
     }
 
     /**
@@ -116,7 +120,7 @@ class FrontendUserGroup extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity
      *
      * @param \TYPO3\CMS\Extbase\Persistence\ObjectStorage $subgroup An object storage containing the subgroups to add
      */
-    public function setSubgroup(\TYPO3\CMS\Extbase\Persistence\ObjectStorage $subgroup)
+    public function setSubgroup(ObjectStorage $subgroup)
     {
         $this->subgroup = $subgroup;
     }

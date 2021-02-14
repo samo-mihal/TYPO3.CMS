@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Context;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Context;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Context;
 
 use TYPO3\CMS\Core\Context\Exception\AspectPropertyNotFoundException;
 
@@ -90,7 +92,7 @@ class LanguageAspect implements AspectInterface
     {
         $this->overlayType = $overlayType;
         $this->id = $id;
-        $this->contentId = $contentId === null ? $this->id : $contentId;
+        $this->contentId = $contentId ?? $this->id;
         $this->fallbackChain = $fallbackChain;
     }
 

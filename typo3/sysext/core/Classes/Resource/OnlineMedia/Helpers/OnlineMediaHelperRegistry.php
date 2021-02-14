@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Resource\OnlineMedia\Helpers;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,14 +13,17 @@ namespace TYPO3\CMS\Core\Resource\OnlineMedia\Helpers;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Resource\OnlineMedia\Helpers;
+
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\Folder;
+use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Online Media Source Registry
  */
-class OnlineMediaHelperRegistry implements \TYPO3\CMS\Core\SingletonInterface
+class OnlineMediaHelperRegistry implements SingletonInterface
 {
     /**
      * Returns an instance of this class
@@ -31,6 +33,17 @@ class OnlineMediaHelperRegistry implements \TYPO3\CMS\Core\SingletonInterface
     public static function getInstance()
     {
         return GeneralUtility::makeInstance(self::class);
+    }
+
+    /**
+     * Checks if there is a helper for this file extension
+     *
+     * @param string $fileExtension
+     * @return bool
+     */
+    public function hasOnlineMediaHelper(string $fileExtension): bool
+    {
+        return isset($GLOBALS['TYPO3_CONF_VARS']['SYS']['fal']['onlineMediaHelpers'][$fileExtension]);
     }
 
     /**

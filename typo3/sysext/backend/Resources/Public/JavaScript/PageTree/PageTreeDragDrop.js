@@ -29,7 +29,7 @@ define([
 
   /**
    * Creates a new drag instance and initializes the clickDistance setting to
-   * prevent clicks from beeing wrongly detected as drag attempts.
+   * prevent clicks from being wrongly detected as drag attempts.
    */
   var createD3 = function() {
     return d3.drag()
@@ -99,8 +99,8 @@ define([
 
         _this.dropZoneDelete = null;
 
-        if ((!tree.settings.allowRecursiveDelete && !node.hasChildren) ||
-          tree.settings.allowRecursiveDelete
+        if (node.allowDelete
+          && ((!tree.settings.allowRecursiveDelete && !node.hasChildren) || tree.settings.allowRecursiveDelete)
         ) {
           _this.dropZoneDelete = tree.nodesContainer
             .select('.node[data-state-id="' + node.stateIdentifier + '"]')
@@ -128,6 +128,7 @@ define([
             .attr('dy', 15);
 
           _this.dropZoneDelete
+            .attr('data-open', 'false')
             .attr('transform', self.getDropZoneCloseTransform(node));
         }
 
@@ -225,15 +226,16 @@ define([
       self.dragEnd = function(node) {
         _this.setDragEnd();
 
-        if (!self.startDrag || tree.settings.isDragAnDrop !== true || node.depth === 0) {
-          return false;
-        }
-
         if (_this.dropZoneDelete) {
           _this.dropZoneDelete
             .transition(300)
             .attr('transform', self.getDropZoneCloseTransform(node))
             .remove();
+          _this.dropZoneDelete = null;
+        }
+
+        if (!self.startDrag || tree.settings.isDragAnDrop !== true || node.depth === 0) {
+          return false;
         }
 
         var $svg = $(this).closest('svg');
@@ -773,6 +775,8 @@ define([
       newNode.y = newNode.y || newNode.target.y;
       newNode.x = newNode.x || newNode.target.x;
 
+      _this.tree.nodeIsEdit = true;
+
       if (options.position === 'in') {
         newNode.depth++;
         newNode.parents.unshift(index);
@@ -800,7 +804,6 @@ define([
       _this.tree.prepareDataForVisibleNodes();
       _this.tree.update();
       _this.tree.removeEditedText();
-      _this.tree.nodeIsEdit = true;
 
       d3.select(_this.tree.svg.node().parentNode)
         .append('input')

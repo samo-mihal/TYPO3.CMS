@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Site\Entity;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Core\Site\Entity;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Site\Entity;
 
 use Psr\Http\Message\UriInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
@@ -151,7 +152,7 @@ class NullSite implements SiteInterface
                 'flag' => 'flags-multiple'
             ]);
         }
-        $pageTs = BackendUtility::getPagesTSconfig($pageId);
+        $pageTs = BackendUtility::getPagesTSconfig((int)$pageId);
         $pageTs = $pageTs['mod.']['SHARED.'] ?? [];
 
         $disabledLanguages = GeneralUtility::intExplode(',', $pageTs['disableLanguages'] ?? '', true);

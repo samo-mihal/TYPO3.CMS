@@ -31,9 +31,10 @@ declare namespace TYPO3 {
     export namespace Backend {
       export class FormEngineValidation {
         public readonly errorClass: string;
-        public markFieldAsChanged($field: JQuery): void;
+        public markFieldAsChanged(field: HTMLInputElement|HTMLTextAreaElement|HTMLSelectElement|JQuery): void;
         public initializeInputFields(): void;
-        public validate(): void;
+        public validate(section?: Element): void;
+        public validateField(field: HTMLInputElement|HTMLTextAreaElement|HTMLSelectElement|JQuery, value?: string): void;
       }
 
       export namespace FormEngine {
@@ -105,19 +106,11 @@ declare module 'TYPO3/CMS/Backend/FormEngine/Element/SelectTree' {
   export = _exported;
 }
 
-declare module 'TYPO3/CMS/Backend/MultiStepWizard' {
-  const _exported: TYPO3.CMS.Backend.MultiStepWizard;
-  export = _exported;
-}
-
 // type definition for global namespace object
 interface Window {
   TYPO3: any;
-  $: any;
+  $: any; // only required in ImageManipulation.ts
   startInModule: Array<string>;
-  inline: {
-    delayedImportElement: (objectId: number, table: string, uid: number, type: string) => void,
-  };
   loadEditId: (id: number, addGetVars?: string) => void;
   require: Function;
   list_frame: Window;
@@ -136,18 +129,11 @@ interface Window {
 /**
  * Needed type declarations for provided libs
  */
-declare module 'TYPO3/CMS/Core/Contrib/imagesloaded.pkgd.min' {
-  import * as imagesloaded from 'imagesloaded';
-  export = imagesloaded;
-}
-
-
-declare module 'TYPO3/CMS/Recordlist/LinkBrowser';
-declare module 'TYPO3/CMS/Backend/LegacyTree';
-
+declare module 'muuri';
 declare module 'cm/lib/codemirror';
-declare module 'moment';
-declare module 'Sortable';
+declare module 'TYPO3/CMS/Backend/LegacyTree';
+declare module 'TYPO3/CMS/Recordlist/LinkBrowser';
+declare module 'TYPO3/CMS/Dashboard/Contrib/chartjs';
 
 interface JQueryTypedEvent<T extends Event> extends JQueryEventObject {
   originalEvent: T;
@@ -157,24 +143,13 @@ interface JQueryTypedEvent<T extends Event> extends JQueryEventObject {
  * Required to make jQuery plugins "available" in TypeScript
  */
 interface JQuery {
-  dataTableExt: any;
-
-  search(term?: string): JQuery;
-
-  draw(): JQuery;
-
-  clearable(options?: any): JQuery;
-
   datetimepicker(options?: any): JQuery;
 
   dragUploader(options?: any): JQuery;
 
   t3FormEngineFlexFormElement(options?: any): JQuery;
 
-  // To be able to use twbs/bootstrap-slider we have to override the definition of jquerui
-  slider(options: { [key: string]: any }): any;
-
-  // To be able to use jquery/autocomplete-slider we have to override the definition of jquerui
+  // To be able to use devbridge-autocomplete we have to override the definition of jquerui
   autocomplete(options?: { [key: string]: any }): any;
   disablePagingAction(): void;
 }

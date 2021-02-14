@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Tests\Unit\Persistence\Generic\Storage;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,23 +13,32 @@ namespace TYPO3\CMS\Extbase\Tests\Unit\Persistence\Generic\Storage;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Tests\Unit\Persistence\Generic\Storage;
+
 use Prophecy\Argument;
+use TYPO3\CMS\Core\Context\Context;
+use TYPO3\CMS\Core\Context\DateTimeAspect;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Expression\CompositeExpression;
 use TYPO3\CMS\Core\Database\Query\Expression\ExpressionBuilder;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\CMS\Extbase\Persistence\Generic\Exception\InconsistentQuerySettingsException;
 use TYPO3\CMS\Extbase\Persistence\Generic\Exception\UnsupportedOrderException;
+use TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapper;
 use TYPO3\CMS\Extbase\Persistence\Generic\Qom\AndInterface;
 use TYPO3\CMS\Extbase\Persistence\Generic\Qom\ComparisonInterface;
 use TYPO3\CMS\Extbase\Persistence\Generic\Qom\ConstraintInterface;
 use TYPO3\CMS\Extbase\Persistence\Generic\Qom\NotInterface;
 use TYPO3\CMS\Extbase\Persistence\Generic\Qom\OrInterface;
+use TYPO3\CMS\Extbase\Persistence\Generic\Qom\Selector;
 use TYPO3\CMS\Extbase\Persistence\Generic\Qom\SourceInterface;
 use TYPO3\CMS\Extbase\Persistence\Generic\Storage\Typo3DbQueryParser;
+use TYPO3\CMS\Extbase\Persistence\Generic\Typo3QuerySettings;
 use TYPO3\CMS\Extbase\Persistence\QueryInterface;
+use TYPO3\CMS\Extbase\Service\EnvironmentService;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 class Typo3DbQueryParserTest extends UnitTestCase
@@ -200,39 +208,6 @@ class Typo3DbQueryParserTest extends UnitTestCase
     /**
      * @test
      */
-    public function convertQueryToDoctrineQueryBuilderNotAddsInvalidAndConstraint()
-    {
-        // Prepare subject, turn off initialize qb method and inject qb prophecy revelation
-        $subject = $this->getAccessibleMock(
-            Typo3DbQueryParser::class,
-            // Shut down some methods not important for this test
-            ['initializeQueryBuilder', 'parseOrderings', 'addTypo3Constraints', 'parseComparison']
-        );
-        $queryBuilderProphecy = $this->prophesize(QueryBuilder::class);
-        $subject->_set('queryBuilder', $queryBuilderProphecy->reveal());
-
-        $queryProphecy = $this->prophesize(QueryInterface::class);
-        $sourceProphecy = $this->prophesize(SourceInterface::class);
-        $queryProphecy->getSource()->willReturn($sourceProphecy->reveal());
-        $queryProphecy->getOrderings()->willReturn([]);
-        $queryProphecy->getStatement()->willReturn(null);
-
-        $constraintProphecy = $this->prophesize(AndInterface::class);
-        $queryProphecy->getConstraint()->willReturn($constraintProphecy->reveal());
-        $constraint1Prophecy = $this->prophesize(ComparisonInterface::class);
-        $constraintProphecy->getConstraint1()->willReturn($constraint1Prophecy->reveal());
-        // no result for constraint2
-        $constraintProphecy->getConstraint2()->willReturn(null);
-
-        // not be called
-        $queryBuilderProphecy->andWhere()->shouldNotBeCalled();
-
-        $subject->convertQueryToDoctrineQueryBuilder($queryProphecy->reveal());
-    }
-
-    /**
-     * @test
-     */
     public function convertQueryToDoctrineQueryBuilderAddsOrConstraint()
     {
         // Prepare subject, turn off initialize qb method and inject qb prophecy revelation
@@ -269,49 +244,16 @@ class Typo3DbQueryParserTest extends UnitTestCase
     }
 
     /**
-     * @test
-     */
-    public function convertQueryToDoctrineQueryBuilderNotAddsInvalidOrConstraint()
-    {
-        // Prepare subject, turn off initialize qb method and inject qb prophecy revelation
-        $subject = $this->getAccessibleMock(
-            Typo3DbQueryParser::class,
-            // Shut down some methods not important for this test
-            ['initializeQueryBuilder', 'parseOrderings', 'addTypo3Constraints', 'parseComparison']
-        );
-        $queryBuilderProphecy = $this->prophesize(QueryBuilder::class);
-        $subject->_set('queryBuilder', $queryBuilderProphecy->reveal());
-
-        $queryProphecy = $this->prophesize(QueryInterface::class);
-        $sourceProphecy = $this->prophesize(SourceInterface::class);
-        $queryProphecy->getSource()->willReturn($sourceProphecy->reveal());
-        $queryProphecy->getOrderings()->willReturn([]);
-        $queryProphecy->getStatement()->willReturn(null);
-
-        $constraintProphecy = $this->prophesize(OrInterface::class);
-        $queryProphecy->getConstraint()->willReturn($constraintProphecy->reveal());
-        $constraint1Prophecy = $this->prophesize(ComparisonInterface::class);
-        $constraintProphecy->getConstraint1()->willReturn($constraint1Prophecy->reveal());
-        // no result for constraint2
-        $constraintProphecy->getConstraint2()->willReturn(null);
-
-        // not be called
-        $queryBuilderProphecy->andWhere()->shouldNotBeCalled();
-
-        $subject->convertQueryToDoctrineQueryBuilder($queryProphecy->reveal());
-    }
-
-    /**
      * @return \Prophecy\Prophecy\ObjectProphecy
      */
     protected function getQueryBuilderWithExpressionBuilderProphet()
     {
         $connectionProphet = $this->prophesize(Connection::class);
         $connectionProphet->quoteIdentifier(Argument::cetera())->willReturnArgument(0);
-        $querBuilderProphet = $this->prophesize(QueryBuilder::class, $connectionProphet->reveal());
+        $queryBuilderProphet = $this->prophesize(QueryBuilder::class, $connectionProphet->reveal());
         $expr = GeneralUtility::makeInstance(ExpressionBuilder::class, $connectionProphet->reveal());
-        $querBuilderProphet->expr()->willReturn($expr);
-        return $querBuilderProphet;
+        $queryBuilderProphet->expr()->willReturn($expr);
+        return $queryBuilderProphet;
     }
 
     /**
@@ -344,12 +286,12 @@ class Typo3DbQueryParserTest extends UnitTestCase
      */
     public function addGetLanguageStatementWorksForDefaultLanguage()
     {
-        $table = $this->getUniqueId('tx_coretest_table');
+        $table = StringUtility::getUniqueId('tx_coretest_table');
         $GLOBALS['TCA'][$table]['ctrl'] = [
             'languageField' => 'sys_language_uid'
         ];
         /** @var \TYPO3\CMS\Extbase\Persistence\Generic\Typo3QuerySettings|\PHPUnit\Framework\MockObject\MockObject $querySettings */
-        $querySettings = $this->createMock(\TYPO3\CMS\Extbase\Persistence\Generic\Typo3QuerySettings::class);
+        $querySettings = $this->createMock(Typo3QuerySettings::class);
         $mockTypo3DbQueryParser = $this->getAccessibleMock(Typo3DbQueryParser::class, ['dummy'], [], '', false);
         $queryBuilderProphet = $this->getQueryBuilderWithExpressionBuilderProphet();
         $mockTypo3DbQueryParser->_set('queryBuilder', $queryBuilderProphet->reveal());
@@ -363,12 +305,12 @@ class Typo3DbQueryParserTest extends UnitTestCase
      */
     public function addGetLanguageStatementWorksForNonDefaultLanguage()
     {
-        $table = $this->getUniqueId('tx_coretest_table');
+        $table = StringUtility::getUniqueId('tx_coretest_table');
         $GLOBALS['TCA'][$table]['ctrl'] = [
             'languageField' => 'sys_language_uid'
         ];
         /** @var \TYPO3\CMS\Extbase\Persistence\Generic\Typo3QuerySettings|\PHPUnit\Framework\MockObject\MockObject $querySettings */
-        $querySettings = $this->getMockBuilder(\TYPO3\CMS\Extbase\Persistence\Generic\Typo3QuerySettings::class)
+        $querySettings = $this->getMockBuilder(Typo3QuerySettings::class)
             ->setMethods(['dummy'])
             ->getMock();
         $querySettings->setLanguageUid('1');
@@ -385,11 +327,11 @@ class Typo3DbQueryParserTest extends UnitTestCase
      */
     public function addGetLanguageStatementWorksInBackendContextWithNoGlobalTypoScriptFrontendControllerAvailable()
     {
-        $table = $this->getUniqueId('tx_coretest_table');
+        $table = StringUtility::getUniqueId('tx_coretest_table');
         $GLOBALS['TCA'][$table]['ctrl'] = [
             'languageField' => 'sys_language_uid'
         ];
-        $querySettings = new \TYPO3\CMS\Extbase\Persistence\Generic\Typo3QuerySettings();
+        $querySettings = new Typo3QuerySettings();
         $mockTypo3DbQueryParser = $this->getAccessibleMock(Typo3DbQueryParser::class, ['dummy'], [], '', false);
         $queryBuilderProphet = $this->getQueryBuilderWithExpressionBuilderProphet();
         $mockTypo3DbQueryParser->_set('queryBuilder', $queryBuilderProphet->reveal());
@@ -403,12 +345,12 @@ class Typo3DbQueryParserTest extends UnitTestCase
      */
     public function addGetLanguageStatementWorksForDefaultLanguageWithoutDeleteStatementReturned()
     {
-        $table = $this->getUniqueId('tx_coretest_table');
+        $table = StringUtility::getUniqueId('tx_coretest_table');
         $GLOBALS['TCA'][$table]['ctrl'] = [
             'languageField' => 'sys_language_uid',
             'delete' => 'deleted'
         ];
-        $querySettings = new \TYPO3\CMS\Extbase\Persistence\Generic\Typo3QuerySettings();
+        $querySettings = new Typo3QuerySettings();
         $querySettings->setLanguageUid(0);
         $mockTypo3DbQueryParser = $this->getAccessibleMock(Typo3DbQueryParser::class, ['dummy'], [], '', false);
         $queryBuilderProphet = $this->getQueryBuilderWithExpressionBuilderProphet();
@@ -423,11 +365,11 @@ class Typo3DbQueryParserTest extends UnitTestCase
      */
     public function addGetLanguageStatementWorksForForeignLanguageWithoutSubselection()
     {
-        $table = $this->getUniqueId('tx_coretest_table');
+        $table = StringUtility::getUniqueId('tx_coretest_table');
         $GLOBALS['TCA'][$table]['ctrl'] = [
             'languageField' => 'sys_language_uid'
         ];
-        $querySettings = new \TYPO3\CMS\Extbase\Persistence\Generic\Typo3QuerySettings();
+        $querySettings = new Typo3QuerySettings();
         $querySettings->setLanguageUid(2);
         $mockTypo3DbQueryParser = $this->getAccessibleMock(Typo3DbQueryParser::class, ['dummy'], [], '', false);
         $queryBuilderProphet = $this->getQueryBuilderWithExpressionBuilderProphet();
@@ -442,12 +384,12 @@ class Typo3DbQueryParserTest extends UnitTestCase
      */
     public function addGetLanguageStatementWorksForForeignLanguageWithSubselectionWithoutDeleteStatementReturned()
     {
-        $table = $this->getUniqueId('tx_coretest_table');
+        $table = StringUtility::getUniqueId('tx_coretest_table');
         $GLOBALS['TCA'][$table]['ctrl'] = [
             'languageField' => 'sys_language_uid',
             'transOrigPointerField' => 'l10n_parent'
         ];
-        $querySettings = new \TYPO3\CMS\Extbase\Persistence\Generic\Typo3QuerySettings();
+        $querySettings = new Typo3QuerySettings();
         $querySettings->setLanguageUid(2);
         $mockTypo3DbQueryParser = $this->getAccessibleMock(Typo3DbQueryParser::class, ['dummy'], [], '', false);
 
@@ -465,13 +407,13 @@ class Typo3DbQueryParserTest extends UnitTestCase
      */
     public function addGetLanguageStatementWorksForForeignLanguageWithSubselectionTakesDeleteStatementIntoAccountIfNecessary()
     {
-        $table = $this->getUniqueId('tx_coretest_table');
+        $table = StringUtility::getUniqueId('tx_coretest_table');
         $GLOBALS['TCA'][$table]['ctrl'] = [
             'languageField' => 'sys_language_uid',
             'transOrigPointerField' => 'l10n_parent',
             'delete' => 'deleted'
         ];
-        $querySettings = new \TYPO3\CMS\Extbase\Persistence\Generic\Typo3QuerySettings();
+        $querySettings = new Typo3QuerySettings();
         $querySettings->setLanguageUid(2);
         $mockTypo3DbQueryParser = $this->getAccessibleMock(Typo3DbQueryParser::class, ['dummy'], [], '', false);
         $queryBuilderProphet = $this->getQueryBuilderProphetWithQueryBuilderForSubselect();
@@ -492,7 +434,7 @@ class Typo3DbQueryParserTest extends UnitTestCase
             'transOrigPointerField' => 'l10n_parent',
             'delete' => 'deleted'
         ];
-        $querySettings = new \TYPO3\CMS\Extbase\Persistence\Generic\Typo3QuerySettings();
+        $querySettings = new Typo3QuerySettings();
         $querySettings->setLanguageUid(2);
         $mockTypo3DbQueryParser = $this->getAccessibleMock(Typo3DbQueryParser::class, ['dummy'], [], '', false);
 
@@ -509,12 +451,12 @@ class Typo3DbQueryParserTest extends UnitTestCase
      */
     public function orderStatementGenerationWorks()
     {
-        $mockSource = $this->getMockBuilder(\TYPO3\CMS\Extbase\Persistence\Generic\Qom\Selector::class)
+        $mockSource = $this->getMockBuilder(Selector::class)
             ->setMethods(['getNodeTypeName'])
             ->disableOriginalConstructor()
             ->getMock();
         $mockSource->expects(self::any())->method('getNodeTypeName')->willReturn('foo');
-        $mockDataMapper = $this->getMockBuilder(\TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapper::class)
+        $mockDataMapper = $this->getMockBuilder(DataMapper::class)
             ->setMethods(['convertPropertyNameToColumnName', 'convertClassNameToTableName'])
             ->disableOriginalConstructor()
             ->getMock();
@@ -537,12 +479,12 @@ class Typo3DbQueryParserTest extends UnitTestCase
     {
         $this->expectException(UnsupportedOrderException::class);
         $this->expectExceptionCode(1242816074);
-        $mockSource = $this->getMockBuilder(\TYPO3\CMS\Extbase\Persistence\Generic\Qom\Selector::class)
+        $mockSource = $this->getMockBuilder(Selector::class)
             ->setMethods(['getNodeTypeName'])
             ->disableOriginalConstructor()
             ->getMock();
         $mockSource->expects(self::never())->method('getNodeTypeName');
-        $mockDataMapper = $this->getMockBuilder(\TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapper::class)
+        $mockDataMapper = $this->getMockBuilder(DataMapper::class)
             ->setMethods(['convertPropertyNameToColumnName', 'convertClassNameToTableName'])
             ->disableOriginalConstructor()
             ->getMock();
@@ -560,12 +502,12 @@ class Typo3DbQueryParserTest extends UnitTestCase
      */
     public function orderStatementGenerationWorksWithMultipleOrderings()
     {
-        $mockSource = $this->getMockBuilder(\TYPO3\CMS\Extbase\Persistence\Generic\Qom\Selector::class)
+        $mockSource = $this->getMockBuilder(Selector::class)
             ->setMethods(['getNodeTypeName'])
             ->disableOriginalConstructor()
             ->getMock();
         $mockSource->expects(self::any())->method('getNodeTypeName')->willReturn('Tx_MyExt_ClassName');
-        $mockDataMapper = $this->getMockBuilder(\TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapper::class)
+        $mockDataMapper = $this->getMockBuilder(DataMapper::class)
             ->setMethods(['convertPropertyNameToColumnName', 'convertClassNameToTableName'])
             ->disableOriginalConstructor()
             ->getMock();
@@ -582,8 +524,11 @@ class Typo3DbQueryParserTest extends UnitTestCase
             ->disableOriginalConstructor()
             ->setMethods(['addOrderBy'])
             ->getMock();
-        $queryBuilder->expects(self::at(0))->method('addOrderBy')->with('tx_myext_tablename.converted_fieldname', 'ASC');
-        $queryBuilder->expects(self::at(1))->method('addOrderBy')->with('tx_myext_tablename.converted_fieldname', 'DESC');
+        $queryBuilder->expects(self::exactly(2))->method('addOrderBy')
+            ->withConsecutive(
+                ['tx_myext_tablename.converted_fieldname', 'ASC'],
+                ['tx_myext_tablename.converted_fieldname', 'DESC']
+            );
 
         $mockTypo3DbQueryParser->_set('queryBuilder', $queryBuilder);
         $mockTypo3DbQueryParser->_call('parseOrderings', $orderings, $mockSource);
@@ -594,12 +539,12 @@ class Typo3DbQueryParserTest extends UnitTestCase
         return [
             'in be: include all' => ['BE', true, [], true, ''],
             'in be: ignore enable fields but do not include deleted' => ['BE', true, [], false, 'tx_foo_table.deleted_column=0'],
-            'in be: respect enable fields but include deleted' => ['BE', false, [], true, '(tx_foo_table.disabled_column = 0) AND (tx_foo_table.starttime_column <= 123456789)'],
-            'in be: respect enable fields and do not include deleted' => ['BE', false, [], false, '(tx_foo_table.disabled_column = 0) AND (tx_foo_table.starttime_column <= 123456789) AND tx_foo_table.deleted_column=0'],
+            'in be: respect enable fields but include deleted' => ['BE', false, [], true, '(tx_foo_table.disabled_column = 0) AND (tx_foo_table.starttime_column <= 1451779200)'],
+            'in be: respect enable fields and do not include deleted' => ['BE', false, [], false, '(tx_foo_table.disabled_column = 0) AND (tx_foo_table.starttime_column <= 1451779200) AND tx_foo_table.deleted_column=0'],
             'in fe: include all' => ['FE', true, [], true, ''],
             'in fe: ignore enable fields but do not include deleted' => ['FE', true, [], false, 'tx_foo_table.deleted_column=0'],
             'in fe: ignore only starttime and do not include deleted' => ['FE', true, ['starttime'], false, '(tx_foo_table.deleted_column = 0) AND (tx_foo_table.disabled_column = 0)'],
-            'in fe: respect enable fields and do not include deleted' => ['FE', false, [], false, '(tx_foo_table.deleted_column = 0) AND (tx_foo_table.disabled_column = 0) AND (tx_foo_table.starttime_column <= 123456789)']
+            'in fe: respect enable fields and do not include deleted' => ['FE', false, [], false, '(tx_foo_table.deleted_column = 0) AND (tx_foo_table.disabled_column = 0) AND (tx_foo_table.starttime_column <= 1451779200)']
         ];
     }
 
@@ -617,7 +562,12 @@ class Typo3DbQueryParserTest extends UnitTestCase
             ],
             'delete' => 'deleted_column'
         ];
-        $GLOBALS['SIM_ACCESS_TIME'] = 123456789;
+        // simulate time for backend enable fields
+        $GLOBALS['SIM_ACCESS_TIME'] = 1451779200;
+        // simulate time for frontend (PageRepository) enable fields
+        $dateAspect = new DateTimeAspect(new \DateTimeImmutable('3.1.2016'));
+        $context = new Context(['date' => $dateAspect]);
+        GeneralUtility::setSingletonInstance(Context::class, $context);
 
         $connectionProphet = $this->prophesize(Connection::class);
         $connectionProphet->quoteIdentifier(Argument::cetera())->willReturnArgument(0);
@@ -637,7 +587,7 @@ class Typo3DbQueryParserTest extends UnitTestCase
         GeneralUtility::addInstance(ConnectionPool::class, $connectionPoolProphet->reveal());
         GeneralUtility::addInstance(ConnectionPool::class, $connectionPoolProphet->reveal());
 
-        $mockQuerySettings = $this->getMockBuilder(\TYPO3\CMS\Extbase\Persistence\Generic\Typo3QuerySettings::class)
+        $mockQuerySettings = $this->getMockBuilder(Typo3QuerySettings::class)
             ->setMethods(['getIgnoreEnableFields', 'getEnableFieldsToBeIgnored', 'getIncludeDeleted'])
             ->disableOriginalConstructor()
             ->getMock();
@@ -646,7 +596,7 @@ class Typo3DbQueryParserTest extends UnitTestCase
         $mockQuerySettings->expects(self::once())->method('getIncludeDeleted')->willReturn($deletedValue);
 
         /** @var $mockEnvironmentService \TYPO3\CMS\Extbase\Service\EnvironmentService | \PHPUnit\Framework\MockObject\MockObject */
-        $mockEnvironmentService = $this->getMockBuilder(\TYPO3\CMS\Extbase\Service\EnvironmentService::class)
+        $mockEnvironmentService = $this->getMockBuilder(EnvironmentService::class)
             ->setMethods(['isEnvironmentInFrontendMode'])
             ->getMock();
         $mockEnvironmentService->expects(self::any())->method('isEnvironmentInFrontendMode')->willReturn($mode === 'FE');
@@ -662,9 +612,9 @@ class Typo3DbQueryParserTest extends UnitTestCase
     {
         return [
             'in be: respectEnableFields=false' => ['BE', false, ''],
-            'in be: respectEnableFields=true' => ['BE', true, '(tx_foo_table.disabled_column = 0) AND (tx_foo_table.starttime_column <= 123456789) AND tx_foo_table.deleted_column=0'],
+            'in be: respectEnableFields=true' => ['BE', true, '(tx_foo_table.disabled_column = 0) AND (tx_foo_table.starttime_column <= 1451779200) AND tx_foo_table.deleted_column=0'],
             'in FE: respectEnableFields=false' => ['FE', false, ''],
-            'in FE: respectEnableFields=true' => ['FE', true, '(tx_foo_table.deleted_column = 0) AND (tx_foo_table.disabled_column = 0) AND (tx_foo_table.starttime_column <= 123456789)']
+            'in FE: respectEnableFields=true' => ['FE', true, '(tx_foo_table.deleted_column = 0) AND (tx_foo_table.disabled_column = 0) AND (tx_foo_table.starttime_column <= 1451779200)']
         ];
     }
 
@@ -682,7 +632,12 @@ class Typo3DbQueryParserTest extends UnitTestCase
             ],
             'delete' => 'deleted_column'
         ];
-        $GLOBALS['SIM_ACCESS_TIME'] = 123456789;
+        // simulate time for backend enable fields
+        $GLOBALS['SIM_ACCESS_TIME'] = 1451779200;
+        // simulate time for frontend (PageRepository) enable fields
+        $dateAspect = new DateTimeAspect(new \DateTimeImmutable('3.1.2016'));
+        $context = new Context(['date' => $dateAspect]);
+        GeneralUtility::setSingletonInstance(Context::class, $context);
 
         $connectionProphet = $this->prophesize(Connection::class);
         $connectionProphet->quoteIdentifier(Argument::cetera())->willReturnArgument(0);
@@ -702,21 +657,17 @@ class Typo3DbQueryParserTest extends UnitTestCase
         GeneralUtility::addInstance(ConnectionPool::class, $connectionPoolProphet->reveal());
 
         /** @var \TYPO3\CMS\Extbase\Persistence\Generic\Typo3QuerySettings $mockQuerySettings */
-        $mockQuerySettings = $this->getMockBuilder(\TYPO3\CMS\Extbase\Persistence\Generic\Typo3QuerySettings::class)
+        $mockQuerySettings = $this->getMockBuilder(Typo3QuerySettings::class)
             ->setMethods(['dummy'])
             ->disableOriginalConstructor()
             ->getMock();
         $mockQuerySettings->setIgnoreEnableFields(!$respectEnableFields);
         $mockQuerySettings->setIncludeDeleted(!$respectEnableFields);
 
-        /** @var $mockEnvironmentService \TYPO3\CMS\Extbase\Service\EnvironmentService | \PHPUnit\Framework\MockObject\MockObject */
-        $mockEnvironmentService = $this->getMockBuilder(\TYPO3\CMS\Extbase\Service\EnvironmentService::class)
-            ->setMethods(['isEnvironmentInFrontendMode'])
-            ->getMock();
-        $mockEnvironmentService->expects(self::any())->method('isEnvironmentInFrontendMode')->willReturn($mode === 'FE');
-
+        $environmentService = new EnvironmentService();
+        $environmentService->setFrontendMode($mode === 'FE');
         $mockTypo3DbQueryParser = $this->getAccessibleMock(Typo3DbQueryParser::class, ['dummy'], [], '', false);
-        $mockTypo3DbQueryParser->_set('environmentService', $mockEnvironmentService);
+        $mockTypo3DbQueryParser->injectEnvironmentService($environmentService);
         $actualSql = $mockTypo3DbQueryParser->_call('getVisibilityConstraintStatement', $mockQuerySettings, $tableName, $tableName);
         self::assertSame($expectedSql, $actualSql);
         unset($GLOBALS['TCA'][$tableName]);
@@ -736,7 +687,7 @@ class Typo3DbQueryParserTest extends UnitTestCase
             ],
             'delete' => 'deleted_column'
         ];
-        $mockQuerySettings = $this->getMockBuilder(\TYPO3\CMS\Extbase\Persistence\Generic\Typo3QuerySettings::class)
+        $mockQuerySettings = $this->getMockBuilder(Typo3QuerySettings::class)
             ->setMethods(['getIgnoreEnableFields', 'getEnableFieldsToBeIgnored', 'getIncludeDeleted'])
             ->disableOriginalConstructor()
             ->getMock();
@@ -744,14 +695,11 @@ class Typo3DbQueryParserTest extends UnitTestCase
         $mockQuerySettings->expects(self::once())->method('getEnableFieldsToBeIgnored')->willReturn([]);
         $mockQuerySettings->expects(self::once())->method('getIncludeDeleted')->willReturn(true);
 
-        /** @var $mockEnvironmentService \TYPO3\CMS\Extbase\Service\EnvironmentService | \PHPUnit\Framework\MockObject\MockObject */
-        $mockEnvironmentService = $this->getMockBuilder(\TYPO3\CMS\Extbase\Service\EnvironmentService::class)
-            ->setMethods(['isEnvironmentInFrontendMode'])
-            ->getMock();
-        $mockEnvironmentService->expects(self::any())->method('isEnvironmentInFrontendMode')->willReturn(true);
-
+        $environmentService = new EnvironmentService();
+        $environmentService->setFrontendMode(true);
         $mockTypo3DbQueryParser = $this->getAccessibleMock(Typo3DbQueryParser::class, ['dummy'], [], '', false);
-        $mockTypo3DbQueryParser->_set('environmentService', $mockEnvironmentService);
+        $mockTypo3DbQueryParser->injectEnvironmentService($environmentService);
+
         $mockTypo3DbQueryParser->_call('getVisibilityConstraintStatement', $mockQuerySettings, $tableName, $tableName);
         unset($GLOBALS['TCA'][$tableName]);
     }
@@ -761,7 +709,7 @@ class Typo3DbQueryParserTest extends UnitTestCase
      */
     public function providerForAddPageIdStatementData()
     {
-        $table = $this->getUniqueId('tx_coretest_table');
+        $table = StringUtility::getUniqueId('tx_coretest_table');
         return [
             'set Pid to zero if rootLevel = 1' => [
                 '1',

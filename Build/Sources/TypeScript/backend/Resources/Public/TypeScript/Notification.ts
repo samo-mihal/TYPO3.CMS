@@ -11,7 +11,7 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import * as $ from 'jquery';
+import $ from 'jquery';
 import {AbstractAction} from './ActionButton/AbstractAction';
 import {SeverityEnum} from './Enum/Severity';
 import Severity = require('./Severity');
@@ -131,7 +131,7 @@ class Notification {
           : duration
       );
 
-    if (this.messageContainer === null || document.querySelector('#alert-container') === null) {
+    if (this.messageContainer === null || document.getElementById('alert-container') === null) {
       this.messageContainer = $('<div>', {'id': 'alert-container'}).appendTo('body');
     }
 

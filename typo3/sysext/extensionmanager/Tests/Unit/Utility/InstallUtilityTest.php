@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Extensionmanager\Tests\Unit\Utility;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,16 +15,23 @@ namespace TYPO3\CMS\Extensionmanager\Tests\Unit\Utility;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extensionmanager\Tests\Unit\Utility;
+
 use Prophecy\Argument;
+use Psr\Container\ContainerInterface;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Yaml\Yaml;
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Cache\Frontend\NullFrontend;
+use TYPO3\CMS\Core\Configuration\SiteConfiguration;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Registry;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\CMS\Extensionmanager\Utility\DependencyUtility;
 use TYPO3\CMS\Extensionmanager\Utility\InstallUtility;
 use TYPO3\CMS\Extensionmanager\Utility\ListUtility;
+use TYPO3\CMS\Install\Service\LateBootService;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -79,12 +86,17 @@ class InstallUtilityTest extends UnitTestCase
                 'getExtensionArray',
                 'enrichExtensionWithDetails',
                 'importInitialFiles',
-                'emitAfterExtensionInstallSignal',
-            ],
-            [],
-            '',
-            false
+            ]
         );
+        $eventDispatcherProphecy = $this->prophesize(EventDispatcherInterface::class);
+        $this->installMock->injectEventDispatcher($eventDispatcherProphecy->reveal());
+        $this->installMock->injectLateBootService($this->prophesize(LateBootService::class)->reveal());
+        $containerProphecy = $this->prophesize(ContainerInterface::class);
+        $containerProphecy->get(EventDispatcherInterface::class)->willReturn($eventDispatcherProphecy->reveal());
+        $lateBootServiceProphecy = $this->prophesize(LateBootService::class);
+        $lateBootServiceProphecy->getContainer()->willReturn($containerProphecy->reveal());
+        $lateBootServiceProphecy->makeCurrent(Argument::cetera())->willReturn([]);
+        $this->installMock->injectLateBootService($lateBootServiceProphecy->reveal());
         $dependencyUtility = $this->getMockBuilder(DependencyUtility::class)->getMock();
         $this->installMock->_set('dependencyUtility', $dependencyUtility);
         $this->installMock->expects(self::any())
@@ -125,7 +137,7 @@ class InstallUtilityTest extends UnitTestCase
      */
     protected function createFakeExtension(): string
     {
-        $extKey = strtolower($this->getUniqueId('testing'));
+        $extKey = strtolower(StringUtility::getUniqueId('testing'));
         $absExtPath = Environment::getVarPath() . '/tests/' . $extKey;
         $relativeVarPath = ltrim(str_replace(Environment::getProjectPath(), '', Environment::getVarPath()), '/');
         $relPath = $relativeVarPath . '/tests/' . $extKey . '/';
@@ -283,7 +295,7 @@ class InstallUtilityTest extends UnitTestCase
         $installMock->_set('dependencyUtility', $dependencyUtility);
         $installMock->_set('registry', $registryMock);
         $installMock->expects(self::never())->method('getImportExportUtility');
-        $installMock->_call('importT3DFile', $this->fakedExtensions[$extKey]['siteRelPath']);
+        $installMock->_call('importT3DFile', $extKey, $this->fakedExtensions[$extKey]['siteRelPath']);
     }
 
     /**
@@ -299,8 +311,12 @@ class InstallUtilityTest extends UnitTestCase
         GeneralUtility::mkdir_deep($absPath . 'Initialisation/Site/' . $siteIdentifier);
         file_put_contents($absPath . 'Initialisation/Site/' . $siteIdentifier . '/config.yaml', $config);
 
+        GeneralUtility::setSingletonInstance(SiteConfiguration::class, new SiteConfiguration(Environment::getConfigPath() . '/sites'));
+
         $subject = new InstallUtility();
+        $subject->injectEventDispatcher($this->prophesize(EventDispatcherInterface::class)->reveal());
         $listUtility = $this->prophesize(ListUtility::class);
+        $listUtility->injectEventDispatcher($this->prophesize(EventDispatcherInterface::class)->reveal());
         $subject->injectListUtility($listUtility->reveal());
 
         $availableExtensions = [
@@ -363,8 +379,12 @@ class InstallUtilityTest extends UnitTestCase
         GeneralUtility::mkdir_deep($configDir . '/sites/' . $siteIdentifier);
         file_put_contents($configDir . '/' . $existingSiteConfig, $config);
 
+        GeneralUtility::setSingletonInstance(SiteConfiguration::class, new SiteConfiguration(Environment::getConfigPath() . '/sites'));
+
         $subject = new InstallUtility();
+        $subject->injectEventDispatcher($this->prophesize(EventDispatcherInterface::class)->reveal());
         $listUtility = $this->prophesize(ListUtility::class);
+        $listUtility->injectEventDispatcher($this->prophesize(EventDispatcherInterface::class)->reveal());
         $subject->injectListUtility($listUtility->reveal());
 
         $availableExtensions = [

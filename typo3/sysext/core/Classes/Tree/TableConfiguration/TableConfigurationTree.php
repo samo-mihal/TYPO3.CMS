@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tree\TableConfiguration;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,14 @@ namespace TYPO3\CMS\Core\Tree\TableConfiguration;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tree\TableConfiguration;
+
+use TYPO3\CMS\Backend\Tree\AbstractTree;
+
 /**
  * Class for tca tree
  */
-class TableConfigurationTree extends \TYPO3\CMS\Backend\Tree\AbstractTree
+class TableConfigurationTree extends AbstractTree
 {
     /**
      * Returns the root node

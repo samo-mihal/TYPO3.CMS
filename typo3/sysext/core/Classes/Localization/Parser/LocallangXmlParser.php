@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Localization\Parser;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Localization\Parser;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Localization\Parser;
 
 use TYPO3\CMS\Core\Localization\Exception\InvalidXmlFileException;
 use TYPO3\CMS\Core\Utility\ArrayUtility;
@@ -182,11 +183,16 @@ class LocallangXmlParser extends AbstractXmlParser
         if (file_exists($targetPath)) {
             $xmlContent = file_get_contents($targetPath);
             // Disables the functionality to allow external entities to be loaded when parsing the XML, must be kept
-            $previousValueOfEntityLoader = libxml_disable_entity_loader(true);
+            $previousValueOfEntityLoader = null;
+            if (PHP_MAJOR_VERSION < 8) {
+                $previousValueOfEntityLoader = libxml_disable_entity_loader(true);
+            }
             $rootXmlNode = simplexml_load_string($xmlContent, \SimpleXMLElement::class, LIBXML_NOWARNING);
-            libxml_disable_entity_loader($previousValueOfEntityLoader);
+            if (PHP_MAJOR_VERSION < 8) {
+                libxml_disable_entity_loader($previousValueOfEntityLoader);
+            }
         }
-        if (!isset($rootXmlNode) || $rootXmlNode === false) {
+        if ($rootXmlNode === false) {
             $xmlError = libxml_get_last_error();
             throw new InvalidXmlFileException(
                 'The path provided does not point to existing and accessible well-formed XML file. Reason: ' . $xmlError->message . ' in ' . $targetPath . ', line ' . $xmlError->line,

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Mvc\View;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,11 +13,18 @@ namespace TYPO3\CMS\Extbase\Mvc\View;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Mvc\View;
+
+use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Extbase\Mvc\Exception;
+use TYPO3\CMS\Extbase\Mvc\Web\Request;
+
 /**
  * The not found view - a special case.
  * @internal only to be used within Extbase, not part of TYPO3 Core API.
  */
-class NotFoundView extends \TYPO3\CMS\Extbase\Mvc\View\AbstractView
+class NotFoundView extends AbstractView
 {
     /**
      * @var array
@@ -34,11 +40,12 @@ class NotFoundView extends \TYPO3\CMS\Extbase\Mvc\View\AbstractView
     public function render()
     {
         if (!is_object($this->controllerContext->getRequest())) {
-            throw new \TYPO3\CMS\Extbase\Mvc\Exception('Can\'t render view without request object.', 1192450280);
+            throw new Exception('Can\'t render view without request object.', 1192450280);
         }
         $template = file_get_contents($this->getTemplatePathAndFilename());
-        if ($this->controllerContext->getRequest() instanceof \TYPO3\CMS\Extbase\Mvc\Web\Request) {
-            $template = str_replace('###BASEURI###', \TYPO3\CMS\Core\Utility\GeneralUtility::getIndpEnv('TYPO3_SITE_URL'), $template);
+        $template = is_string($template) ? $template : '';
+        if ($this->controllerContext->getRequest() instanceof Request) {
+            $template = str_replace('###BASEURI###', GeneralUtility::getIndpEnv('TYPO3_SITE_URL'), $template);
         }
         foreach ($this->variablesMarker as $variableName => $marker) {
             $variableValue = $this->variables[$variableName] ?? '';
@@ -54,7 +61,7 @@ class NotFoundView extends \TYPO3\CMS\Extbase\Mvc\View\AbstractView
      */
     protected function getTemplatePathAndFilename()
     {
-        return \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::extPath('extbase') . 'Resources/Private/MVC/NotFoundView_Template.html';
+        return ExtensionManagementUtility::extPath('extbase') . 'Resources/Private/MVC/NotFoundView_Template.html';
     }
 
     /**

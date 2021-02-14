@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Install\ViewHelpers;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Install\ViewHelpers;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Install\ViewHelpers;
 
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
@@ -74,8 +75,8 @@ class PhpInfoViewHelper extends AbstractViewHelper
     protected static function removeAllHtmlOutsideBody($html)
     {
         // Delete anything outside of the body tag and the body tag itself
-        $html = preg_replace('/^.*?<body.*?>/is', '', $html);
-        $html = preg_replace('/<\/body>.*?$/is', '', $html);
+        $html = (string)preg_replace('/^.*?<body.*?>/is', '', $html);
+        $html = (string)preg_replace('/<\/body>.*?$/is', '', $html);
 
         return $html;
     }
@@ -89,7 +90,7 @@ class PhpInfoViewHelper extends AbstractViewHelper
     protected static function changeHtmlToHtml5($html)
     {
         // Delete obsolete attributes
-        $html = preg_replace('#\s(cellpadding|border|width)="[^"]+"#', '', $html);
+        $html = (string)preg_replace('#\s(cellpadding|border|width)="[^"]+"#', '', $html);
 
         // Replace font tag with span
         return str_replace(['<font', '</font>'], ['<span', '</span>'], $html);

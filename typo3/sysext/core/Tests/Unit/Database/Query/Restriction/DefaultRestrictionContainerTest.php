@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Unit\Database\Query\Restriction;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\Database\Query\Restriction;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\Database\Query\Restriction;
 
 use TYPO3\CMS\Core\Database\Query\Restriction\DefaultRestrictionContainer;
 
@@ -35,6 +37,7 @@ class DefaultRestrictionContainerTest extends AbstractRestrictionTestCase
         $GLOBALS['SIM_ACCESS_TIME'] = 123;
         $subject = new DefaultRestrictionContainer();
         $expression = $subject->buildExpression(['aTable' => 'aTable'], $this->expressionBuilder);
+        $more = [];
         $more[] = $expression;
         $expression = $this->expressionBuilder->andX($expression);
 

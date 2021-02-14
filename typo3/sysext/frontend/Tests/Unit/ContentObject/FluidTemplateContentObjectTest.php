@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Frontend\Tests\Unit\ContentObject;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Frontend\Tests\Unit\ContentObject;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Frontend\Tests\Unit\ContentObject;
 
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Page\PageRenderer;
@@ -758,7 +759,7 @@ class FluidTemplateContentObjectTest extends UnitTestCase
     /**
      * @test
      */
-    public function renderCallsRenderOnStandaloneViewie(): void
+    public function renderCallsRenderOnStandaloneView(): void
     {
         $this->addMockViewToSubject();
         $this->standaloneView

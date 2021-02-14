@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\Mvc\Configuration;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Form\Mvc\Configuration;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Form\Mvc\Configuration;
 
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
@@ -45,7 +47,7 @@ class ConfigurationManager extends ExtbaseConfigurationManager implements Config
      * @param \TYPO3\CMS\Form\Mvc\Configuration\YamlSource $yamlSource
      * @internal
      */
-    public function injectYamlSource(\TYPO3\CMS\Form\Mvc\Configuration\YamlSource $yamlSource)
+    public function injectYamlSource(YamlSource $yamlSource)
     {
         $this->yamlSource = $yamlSource;
     }
@@ -93,7 +95,7 @@ class ConfigurationManager extends ExtbaseConfigurationManager implements Config
                 1471473377
             );
         }
-        $ucFirstExtensioName = ucfirst($extensionName);
+        $ucFirstExtensionName = ucfirst($extensionName);
 
         $typoscriptSettings = $this->getTypoScriptSettings($extensionName);
 
@@ -112,8 +114,8 @@ class ConfigurationManager extends ExtbaseConfigurationManager implements Config
             ->getResolvedConfiguration();
 
         $yamlSettings = ArrayUtility::removeNullValuesRecursive($yamlSettings);
-        $yamlSettings = is_array($yamlSettings['TYPO3']['CMS'][$ucFirstExtensioName])
-            ? $yamlSettings['TYPO3']['CMS'][$ucFirstExtensioName]
+        $yamlSettings = is_array($yamlSettings['TYPO3']['CMS'][$ucFirstExtensionName])
+            ? $yamlSettings['TYPO3']['CMS'][$ucFirstExtensionName]
             : [];
         $yamlSettings = ArrayUtility::sortArrayWithIntegerKeysRecursive($yamlSettings);
         $this->setYamlSettingsIntoCache($cacheKeySuffix, $yamlSettings);
@@ -129,7 +131,7 @@ class ConfigurationManager extends ExtbaseConfigurationManager implements Config
     protected function overrideConfigurationByTypoScript(array $yamlSettings, string $extensionName): array
     {
         $typoScript = parent::getConfiguration(self::CONFIGURATION_TYPE_SETTINGS, $extensionName);
-        if (is_array($typoScript['yamlSettingsOverrides']) && !empty($typoScript['yamlSettingsOverrides'])) {
+        if (is_array($typoScript['yamlSettingsOverrides'] ?? null) && !empty($typoScript['yamlSettingsOverrides'])) {
             ArrayUtility::mergeRecursiveWithOverrule(
                 $yamlSettings,
                 $typoScript['yamlSettingsOverrides']

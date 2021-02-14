@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Extbase\Tests\Unit\Pagination;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Extbase\Tests\Unit\Pagination;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\Pagination;
 
 use TYPO3\CMS\Core\Pagination\ArrayPaginator;
 use TYPO3\CMS\Core\Pagination\SimplePagination;
@@ -47,6 +48,7 @@ class SimplePaginationTest extends UnitTestCase
         self::assertSame(2, $pagination->getLastPageNumber());
         self::assertNull($pagination->getPreviousPageNumber());
         self::assertSame(2, $pagination->getNextPageNumber());
+        self::assertSame([1, 2], $pagination->getAllPageNumbers());
     }
 
     /**
@@ -66,6 +68,7 @@ class SimplePaginationTest extends UnitTestCase
         self::assertSame(2, $pagination->getLastPageNumber());
         self::assertSame(1, $pagination->getPreviousPageNumber());
         self::assertNull($pagination->getNextPageNumber());
+        self::assertSame([1, 2], $pagination->getAllPageNumbers());
     }
 
     /**
@@ -85,6 +88,7 @@ class SimplePaginationTest extends UnitTestCase
         self::assertSame(5, $pagination->getLastPageNumber());
         self::assertSame(1, $pagination->getPreviousPageNumber());
         self::assertSame(3, $pagination->getNextPageNumber());
+        self::assertSame([1, 2, 3, 4, 5], $pagination->getAllPageNumbers());
     }
 
     /**
@@ -103,12 +107,13 @@ class SimplePaginationTest extends UnitTestCase
         self::assertSame(1, $pagination->getLastPageNumber());
         self::assertNull($pagination->getPreviousPageNumber());
         self::assertNull($pagination->getNextPageNumber());
+        self::assertSame([1], $pagination->getAllPageNumbers());
     }
 
     /**
      * @test
      */
-    public function checkWithPaginatorWhoseCurrentPageIsOutOfBounds()
+    public function checkPaginatorWithOutOfBoundsCurrentPage(): void
     {
         $paginator = $this->paginator
             ->withItemsPerPage(5)
@@ -116,11 +121,13 @@ class SimplePaginationTest extends UnitTestCase
         ;
         $pagination = new SimplePagination($paginator);
 
-        self::assertSame(0, $pagination->getStartRecordNumber());
-        self::assertSame(0, $pagination->getEndRecordNumber());
+        self::assertSame(11, $pagination->getStartRecordNumber());
+        self::assertSame(14, $pagination->getEndRecordNumber());
+        self::assertSame(3, $paginator->getCurrentPageNumber());
         self::assertSame(1, $pagination->getFirstPageNumber());
-        self::assertSame(3, $pagination->getLastPageNumber());
-        self::assertNull($pagination->getPreviousPageNumber());
+        self::assertSame(2, $pagination->getPreviousPageNumber());
         self::assertNull($pagination->getNextPageNumber());
+        self::assertSame(3, $pagination->getLastPageNumber());
+        self::assertSame([1, 2, 3], $pagination->getAllPageNumbers());
     }
 }

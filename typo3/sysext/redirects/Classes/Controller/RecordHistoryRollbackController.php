@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Redirects\Controller;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Redirects\Controller;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Redirects\Controller;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -91,7 +93,7 @@ class RecordHistoryRollbackController
         foreach (GeneralUtility::makeInstance(RecordHistory::class)->findEventsForCorrelation((string)$correlationId) as $recordHistoryEntry) {
             $element = $recordHistoryEntry['tablename'] . ':' . $recordHistoryEntry['recuid'];
             $tempRecordHistory = GeneralUtility::makeInstance(RecordHistory::class, $element);
-            $tempRecordHistory->setLastHistoryEntryNumber($recordHistoryEntry['uid']);
+            $tempRecordHistory->setLastHistoryEntryNumber((int)$recordHistoryEntry['uid']);
             $recordHistoryRollback->performRollback('ALL', $tempRecordHistory->getDiff($tempRecordHistory->getChangeLog()));
         }
     }

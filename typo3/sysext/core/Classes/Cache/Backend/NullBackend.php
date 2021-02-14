@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Cache\Backend;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Cache\Backend;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Cache\Backend;
 
 /**
  * A caching backend which forgets everything immediately
@@ -111,17 +112,21 @@ class NullBackend extends AbstractBackend implements PhpCapableBackendInterface,
      * Does nothing
      *
      * @param string $identifier An identifier which describes the cache entry to load
+     * @return bool
      */
     public function requireOnce($identifier)
     {
+        return false;
     }
 
     /**
      * Does nothing
      *
      * @param string $identifier An identifier which describes the cache entry to load
+     * @return bool
      */
     public function require(string $identifier)
     {
+        return false;
     }
 }

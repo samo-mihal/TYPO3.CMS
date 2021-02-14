@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\ViewHelpers\Form;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,7 +15,10 @@ namespace TYPO3\CMS\Form\ViewHelpers\Form;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Form\ViewHelpers\Form;
+
 use TYPO3\CMS\Extbase\Domain\Model\FileReference;
+use TYPO3\CMS\Extbase\Property\PropertyMapper;
 use TYPO3\CMS\Extbase\Security\Cryptography\HashService;
 use TYPO3\CMS\Fluid\ViewHelpers\Form\UploadViewHelper;
 
@@ -44,7 +47,7 @@ class UploadedResourceViewHelper extends UploadViewHelper
      * @param HashService $hashService
      * @internal
      */
-    public function injectHashService(\TYPO3\CMS\Extbase\Security\Cryptography\HashService $hashService)
+    public function injectHashService(HashService $hashService)
     {
         $this->hashService = $hashService;
     }
@@ -53,7 +56,7 @@ class UploadedResourceViewHelper extends UploadViewHelper
      * @param \TYPO3\CMS\Extbase\Property\PropertyMapper $propertyMapper
      * @internal
      */
-    public function injectPropertyMapper(\TYPO3\CMS\Extbase\Property\PropertyMapper $propertyMapper)
+    public function injectPropertyMapper(PropertyMapper $propertyMapper)
     {
         $this->propertyMapper = $propertyMapper;
     }
@@ -96,7 +99,7 @@ class UploadedResourceViewHelper extends UploadViewHelper
                 // Use the file UID instead, but prefix it with "file:" to communicate this to the type converter
                 $resourcePointerValue = 'file:' . $resource->getOriginalResource()->getOriginalFile()->getUid();
             }
-            $output .= '<input type="hidden" name="' . $this->getName() . '[submittedFile][resourcePointer]" value="' . htmlspecialchars($this->hashService->appendHmac((string)$resourcePointerValue)) . '"' . $resourcePointerIdAttribute . ' />';
+            $output .= '<input type="hidden" name="' . htmlspecialchars($this->getName()) . '[submittedFile][resourcePointer]" value="' . htmlspecialchars($this->hashService->appendHmac((string)$resourcePointerValue)) . '"' . $resourcePointerIdAttribute . ' />';
 
             $this->templateVariableContainer->add($as, $resource);
             $output .= $this->renderChildren();

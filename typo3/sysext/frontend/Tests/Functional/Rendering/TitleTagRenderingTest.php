@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Frontend\Tests\Functional\Rendering;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Frontend\Tests\Functional\Rendering;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Frontend\Tests\Functional\Rendering;
 
 use Symfony\Component\Yaml\Yaml;
 use TYPO3\CMS\Core\Database\ConnectionPool;
@@ -228,6 +229,7 @@ class TitleTagRenderingTest extends FunctionalTestCase
         if (empty($template)) {
             self::fail('Cannot find root template on page with id: "' . $pageId . '"');
         }
+        $updateFields = [];
         $updateFields['sitetitle'] = $siteTitle;
         $connection->update(
             'sys_template',

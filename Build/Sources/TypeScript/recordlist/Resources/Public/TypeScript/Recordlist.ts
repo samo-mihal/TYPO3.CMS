@@ -11,9 +11,11 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import * as $ from 'jquery';
-import PersistentStorage = require('TYPO3/CMS/Backend/Storage/Persistent');
+import $ from 'jquery';
 import Icons = require('TYPO3/CMS/Backend/Icons');
+import PersistentStorage = require('TYPO3/CMS/Backend/Storage/Persistent');
+import RegularEvent = require('TYPO3/CMS/Core/Event/RegularEvent');
+import Viewport = require('TYPO3/CMS/Backend/Viewport');
 
 declare global {
   const T3_THIS_LOCATION: string;
@@ -29,6 +31,12 @@ interface RecordlistIdentifier {
   toggle: string;
   localize: string;
   icons: IconIdentifier;
+}
+interface DataHandlerEventPayload {
+  action: string;
+  component: string;
+  table: string;
+  uid: number;
 }
 
 /**
@@ -52,6 +60,7 @@ class Recordlist {
     $(document).on('click', this.identifier.toggle, this.toggleClick);
     $(document).on('click', this.identifier.icons.editMultiple, this.onEditMultiple);
     $(document).on('click', this.identifier.localize, this.disableButton);
+    new RegularEvent('typo3:datahandler:process', this.handleDataHandlerResult.bind(this)).bindTo(document);
   }
 
   public toggleClick = (e: JQueryEventObject): void => {
@@ -164,6 +173,49 @@ class Recordlist {
     const $me = $(event.currentTarget);
 
     $me.prop('disable', true).addClass('disabled');
+  }
+
+  private handleDataHandlerResult(e: CustomEvent): void {
+    const payload = e.detail.payload;
+    if (payload.hasErrors) {
+      return;
+    }
+
+    if (payload.component === 'datahandler') {
+      // In this case the delete action was triggered by AjaxDataHandler itself, which currently has its own handling.
+      // Visual handling is about to get decoupled from data handling itself, thus the logic is duplicated for now.
+      return;
+    }
+
+    if (payload.action === 'delete') {
+      this.deleteRow(payload);
+    }
+  };
+
+  private deleteRow = (payload: DataHandlerEventPayload): void => {
+    const $tableElement = $(`table[data-table="${payload.table}"]`);
+    const $rowElement = $tableElement.find(`tr[data-uid="${payload.uid}"]`);
+    const $panel = $tableElement.closest('.panel');
+    const $panelHeading = $panel.find('.panel-heading');
+    const $translatedRowElements = $tableElement.find(`[data-l10nparent="${payload.uid}"]`);
+
+    const $rowElements = $().add($rowElement).add($translatedRowElements);
+    $rowElements.fadeTo('slow', 0.4, (): void => {
+      $rowElements.slideUp('slow', (): void => {
+        $rowElements.remove();
+        if ($tableElement.find('tbody tr').length === 0) {
+          $panel.slideUp('slow');
+        }
+      });
+    });
+    if ($rowElement.data('l10nparent') === '0' || $rowElement.data('l10nparent') === '') {
+      const count = Number($panelHeading.find('.t3js-table-total-items').html());
+      $panelHeading.find('.t3js-table-total-items').text(count - 1);
+    }
+
+    if (payload.table === 'pages') {
+      Viewport.NavigationContainer.PageTree.refreshTree();
+    }
   }
 
   private getCheckboxState(CBname: string): boolean {

@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Tests\Unit\Configuration;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\Configuration;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\Configuration;
 
 use TYPO3\CMS\Core\Configuration\Richtext;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
@@ -317,7 +318,7 @@ class RichtextTest extends UnitTestCase
                         'types.' => [
                             'textmedia.' => [
                                 'classes.' => [
-                                    'aClass' => 'aTypeSpecifcConfig',
+                                    'aClass' => 'aTypeSpecificConfig',
                                 ],
                                 'editor.' => [
                                     'config.' => [
@@ -333,7 +334,7 @@ class RichtextTest extends UnitTestCase
         $expected = [
             // Config with pagets dots
             'classes.' => [
-                'aClass' => 'aTypeSpecifcConfig',
+                'aClass' => 'aTypeSpecificConfig',
             ],
             'editor.' => [
                 'config.' => [
@@ -343,7 +344,7 @@ class RichtextTest extends UnitTestCase
             'preset' => 'default',
             // Config without pagets dots
             'classes' => [
-                'aClass' => 'aTypeSpecifcConfig',
+                'aClass' => 'aTypeSpecificConfig',
             ],
             'editor' => [
                 'config' => [
@@ -575,7 +576,7 @@ class RichtextTest extends UnitTestCase
                         'overruleMode' => 'default',
                     ],
                 ],
-                'message' => 'single Preset of testRteConfig* defined in Pagetesconfig for default of RTE',
+                'message' => 'single Preset of testRteConfig* defined in PageTSconfig for default of RTE',
             ],
             [
                 'fieldConfig' => [
@@ -607,7 +608,7 @@ class RichtextTest extends UnitTestCase
                         'overruleMode' => 'default',
                     ],
                 ],
-                'message' => 'single Preset of testRteConfig* defined in Pagetesconfig for field of table ',
+                'message' => 'single Preset of testRteConfig* defined in PageTSconfig for field of table ',
             ],
             [
                 'fieldConfig' => [

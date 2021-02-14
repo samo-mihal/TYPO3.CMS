@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Template\Components\Buttons;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Template\Components\Buttons;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Template\Components\Buttons;
 
 /**
  * LinkButton
@@ -103,6 +104,10 @@ class LinkButton extends AbstractButton
         }
         if ($this->onClick !== '') {
             $attributes['onclick'] = $this->onClick;
+        }
+        if ($this->isDisabled()) {
+            $attributes['disabled'] = 'disabled';
+            $attributes['class'] .= ' disabled';
         }
         $attributesString = '';
         foreach ($attributes as $key => $value) {

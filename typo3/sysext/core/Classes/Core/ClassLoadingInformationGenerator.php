@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Core;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,8 +13,11 @@ namespace TYPO3\CMS\Core\Core;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Core;
+
 use Composer\Autoload\ClassLoader;
 use Composer\Autoload\ClassMapGenerator;
+use TYPO3\CMS\Core\Error\Exception;
 use TYPO3\CMS\Core\Package\PackageInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -83,7 +85,7 @@ class ClassLoadingInformationGenerator
                 foreach ($autoloadPsr4 as $namespacePrefix => $paths) {
                     foreach ((array)$paths as $path) {
                         $namespacePath = $packagePath . $path;
-                        $namespaceRealPath = realpath($namespacePath);
+                        $namespaceRealPath = (string)realpath($namespacePath);
                         if ($useRelativePaths) {
                             $psr4[$namespacePrefix][] = $this->makePathRelative($namespacePath, $namespaceRealPath);
                         } else {
@@ -113,18 +115,18 @@ class ClassLoadingInformationGenerator
      *
      * @param \stdClass $manifest
      * @param string $section
-     * @return array
+     * @return array<string,array>
      */
     protected function getAutoloadSectionFromManifest($manifest, $section)
     {
         $finalAutoloadSection = [];
-        $autoloadDefinition = json_decode(json_encode($manifest->autoload), true);
+        $autoloadDefinition = json_decode((string)json_encode($manifest->autoload), true);
         if (!empty($autoloadDefinition[$section]) && is_array($autoloadDefinition[$section])) {
             $finalAutoloadSection = $autoloadDefinition[$section];
         }
         if ($this->isDevMode) {
             if (isset($manifest->{'autoload-dev'})) {
-                $autoloadDefinitionDev = json_decode(json_encode($manifest->{'autoload-dev'}), true);
+                $autoloadDefinitionDev = json_decode((string)json_encode($manifest->{'autoload-dev'}), true);
                 if (!empty($autoloadDefinitionDev[$section]) && is_array($autoloadDefinitionDev[$section])) {
                     $finalAutoloadSection = array_merge($finalAutoloadSection, $autoloadDefinitionDev[$section]);
                 }
@@ -148,7 +150,7 @@ class ClassLoadingInformationGenerator
         $classMap = [];
         $blacklistExpression = null;
         if ($ignorePotentialTestClasses) {
-            $blacklistPathPrefix = realpath($classesPath);
+            $blacklistPathPrefix = (string)realpath($classesPath);
             $blacklistPathPrefix = str_replace('\\', '/', $blacklistPathPrefix);
             $blacklistExpression = "{($blacklistPathPrefix/tests/|$blacklistPathPrefix/Tests/|$blacklistPathPrefix/Resources/|$blacklistPathPrefix/res/|$blacklistPathPrefix/class.ext_update.php)}";
         }
@@ -178,7 +180,7 @@ class ClassLoadingInformationGenerator
         if (!empty($manifest->extra->{'typo3/class-alias-loader'}->{'class-alias-maps'})) {
             $possibleClassAliasFiles = $manifest->extra->{'typo3/class-alias-loader'}->{'class-alias-maps'};
             if (!is_array($possibleClassAliasFiles)) {
-                throw new \TYPO3\CMS\Core\Error\Exception('"typo3/class-alias-loader"/"class-alias-maps" must return an array!', 1444142481);
+                throw new Exception('"typo3/class-alias-loader"/"class-alias-maps" must return an array!', 1444142481);
             }
         } else {
             $possibleClassAliasFiles[] = 'Migrations/Code/ClassAliasMap.php';
@@ -189,7 +191,7 @@ class ClassLoadingInformationGenerator
             if (file_exists($possiblePathToClassAliasFile)) {
                 $packageAliasMap = require $possiblePathToClassAliasFile;
                 if (!is_array($packageAliasMap)) {
-                    throw new \TYPO3\CMS\Core\Error\Exception('"class alias maps" must return an array', 1422625075);
+                    throw new Exception('"class alias maps" must return an array', 1422625075);
                 }
                 foreach ($packageAliasMap as $aliasClassName => $className) {
                     $lowerCasedAliasClassName = strtolower($aliasClassName);
@@ -253,7 +255,7 @@ EOF;
     protected function makePathRelative($packagePath, $realPathOfClassFile, $relativeToRoot = true)
     {
         $realPathOfClassFile = GeneralUtility::fixWindowsFilePath($realPathOfClassFile);
-        $packageRealPath = GeneralUtility::fixWindowsFilePath(realpath($packagePath));
+        $packageRealPath = GeneralUtility::fixWindowsFilePath((string)realpath($packagePath));
         $relativePackagePath = rtrim(substr($packagePath, strlen($this->installationRoot)), '/');
         if ($relativeToRoot) {
             if ($realPathOfClassFile === $packageRealPath) {

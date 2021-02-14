@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Seo\MetaTag;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Seo\MetaTag;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Seo\MetaTag;
 
 use TYPO3\CMS\Core\Imaging\ImageManipulation\CropVariantCollection;
 use TYPO3\CMS\Core\MetaTag\MetaTagManagerRegistry;
@@ -140,10 +141,9 @@ class MetaTagGenerator
             $cropArea = $cropVariantCollection->getCropArea($cropVariant);
             $crop = $cropArea->makeAbsoluteBasedOnFile($file);
 
-            $cropInformation = $crop->asArray();
-
             $processingConfiguration = [
-                'crop' => $crop
+                'crop' => $crop,
+                'maxWidth' => 2000
             ];
 
             $processedImage = $file->getOriginalFile()->process(
@@ -155,8 +155,8 @@ class MetaTagGenerator
 
             $socialImages[] = [
                 'url' => $imageUri,
-                'width' => floor($cropInformation['width']),
-                'height' => floor($cropInformation['height']),
+                'width' => floor($processedImage->getProperty('width')),
+                'height' => floor($processedImage->getProperty('height')),
                 'alternative' => $arguments['alternative'],
             ];
         }

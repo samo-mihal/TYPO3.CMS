@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Info\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Info\Controller;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Info\Controller;
 
 use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -153,7 +154,7 @@ class InfoModuleController
     /**
      * May contain an instance of a 'Function menu module' which connects to this backend module.
      *
-     * @var \object
+     * @var object
      */
     protected $extObj;
 
@@ -279,7 +280,6 @@ class InfoModuleController
                 'id',
                 'edit_record',
                 'pointer',
-                'new_unique_uid',
                 'search_field',
                 'search_levels',
                 'showLimit'

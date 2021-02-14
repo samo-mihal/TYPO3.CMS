@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Adminpanel\Utility;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,6 +15,8 @@ namespace TYPO3\CMS\Adminpanel\Utility;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Adminpanel\Utility;
+
 use TYPO3\CMS\Adminpanel\ModuleApi\ResourceProviderInterface;
 use TYPO3\CMS\Adminpanel\ModuleApi\SubmoduleProviderInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -27,7 +28,7 @@ class ResourceUtility
      * Get additional resources (css, js) from modules and merge it to
      * one array - returns an array of full html tags
      *
-     * @param \TYPO3\CMS\Adminpanel\ModuleApi\ResourceProviderInterface[] $modules
+     * @param \TYPO3\CMS\Adminpanel\ModuleApi\ModuleInterface[] $modules
      * @return array
      */
     public static function getAdditionalResourcesForModules(array $modules): array

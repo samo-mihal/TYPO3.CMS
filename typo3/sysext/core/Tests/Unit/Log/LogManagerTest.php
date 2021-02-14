@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Unit\Log;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,11 +15,14 @@ namespace TYPO3\CMS\Core\Tests\Unit\Log;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\Log;
+
 use TYPO3\CMS\Core\Log\Logger;
 use TYPO3\CMS\Core\Log\LogLevel;
 use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\Log\Processor\NullProcessor;
 use TYPO3\CMS\Core\Log\Writer\NullWriter;
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -56,7 +59,7 @@ class LogManagerTest extends UnitTestCase
      */
     public function managerReturnsSameLoggerOnRepeatedRequest()
     {
-        $loggerName = $this->getUniqueId('test.core.log');
+        $loggerName = StringUtility::getUniqueId('test.core.log');
         $logger = new LogManager();
         $logger->registerLogger($loggerName);
         $logger1 = $logger->getLogger($loggerName);

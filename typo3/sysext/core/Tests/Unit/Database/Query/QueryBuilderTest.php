@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Unit\Database\Query;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,9 +15,13 @@ namespace TYPO3\CMS\Core\Tests\Unit\Database\Query;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\Database\Query;
+
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\MySqlPlatform;
+use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\DBAL\Platforms\PostgreSqlPlatform;
+use Doctrine\DBAL\Platforms\SqlitePlatform;
 use Doctrine\DBAL\Platforms\SQLServerPlatform;
 use Prophecy\Argument;
 use TYPO3\CMS\Core\Database\Connection;
@@ -733,7 +737,7 @@ class QueryBuilderTest extends UnitTestCase
     /**
      * @test
      */
-    public function setValueWithoudNamedParameterQuotesIdentifierAndDelegatesToConcreteQueryBuilder(): void
+    public function setValueWithoutNamedParameterQuotesIdentifierAndDelegatesToConcreteQueryBuilder(): void
     {
         $this->connection->quoteIdentifier('aField')
             ->shouldBeCalled()
@@ -1391,5 +1395,156 @@ class QueryBuilderTest extends UnitTestCase
                 Connection::PARAM_STR_ARRAY
             ],
         ];
+    }
+
+    public function castFieldToTextTypeDataProvider(): array
+    {
+        return [
+            'Test cast for MySqlPlatform' => [
+                new MySqlPlatform(),
+                'CONVERT(aField, CHAR)'
+            ],
+            'Test cast for PostgreSqlPlatform' => [
+                new PostgreSqlPlatform(),
+                'aField::text'
+            ],
+            'Test cast for SqlitePlatform' => [
+                new SqlitePlatform(),
+                'CAST(aField as TEXT)'
+            ],
+            'Test cast for SQLServerPlatform' => [
+                new SQLServerPlatform(),
+                'CAST(aField as VARCHAR)'
+            ],
+            'Test cast for OraclePlatform' => [
+                new OraclePlatform(),
+                'CAST(aField as VARCHAR)'
+            ],
+        ];
+    }
+
+    /**
+     * @test
+     * @dataProvider castFieldToTextTypeDataProvider
+     *
+     * @param AbstractPlatform $platform
+     * @param string $expectation
+     */
+    public function castFieldToTextType(AbstractPlatform $platform, string $expectation): void
+    {
+        $this->connection->quoteIdentifier('aField')
+            ->shouldBeCalled()
+            ->willReturnArgument(0);
+
+        $this->connection->getDatabasePlatform()->willReturn($platform);
+
+        $concreteQueryBuilder = new \Doctrine\DBAL\Query\QueryBuilder($this->connection->reveal());
+
+        $subject = new QueryBuilder($this->connection->reveal(), null, $concreteQueryBuilder);
+        $result = $subject->castFieldToTextType('aField');
+
+        $this->connection->quoteIdentifier('aField')->shouldHaveBeenCalled();
+        self::assertSame($expectation, $result);
+    }
+
+    /**
+     * @test
+     */
+    public function limitRestrictionsToTablesLimitsRestrictionsInTheContainerToTheGivenTables(): void
+    {
+        $GLOBALS['TCA']['tt_content']['ctrl'] = $GLOBALS['TCA']['pages']['ctrl'] = [
+            'delete' => 'deleted',
+            'enablecolumns' => [
+                'disabled' => 'hidden',
+            ],
+        ];
+
+        $this->connection->quoteIdentifier(Argument::cetera())
+            ->willReturnArgument(0);
+        $this->connection->quoteIdentifiers(Argument::cetera())
+            ->willReturnArgument(0);
+
+        $connectionBuilder = GeneralUtility::makeInstance(
+            \Doctrine\DBAL\Query\QueryBuilder::class,
+            $this->connection->reveal()
+        );
+
+        $expressionBuilder = GeneralUtility::makeInstance(ExpressionBuilder::class, $this->connection->reveal());
+        $this->connection->getExpressionBuilder()->willReturn($expressionBuilder);
+
+        $subject = new QueryBuilder(
+            $this->connection->reveal(),
+            null,
+            $connectionBuilder
+        );
+        $subject->limitRestrictionsToTables(['pages']);
+
+        $subject->select('*')
+            ->from('pages')
+            ->leftJoin(
+                'pages',
+                'tt_content',
+                'content',
+                'pages.uid = content.pid'
+            )
+            ->where($expressionBuilder->eq('uid', 1));
+
+        $this->connection->executeQuery(
+            'SELECT * FROM pages LEFT JOIN tt_content content ON pages.uid = content.pid WHERE (uid = 1) AND ((pages.deleted = 0) AND (pages.hidden = 0))',
+            Argument::cetera()
+        )->shouldBeCalled();
+
+        $subject->execute();
+    }
+
+    /**
+     * @test
+     */
+    public function restrictionsCanStillBeRemovedAfterTheyHaveBeenLimitedToTables(): void
+    {
+        $GLOBALS['TCA']['tt_content']['ctrl'] = $GLOBALS['TCA']['pages']['ctrl'] = [
+            'delete' => 'deleted',
+            'enablecolumns' => [
+                'disabled' => 'hidden',
+            ],
+        ];
+
+        $this->connection->quoteIdentifier(Argument::cetera())
+            ->willReturnArgument(0);
+        $this->connection->quoteIdentifiers(Argument::cetera())
+            ->willReturnArgument(0);
+
+        $connectionBuilder = GeneralUtility::makeInstance(
+            \Doctrine\DBAL\Query\QueryBuilder::class,
+            $this->connection->reveal()
+        );
+
+        $expressionBuilder = GeneralUtility::makeInstance(ExpressionBuilder::class, $this->connection->reveal());
+        $this->connection->getExpressionBuilder()->willReturn($expressionBuilder);
+
+        $subject = new QueryBuilder(
+            $this->connection->reveal(),
+            null,
+            $connectionBuilder
+        );
+        $subject->limitRestrictionsToTables(['pages']);
+        $subject->getRestrictions()->removeByType(DeletedRestriction::class);
+
+        $subject->select('*')
+            ->from('pages')
+            ->leftJoin(
+                'pages',
+                'tt_content',
+                'content',
+                'pages.uid = content.pid'
+            )
+            ->where($expressionBuilder->eq('uid', 1));
+
+        $this->connection->executeQuery(
+            'SELECT * FROM pages LEFT JOIN tt_content content ON pages.uid = content.pid WHERE (uid = 1) AND (pages.hidden = 0)',
+            Argument::cetera()
+        )->shouldBeCalled();
+
+        $subject->execute();
     }
 }

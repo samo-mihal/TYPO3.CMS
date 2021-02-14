@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Adminpanel\Modules\Debug;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Adminpanel\Modules\Debug;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Adminpanel\Modules\Debug;
 
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Adminpanel\Log\InMemoryLogWriter;
@@ -65,6 +66,9 @@ class PageTitle extends AbstractSubModule implements DataProviderInterface
      */
     public function getDataToStore(ServerRequestInterface $request): ModuleData
     {
+        $data = [
+            'cacheEnabled' => true
+        ];
         if ($this->isNoCacheEnabled()) {
             $data = [
                 'orderedProviders' => [],
@@ -85,8 +89,6 @@ class PageTitle extends AbstractSubModule implements DataProviderInterface
                     }
                 }
             }
-        } else {
-            $data['cacheEnabled'] = true;
         }
         return new ModuleData($data);
     }

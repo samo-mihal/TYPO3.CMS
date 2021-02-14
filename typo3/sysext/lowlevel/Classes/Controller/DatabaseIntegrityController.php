@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Lowlevel\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,8 +13,11 @@ namespace TYPO3\CMS\Lowlevel\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Lowlevel\Controller;
+
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Template\Components\ButtonBar;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
@@ -25,6 +27,8 @@ use TYPO3\CMS\Core\Http\HtmlResponse;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Localization\LanguageService;
+use TYPO3\CMS\Core\Messaging\FlashMessage;
+use TYPO3\CMS\Core\Messaging\FlashMessageRendererResolver;
 use TYPO3\CMS\Core\Page\PageRenderer;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -71,16 +75,6 @@ class DatabaseIntegrityController
      * @var ModuleTemplate
      */
     protected $moduleTemplate;
-
-    /**
-     * Loaded with the global array $MCONF which holds some module configuration from the conf.php file of backend modules.
-     *
-     * @see init()
-     * @var array
-     */
-    protected $MCONF = [
-        'name' => 'system_dbint',
-    ];
 
     /**
      * The module menu items array. Each key represents a key for which values can range between the items in the array of that key.
@@ -215,7 +209,7 @@ class DatabaseIntegrityController
             'sword' => ''
         ];
         // CLEAN SETTINGS
-        $OLD_MOD_SETTINGS = BackendUtility::getModuleData($this->MOD_MENU, '', $this->moduleName, 'ses');
+        $OLD_MOD_SETTINGS = BackendUtility::getModuleData($this->MOD_MENU, [], $this->moduleName, 'ses');
         $this->MOD_SETTINGS = BackendUtility::getModuleData($this->MOD_MENU, GeneralUtility::_GP('SET'), $this->moduleName, 'ses');
         if (GeneralUtility::_GP('queryConfig')) {
             $qA = GeneralUtility::_GP('queryConfig');
@@ -252,8 +246,7 @@ class DatabaseIntegrityController
     {
         $menu = $this->moduleTemplate->getDocHeaderComponent()->getMenuRegistry()->makeMenu();
         $menu->setIdentifier('DatabaseJumpMenu');
-        /** @var \TYPO3\CMS\Backend\Routing\UriBuilder $uriBuilder */
-        $uriBuilder = GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Routing\UriBuilder::class);
+        $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
         foreach ($this->MOD_MENU['function'] as $controller => $title) {
             $item = $menu
                 ->makeMenuItem()
@@ -284,8 +277,7 @@ class DatabaseIntegrityController
     {
         $modules = [];
         $availableModFuncs = ['records', 'relations', 'search', 'refindex'];
-        /** @var \TYPO3\CMS\Backend\Routing\UriBuilder $uriBuilder */
-        $uriBuilder = GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Routing\UriBuilder::class);
+        $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
         foreach ($availableModFuncs as $modFunc) {
             $modules[$modFunc] = (string)$uriBuilder->buildUriFromRoute('system_dbint') . '&SET[function]=' . $modFunc;
         }
@@ -309,11 +301,20 @@ class DatabaseIntegrityController
 
         if (GeneralUtility::_GP('_update') || GeneralUtility::_GP('_check')) {
             $testOnly = (bool)GeneralUtility::_GP('_check');
-            // Call the functionality
             $refIndexObj = GeneralUtility::makeInstance(ReferenceIndex::class);
             $refIndexObj->enableRuntimeCache();
-            list(, $bodyContent) = $refIndexObj->updateIndex($testOnly);
-            $this->view->assign('content', str_replace('##LF##', '<br />', $bodyContent));
+            [, $recordsCheckedString, , $errors] = $refIndexObj->updateIndex($testOnly);
+            $flashMessage = GeneralUtility::makeInstance(
+                FlashMessage::class,
+                !empty($errors) ? implode("\n", $errors) : 'Index Integrity was perfect!',
+                $recordsCheckedString,
+                !empty($errors) ? FlashMessage::ERROR : FlashMessage::OK
+            );
+
+            $flashMessageRenderer = GeneralUtility::makeInstance(FlashMessageRendererResolver::class)->resolve();
+            $bodyContent = $flashMessageRenderer->render([$flashMessage]);
+
+            $this->view->assign('content', nl2br($bodyContent));
         }
     }
 
@@ -428,8 +429,7 @@ class DatabaseIntegrityController
                     $theNumberOfRe = '';
                 }
                 $lr = '';
-                /** @var \TYPO3\CMS\Backend\Routing\UriBuilder $uriBuilder */
-                $uriBuilder = GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Routing\UriBuilder::class);
+                $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
                 if (is_array($admin->getLRecords()[$t])) {
                     foreach ($admin->getLRecords()[$t] as $data) {
                         if (!GeneralUtility::inList($admin->getLostPagesList(), $data['pid'])) {
@@ -461,8 +461,7 @@ class DatabaseIntegrityController
     protected function func_relations()
     {
         $admin = GeneralUtility::makeInstance(DatabaseIntegrityCheck::class);
-        $fkey_arrays = $admin->getGroupFields('');
-        $admin->selectNonEmptyRecordsWithFkeys($fkey_arrays);
+        $admin->selectNonEmptyRecordsWithFkeys();
 
         $this->view->assignMultiple([
             'select_db' => $admin->testDBRefs($admin->getCheckSelectDBRefs()),

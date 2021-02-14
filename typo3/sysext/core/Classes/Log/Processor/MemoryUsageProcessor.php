@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Log\Processor;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,11 @@ namespace TYPO3\CMS\Core\Log\Processor;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Log\Processor;
+
+use TYPO3\CMS\Core\Log\LogRecord;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+
 /**
  * Memory usage processor methods.
  */
@@ -26,11 +30,11 @@ class MemoryUsageProcessor extends AbstractMemoryProcessor
      * @return \TYPO3\CMS\Core\Log\LogRecord The processed log record with additional data
      * @see memory_get_usage()
      */
-    public function processLogRecord(\TYPO3\CMS\Core\Log\LogRecord $logRecord)
+    public function processLogRecord(LogRecord $logRecord)
     {
         $bytes = memory_get_usage($this->getRealMemoryUsage());
         if ($this->formatSize) {
-            $size = \TYPO3\CMS\Core\Utility\GeneralUtility::formatSize($bytes);
+            $size = GeneralUtility::formatSize($bytes);
         } else {
             $size = $bytes;
         }

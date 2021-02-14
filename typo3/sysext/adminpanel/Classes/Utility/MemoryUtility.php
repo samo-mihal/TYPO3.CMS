@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Adminpanel\Utility;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Adminpanel\Utility;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Adminpanel\Utility;
 
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -37,7 +38,7 @@ class MemoryUtility
      */
     public static function isMemoryConsumptionTooHigh(): bool
     {
-        $iniLimit = ini_get('memory_limit');
+        $iniLimit = (string)ini_get('memory_limit');
         $memoryLimit = $iniLimit === '-1' ? -1 : GeneralUtility::getBytesFromSizeMeasurement($iniLimit);
         $freeMemory = $memoryLimit - memory_get_usage(true);
 

@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Mail;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,9 +15,10 @@ namespace TYPO3\CMS\Core\Mail;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Mail;
+
 use DirectoryIterator;
-use Psr\Log\LoggerAwareInterface;
-use Psr\Log\LoggerAwareTrait;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Mailer\DelayedEnvelope;
 use Symfony\Component\Mailer\Envelope;
 use Symfony\Component\Mailer\Exception\TransportException;
@@ -28,6 +28,7 @@ use Symfony\Component\Mailer\Transport\TransportInterface;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Mime\Message;
 use Symfony\Component\Mime\RawMessage;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -35,10 +36,8 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  *
  * @internal This class is experimental and subject to change!
  */
-class FileSpool extends AbstractTransport implements DelayedTransportInterface, LoggerAwareInterface
+class FileSpool extends AbstractTransport implements DelayedTransportInterface
 {
-    use LoggerAwareTrait;
-
     /**
      * The spool directory
      * @var string
@@ -46,11 +45,18 @@ class FileSpool extends AbstractTransport implements DelayedTransportInterface, 
     protected $path;
 
     /**
+     * The logger instance.
+     *
+     * @var LoggerInterface
+     */
+    protected $logger;
+
+    /**
      * File WriteRetry Limit.
      *
      * @var int
      */
-    protected $_retryLimit = 10;
+    protected $retryLimit = 10;
 
     /**
      * The maximum number of messages to send per flush
@@ -68,11 +74,18 @@ class FileSpool extends AbstractTransport implements DelayedTransportInterface, 
      * Create a new FileSpool.
      *
      * @param string $path
+     * @param EventDispatcherInterface $dispatcher
+     * @param LoggerInterface $logger
      */
-    public function __construct(string $path)
-    {
-        parent::__construct();
+    public function __construct(
+        string $path,
+        EventDispatcherInterface $dispatcher = null,
+        LoggerInterface $logger = null
+    ) {
+        parent::__construct($dispatcher, $logger);
+
         $this->path = $path;
+        $this->logger = $logger;
 
         if (!file_exists($this->path)) {
             GeneralUtility::mkdir_deep($this->path);
@@ -85,20 +98,27 @@ class FileSpool extends AbstractTransport implements DelayedTransportInterface, 
      */
     protected function doSend(SentMessage $message): void
     {
-        $ser = serialize($message);
-        $fileName = $this->path . '/' . $this->getRandomString(10);
-        for ($i = 0; $i < $this->_retryLimit; ++$i) {
-            // We try an exclusive creation of the file. This is an atomic operation, it avoid locking mechanism
-            $fp = @fopen($fileName . '.message', 'x');
-            if (false !== $fp) {
-                if (false === fwrite($fp, $ser)) {
-                    throw new TransportException('Could not create file for spooling', 1561618885);
-                }
-                fclose($fp);
-            } else {
-                // The file already exists, we try a longer fileName
-                $fileName .= $this->getRandomString(1);
+        $fileName = $this->path . '/' . $this->getRandomString(9);
+        $i = 0;
+
+        // We try an exclusive creation of the file. This is an atomic
+        // operation, it avoids a locking mechanism
+        do {
+            $fileName .= $this->getRandomString(1);
+            $filePointer = @fopen($fileName . '.message', 'x');
+        } while ($filePointer === false && ++$i < $this->retryLimit);
+
+        if ($filePointer === false) {
+            throw new TransportException('Could not create file for spooling', 1602615347);
+        }
+
+        try {
+            $ser = serialize($message);
+            if (fwrite($filePointer, $ser) === false) {
+                throw new TransportException('Could not write file for spooling', 1602615348);
             }
+        } finally {
+            fclose($filePointer);
         }
     }
 
@@ -111,7 +131,7 @@ class FileSpool extends AbstractTransport implements DelayedTransportInterface, 
      */
     public function setRetryLimit(int $limit): void
     {
-        $this->_retryLimit = $limit;
+        $this->retryLimit = $limit;
     }
 
     /**
@@ -122,7 +142,7 @@ class FileSpool extends AbstractTransport implements DelayedTransportInterface, 
     public function recover(int $timeout = 900): void
     {
         foreach (new DirectoryIterator($this->path) as $file) {
-            $file = $file->getRealPath();
+            $file = (string)$file->getRealPath();
 
             if (substr($file, -16) == '.message.sending') {
                 $lockedtime = filectime($file);
@@ -143,7 +163,7 @@ class FileSpool extends AbstractTransport implements DelayedTransportInterface, 
         $count = 0;
         $time = time();
         foreach ($directoryIterator as $file) {
-            $file = $file->getRealPath();
+            $file = (string)$file->getRealPath();
 
             if (substr($file, -8) != '.message') {
                 continue;
@@ -151,7 +171,7 @@ class FileSpool extends AbstractTransport implements DelayedTransportInterface, 
 
             /* We try a rename, it's an atomic operation, and avoid locking the file */
             if (rename($file, $file . '.sending')) {
-                $message = unserialize(file_get_contents($file . '.sending'), [
+                $message = unserialize((string)file_get_contents($file . '.sending'), [
                     'allowedClasses' => [
                         RawMessage::class,
                         Message::class,
@@ -161,7 +181,7 @@ class FileSpool extends AbstractTransport implements DelayedTransportInterface, 
                     ],
                 ]);
 
-                $transport->send($message);
+                $transport->send($message->getMessage(), $message->getEnvelope());
                 $count++;
 
                 unlink($file . '.sending');
@@ -195,7 +215,7 @@ class FileSpool extends AbstractTransport implements DelayedTransportInterface, 
         $ret = '';
         $strlen = strlen($base);
         for ($i = 0; $i < $count; ++$i) {
-            $ret .= $base[((int)rand(0, $strlen - 1))];
+            $ret .= $base[((int)random_int(0, $strlen - 1))];
         }
 
         return $ret;
@@ -243,17 +263,6 @@ class FileSpool extends AbstractTransport implements DelayedTransportInterface, 
 
     public function __toString(): string
     {
-        $result = '';
-        $directoryIterator = new DirectoryIterator($this->path);
-        foreach ($directoryIterator as $file) {
-            $file = $file->getRealPath();
-
-            if (substr($file, -8) != '.message') {
-                continue;
-            }
-
-            $result .= file_get_contents($file) . "\n";
-        }
-        return $result;
+        return 'FileSpool:' . $this->path;
     }
 }

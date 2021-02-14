@@ -11,7 +11,7 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import * as $ from 'jquery';
+import $ from 'jquery';
 import LinkBrowser = require('./LinkBrowser');
 
 /**
@@ -45,9 +45,15 @@ class PageLinkHandler {
   public linkPageByTextfield = (event: JQueryEventObject): void => {
     event.preventDefault();
 
-    const value = $('#luid').val();
+    let value = $('#luid').val();
     if (!value) {
       return;
+    }
+
+    // make sure we use proper link syntax if this is an integer only
+    const valueAsNumber = parseInt(value, 10);
+    if (!isNaN(valueAsNumber)) {
+      value = 't3://page?uid=' + valueAsNumber;
     }
 
     LinkBrowser.finalizeFunction(value);

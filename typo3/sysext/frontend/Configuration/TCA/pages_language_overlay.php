@@ -1,4 +1,5 @@
 <?php
+
 // @deprecated since v9 and will be removed in v11. Remove file and migration wizard "MigratePagesLanguageOverlayUpdate"
 return [
     'ctrl' => [
@@ -30,9 +31,6 @@ return [
         // This option needs to be set to the record is not shown in the be_groups ACLs
         'adminOnly' => true,
         'searchFields' => 'title,subtitle,nav_title,keywords,description,abstract,author,author_email,url'
-    ],
-    'interface' => [
-        'showRecordFieldList' => 'title,hidden,starttime,endtime,keywords,description,abstract'
     ],
     'columns' => [
         'doktype' => $GLOBALS['TCA']['pages']['columns']['doktype'],

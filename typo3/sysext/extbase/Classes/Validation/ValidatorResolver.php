@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Validation;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,17 +13,25 @@ namespace TYPO3\CMS\Extbase\Validation;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Validation;
+
 use TYPO3\CMS\Core\Log\LogManager;
+use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Extbase\Object\ObjectManagerInterface;
+use TYPO3\CMS\Extbase\Reflection\ReflectionService;
 use TYPO3\CMS\Extbase\Utility\TypeHandlingUtility;
 use TYPO3\CMS\Extbase\Validation\Exception\NoSuchValidatorException;
+use TYPO3\CMS\Extbase\Validation\Validator\CollectionValidator;
 use TYPO3\CMS\Extbase\Validation\Validator\ConjunctionValidator;
+use TYPO3\CMS\Extbase\Validation\Validator\GenericObjectValidator;
+use TYPO3\CMS\Extbase\Validation\Validator\ValidatorInterface;
 
 /**
  * Validator resolver to automatically find an appropriate validator for a given subject
  * @internal only to be used within Extbase, not part of TYPO3 Core API.
  */
-class ValidatorResolver implements \TYPO3\CMS\Core\SingletonInterface
+class ValidatorResolver implements SingletonInterface
 {
     /**
      * @var \TYPO3\CMS\Extbase\Object\ObjectManagerInterface
@@ -44,7 +51,7 @@ class ValidatorResolver implements \TYPO3\CMS\Core\SingletonInterface
     /**
      * @param \TYPO3\CMS\Extbase\Object\ObjectManagerInterface $objectManager
      */
-    public function injectObjectManager(\TYPO3\CMS\Extbase\Object\ObjectManagerInterface $objectManager)
+    public function injectObjectManager(ObjectManagerInterface $objectManager)
     {
         $this->objectManager = $objectManager;
     }
@@ -52,7 +59,7 @@ class ValidatorResolver implements \TYPO3\CMS\Core\SingletonInterface
     /**
      * @param \TYPO3\CMS\Extbase\Reflection\ReflectionService $reflectionService
      */
-    public function injectReflectionService(\TYPO3\CMS\Extbase\Reflection\ReflectionService $reflectionService)
+    public function injectReflectionService(ReflectionService $reflectionService)
     {
         $this->reflectionService = $reflectionService;
     }
@@ -79,8 +86,8 @@ class ValidatorResolver implements \TYPO3\CMS\Core\SingletonInterface
             $validator = $this->objectManager->get($validatorObjectName, $validatorOptions);
 
             // Move this check into ClassSchema
-            if (!($validator instanceof \TYPO3\CMS\Extbase\Validation\Validator\ValidatorInterface)) {
-                throw new Exception\NoSuchValidatorException('The validator "' . $validatorObjectName . '" does not implement TYPO3\CMS\Extbase\Validation\Validator\ValidatorInterface!', 1300694875);
+            if (!($validator instanceof ValidatorInterface)) {
+                throw new NoSuchValidatorException('The validator "' . $validatorObjectName . '" does not implement TYPO3\CMS\Extbase\Validation\Validator\ValidatorInterface!', 1300694875);
             }
 
             return $validator;
@@ -141,7 +148,7 @@ class ValidatorResolver implements \TYPO3\CMS\Core\SingletonInterface
 
             // Model based validator
             /** @var \TYPO3\CMS\Extbase\Validation\Validator\GenericObjectValidator $objectValidator */
-            $objectValidator = $this->objectManager->get(\TYPO3\CMS\Extbase\Validation\Validator\GenericObjectValidator::class, []);
+            $objectValidator = $this->objectManager->get(GenericObjectValidator::class, []);
             foreach ($classSchema->getProperties() as $property) {
                 if ($property->getType() === null) {
                     // todo: The type is only necessary here for further analyzations whether it's a simple type or
@@ -158,14 +165,14 @@ class ValidatorResolver implements \TYPO3\CMS\Core\SingletonInterface
                 if (!TypeHandlingUtility::isSimpleType($propertyTargetClassName)) {
                     if (TypeHandlingUtility::isCollectionType($propertyTargetClassName)) {
                         $collectionValidator = $this->createValidator(
-                            \TYPO3\CMS\Extbase\Validation\Validator\CollectionValidator::class,
+                            CollectionValidator::class,
                             [
                                 'elementType' => $property->getElementType(),
                                 'validationGroups' => $validationGroups
                             ]
                         );
                         $objectValidator->addPropertyValidator($property->getName(), $collectionValidator);
-                    } elseif (class_exists($propertyTargetClassName) && !TypeHandlingUtility::isCoreType($propertyTargetClassName) && $this->objectManager->isRegistered($propertyTargetClassName) && $this->objectManager->getScope($propertyTargetClassName) === \TYPO3\CMS\Extbase\Object\Container\Container::SCOPE_PROTOTYPE) {
+                    } elseif (class_exists($propertyTargetClassName) && !TypeHandlingUtility::isCoreType($propertyTargetClassName) && !in_array(SingletonInterface::class, class_implements($propertyTargetClassName, true), true)) {
                         /*
                          * class_exists($propertyTargetClassName) checks, if the type of the property is an object
                          * instead of a simple type. Like DateTime or another model.
@@ -174,14 +181,8 @@ class ValidatorResolver implements \TYPO3\CMS\Core\SingletonInterface
                          * is not a core type, which are Enums and File objects for example.
                          * todo: check why these types should not be validated
                          *
-                         * $this->objectManager->isRegistered($propertyTargetClassName) checks if the type is a class
-                         * which can be loaded.
-                         * todo: this could be dropped as it's the same check as the first one.
-                         *
-                         * $this->objectManager->getScope($propertyTargetClassName) ===
-                         * \TYPO3\CMS\Extbase\Object\Container\Container::SCOPE_PROTOTYPE checks, if the type of the
-                         * property is a prototype, meaning that it's a class which does not implement the
-                         * SingletonInterface
+                         * !in_array(SingletonInterface::class, class_implements($propertyTargetClassName, true), true)
+                         * checks if the class is an instance of a Singleton
                          * todo: check why Singletons shouldn't be validated.
                          */
 
@@ -208,7 +209,7 @@ class ValidatorResolver implements \TYPO3\CMS\Core\SingletonInterface
                     // @todo: createValidator must only accept FQCN's.
                     $newValidator = $this->createValidator($validatorDefinition['className'], $validatorDefinition['options']);
                     if ($newValidator === null) {
-                        throw new Exception\NoSuchValidatorException('Invalid validate annotation in ' . $targetClassName . '::' . $property->getName() . ': Could not resolve class name for validator "' . $validatorDefinition['className'] . '".', 1241098027);
+                        throw new NoSuchValidatorException('Invalid validate annotation in ' . $targetClassName . '::' . $property->getName() . ': Could not resolve class name for validator "' . $validatorDefinition['className'] . '".', 1241098027);
                     }
                     $objectValidator->addPropertyValidator($property->getName(), $newValidator);
                 }

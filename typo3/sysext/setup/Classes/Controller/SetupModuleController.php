@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Setup\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,9 @@ namespace TYPO3\CMS\Setup\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Setup\Controller;
+
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Backend\Avatar\DefaultAvatarProvider;
@@ -35,12 +37,14 @@ use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Localization\Locales;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Messaging\FlashMessageService;
+use TYPO3\CMS\Core\Page\PageRenderer;
 use TYPO3\CMS\Core\Resource\Exception\FileDoesNotExistException;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\SysLog\Action\Setting as SystemLogSettingAction;
 use TYPO3\CMS\Core\SysLog\Error as SystemLogErrorClassification;
 use TYPO3\CMS\Core\SysLog\Type as SystemLogType;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Setup\Event\AddJavaScriptModulesEvent;
 
 /**
  * Script class for the Setup module
@@ -143,20 +147,40 @@ class SetupModuleController
     protected $moduleTemplate;
 
     /**
-     * Instantiate the form protection before a simulated user is initialized.
+     * @var EventDispatcherInterface
      */
-    public function __construct()
+    protected $eventDispatcher;
+
+    /**
+     * Instantiate the form protection before a simulated user is initialized.
+     *
+     * @param EventDispatcherInterface $eventDispatcher
+     */
+    public function __construct(EventDispatcherInterface $eventDispatcher)
     {
+        $this->eventDispatcher = $eventDispatcher;
         $this->moduleTemplate = GeneralUtility::makeInstance(ModuleTemplate::class);
         $this->formProtection = FormProtectionFactory::get();
         $pageRenderer = $this->moduleTemplate->getPageRenderer();
         $pageRenderer->loadRequireJsModule('TYPO3/CMS/Backend/Modal');
         $pageRenderer->loadRequireJsModule('TYPO3/CMS/Backend/FormEngine');
+        $pageRenderer->loadRequireJsModule('TYPO3/CMS/Setup/SetupModule');
+        $this->processAdditionalJavaScriptModules($pageRenderer);
         $pageRenderer->addInlineSetting('FormEngine', 'formName', 'editform');
         $pageRenderer->addInlineLanguageLabelArray([
             'FormEngine.remainingCharacters' => $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.remainingCharacters'),
         ]);
         $pageRenderer->addJsFile('EXT:backend/Resources/Public/JavaScript/md5.js');
+    }
+
+    protected function processAdditionalJavaScriptModules(PageRenderer $pageRenderer): void
+    {
+        $event = new AddJavaScriptModulesEvent();
+        /** @var AddJavaScriptModulesEvent $event */
+        $event = $this->eventDispatcher->dispatch($event);
+        foreach ($event->getModules() as $moduleName) {
+            $pageRenderer->loadRequireJsModule($moduleName);
+        }
     }
 
     /**
@@ -193,7 +217,7 @@ class SetupModuleController
         $beUserId = $backendUser->user['uid'];
         $storeRec = [];
         $fieldList = $this->getFieldsFromShowItem();
-        if (is_array($d) && $this->formProtection->validateToken((string)$postData['formToken'] ?? '', 'BE user setup', 'edit')) {
+        if (is_array($d) && $this->formProtection->validateToken((string)($postData['formToken'] ?? ''), 'BE user setup', 'edit')) {
             // UC hashed before applying changes
             $save_before = md5(serialize($backendUser->uc));
             // PUT SETTINGS into the ->uc array:
@@ -293,13 +317,18 @@ class SetupModuleController
             }
             // Persist data if something has changed:
             if (!empty($storeRec) && $this->saveData) {
-                // Make instance of TCE for storing the changes.
+                // Set user to admin to circumvent DataHandler restrictions.
+                // Not using isAdmin() to fetch the original value, just in case it has been boolean casted.
+                $savedUserAdminState = $backendUser->user['admin'];
+                $backendUser->user['admin'] = true;
+                // Make dedicated instance of TCE for storing the changes.
                 $dataHandler = GeneralUtility::makeInstance(DataHandler::class);
-                $dataHandler->start($storeRec, []);
-                $dataHandler->admin = true;
+                $dataHandler->start($storeRec, [], $backendUser);
                 // This is to make sure that the users record can be updated even if in another workspace. This is tolerated.
                 $dataHandler->bypassWorkspaceRestrictions = true;
                 $dataHandler->process_datamap();
+                // reset the user record admin flag to previous value, just in case it gets used any further.
+                $backendUser->user['admin'] = $savedUserAdminState;
                 if ($this->passwordIsUpdated === self::PASSWORD_NOT_UPDATED || count($storeRec['be_users'][$beUserId]) > 1) {
                     $this->setupIsUpdated = true;
                 }
@@ -338,22 +367,16 @@ class SetupModuleController
                 $this->storeIncomingData($postData);
             }
         }
-        $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
-        $this->content .= '<form action="' . (string)$uriBuilder->buildUriFromRoute('user_setup') . '" method="post" id="SetupModuleController" name="usersetup" enctype="multipart/form-data">';
         if ($this->languageUpdate) {
-            $this->moduleTemplate->addJavaScriptCode('languageUpdate', '
-                if (top && top.TYPO3.ModuleMenu.App) {
-                    top.TYPO3.ModuleMenu.App.refreshMenu();
-                }
-                if (top && top.TYPO3.Backend.Topbar) {
-                    top.TYPO3.Backend.Topbar.refresh();
-                }
-            ');
+            $this->content .= $this->buildInstructionDataTag('TYPO3.ModuleMenu.App.refreshMenu');
+            $this->content .= $this->buildInstructionDataTag('TYPO3.Backend.Topbar.refresh');
         }
         if ($this->pagetreeNeedsRefresh) {
             BackendUtility::setUpdateSignal('updatePageTree');
         }
-        // Use a wrapper div
+
+        $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
+        $this->content .= '<form action="' . (string)$uriBuilder->buildUriFromRoute('user_setup') . '" method="post" id="SetupModuleController" name="usersetup" enctype="multipart/form-data">';
         $this->content .= '<div id="user-setup-wrapper">';
         $this->content .= $this->moduleTemplate->header($this->getLanguageService()->getLL('UserSettings'));
         $this->addFlashMessages();
@@ -377,6 +400,14 @@ class SetupModuleController
         $this->moduleTemplate->setContent($this->content);
         $this->content .= '</form>';
         return new HtmlResponse($this->moduleTemplate->renderContent());
+    }
+
+    protected function buildInstructionDataTag(string $dispatchAction): string
+    {
+        return sprintf(
+            '<typo3-immediate-action action="%s"></typo3-immediate-action>' . "\n",
+            htmlspecialchars($dispatchAction)
+        );
     }
 
     /**
@@ -419,6 +450,7 @@ class SetupModuleController
     protected function renderUserSetup()
     {
         $backendUser = $this->getBackendUser();
+        $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
         $html = '';
         $result = [];
         $firstTabLabel = '';
@@ -526,7 +558,25 @@ class SetupModuleController
                     $html = GeneralUtility::callUserFunction($config['userFunc'], $config, $this);
                     break;
                 case 'button':
-                    if ($config['onClick']) {
+                    if (!empty($config['clickData'])) {
+                        $clickData = $config['clickData'];
+                        $buttonAttributes = [
+                            'type' => 'button',
+                            'class' => 'btn btn-default',
+                            'aria-labelledby' => 'label_' . htmlspecialchars($fieldName),
+                            'value' => $this->getLabel($config['buttonlabel'], '', false),
+                        ];
+                        if (isset($clickData['eventName'])) {
+                            $buttonAttributes['data-event'] = 'click';
+                            $buttonAttributes['data-event-name'] = htmlspecialchars($clickData['eventName']);
+                            $buttonAttributes['data-event-payload'] = htmlspecialchars($fieldName);
+                        }
+                        $html = '<br><input '
+                            . GeneralUtility::implodeAttributes($buttonAttributes, false) . ' />';
+                    } elseif (!empty($config['onClick'])) {
+                        /**
+                         * @deprecated Will be removed in TYPO3 v12.0
+                         */
                         $onClick = $config['onClick'];
                         if ($config['onClickLabels']) {
                             foreach ($config['onClickLabels'] as $key => $labelclick) {
@@ -541,12 +591,28 @@ class SetupModuleController
                     }
                     if (!empty($config['confirm'])) {
                         $confirmData = $config['confirmData'];
-                        $html = '<br><input class="btn btn-default t3js-modal-trigger" type="button"'
-                            . ' value="' . $this->getLabel($config['buttonlabel'], '', false) . '"'
-                            . ' data-href="javascript:' . htmlspecialchars($confirmData['jsCodeAfterOk']) . '"'
-                            . ' data-severity="warning"'
-                            . ' data-title="' . $this->getLabel($config['label'], '', false) . '"'
-                            . ' data-content="' . $this->getLabel($confirmData['message'], '', false) . '" />';
+                        // cave: values must be processed by `htmlspecialchars()`
+                        $buttonAttributes = [
+                            'type' => 'button',
+                            'class' => 'btn btn-default t3js-modal-trigger',
+                            'data-severity' => 'warning',
+                            'data-title' => $this->getLabel($config['label'], '', false),
+                            'data-content' => $this->getLabel($confirmData['message'], '', false),
+                            'value' => htmlspecialchars($this->getLabel($config['buttonlabel'], '', false)),
+                        ];
+                        if (isset($confirmData['eventName'])) {
+                            $buttonAttributes['data-event'] = 'confirm';
+                            $buttonAttributes['data-event-name'] = htmlspecialchars($confirmData['eventName']);
+                            $buttonAttributes['data-event-payload'] = htmlspecialchars($fieldName);
+                        }
+                        if (isset($confirmData['jsCodeAfterOk'])) {
+                            /**
+                             * @deprecated Will be removed in TYPO3 v12.0
+                             */
+                            $buttonAttributes['data-href'] = 'javascript:' . htmlspecialchars($confirmData['jsCodeAfterOk']);
+                        }
+                        $html = '<br><input '
+                            . GeneralUtility::implodeAttributes($buttonAttributes, false) . ' />';
                     }
                     break;
                 case 'avatar':
@@ -568,25 +634,23 @@ class SetupModuleController
                     }
                     $html .= '<input id="field_' . htmlspecialchars($fieldName) . '" type="hidden" ' .
                             'name="data' . $dataAdd . '[' . htmlspecialchars($fieldName) . ']"' . $more .
-                            ' value="' . (int)$avatarFileUid . '" />';
+                            ' value="' . (int)$avatarFileUid . '" data-setup-avatar-field="' . htmlspecialchars($fieldName) . '" />';
 
                     $html .= '<div class="btn-group">';
                     $iconFactory = GeneralUtility::makeInstance(IconFactory::class);
                     if ($avatarFileUid) {
                         $html .=
-                            '<a id="clear_button_' . htmlspecialchars($fieldName) . '" aria-label="' . htmlspecialchars($this->getLanguageService()->getLL('avatar.clear')) . '" '
-                                . 'onclick="clearExistingImage(); return false;" class="btn btn-default">'
+                            '<button type="button" id="clear_button_' . htmlspecialchars($fieldName) . '" aria-label="' . htmlspecialchars($this->getLanguageService()->getLL('avatar.clear')) . '" '
+                                . ' class="btn btn-default">'
                                 . $iconFactory->getIcon('actions-delete', Icon::SIZE_SMALL)
-                            . '</a>';
+                            . '</button>';
                     }
                     $html .=
-                        '<a id="add_button_' . htmlspecialchars($fieldName) . '" class="btn btn-default btn-add-avatar"'
+                        '<button type="button" id="add_button_' . htmlspecialchars($fieldName) . '" class="btn btn-default btn-add-avatar"'
                             . ' aria-label="' . htmlspecialchars($this->getLanguageService()->getLL('avatar.openFileBrowser')) . '"'
-                            . ' onclick="openFileBrowser();return false;">'
-                            . $iconFactory->getIcon('actions-insert-record', Icon::SIZE_SMALL)
-                            . '</a></div>';
-
-                    $this->addAvatarButtonJs($fieldName);
+                            . ' data-setup-avatar-url="' . htmlspecialchars((string)$uriBuilder->buildUriFromRoute('wizard_element_browser', ['mode' => 'file', 'bparams' => '||||__IDENTIFIER__'])) . '"'
+                            . '>' . $iconFactory->getIcon('actions-insert-record', Icon::SIZE_SMALL)
+                            . '</button></div>';
                     break;
                 default:
                     $html = '';
@@ -644,8 +708,7 @@ class SetupModuleController
             <select aria-labelledby="label_lang" id="field_lang" name="data[lang]" class="form-control">' . implode('', $languageOptions) . '
             </select>';
         if ($backendUser->uc['lang'] && !@is_dir(Environment::getLabelsPath() . '/' . $backendUser->uc['lang'])) {
-            // TODO: The text constants have to be moved into language files
-            $languageUnavailableWarning = 'The selected language "' . htmlspecialchars($language->getLL('lang_' . $backendUser->uc['lang'])) . '" is not available before the language files are installed.&nbsp;&nbsp;<br />&nbsp;&nbsp;' . ($backendUser->isAdmin() ? 'You can use the Language module to easily download new language files.' : 'Please ask your system administrator to do this.');
+            $languageUnavailableWarning = htmlspecialchars(sprintf($language->getLL('languageUnavailable'), $language->getLL('lang_' . $backendUser->uc['lang']))) . '&nbsp;&nbsp;<br />&nbsp;&nbsp;' . htmlspecialchars($language->getLL('languageUnavailable.' . ($backendUser->isAdmin() ? 'admin' : 'user')));
             $languageCode = '<br /><span class="label label-danger">' . $languageUnavailableWarning . '</span><br /><br />' . $languageCode;
         }
         return $languageCode;
@@ -665,10 +728,19 @@ class SetupModuleController
         $loadModules->load($GLOBALS['TBE_MODULES']);
         $startModuleSelect = '<option value="">' . htmlspecialchars($this->getLanguageService()->getLL('startModule.firstInMenu')) . '</option>';
         foreach ($loadModules->modules as $mainMod => $modData) {
-            if (!empty($modData['sub']) && is_array($modData['sub'])) {
+            $hasSubmodules = !empty($modData['sub']) && is_array($modData['sub']);
+            $isStandalone = $modData['standalone'] ?? false;
+            if ($hasSubmodules || $isStandalone) {
                 $modules = '';
-                foreach ($modData['sub'] as $subData) {
-                    $modName = $subData['name'];
+                if (($hasSubmodules)) {
+                    foreach ($modData['sub'] as $subData) {
+                        $modName = $subData['name'];
+                        $modules .= '<option value="' . htmlspecialchars($modName) . '"';
+                        $modules .= $this->getBackendUser()->uc['startModule'] === $modName ? ' selected="selected"' : '';
+                        $modules .= '>' . htmlspecialchars($this->getLanguageService()->sL($loadModules->getLabelsForModule($modName)['title'])) . '</option>';
+                    }
+                } elseif ($isStandalone) {
+                    $modName = $modData['name'];
                     $modules .= '<option value="' . htmlspecialchars($modName) . '"';
                     $modules .= $this->getBackendUser()->uc['startModule'] === $modName ? ' selected="selected"' : '';
                     $modules .= '>' . htmlspecialchars($this->getLanguageService()->sL($loadModules->getLabelsForModule($modName)['title'])) . '</option>';
@@ -889,7 +961,7 @@ class SetupModuleController
 
             // Get file object
             try {
-                $file = ResourceFactory::getInstance()->getFileObject($fileUid);
+                $file = GeneralUtility::makeInstance(ResourceFactory::class)->getFileObject($fileUid);
             } catch (FileDoesNotExistException $e) {
                 $file = false;
             }
@@ -900,7 +972,7 @@ class SetupModuleController
             }
 
             // Check if extension is allowed
-            if ($file && GeneralUtility::inList($GLOBALS['TYPO3_CONF_VARS']['GFX']['imagefile_ext'], $file->getExtension())) {
+            if ($file && $file->isImage()) {
 
                 // Create new file reference
                 $storeRec['sys_file_reference']['NEW1234'] = [
@@ -914,58 +986,6 @@ class SetupModuleController
                 $storeRec['be_users'][(int)$beUserId]['avatar'] = 'NEW1234';
             }
         }
-    }
-
-    /**
-     * Add JavaScript to for browse files button
-     *
-     * @param string $fieldName
-     */
-    protected function addAvatarButtonJs($fieldName)
-    {
-        $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
-        $this->moduleTemplate->addJavaScriptCode('avatar-button', '
-            var browserWin="";
-
-            require([\'TYPO3/CMS/Backend/Utility/MessageUtility\'], function(MessageUtility) {
-                window.addEventListener(\'message\', function (e) {
-                    MessageUtility.MessageUtility.verifyOrigin
-                    if (!MessageUtility.MessageUtility.verifyOrigin(e.origin)) {
-                        throw \'Denied message sent by \' + e.origin;
-                    }
-                    if (e.data.actionName === \'typo3:elementBrowser:elementInserted\') {
-                        if (typeof e.data.objectGroup === \'undefined\') {
-                            throw \'No object group defined for message\';
-                        }
-                        if (e.data.objectGroup !== \'dummy\') {
-                            // Received message isn\'t provisioned for current InlineControlContainer instance
-                            return;
-                        }
-                        setFileUid(\'avatar\', e.data.uid);
-                    }
-                });
-            });
-
-            function openFileBrowser() {
-                var url = ' . GeneralUtility::quoteJSvalue((string)$uriBuilder->buildUriFromRoute('wizard_element_browser', ['mode' => 'file', 'bparams' => '||||dummy'])) . ';
-                browserWin = window.open(url,"Typo3WinBrowser","height=650,width=800,status=0,menubar=0,resizable=1,scrollbars=1");
-                browserWin.focus();
-            }
-
-            function clearExistingImage() {
-                $(' . GeneralUtility::quoteJSvalue('#image_' . htmlspecialchars($fieldName)) . ').hide();
-                $(' . GeneralUtility::quoteJSvalue('#clear_button_' . htmlspecialchars($fieldName)) . ').hide();
-                $(' . GeneralUtility::quoteJSvalue('#field_' . htmlspecialchars($fieldName)) . ').val(\'delete\');
-            }
-
-            function setFileUid(field, fileUid) {
-                clearExistingImage();
-                $(' . GeneralUtility::quoteJSvalue('#field_' . htmlspecialchars($fieldName)) . ').val(fileUid);
-                $(' . GeneralUtility::quoteJSvalue('#add_button_' . htmlspecialchars($fieldName)) . ').removeClass(\'btn-default\').addClass(\'btn-info\');
-
-                browserWin.close();
-            }
-        ');
     }
 
     /**

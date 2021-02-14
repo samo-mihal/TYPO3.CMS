@@ -11,7 +11,7 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import * as $ from 'jquery';
+import $ from 'jquery';
 import DeferredAction = require('TYPO3/CMS/Backend/ActionButton/DeferredAction');
 import ImmediateAction = require('TYPO3/CMS/Backend/ActionButton/ImmediateAction');
 import Notification = require('TYPO3/CMS/Backend/Notification');
@@ -21,7 +21,7 @@ describe('TYPO3/CMS/Backend/Notification:', () => {
     $.fx.off = true;
     jasmine.clock().install();
 
-    const alertContainer = document.querySelector('#alert-container');
+    const alertContainer = document.getElementById('alert-container');
     while (alertContainer !== null && alertContainer.firstChild) {
       alertContainer.removeChild(alertContainer.firstChild);
     }

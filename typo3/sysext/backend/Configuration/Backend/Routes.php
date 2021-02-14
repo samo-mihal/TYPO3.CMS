@@ -23,6 +23,7 @@ return [
     // Main backend rendering setup (previously called backend.php) for the TYPO3 Backend
     'main' => [
         'path' => '/main',
+        'referrer' => 'required,refresh-always',
         'target' => Controller\BackendController::class . '::mainAction'
     ],
 
@@ -30,6 +31,28 @@ return [
     'logout' => [
         'path' => '/logout',
         'target' => Controller\LogoutController::class . '::logoutAction'
+    ],
+    // Show the password forgotten form for entering the email
+    'password_forget' => [
+        'path' => '/login/password-reset/forget',
+        'access' => 'public',
+        'target' => Controller\LoginController::class . '::forgetPasswordFormAction'
+    ],
+    // Send out the password reset email
+    'password_forget_initiate_reset' => [
+        'path' => '/login/password-reset/initiate-reset',
+        'access' => 'public',
+        'target' => Controller\LoginController::class . '::initiatePasswordResetAction'
+    ],
+    'password_reset_validate' => [
+        'path' => '/login/password-reset/validate',
+        'access' => 'public',
+        'target' => Controller\LoginController::class . '::passwordResetAction'
+    ],
+    'password_reset_finish' => [
+        'path' => '/login/password-reset/finish',
+        'access' => 'public',
+        'target' => Controller\LoginController::class . '::passwordResetFinishAction'
     ],
 
     // Register login frameset
@@ -177,5 +200,11 @@ return [
     'thumbnails' => [
         'path' => '/thumbnails',
         'target' => Controller\File\ThumbnailController::class . '::render'
-    ]
+    ],
+
+    // Image processing
+    'image_processing' => [
+        'path' => '/image/process',
+        'target' => Controller\File\ImageProcessController::class . '::process'
+    ],
 ];

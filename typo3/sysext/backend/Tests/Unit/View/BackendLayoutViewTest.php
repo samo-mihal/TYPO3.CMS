@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Tests\Unit\View;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,9 @@ namespace TYPO3\CMS\Backend\Tests\Unit\View;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Tests\Unit\View;
+
+use TYPO3\CMS\Backend\View\BackendLayoutView;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -33,7 +35,7 @@ class BackendLayoutViewTest extends UnitTestCase
     {
         parent::setUp();
         $this->backendLayoutView = $this->getAccessibleMock(
-            \TYPO3\CMS\Backend\View\BackendLayoutView::class,
+            BackendLayoutView::class,
             ['getPage', 'getRootLine'],
             [],
             '',

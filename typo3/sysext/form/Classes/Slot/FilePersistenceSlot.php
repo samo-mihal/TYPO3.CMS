@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\Slot;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Form\Slot;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Form\Slot;
 
 use TYPO3\CMS\Core\Resource\Event\BeforeFileAddedEvent;
 use TYPO3\CMS\Core\Resource\Event\BeforeFileContentsSetEvent;
@@ -141,7 +143,7 @@ final class FilePersistenceSlot implements SingletonInterface
         $this->assertFileName(
             self::COMMAND_FILE_ADD,
             $combinedFileIdentifier,
-            file_get_contents($event->getSourceFilePath())
+            (string)file_get_contents($event->getSourceFilePath())
         );
     }
 
@@ -149,7 +151,7 @@ final class FilePersistenceSlot implements SingletonInterface
     {
         $combinedFileIdentifier = $this->buildCombinedIdentifier(
             $event->getFile()->getParentFolder(),
-            $event->getTargetFileName()
+            $event->getTargetFileName() ?? ''
         );
 
         $this->assertFileName(

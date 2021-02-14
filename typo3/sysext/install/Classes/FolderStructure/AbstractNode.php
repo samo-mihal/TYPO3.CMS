@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Install\FolderStructure;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,8 +13,11 @@ namespace TYPO3\CMS\Install\FolderStructure;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Install\FolderStructure;
+
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
+use TYPO3\CMS\Install\FolderStructure\Exception\InvalidArgumentException;
 
 /**
  * Abstract node implements common methods
@@ -185,7 +187,7 @@ abstract class AbstractNode
      */
     protected function getCurrentPermission()
     {
-        $permissions = decoct(fileperms($this->getAbsolutePath()));
+        $permissions = decoct((int)fileperms($this->getAbsolutePath()));
         return substr($permissions, -4);
     }
 
@@ -200,7 +202,7 @@ abstract class AbstractNode
     }
 
     /**
-     * Cut off public web path from given path
+     * Cut off project path from given path
      *
      * @param string $path Given path
      * @return string Relative path, but beginning with /
@@ -211,14 +213,14 @@ abstract class AbstractNode
         if ($path === null) {
             $path = $this->getAbsolutePath();
         }
-        $publicPath = Environment::getPublicPath();
-        if (strpos($path, $publicPath, 0) !== 0) {
-            throw new Exception\InvalidArgumentException(
+        $projectPath = Environment::getProjectPath();
+        if (strpos($path, $projectPath, 0) !== 0) {
+            throw new InvalidArgumentException(
                 'Public path is not first part of given path',
                 1366398198
             );
         }
-        $relativePath = substr($path, strlen($publicPath), strlen($path));
+        $relativePath = substr($path, strlen($projectPath), strlen($path));
         // Add a forward slash again, so we don't end up with an empty string
         if ($relativePath === '') {
             $relativePath = '/';

@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Acceptance\Backend\Topbar;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Acceptance\Backend\Topbar;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Acceptance\Backend\Topbar;
 
 use Codeception\Scenario;
 use TYPO3\CMS\Core\Tests\Acceptance\Support\BackendTester;
@@ -91,7 +93,7 @@ class BookmarkCest
 
         // @test complete test when https://forge.typo3.org/issues/75689 is fixed
         $scenario->comment(
-            'Tests for deleting the item in the list and readding it are missing ' .
+            'Tests for deleting the item in the list and re-adding it are missing ' .
             'as this is currently broken in the core. See https://forge.typo3.org/issues/75689'
         );
 

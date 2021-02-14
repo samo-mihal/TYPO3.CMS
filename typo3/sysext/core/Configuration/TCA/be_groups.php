@@ -1,4 +1,5 @@
 <?php
+
 return [
     'ctrl' => [
         'label' => 'title',
@@ -21,9 +22,6 @@ return [
         'useColumnsForDefaultValues' => 'lockToDomain, file_permissions',
         'versioningWS_alwaysAllowLiveEdit' => true,
         'searchFields' => 'title'
-    ],
-    'interface' => [
-        'showRecordFieldList' => 'title, db_mountpoints, file_mountpoints, file_permissions, tables_select, tables_modify, pagetypes_select, non_exclude_fields, groupMods, lockToDomain, description'
     ],
     'columns' => [
         'title' => [
@@ -109,6 +107,7 @@ return [
         ],
         'workspace_perms' => [
             'exclude' => 1,
+            'displayCond' => 'USER:TYPO3\CMS\Core\Hooks\TcaDisplayConditions->isExtensionInstalled:workspaces',
             'label' => 'LLL:EXT:core/Resources/Private/Language/locallang_tca.xlf:workspace_perms',
             'config' => [
                 'type' => 'check',

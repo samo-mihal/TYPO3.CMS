@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Form;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Form;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Form;
 
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -108,6 +109,7 @@ class NodeFactory
         'defaultLanguageDifferences' => FieldWizard\DefaultLanguageDifferences::class,
         'localizationStateSelector' => FieldWizard\LocalizationStateSelector::class,
         'otherLanguageContent' => FieldWizard\OtherLanguageContent::class,
+        'otherLanguageThumbnails' => FieldWizard\OtherLanguageThumbnails::class,
         'recordsOverview' => FieldWizard\RecordsOverview::class,
         'selectIcons' => FieldWizard\SelectIcons::class,
         'tableList' => FieldWizard\TableList::class,

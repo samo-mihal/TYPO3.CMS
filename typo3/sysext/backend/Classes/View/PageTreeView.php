@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\View;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\View;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\View;
 
 use TYPO3\CMS\Backend\Tree\View\BrowseTreeView;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
@@ -108,9 +109,10 @@ class PageTreeView extends BrowseTreeView
         }
 
         $aOnClick = 'return jumpTo(' . GeneralUtility::quoteJSvalue($this->getJumpToParam($row)) . ',this,' . GeneralUtility::quoteJSvalue($this->domIdPrefix . $this->getId($row)) . ',' . $bank . ');';
+        /** @var array $clickMenuParts */
         $clickMenuParts = BackendUtility::wrapClickMenuOnIcon('', 'pages', $row['uid'], 'tree', '', '', true);
 
-        $thePageTitle = '<a href="#" onclick="' . htmlspecialchars($aOnClick) . '"' . GeneralUtility::implodeAttributes($clickMenuParts) . '>' . $title . '</a>';
+        $thePageTitle = '<a href="#" onclick="' . htmlspecialchars($aOnClick) . '" ' . GeneralUtility::implodeAttributes($clickMenuParts) . '>' . $title . '</a>';
         // Wrap title in a drag/drop span.
         return '<span class="list-tree-title dragTitle" id="dragTitleID_' . $row['uid'] . '">' . $thePageTitle . '</span>';
     }

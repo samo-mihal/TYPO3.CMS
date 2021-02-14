@@ -1,4 +1,5 @@
 <?php
+
 return [
     'TYPO3_DLOG' => [
         'restFiles' => [
@@ -179,5 +180,55 @@ return [
             'Deprecation-85285-DeprecatedSystemConstants.rst',
             'Breaking-87193-DeprecatedFunctionalityRemoved.rst',
         ]
-    ]
+    ],
+    'TYPO3_version' => [
+        'restFiles' => [
+            'Deprecation-90007-GlobalConstantsTYPO3_versionAndTYPO3_branch.rst'
+        ]
+    ],
+    'TYPO3_branch' => [
+        'restFiles' => [
+            'Deprecation-90007-GlobalConstantsTYPO3_versionAndTYPO3_branch.rst'
+        ]
+    ],
+    'TYPO3_copyright_year' => [
+        'restFiles' => [
+            'Deprecation-89866-Global-TYPO3-information-related-constants.rst'
+        ]
+    ],
+    'TYPO3_URL_GENERAL' => [
+        'restFiles' => [
+            'Deprecation-89866-Global-TYPO3-information-related-constants.rst'
+        ]
+    ],
+    'TYPO3_URL_LICENSE' => [
+        'restFiles' => [
+            'Deprecation-89866-Global-TYPO3-information-related-constants.rst'
+        ]
+    ],
+    'TYPO3_URL_EXCEPTION' => [
+        'restFiles' => [
+            'Deprecation-89866-Global-TYPO3-information-related-constants.rst'
+        ]
+    ],
+    'TYPO3_URL_DONATE' => [
+        'restFiles' => [
+            'Deprecation-89866-Global-TYPO3-information-related-constants.rst'
+        ]
+    ],
+    'TYPO3_URL_WIKI_OPCODECACHE' => [
+        'restFiles' => [
+            'Deprecation-89866-Global-TYPO3-information-related-constants.rst'
+        ]
+    ],
+    'FILE_DENY_PATTERN_DEFAULT' => [
+        'restFiles' => [
+            'Deprecation-90147-UnifiedFileNameValidator.rst'
+        ]
+    ],
+    'PHP_EXTENSIONS_DEFAULT' => [
+        'restFiles' => [
+            'Deprecation-90147-UnifiedFileNameValidator.rst'
+        ]
+    ],
 ];

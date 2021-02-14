@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Unit\DependencyInjection;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\DependencyInjection;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\DependencyInjection;
 
 use Prophecy\Prophecy\ObjectProphecy;
 use Psr\Container\ContainerExceptionInterface;
@@ -52,7 +54,7 @@ class FailsafeContainerTest extends UnitTestCase
 
     public function testImplementsInterface(): void
     {
-        self::assertInstanceOf(ContainerInterface::class, new Container);
+        self::assertInstanceOf(ContainerInterface::class, new Container());
     }
 
     public function testWithString(): void
@@ -376,7 +378,7 @@ class FailsafeContainerTest extends UnitTestCase
 
     public function testNullContainer(): void
     {
-        $container = new Container;
+        $container = new Container();
         self::assertFalse($container->has('foo'));
     }
 
@@ -410,7 +412,7 @@ class FailsafeContainerTest extends UnitTestCase
             ],
             [
                 // Invokable
-                new class {
+                new class() {
                     public function __invoke(): Service
                     {
                         return new Service();
@@ -420,7 +422,7 @@ class FailsafeContainerTest extends UnitTestCase
             [
                 // Non static factory
                 [
-                    new class {
+                    new class() {
                         public function factory(): Service
                         {
                             return new Service();

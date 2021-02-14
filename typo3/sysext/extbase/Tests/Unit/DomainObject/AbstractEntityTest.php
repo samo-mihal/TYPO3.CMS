@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Extbase\Tests\Unit\DomainObject;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,9 @@ namespace TYPO3\CMS\Extbase\Tests\Unit\DomainObject;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Tests\Unit\DomainObject;
+
+use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -27,7 +30,7 @@ class AbstractEntityTest extends UnitTestCase
      */
     public function objectIsNotDirtyAfterCallingMemorizeCleanStateWithSimpleProperties()
     {
-        $domainObject = new class extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity {
+        $domainObject = new class() extends AbstractEntity {
             public $foo = 'Test';
             public $bar = 'It is raining outside';
         };
@@ -41,7 +44,7 @@ class AbstractEntityTest extends UnitTestCase
      */
     public function objectIsDirtyAfterCallingMemorizeCleanStateWithSimplePropertiesAndModifyingThePropertiesAfterwards()
     {
-        $domainObject = new class extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity {
+        $domainObject = new class() extends AbstractEntity {
             public $foo = 'Test';
             public $bar = 'It is raining outside';
         };
@@ -56,7 +59,7 @@ class AbstractEntityTest extends UnitTestCase
      */
     public function objectIsNotDirtyAfterCallingMemorizeCleanStateWithObjectProperties()
     {
-        $domainObject = new class extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity {
+        $domainObject = new class() extends AbstractEntity {
             public $foo;
             public $bar = 'It is raining outside';
         };
@@ -71,12 +74,12 @@ class AbstractEntityTest extends UnitTestCase
      */
     public function objectIsNotDirtyAfterCallingMemorizeCleanStateWithOtherDomainObjectsAsProperties()
     {
-        $domainObject = new class extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity {
+        $domainObject = new class() extends AbstractEntity {
             public $foo;
             public $bar;
         };
 
-        $secondDomainObject = new class extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity {
+        $secondDomainObject = new class() extends AbstractEntity {
             public $foo;
             public $bar;
         };

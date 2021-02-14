@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Tree;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,13 +13,15 @@ namespace TYPO3\CMS\Backend\Tree;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Tree;
+
 /**
  * Sorted Tree Node Collection
  *
  * Note: This collection works only with integers as offset keys and not
  * with much datasets. You have been warned!
  */
-class SortedTreeNodeCollection extends \TYPO3\CMS\Backend\Tree\TreeNodeCollection
+class SortedTreeNodeCollection extends TreeNodeCollection
 {
     /**
      * Checks if a specific node is inside the collection
@@ -28,7 +29,7 @@ class SortedTreeNodeCollection extends \TYPO3\CMS\Backend\Tree\TreeNodeCollectio
      * @param \TYPO3\CMS\Backend\Tree\TreeNode $node
      * @return bool
      */
-    public function contains(\TYPO3\CMS\Backend\Tree\TreeNode $node)
+    public function contains(TreeNode $node)
     {
         return $this->offsetOf($node) !== -1;
     }
@@ -39,7 +40,7 @@ class SortedTreeNodeCollection extends \TYPO3\CMS\Backend\Tree\TreeNodeCollectio
      * @param \TYPO3\CMS\Backend\Tree\TreeNode $node
      * @return int
      */
-    protected function offsetOf(\TYPO3\CMS\Backend\Tree\TreeNode $node)
+    protected function offsetOf(TreeNode $node)
     {
         return $this->binarySearch($node, 0, $this->count() - 1);
     }
@@ -52,10 +53,10 @@ class SortedTreeNodeCollection extends \TYPO3\CMS\Backend\Tree\TreeNodeCollectio
      * @param int $end
      * @return int
      */
-    protected function binarySearch(\TYPO3\CMS\Backend\Tree\TreeNode $node, $start, $end)
+    protected function binarySearch(TreeNode $node, $start, $end)
     {
         if (!$start && $end - $start >= 2 || $end - $start > 2) {
-            $divider = ceil(($end - $start) / 2);
+            $divider = (int)ceil(($end - $start) / 2);
             if ($this->offsetGet($divider)->equals($node)) {
                 return $divider;
             }

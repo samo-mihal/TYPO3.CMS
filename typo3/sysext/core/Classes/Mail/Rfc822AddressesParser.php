@@ -1,4 +1,5 @@
 <?php
+
 namespace TYPO3\CMS\Core\Mail;
 
 /**
@@ -46,7 +47,7 @@ namespace TYPO3\CMS\Core\Mail;
  *
  * What is it?
  *
- * This class will take an address string, and parse it into it's consituent
+ * This class will take an address string, and parse it into it's constituent
  * parts, be that either addresses, groups, or combinations. Nested groups
  * are not supported. The structure it returns is pretty straight forward,
  * and is similar to that provided by the imap_rfc822_parse_adrlist(). Use
@@ -178,20 +179,20 @@ class Rfc822AddressesParser
         $this->error = null;
         $this->index = null;
         // Unfold any long lines in $this->address.
-        $this->address = preg_replace('/\\r?\\n/', '
+        $this->address = (string)preg_replace('/\\r?\\n/', '
 ', $this->address);
-        $this->address = preg_replace('/\\r\\n(\\t| )+/', ' ', $this->address);
+        $this->address = (string)preg_replace('/\\r\\n(\\t| )+/', ' ', $this->address);
         while ($this->address = $this->_splitAddresses($this->address)) {
         }
         if ($this->address === false || isset($this->error)) {
-            throw new \InvalidArgumentException($this->error, 1294681466);
+            throw new \InvalidArgumentException((string)$this->error, 1294681466);
         }
         // Validate each address individually.  If we encounter an invalid
         // address, stop iterating and return an error immediately.
         foreach ($this->addresses as $address) {
             $valid = $this->_validateAddress($address);
             if ($valid === false || isset($this->error)) {
-                throw new \InvalidArgumentException($this->error, 1294681467);
+                throw new \InvalidArgumentException((string)$this->error, 1294681467);
             }
             $this->structure = array_merge($this->structure, $valid);
         }
@@ -207,6 +208,8 @@ class Rfc822AddressesParser
      */
     protected function _splitAddresses($address)
     {
+        $split_char = '';
+        $is_group = false;
         if (!empty($this->limit) && count($this->addresses) == $this->limit) {
             return '';
         }
@@ -220,7 +223,7 @@ class Rfc822AddressesParser
             return false;
         }
         // Split the string based on the above ten or so lines.
-        $parts = explode($split_char, $address);
+        $parts = explode($split_char, $address) ?: [];
         $string = $this->_splitCheck($parts, $split_char);
         // If a group...
         if ($is_group) {
@@ -367,13 +370,13 @@ class Rfc822AddressesParser
      *
      * @internal
      * @param string $string The string to check.
-     * @param int &$num	The number of occurrences.
+     * @param int $num	The number of occurrences.
      * @param string $char   The character to count.
      * @return int The number of occurrences of $char in $string, adjusted for backslashes.
      */
     protected function _hasUnclosedBracketsSub($string, &$num, $char)
     {
-        $parts = explode($char, $string);
+        $parts = explode($char, $string) ?: [];
         $partsCounter = count($parts);
         for ($i = 0; $i < $partsCounter; $i++) {
             if (substr($parts[$i], -1) === '\\' || $this->_hasUnclosedQuotes($parts[$i])) {
@@ -395,6 +398,7 @@ class Rfc822AddressesParser
      */
     protected function _validateAddress($address)
     {
+        $structure = [];
         $is_group = false;
         $addresses = [];
         if ($address['group']) {
@@ -531,9 +535,9 @@ class Rfc822AddressesParser
     protected function _validateQuotedString($qstring)
     {
         // Leading and trailing "
-        $qstring = substr($qstring, 1, -1);
+        $qstring = (string)substr($qstring, 1, -1);
         // Perform check, removing quoted characters first.
-        return !preg_match('/[\\x0D\\\\"]/', preg_replace('/\\\\./', '', $qstring));
+        return !preg_match('/[\\x0D\\\\"]/', (string)preg_replace('/\\\\./', '', $qstring));
     }
 
     /**
@@ -541,11 +545,13 @@ class Rfc822AddressesParser
      * mailbox =   addr-spec		 ; simple address
      * phrase route-addr ; name and route-addr
      *
-     * @param string &$mailbox The string to check.
+     * @param string $mailbox The string to check.
      * @return bool Success or failure.
      */
     protected function validateMailbox(&$mailbox)
     {
+        $route_addr = null;
+        $addr_spec = [];
         // A couple of defaults.
         $phrase = '';
         $comments = [];
@@ -620,6 +626,8 @@ class Rfc822AddressesParser
      */
     protected function _validateRouteAddr($route_addr)
     {
+        $route = '';
+        $return = [];
         // Check for colon.
         if (strpos($route_addr, ':') !== false) {
             $parts = explode(':', $route_addr);
@@ -630,7 +638,7 @@ class Rfc822AddressesParser
         // If $route is same as $route_addr then the colon was in
         // quotes or brackets or, of course, non existent.
         if ($route === $route_addr) {
-            unset($route);
+            $route = '';
             $addr_spec = $route_addr;
             if (($addr_spec = $this->_validateAddrSpec($addr_spec)) === false) {
                 return false;
@@ -646,11 +654,7 @@ class Rfc822AddressesParser
                 return false;
             }
         }
-        if (isset($route)) {
-            $return['adl'] = $route;
-        } else {
-            $return['adl'] = '';
-        }
+        $return['adl'] = $route;
         $return = array_merge($return, $addr_spec);
         return $return;
     }
@@ -661,7 +665,7 @@ class Rfc822AddressesParser
      *
      * @internal
      * @param string $route The string to check.
-     * @return mixed False on failure, or the validated $route on success.
+     * @return string|bool False on failure, or the validated $route on success.
      */
     protected function _validateRoute($route)
     {
@@ -688,6 +692,7 @@ class Rfc822AddressesParser
      */
     protected function _validateDomain($domain)
     {
+        $sub_domains = [];
         // Note the different use of $subdomains and $sub_domains
         $subdomains = explode('.', $domain);
         while (!empty($subdomains)) {

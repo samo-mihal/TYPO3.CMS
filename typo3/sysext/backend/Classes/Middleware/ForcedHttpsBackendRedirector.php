@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Backend\Middleware;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Backend\Middleware;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Middleware;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -45,8 +47,8 @@ class ForcedHttpsBackendRedirector implements MiddlewareInterface
             } else {
                 $sslPortSuffix = '';
             }
-            list(, $url) = explode('://', $request->getAttribute('normalizedParams')->getSiteUrl() . TYPO3_mainDir, 2);
-            list($server, $address) = explode('/', $url, 2);
+            [, $url] = explode('://', $request->getAttribute('normalizedParams')->getSiteUrl() . TYPO3_mainDir, 2);
+            [$server, $address] = explode('/', $url, 2);
             return new RedirectResponse('https://' . $server . $sslPortSuffix . '/' . $address);
         }
 

@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Extbase\Tests\Unit\Validation\Validator;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Extbase\Tests\Unit\Validation\Validator;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Extbase\Tests\Unit\Validation\Validator;
 
 use TYPO3\CMS\Extbase\Validation\Validator\DateTimeValidator;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
@@ -45,14 +47,14 @@ class DateTimeValidatorTest extends UnitTestCase
                 new \DateTime(),
             ],
             'Extended ' . \DateTime::class => [
-                new class extends \DateTime {
+                new class() extends \DateTime {
                 },
             ],
             \DateTimeImmutable::class => [
                 new \DateTimeImmutable(),
             ],
             'Extended ' . \DateTimeImmutable::class => [
-                new class extends \DateTimeImmutable {
+                new class() extends \DateTimeImmutable {
                 },
             ],
         ];

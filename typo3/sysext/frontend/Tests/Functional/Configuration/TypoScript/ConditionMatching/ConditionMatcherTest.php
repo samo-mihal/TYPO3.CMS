@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Frontend\Tests\Functional\Configuration\TypoScript\ConditionMatching;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,16 +15,20 @@ namespace TYPO3\CMS\Frontend\Tests\Functional\Configuration\TypoScript\Condition
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Frontend\Tests\Functional\Configuration\TypoScript\ConditionMatching;
+
 use Prophecy\Argument;
+use Psr\Log\NullLogger;
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Context\UserAspect;
+use TYPO3\CMS\Core\Context\WorkspaceAspect;
 use TYPO3\CMS\Core\Domain\Repository\PageRepository;
 use TYPO3\CMS\Core\Http\ServerRequest;
-use TYPO3\CMS\Core\Log\Logger;
 use TYPO3\CMS\Core\Routing\PageArguments;
 use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\TypoScript\TemplateService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\CMS\Frontend\Authentication\FrontendUserAuthentication;
 use TYPO3\CMS\Frontend\Configuration\TypoScript\ConditionMatching\ConditionMatcher;
 use TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController;
@@ -81,7 +85,7 @@ class ConditionMatcherTest extends FunctionalTestCase
      *
      * @test
      */
-    public function usergroupConditionDoesNotMatchDefaulUserGroupIds(): void
+    public function usergroupConditionDoesNotMatchDefaultUserGroupIds(): void
     {
         $this->setupFrontendUserContext([0, -1]);
         $subject = $this->getConditionMatcher();
@@ -159,6 +163,53 @@ class ConditionMatcherTest extends FunctionalTestCase
     }
 
     /**
+     * Tests whether checking for workspace id matches current workspace id
+     *
+     * @test
+     */
+    public function workspaceIdConditionMatchesCurrentWorkspaceId(): void
+    {
+        $this->setUpWorkspaceAspect(0);
+        $subject = $this->getConditionMatcher();
+        self::assertTrue($subject->match('[workspace.workspaceId === 0]'));
+        self::assertTrue($subject->match('[workspace.workspaceId == 0]'));
+        self::assertTrue($subject->match('[workspace.workspaceId == "0"]'));
+        self::assertTrue($subject->match('[workspace.workspaceId == \'0\']'));
+    }
+
+    /**
+     * Tests whether checking if workspace is live matches
+     *
+     * @test
+     */
+    public function workspaceIsLiveMatchesCorrectWorkspaceState(): void
+    {
+        $this->setUpWorkspaceAspect(1);
+        $subject = $this->getConditionMatcher();
+        self::assertFalse($subject->match('[workspace.isLive]'));
+        self::assertFalse($subject->match('[workspace.isLive === true]'));
+        self::assertFalse($subject->match('[workspace.isLive == true]'));
+        self::assertFalse($subject->match('[workspace.isLive !== false]'));
+        self::assertFalse($subject->match('[workspace.isLive != false]'));
+    }
+
+    /**
+     * Tests whether checking if workspace is offline matches
+     *
+     * @test
+     */
+    public function workspaceIsOfflineMatchesCorrectWorkspaceState(): void
+    {
+        $this->setUpWorkspaceAspect(1);
+        $subject = $this->getConditionMatcher();
+        self::assertTrue($subject->match('[workspace.isOffline]'));
+        self::assertTrue($subject->match('[workspace.isOffline === true]'));
+        self::assertTrue($subject->match('[workspace.isOffline == true]'));
+        self::assertTrue($subject->match('[workspace.isOffline !== false]'));
+        self::assertTrue($subject->match('[workspace.isOffline != false]'));
+    }
+
+    /**
      * Tests whether treeLevel comparison matches.
      *
      * @test
@@ -196,9 +247,19 @@ class ConditionMatcherTest extends FunctionalTestCase
     public function PIDupinRootlineConditionMatchesSinglePageIdInRootline(): void
     {
         $subject = $this->getConditionMatcher();
-        self::assertTrue($subject->match('[2 in tree.rootLineIds]'));
-        self::assertTrue($subject->match('["2" in tree.rootLineIds]'));
-        self::assertTrue($subject->match('[\'2\' in tree.rootLineIds]'));
+        self::assertTrue($subject->match('[2 in tree.rootLineParentIds]'));
+        self::assertTrue($subject->match('["2" in tree.rootLineParentIds]'));
+        self::assertTrue($subject->match('[\'2\' in tree.rootLineParentIds]'));
+    }
+
+    /**
+     * Tests whether a page id is not found in the previous rootline entries.
+     *
+     * @test
+     */
+    public function PIDupinRootlineConditionDoesNotMatchLastPageIdInRootline(): void
+    {
+        self::assertFalse($this->getConditionMatcher()->match('[3 in tree.rootLineParentIds]'));
     }
 
     /**
@@ -208,7 +269,7 @@ class ConditionMatcherTest extends FunctionalTestCase
      */
     public function PIDupinRootlineConditionDoesNotMatchPageIdNotInRootline(): void
     {
-        self::assertFalse($this->getConditionMatcher()->match('[999 in tree.rootLineIds]'));
+        self::assertFalse($this->getConditionMatcher()->match('[999 in tree.rootLineParentIds]'));
     }
 
     /**
@@ -317,7 +378,7 @@ class ConditionMatcherTest extends FunctionalTestCase
      */
     public function genericGetVariablesSucceedsWithNamespaceENV(): void
     {
-        $testKey = $this->getUniqueId('test');
+        $testKey = StringUtility::getUniqueId('test');
         putenv($testKey . '=testValue');
         self::assertTrue($this->getConditionMatcher()->match('[getenv("' . $testKey . '") == "testValue"]'));
     }
@@ -424,7 +485,7 @@ class ConditionMatcherTest extends FunctionalTestCase
     protected function getConditionMatcher(): ConditionMatcher
     {
         $conditionMatcher = new ConditionMatcher();
-        $conditionMatcher->setLogger($this->prophesize(Logger::class)->reveal());
+        $conditionMatcher->setLogger(new NullLogger());
 
         return $conditionMatcher;
     }
@@ -435,10 +496,20 @@ class ConditionMatcherTest extends FunctionalTestCase
     protected function setupFrontendUserContext(array $groups = []): void
     {
         $frontendUser = new FrontendUserAuthentication();
-        $frontendUser->user['uid'] = 13;
+        $frontendUser->user['uid'] = empty($groups) ? 0 : 13;
         $frontendUser->groupData['uid'] = $groups;
 
         GeneralUtility::makeInstance(Context::class)->setAspect('frontend.user', new UserAspect($frontendUser, $groups));
+    }
+
+    /**
+     * Set up workspace aspect.
+     *
+     * @param int $workspaceId
+     */
+    protected function setUpWorkspaceAspect(int $workspaceId): void
+    {
+        GeneralUtility::makeInstance(Context::class)->setAspect('workspace', new WorkspaceAspect($workspaceId));
     }
 
     /**
@@ -470,9 +541,9 @@ class ConditionMatcherTest extends FunctionalTestCase
         $GLOBALS['TSFE']->sys_page = GeneralUtility::makeInstance(PageRepository::class);
         $GLOBALS['TSFE']->tmpl = GeneralUtility::makeInstance(TemplateService::class);
         $GLOBALS['TSFE']->tmpl->rootLine = [
-            2 => ['uid' => 3, 'pid' => 2],
+            0 => ['uid' => 1, 'pid' => 0],
             1 => ['uid' => 2, 'pid' => 1],
-            0 => ['uid' => 1, 'pid' => 0]
+            2 => ['uid' => 3, 'pid' => 2],
         ];
     }
 }

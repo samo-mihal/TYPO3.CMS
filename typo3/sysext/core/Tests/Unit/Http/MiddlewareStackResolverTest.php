@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Unit\Http;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\Http;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\Http;
 
 use ArrayObject;
 use Prophecy\Argument;
@@ -64,7 +66,7 @@ class MiddlewareStackResolverTest extends UnitTestCase
      */
     public function resolveReturnsEmptyMiddlewareStackForZeroPackages()
     {
-        $middlewares = new ArrayObject;
+        $middlewares = new ArrayObject();
         $containerProphecy = $this->prophesize();
         $containerProphecy->willImplement(ContainerInterface::class);
         $containerProphecy->get('middlewares')->willReturn($middlewares);

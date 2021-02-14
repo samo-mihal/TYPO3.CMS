@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Validation\Validator;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Extbase\Validation\Validator;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Extbase\Validation\Validator;
 
 /**
  * Validator for DateTime/DateTimeImmutable objects.
@@ -38,7 +39,7 @@ class DateTimeValidator extends AbstractValidator
                 [
                     gettype($value)
                 ]
-            ),
+            ) ?? '',
             1238087674,
             [gettype($value)]
         );

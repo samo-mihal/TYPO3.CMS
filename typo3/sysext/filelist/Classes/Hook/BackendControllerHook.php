@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Filelist\Hook;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,7 +13,10 @@ namespace TYPO3\CMS\Filelist\Hook;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Filelist\Hook;
+
 use TYPO3\CMS\Backend\Controller\BackendController;
+use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Core\Page\PageRenderer;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -34,7 +36,7 @@ class BackendControllerHook
     {
         $pageRenderer = GeneralUtility::makeInstance(PageRenderer::class);
         /** @var \TYPO3\CMS\Backend\Routing\UriBuilder $uriBuilder */
-        $uriBuilder = GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Routing\UriBuilder::class);
+        $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
         $pageRenderer->addInlineSetting('FileRename', 'moduleUrl', (string)$uriBuilder->buildUriFromRoute('file_rename'));
         $pageRenderer->addInlineSetting('FileEdit', 'moduleUrl', (string)$uriBuilder->buildUriFromRoute('file_edit'));
         $pageRenderer->addInlineSetting('FileUpload', 'moduleUrl', (string)$uriBuilder->buildUriFromRoute('file_upload'));

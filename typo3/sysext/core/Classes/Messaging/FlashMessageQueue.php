@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Messaging;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,9 +13,14 @@ namespace TYPO3\CMS\Core\Messaging;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Messaging;
+
 use TYPO3\CMS\Core\Authentication\AbstractUserAuthentication;
+use TYPO3\CMS\Core\Exception;
 use TYPO3\CMS\Core\Messaging\Renderer\FlashMessageRendererInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Frontend\Authentication\FrontendUserAuthentication;
+use TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController;
 
 /**
  * A class which collects and renders flash messages.
@@ -57,7 +61,7 @@ class FlashMessageQueue extends \SplQueue implements \JsonSerializable
     public function enqueue($message): FlashMessageQueue
     {
         if (!($message instanceof FlashMessage)) {
-            throw new \TYPO3\CMS\Core\Exception(
+            throw new Exception(
                 'FlashMessageQueue::enqueue() expects an object of type \TYPO3\CMS\Core\Messaging\FlashMessage but got type "' . (is_object($message) ? get_class($message) : gettype($message)) . '"',
                 1376833554
             );
@@ -198,7 +202,10 @@ class FlashMessageQueue extends \SplQueue implements \JsonSerializable
      */
     protected function getUserByContext()
     {
-        return TYPO3_MODE === 'BE' ? $GLOBALS['BE_USER'] : $GLOBALS['TSFE']->fe_user;
+        if (($GLOBALS['TSFE'] ?? null) instanceof TypoScriptFrontendController && $GLOBALS['TSFE']->fe_user instanceof FrontendUserAuthentication) {
+            return $GLOBALS['TSFE']->fe_user;
+        }
+        return $GLOBALS['BE_USER'];
     }
 
     /**

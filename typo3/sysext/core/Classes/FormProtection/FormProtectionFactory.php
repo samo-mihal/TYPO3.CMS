@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\FormProtection;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Core\FormProtection;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\FormProtection;
+
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
@@ -22,6 +23,7 @@ use TYPO3\CMS\Core\Messaging\FlashMessageService;
 use TYPO3\CMS\Core\Registry;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Frontend\Authentication\FrontendUserAuthentication;
+use TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController;
 
 /**
  * This class creates and manages instances of the various form protection
@@ -67,7 +69,7 @@ class FormProtectionFactory
      * @param string $classNameOrType Name of a form protection class, or one
      *                                of the pre-defined form protection types:
      *                                frontend, backend, installtool
-     * @param array|mixed[] $constructorArguments Arguments for the class-constructor
+     * @param array<int,mixed> $constructorArguments Arguments for the class-constructor
      * @return \TYPO3\CMS\Core\FormProtection\AbstractFormProtection the requested instance
      */
     public static function get($classNameOrType = 'default', ...$constructorArguments)
@@ -149,7 +151,7 @@ class FormProtectionFactory
      */
     protected static function isFrontendSession()
     {
-        return TYPO3_MODE === 'FE' && is_object($GLOBALS['TSFE']) && $GLOBALS['TSFE']->fe_user instanceof FrontendUserAuthentication && isset($GLOBALS['TSFE']->fe_user->user['uid']);
+        return ($GLOBALS['TSFE'] ?? null) instanceof TypoScriptFrontendController && $GLOBALS['TSFE']->fe_user instanceof FrontendUserAuthentication && isset($GLOBALS['TSFE']->fe_user->user['uid']);
     }
 
     /**
@@ -179,7 +181,7 @@ class FormProtectionFactory
      * and stores it internally.
      *
      * @param string $className
-     * @param array|mixed[] $constructorArguments
+     * @param array<int,mixed> $constructorArguments
      * @throws \InvalidArgumentException
      * @return AbstractFormProtection
      */

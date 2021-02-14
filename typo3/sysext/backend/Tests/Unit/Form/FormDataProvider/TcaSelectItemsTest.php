@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
 
 use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Driver\Statement;
@@ -37,10 +38,12 @@ use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Messaging\FlashMessageQueue;
 use TYPO3\CMS\Core\Messaging\FlashMessageService;
 use TYPO3\CMS\Core\Resource\FileRepository;
+use TYPO3\CMS\Core\Resource\ResourceStorage;
 use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\ArrayUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -92,7 +95,7 @@ class TcaSelectItemsTest extends UnitTestCase
      * @param string $tableName
      * @return array
      */
-    protected function mockDatabaseConnection($tableName = 'fTable')
+    protected function mockDatabaseConnection($tableName = 'fTable'): array
     {
         $connectionProphet = $this->prophesize(Connection::class);
         $connectionProphet->quote(Argument::cetera())->will(function ($arguments) {
@@ -129,9 +132,9 @@ class TcaSelectItemsTest extends UnitTestCase
      * Mock a doctrine database connection with all expectations
      * required for the processSelectField* tests.
      */
-    protected function mockDatabaseConnectionForProcessSelectField()
+    protected function mockDatabaseConnectionForProcessSelectField(): void
     {
-        list($queryBuilderProphet, $connectionPoolProphet) = $this->mockDatabaseConnection('foreignTable');
+        [$queryBuilderProphet, $connectionPoolProphet] = $this->mockDatabaseConnection('foreignTable');
 
         /** @var Statement|ObjectProphecy $statementProphet */
         $statementProphet = $this->prophesize(Statement::class);
@@ -167,7 +170,7 @@ class TcaSelectItemsTest extends UnitTestCase
     /**
      * @test
      */
-    public function addDataKeepExistingItems()
+    public function addDataKeepExistingItems(): void
     {
         $input = [
             'tableName' => 'aTable',
@@ -200,13 +203,13 @@ class TcaSelectItemsTest extends UnitTestCase
         ];
 
         $expected = $input;
-        self::assertSame($expected, (new TcaSelectItems)->addData($input));
+        self::assertSame($expected, (new TcaSelectItems())->addData($input));
     }
 
     /**
      * @test
      */
-    public function addDataThrowsExceptionIfAnItemIsNotAnArray()
+    public function addDataThrowsExceptionIfAnItemIsNotAnArray(): void
     {
         $input = [
             'tableName' => 'aTable',
@@ -228,13 +231,13 @@ class TcaSelectItemsTest extends UnitTestCase
         $this->expectException(\UnexpectedValueException::class);
         $this->expectExceptionCode(1439288036);
 
-        (new TcaSelectItems)->addData($input);
+        (new TcaSelectItems())->addData($input);
     }
 
     /**
      * @test
      */
-    public function addDataTranslatesItemLabels()
+    public function addDataTranslatesItemLabels(): void
     {
         $input = [
             'tableName' => 'aTable',
@@ -271,16 +274,94 @@ class TcaSelectItemsTest extends UnitTestCase
         $expected['processedTca']['columns']['aField']['config']['items'][0][0] = 'translated';
         $expected['processedTca']['columns']['aField']['config']['items'][0][2] = null;
         $expected['processedTca']['columns']['aField']['config']['items'][0][3] = null;
+        $expected['processedTca']['columns']['aField']['config']['items'][0][4] = null;
 
         $expected['databaseRow']['aField'] = ['aValue'];
 
-        self::assertSame($expected, (new TcaSelectItems)->addData($input));
+        self::assertSame($expected, (new TcaSelectItems())->addData($input));
     }
 
     /**
      * @test
      */
-    public function addDataKeepsIconFromItem()
+    public function addDataAddsDividersIfItemGroupsAreDefined()
+    {
+        $input = [
+            'tableName' => 'aTable',
+            'databaseRow' => [
+                'aField' => 'aValue',
+            ],
+            'processedTca' => [
+                'columns' => [
+                    'aField' => [
+                        'config' => [
+                            'type' => 'select',
+                            'renderType' => 'selectSingle',
+                            'items' => [
+                                [
+                                    'aLabel',
+                                    'aValue',
+                                    'an-icon-reference',
+                                    'non-existing-group',
+                                    null,
+                                ],
+                                [
+                                    'anotherLabel',
+                                    'anotherValue',
+                                    'an-icon-reference',
+                                    'example-group',
+                                    null,
+                                ],
+                            ],
+                            'itemGroups' => [
+                                'example-group' => 'My Example Group'
+                            ],
+                            'maxitems' => 99999,
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $expected = $input;
+        $expected['databaseRow']['aField'] = ['aValue'];
+        $expected['processedTca']['columns']['aField']['config']['items'] = [
+            [
+                'My Example Group',
+                '--div--',
+                null,
+                'example-group',
+                null,
+            ],
+            [
+                'anotherLabel',
+                'anotherValue',
+                'an-icon-reference',
+                'example-group',
+                null,
+            ],            [
+                'non-existing-group',
+                '--div--',
+                null,
+                'non-existing-group',
+                null,
+            ],
+            [
+                'aLabel',
+                'aValue',
+                'an-icon-reference',
+                'non-existing-group',
+                null,
+            ],
+        ];
+
+        self::assertSame($expected, (new TcaSelectItems())->addData($input));
+    }
+
+    /**
+     * @test
+     */
+    public function addDataKeepsIconFromItem(): void
     {
         $input = [
             'tableName' => 'aTable',
@@ -299,6 +380,7 @@ class TcaSelectItemsTest extends UnitTestCase
                                     1 => 'aValue',
                                     2 => 'an-icon-reference',
                                     3 => null,
+                                    4 => null,
                                 ],
                             ],
                             'maxitems' => 99999,
@@ -311,13 +393,13 @@ class TcaSelectItemsTest extends UnitTestCase
         $expected = $input;
         $expected['databaseRow']['aField'] = ['aValue'];
 
-        self::assertSame($expected, (new TcaSelectItems)->addData($input));
+        self::assertSame($expected, (new TcaSelectItems())->addData($input));
     }
 
     /**
      * @test
      */
-    public function addDataThrowsExceptionWithUnknownSpecialValue()
+    public function addDataThrowsExceptionWithUnknownSpecialValue(): void
     {
         $input = [
             'tableName' => 'aTable',
@@ -337,13 +419,13 @@ class TcaSelectItemsTest extends UnitTestCase
         $this->expectException(\UnexpectedValueException::class);
         $this->expectExceptionCode(1439298496);
 
-        (new TcaSelectItems)->addData($input);
+        (new TcaSelectItems())->addData($input);
     }
 
     /**
      * @test
      */
-    public function addDataAddsTablesWithSpecialTables()
+    public function addDataAddsTablesWithSpecialTables(): void
     {
         $input = [
             'databaseRow' => [
@@ -393,19 +475,20 @@ class TcaSelectItemsTest extends UnitTestCase
                 0 => 'aTitle',
                 1 => 'aTable',
                 2 => null,
-                3 => [
+                3 => null,
+                4 => [
                     'description' => 'aDescription',
                 ],
             ]
         ];
 
-        self::assertSame($expected, (new TcaSelectItems)->addData($input));
+        self::assertSame($expected, (new TcaSelectItems())->addData($input));
     }
 
     /**
      * @test
      */
-    public function addDataAddsTablesWithSpecialPageTypes()
+    public function addDataAddsTablesWithSpecialPageTypes(): void
     {
         $input = [
             'databaseRow' => [
@@ -458,16 +541,17 @@ class TcaSelectItemsTest extends UnitTestCase
                 1 => 'aValue',
                 2 => null,
                 3 => null,
+                4 => null,
             ]
         ];
 
-        self::assertSame($expected, (new TcaSelectItems)->addData($input));
+        self::assertSame($expected, (new TcaSelectItems())->addData($input));
     }
 
     /**
      * Data provider
      */
-    public function addDataAddsExcludeFieldsWithSpecialExcludeDataProvider()
+    public function addDataAddsExcludeFieldsWithSpecialExcludeDataProvider(): array
     {
         return [
             'Table with exclude and non exclude field returns exclude item' => [
@@ -495,12 +579,14 @@ class TcaSelectItemsTest extends UnitTestCase
                         1 => '--div--',
                         2 => null,
                         3 => null,
+                        4 => null,
                     ],
                     1 => [
                         0 => 'barColumnTitle (bar)',
                         1 => 'fooTable:bar',
                         2 => 'empty-empty',
                         3 => null,
+                        4 => null,
                     ],
                 ],
             ],
@@ -530,12 +616,14 @@ class TcaSelectItemsTest extends UnitTestCase
                         1 => '--div--',
                         2 => null,
                         3 => null,
+                        4 => null,
                     ],
                     1 => [
                         0 => 'barColumnTitle (bar)',
                         1 => 'fooTable:bar',
                         2 => 'empty-empty',
                         3 => null,
+                        4 => null,
                     ],
                 ],
             ],
@@ -586,7 +674,7 @@ class TcaSelectItemsTest extends UnitTestCase
      * @test
      * @dataProvider addDataAddsExcludeFieldsWithSpecialExcludeDataProvider
      */
-    public function addDataAddsExcludeFieldsWithSpecialExclude($tca, $expectedItems)
+    public function addDataAddsExcludeFieldsWithSpecialExclude($tca, $expectedItems): void
     {
         $input = [
             'tableName' => 'aTable',
@@ -605,7 +693,7 @@ class TcaSelectItemsTest extends UnitTestCase
         ];
         $GLOBALS['TCA'] = $tca;
 
-        $result = (new TcaSelectItems)->addData($input);
+        $result = (new TcaSelectItems())->addData($input);
 
         self::assertSame($expectedItems, $result['processedTca']['columns']['aField']['config']['items']);
     }
@@ -613,7 +701,7 @@ class TcaSelectItemsTest extends UnitTestCase
     /**
      * @test
      */
-    public function addDataAddsExcludeFieldsFromFlexWithSpecialExclude()
+    public function addDataAddsExcludeFieldsFromFlexWithSpecialExclude(): void
     {
         $input = [
             'tableName' => 'aTable',
@@ -675,16 +763,18 @@ class TcaSelectItemsTest extends UnitTestCase
                 1 => '--div--',
                 2 => null,
                 3 => null,
+                4 => null,
             ],
             1 => [
                 0 => 'flexInputLabel (input1)',
                 1 => 'fooTable:aFlexField;dummy;sDEF;input1',
                 2 => 'empty-empty',
                 3 => null,
+                4 => null,
             ],
         ];
 
-        $result = (new TcaSelectItems)->addData($input);
+        $result = (new TcaSelectItems())->addData($input);
 
         self::assertSame($expectedItems, $result['processedTca']['columns']['aField']['config']['items']);
     }
@@ -692,7 +782,7 @@ class TcaSelectItemsTest extends UnitTestCase
     /**
      * @test
      */
-    public function addDataAddsExplicitAllowFieldsWithSpecialExplicitValues()
+    public function addDataAddsExplicitAllowFieldsWithSpecialExplicitValues(): void
     {
         $input = [
             'tableName' => 'aTable',
@@ -746,16 +836,18 @@ class TcaSelectItemsTest extends UnitTestCase
                 1 => '--div--',
                 2 => null,
                 3 => null,
+                4 => null,
             ],
             1 => [
                 0 => '[allowMe] anItemTitle',
                 1 => 'fooTable:aField:anItemValue:ALLOW',
                 2 => 'status-status-permission-granted',
                 3 => null,
+                4 => null,
             ],
         ];
 
-        $result = (new TcaSelectItems)->addData($input);
+        $result = (new TcaSelectItems())->addData($input);
 
         self::assertSame($expectedItems, $result['processedTca']['columns']['aField']['config']['items']);
     }
@@ -763,7 +855,7 @@ class TcaSelectItemsTest extends UnitTestCase
     /**
      * @test
      */
-    public function addDataAddsExplicitDenyFieldsWithSpecialExplicitValues()
+    public function addDataAddsExplicitDenyFieldsWithSpecialExplicitValues(): void
     {
         $input = [
             'tableName' => 'aTable',
@@ -817,16 +909,18 @@ class TcaSelectItemsTest extends UnitTestCase
                 1 => '--div--',
                 2 => null,
                 3 => null,
+                4 => null,
             ],
             1 => [
                 0 => '[denyMe] anItemTitle',
                 1 => 'fooTable:aField:anItemValue:DENY',
                 2 => 'status-status-permission-denied',
                 3 => null,
+                4 => null,
             ],
         ];
 
-        $result = (new TcaSelectItems)->addData($input);
+        $result = (new TcaSelectItems())->addData($input);
 
         self::assertSame($expectedItems, $result['processedTca']['columns']['aField']['config']['items']);
     }
@@ -834,7 +928,7 @@ class TcaSelectItemsTest extends UnitTestCase
     /**
      * @test
      */
-    public function addDataAddsExplicitIndividualAllowFieldsWithSpecialExplicitValues()
+    public function addDataAddsExplicitIndividualAllowFieldsWithSpecialExplicitValues(): void
     {
         $input = [
             'tableName' => 'aTable',
@@ -903,22 +997,25 @@ class TcaSelectItemsTest extends UnitTestCase
                 1 => '--div--',
                 2 => null,
                 3 => null,
+                4 => null,
             ],
             1 => [
                 0 => '[allowMe] aItemTitle',
                 1 => 'fooTable:aField:aItemValue:ALLOW',
                 2 => 'status-status-permission-granted',
                 3 => null,
+                4 => null,
             ],
             2 => [
                 0 => '[allowMe] cItemTitle',
                 1 => 'fooTable:aField:cItemValue:ALLOW',
                 2 => 'status-status-permission-granted',
                 3 => null,
+                4 => null,
             ],
         ];
 
-        $result = (new TcaSelectItems)->addData($input);
+        $result = (new TcaSelectItems())->addData($input);
 
         self::assertSame($expectedItems, $result['processedTca']['columns']['aField']['config']['items']);
     }
@@ -926,7 +1023,7 @@ class TcaSelectItemsTest extends UnitTestCase
     /**
      * @test
      */
-    public function addDataAddsExplicitIndividualDenyFieldsWithSpecialExplicitValues()
+    public function addDataAddsExplicitIndividualDenyFieldsWithSpecialExplicitValues(): void
     {
         $input = [
             'tableName' => 'aTable',
@@ -995,22 +1092,25 @@ class TcaSelectItemsTest extends UnitTestCase
                 1 => '--div--',
                 2 => null,
                 3 => null,
+                4 => null,
             ],
             1 => [
                 0 => '[denyMe] aItemTitle',
                 1 => 'fooTable:aField:aItemValue:DENY',
                 2 => 'status-status-permission-denied',
                 3 => null,
+                4 => null,
             ],
             2 => [
                 0 => '[denyMe] cItemTitle',
                 1 => 'fooTable:aField:cItemValue:DENY',
                 2 => 'status-status-permission-denied',
                 3 => null,
+                4 => null,
             ],
         ];
 
-        $result = (new TcaSelectItems)->addData($input);
+        $result = (new TcaSelectItems())->addData($input);
 
         self::assertSame($expectedItems, $result['processedTca']['columns']['aField']['config']['items']);
     }
@@ -1018,7 +1118,7 @@ class TcaSelectItemsTest extends UnitTestCase
     /**
      * @test
      */
-    public function addDataAddsLanguagesWithSpecialLanguages()
+    public function addDataAddsLanguagesWithSpecialLanguages(): void
     {
         $input = [
             'tableName' => 'aTable',
@@ -1059,10 +1159,11 @@ class TcaSelectItemsTest extends UnitTestCase
                 1 => 13,
                 2 => 'flags-aFlag.gif',
                 3 => null,
+                4 => null,
             ],
         ];
 
-        $result = (new TcaSelectItems)->addData($input);
+        $result = (new TcaSelectItems())->addData($input);
 
         self::assertSame($expectedItems, $result['processedTca']['columns']['aField']['config']['items']);
     }
@@ -1070,7 +1171,7 @@ class TcaSelectItemsTest extends UnitTestCase
     /**
      * @test
      */
-    public function addDataAddsCustomOptionsWithSpecialCustom()
+    public function addDataAddsCustomOptionsWithSpecialCustom(): void
     {
         $input = [
             'tableName' => 'aTable',
@@ -1110,22 +1211,25 @@ class TcaSelectItemsTest extends UnitTestCase
                 1 => '--div--',
                 null,
                 null,
+                null,
             ],
             1 => [
                 0 => 'anItemTitle',
                 1 => 'aKey:anItemKey',
                 2 => 'empty-empty',
                 3 => null,
+                4 => null,
             ],
             2 => [
                 0 => 'anotherTitle',
                 1 => 'aKey:anotherKey',
                 2 => 'empty-empty',
-                3 => [ 'description' => 'aDescription' ],
+                3 => null,
+                4 => [ 'description' => 'aDescription' ],
             ],
         ];
 
-        $result = (new TcaSelectItems)->addData($input);
+        $result = (new TcaSelectItems())->addData($input);
 
         self::assertSame($expectedItems, $result['processedTca']['columns']['aField']['config']['items']);
     }
@@ -1133,7 +1237,7 @@ class TcaSelectItemsTest extends UnitTestCase
     /**
      * @test
      */
-    public function addDataAddsGroupItemsWithSpecialModListGroup()
+    public function addDataAddsGroupItemsWithSpecialModListGroup(): void
     {
         $input = [
             'tableName' => 'aTable',
@@ -1176,14 +1280,15 @@ class TcaSelectItemsTest extends UnitTestCase
                 0 => 'aModuleLabel',
                 1 => 'aModule',
                 2 => 'empty-empty',
-                3 => [
+                3 => null,
+                4 => [
                     'title' => 'aModuleTabLabel',
                     'description' => 'aModuleTabDescription',
                 ],
             ],
         ];
 
-        $result = (new TcaSelectItems)->addData($input);
+        $result = (new TcaSelectItems())->addData($input);
 
         $result['processedTca']['columns']['aField']['config']['items'][0][2] = str_replace([CR, LF, "\t"], '', $result['processedTca']['columns']['aField']['config']['items'][0][2]);
         self::assertSame($expectedItems, $result['processedTca']['columns']['aField']['config']['items']);
@@ -1192,9 +1297,9 @@ class TcaSelectItemsTest extends UnitTestCase
     /**
      * @test
      */
-    public function addDataAddsFileItemsWithConfiguredFileFolder()
+    public function addDataAddsFileItemsWithConfiguredFileFolder(): void
     {
-        $directory = $this->getUniqueId('test-') . '/';
+        $directory = StringUtility::getUniqueId('test-') . '/';
         $input = [
             'tableName' => 'aTable',
             'databaseRow' => [],
@@ -1227,16 +1332,18 @@ class TcaSelectItemsTest extends UnitTestCase
                 1 => 'anImage.gif',
                 2 => Environment::getVarPath() . '/' . $directory . 'anImage.gif',
                 3 => null,
+                4 => null,
             ],
             1 => [
                 0 => 'subdir/anotherImage.gif',
                 1 => 'subdir/anotherImage.gif',
                 2 => Environment::getVarPath() . '/' . $directory . 'subdir/anotherImage.gif',
                 3 => null,
+                4 => null,
             ],
         ];
 
-        $result = (new TcaSelectItems)->addData($input);
+        $result = (new TcaSelectItems())->addData($input);
 
         self::assertSame($expectedItems, $result['processedTca']['columns']['aField']['config']['items']);
     }
@@ -1244,7 +1351,7 @@ class TcaSelectItemsTest extends UnitTestCase
     /**
      * @test
      */
-    public function addDataThrowsExceptionForInvalidFileFolder()
+    public function addDataThrowsExceptionForInvalidFileFolder(): void
     {
         $input = [
             'tableName' => 'aTable',
@@ -1264,13 +1371,13 @@ class TcaSelectItemsTest extends UnitTestCase
 
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionCode(1479399227);
-        (new TcaSelectItems)->addData($input);
+        (new TcaSelectItems())->addData($input);
     }
 
     /**
      * @test
      */
-    public function addDataAddsItemsByAddItemsFromPageTsConfig()
+    public function addDataAddsItemsByAddItemsFromPageTsConfig(): void
     {
         $input = [
             'databaseRow' => [
@@ -1287,6 +1394,7 @@ class TcaSelectItemsTest extends UnitTestCase
                                 0 => [
                                     0 => 'keepMe',
                                     1 => 'keep',
+                                    null,
                                     null,
                                     null,
                                 ],
@@ -1316,15 +1424,16 @@ class TcaSelectItemsTest extends UnitTestCase
             1 => '1',
             null,
             null,
+            null,
         ];
 
-        self::assertEquals($expected, (new TcaSelectItems)->addData($input));
+        self::assertEquals($expected, (new TcaSelectItems())->addData($input));
     }
 
     /**
      * @test
      */
-    public function addDataAddsItemsByAddItemsWithDuplicateValuesFromPageTsConfig()
+    public function addDataAddsItemsByAddItemsWithDuplicateValuesFromPageTsConfig(): void
     {
         $input = [
             'databaseRow' => [
@@ -1341,6 +1450,7 @@ class TcaSelectItemsTest extends UnitTestCase
                                 0 => [
                                     0 => 'keepMe',
                                     1 => 'keep',
+                                    null,
                                     null,
                                     null,
                                 ],
@@ -1370,15 +1480,16 @@ class TcaSelectItemsTest extends UnitTestCase
             1 => 'keep',
             null,
             null,
+            null,
         ];
 
-        self::assertEquals($expected, (new TcaSelectItems)->addData($input));
+        self::assertEquals($expected, (new TcaSelectItems())->addData($input));
     }
 
     /**
      * Data provider
      */
-    public function addDataReplacesMarkersInForeignTableClauseDataProvider()
+    public function addDataReplacesMarkersInForeignTableClauseDataProvider(): array
     {
         return [
             'replace REC_FIELD' => [
@@ -1624,7 +1735,7 @@ class TcaSelectItemsTest extends UnitTestCase
      * @test
      * @dataProvider addDataReplacesMarkersInForeignTableClauseDataProvider
      */
-    public function addDataReplacesMarkersInForeignTableClause($foreignTableWhere, $expectedWhere, array $inputOverride)
+    public function addDataReplacesMarkersInForeignTableClause($foreignTableWhere, $expectedWhere, array $inputOverride): void
     {
         $input = [
             'tableName' => 'aTable',
@@ -1670,7 +1781,7 @@ class TcaSelectItemsTest extends UnitTestCase
         $fileRepositoryProphecy->findByRelation(Argument::cetera())->shouldNotBeCalled();
         GeneralUtility::setSingletonInstance(FileRepository::class, $fileRepositoryProphecy->reveal());
 
-        list($queryBuilderProphet, $connectionPoolProphet) = $this->mockDatabaseConnection();
+        [$queryBuilderProphet, $connectionPoolProphet] = $this->mockDatabaseConnection();
 
         /** @var Statement|ObjectProphecy $statementProphet */
         $statementProphet = $this->prophesize(Statement::class);
@@ -1696,7 +1807,7 @@ class TcaSelectItemsTest extends UnitTestCase
         $GLOBALS['BE_USER'] = $backendUserProphecy->reveal();
         $backendUserProphecy->getPagePermsClause(1)->shouldBeCalled()->willReturn(' 1=1');
 
-        (new TcaSelectItems)->addData($input);
+        (new TcaSelectItems())->addData($input);
     }
 
     /**
@@ -1722,13 +1833,13 @@ class TcaSelectItemsTest extends UnitTestCase
         $this->expectException(\UnexpectedValueException::class);
         $this->expectExceptionCode(1439569743);
 
-        (new TcaSelectItems)->addData($input);
+        (new TcaSelectItems())->addData($input);
     }
 
     /**
      * @test
      */
-    public function addDataForeignTableSplitsGroupOrderAndLimit()
+    public function addDataForeignTableSplitsGroupOrderAndLimit(): void
     {
         $input = [
             'tableName' => 'aTable',
@@ -1766,7 +1877,7 @@ class TcaSelectItemsTest extends UnitTestCase
         $GLOBALS['BE_USER'] = $backendUserProphecy->reveal();
         $backendUserProphecy->getPagePermsClause(1)->shouldBeCalled()->willReturn(' 1=1');
 
-        list($queryBuilderProphet, $connectionPoolProphet) = $this->mockDatabaseConnection();
+        [$queryBuilderProphet, $connectionPoolProphet] = $this->mockDatabaseConnection();
 
         /** @var Statement|ObjectProphecy $statementProphet */
         $statementProphet = $this->prophesize(Statement::class);
@@ -1787,13 +1898,13 @@ class TcaSelectItemsTest extends UnitTestCase
         GeneralUtility::addInstance(ConnectionPool::class, $connectionPoolProphet->reveal());
         GeneralUtility::addInstance(ConnectionPool::class, $connectionPoolProphet->reveal());
 
-        (new TcaSelectItems)->addData($input);
+        (new TcaSelectItems())->addData($input);
     }
 
     /**
      * @test
      */
-    public function addDataForeignTableQueuesFlashMessageOnDatabaseError()
+    public function addDataForeignTableQueuesFlashMessageOnDatabaseError(): void
     {
         $input = [
             'databaseRow' => [
@@ -1815,6 +1926,7 @@ class TcaSelectItemsTest extends UnitTestCase
                                     1 => 'itemValue',
                                     2 => null,
                                     3 => null,
+                                    4 => null,
                                 ],
                             ],
                             'maxitems' => 99999,
@@ -1832,10 +1944,7 @@ class TcaSelectItemsTest extends UnitTestCase
         $GLOBALS['BE_USER'] = $backendUserProphecy->reveal();
         $backendUserProphecy->getPagePermsClause(1)->shouldBeCalled()->willReturn(' 1=1');
 
-        list($queryBuilderProphet, $connectionPoolProphet) = $this->mockDatabaseConnection();
-
-        /** @var Statement|ObjectProphecy $statementProphet */
-        $statementProphet = $this->prophesize(Statement::class);
+        [$queryBuilderProphet, $connectionPoolProphet] = $this->mockDatabaseConnection();
 
         $queryBuilderProphet->select('fTable.uid')->shouldBeCalled()->willReturn($queryBuilderProphet->reveal());
         $queryBuilderProphet->from('fTable')->shouldBeCalled()->willReturn($queryBuilderProphet->reveal());
@@ -1868,13 +1977,34 @@ class TcaSelectItemsTest extends UnitTestCase
         $expected = $input;
         $expected['databaseRow']['aField'] = [];
 
-        self::assertEquals($expected, (new TcaSelectItems)->addData($input));
+        self::assertEquals($expected, (new TcaSelectItems())->addData($input));
+    }
+
+    /**
+     * @return array
+     */
+    private function mockForeignTableItemsQuery(): array
+    {
+        [$queryBuilderProphet, $connectionPoolProphet] = $this->mockDatabaseConnection();
+
+        /** @var Statement|ObjectProphecy $statementProphet */
+        $statementProphet = $this->prophesize(Statement::class);
+
+        $queryBuilderProphet->select('fTable.uid', 'fTable.labelField')->shouldBeCalled()->willReturn($queryBuilderProphet->reveal());
+        $queryBuilderProphet->from('fTable')->shouldBeCalled()->willReturn($queryBuilderProphet->reveal());
+        $queryBuilderProphet->from('pages')->shouldBeCalled()->willReturn($queryBuilderProphet->reveal());
+        $queryBuilderProphet->where('')->shouldBeCalled()->willReturn($queryBuilderProphet->reveal());
+        $queryBuilderProphet->andWhere(' 1=1')->shouldBeCalled()->willReturn($queryBuilderProphet->reveal());
+        $queryBuilderProphet->andWhere('`pages.uid` = `fTable.pid`')->shouldBeCalled()->willReturn($queryBuilderProphet->reveal());
+        $queryBuilderProphet->execute()->shouldBeCalled()->willReturn($statementProphet->reveal());
+
+        return [$connectionPoolProphet, $statementProphet];
     }
 
     /**
      * @test
      */
-    public function addDataForeignTableHandlesForeignTableRows()
+    public function addDataForeignTableHandlesForeignTableRows(): void
     {
         $input = [
             'databaseRow' => [
@@ -1911,23 +2041,15 @@ class TcaSelectItemsTest extends UnitTestCase
         $fileRepositoryProphecy->findByRelation(Argument::cetera())->shouldNotBeCalled();
         GeneralUtility::setSingletonInstance(FileRepository::class, $fileRepositoryProphecy->reveal());
 
+        $iconFactoryProphecy = $this->prophesize(IconFactory::class);
+        GeneralUtility::addInstance(IconFactory::class, $iconFactoryProphecy->reveal());
+
         /** @var BackendUserAuthentication|ObjectProphecy $backendUserProphecy */
         $backendUserProphecy = $this->prophesize(BackendUserAuthentication::class);
         $GLOBALS['BE_USER'] = $backendUserProphecy->reveal();
         $backendUserProphecy->getPagePermsClause(1)->shouldBeCalled()->willReturn(' 1=1');
 
-        list($queryBuilderProphet, $connectionPoolProphet) = $this->mockDatabaseConnection();
-
-        /** @var Statement|ObjectProphecy $statementProphet */
-        $statementProphet = $this->prophesize(Statement::class);
-
-        $queryBuilderProphet->select('fTable.uid', 'fTable.labelField')->shouldBeCalled()->willReturn($queryBuilderProphet->reveal());
-        $queryBuilderProphet->from('fTable')->shouldBeCalled()->willReturn($queryBuilderProphet->reveal());
-        $queryBuilderProphet->from('pages')->shouldBeCalled()->willReturn($queryBuilderProphet->reveal());
-        $queryBuilderProphet->where('')->shouldBeCalled()->willReturn($queryBuilderProphet->reveal());
-        $queryBuilderProphet->andWhere(' 1=1')->shouldBeCalled()->willReturn($queryBuilderProphet->reveal());
-        $queryBuilderProphet->andWhere('`pages.uid` = `fTable.pid`')->shouldBeCalled()->willReturn($queryBuilderProphet->reveal());
-        $queryBuilderProphet->execute()->shouldBeCalled()->willReturn($statementProphet->reveal());
+        [$connectionPoolProphet, $statementProphet] = $this->mockForeignTableItemsQuery();
 
         // Two instances are needed due to the push/pop behavior of addInstance()
         GeneralUtility::addInstance(ConnectionPool::class, $connectionPoolProphet->reveal());
@@ -1954,24 +2076,128 @@ class TcaSelectItemsTest extends UnitTestCase
                 1 => 1,
                 2 => null,
                 3 => null,
+                4 => null,
             ],
             1 => [
                 0 => 'aPrefix[LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.no_title]',
                 1 => 2,
                 2 => null,
                 3 => null,
+                4 => null,
             ],
         ];
 
         $expected['databaseRow']['aField'] = [];
 
-        self::assertEquals($expected, (new TcaSelectItems)->addData($input));
+        self::assertEquals($expected, (new TcaSelectItems())->addData($input));
     }
 
     /**
      * @test
      */
-    public function addDataForeignTableResolvesIconFromSelicon()
+    public function addDataRemovesItemsThatAreRestrictedByUserStorageAddedByForeignTable(): void
+    {
+        $input = [
+            'databaseRow' => [
+                'uid' => 5,
+                'aField' => '',
+            ],
+            'tableName' => 'aTable',
+            'effectivePid' => 42,
+            'processedTca' => [
+                'columns' => [
+                    'aField' => [
+                        'config' => [
+                            'type' => 'select',
+                            'renderType' => 'selectSingle',
+                            'foreign_table' => 'sys_file_storage',
+                            'foreign_table_prefix' => 'prefix for item labels',
+                            'items' => [],
+                            'maxitems' => 99999,
+                        ],
+                    ],
+                ]
+            ],
+            'rootline' => [],
+        ];
+
+        $GLOBALS['TCA']['sys_file_storage'] = [
+            'ctrl' => [
+                'label' => 'labelField',
+            ],
+            'columns' => [],
+        ];
+
+        $fileRepositoryProphecy = $this->prophesize(FileRepository::class);
+        $fileRepositoryProphecy->findByRelation(Argument::cetera())->shouldNotBeCalled();
+        GeneralUtility::setSingletonInstance(FileRepository::class, $fileRepositoryProphecy->reveal());
+
+        $iconFactoryProphecy = $this->prophesize(IconFactory::class);
+        GeneralUtility::addInstance(IconFactory::class, $iconFactoryProphecy->reveal());
+
+        $resourceStorageProphecy = $this->prophesize(ResourceStorage::class);
+        $resourceStorageProphecy->getUid()->willReturn(1);
+
+        /** @var BackendUserAuthentication|ObjectProphecy $backendUserProphecy */
+        $backendUserProphecy = $this->prophesize(BackendUserAuthentication::class);
+        $GLOBALS['BE_USER'] = $backendUserProphecy->reveal();
+        $backendUserProphecy->getPagePermsClause(1)->shouldBeCalled()->willReturn(' 1=1');
+        $backendUserProphecy->getFileStorages()->shouldBeCalled()->willReturn(
+            [$resourceStorageProphecy->reveal()]
+        );
+
+        [$queryBuilderProphet, $connectionPoolProphet] = $this->mockDatabaseConnection('sys_file_storage');
+
+        /** @var Statement|ObjectProphecy $statementProphet */
+        $statementProphet = $this->prophesize(Statement::class);
+
+        $queryBuilderProphet->select('sys_file_storage.uid', 'sys_file_storage.labelField')
+            ->shouldBeCalled()->willReturn($queryBuilderProphet->reveal());
+        $queryBuilderProphet->from('sys_file_storage')->shouldBeCalled()->willReturn($queryBuilderProphet->reveal());
+        $queryBuilderProphet->from('pages')->shouldBeCalled()->willReturn($queryBuilderProphet->reveal());
+        $queryBuilderProphet->where('')->shouldBeCalled()->willReturn($queryBuilderProphet->reveal());
+        $queryBuilderProphet->andWhere(' 1=1')->shouldBeCalled()->willReturn($queryBuilderProphet->reveal());
+        $queryBuilderProphet->andWhere('`pages.uid` = `sys_file_storage.pid`')
+            ->shouldBeCalled()->willReturn($queryBuilderProphet->reveal());
+        $queryBuilderProphet->execute()->shouldBeCalled()->willReturn($statementProphet->reveal());
+
+        // Two instances are needed due to the push/pop behavior of addInstance()
+        GeneralUtility::addInstance(ConnectionPool::class, $connectionPoolProphet->reveal());
+        GeneralUtility::addInstance(ConnectionPool::class, $connectionPoolProphet->reveal());
+
+        $counter = 0;
+        $statementProphet->fetch()->shouldBeCalled()->will(function ($args) use (&$counter) {
+            $counter++;
+            if ($counter >= 3) {
+                return false;
+            }
+            return [
+                'uid' => $counter,
+                'pid' => 0,
+                'labelField' => 'storageFolderLabel'
+            ];
+        });
+
+        $expected = $input;
+        $expected['processedTca']['columns']['aField']['config']['items'] = [
+            0 => [
+                0 => 'prefix for item labels[LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.no_title]',
+                1 => 1,
+                2 => null,
+                3 => null,
+                4 => null,
+            ]
+        ];
+
+        $expected['databaseRow']['aField'] = [];
+
+        self::assertEquals($expected, (new TcaSelectItems())->addData($input));
+    }
+
+    /**
+     * @test
+     */
+    public function addDataForeignTableResolvesIconFromSelicon(): void
     {
         $input = [
             'databaseRow' => [
@@ -2015,7 +2241,7 @@ class TcaSelectItemsTest extends UnitTestCase
         $GLOBALS['BE_USER'] = $backendUserProphecy->reveal();
         $backendUserProphecy->getPagePermsClause(1)->shouldBeCalled()->willReturn(' 1=1');
 
-        list($queryBuilderProphet, $connectionPoolProphet) = $this->mockDatabaseConnection();
+        [$queryBuilderProphet, $connectionPoolProphet] = $this->mockDatabaseConnection();
 
         /** @var Statement|ObjectProphecy $statementProphet */
         $statementProphet = $this->prophesize(Statement::class);
@@ -2047,17 +2273,18 @@ class TcaSelectItemsTest extends UnitTestCase
                 1 => 1,
                 2 => null,
                 3 => null,
+                4 => null,
             ],
         ];
         $expected['databaseRow']['aField'] = [];
 
-        self::assertEquals($expected, (new TcaSelectItems)->addData($input));
+        self::assertEquals($expected, (new TcaSelectItems())->addData($input));
     }
 
     /**
      * @test
      */
-    public function addDataRemovesItemsByKeepItemsPageTsConfig()
+    public function addDataRemovesItemsByKeepItemsPageTsConfig(): void
     {
         $input = [
             'databaseRow' => [
@@ -2074,6 +2301,7 @@ class TcaSelectItemsTest extends UnitTestCase
                                 0 => [
                                     0 => 'keepMe',
                                     1 => 'keep',
+                                    null,
                                     null,
                                     null,
                                 ],
@@ -2109,13 +2337,13 @@ class TcaSelectItemsTest extends UnitTestCase
             $expected['processedTca']['columns']['aField']['config']['items'][2]
         );
 
-        self::assertEquals($expected, (new TcaSelectItems)->addData($input));
+        self::assertEquals($expected, (new TcaSelectItems())->addData($input));
     }
 
     /**
      * @test
      */
-    public function addDataRemovesAllItemsByEmptyKeepItemsPageTsConfig()
+    public function addDataRemovesAllItemsByEmptyKeepItemsPageTsConfig(): void
     {
         $input = [
             'databaseRow' => [
@@ -2160,13 +2388,13 @@ class TcaSelectItemsTest extends UnitTestCase
         $expected['databaseRow']['aField'] = [];
         $expected['processedTca']['columns']['aField']['config']['items'] = [];
 
-        self::assertEquals($expected, (new TcaSelectItems)->addData($input));
+        self::assertEquals($expected, (new TcaSelectItems())->addData($input));
     }
 
     /**
      * @test
      */
-    public function addDataEvaluatesKeepItemsBeforeAddItemsFromPageTsConfig()
+    public function addDataEvaluatesKeepItemsBeforeAddItemsFromPageTsConfig(): void
     {
         $input = [
             'databaseRow' => [
@@ -2219,10 +2447,12 @@ class TcaSelectItemsTest extends UnitTestCase
                 1 => '1',
                 null,
                 null,
+                null,
             ],
             1 => [
                 0 => 'addItem #1',
                 1 => '1',
+                null,
                 null,
                 null,
             ],
@@ -2231,16 +2461,17 @@ class TcaSelectItemsTest extends UnitTestCase
                 1 => '12',
                 null,
                 null,
+                null,
             ],
         ];
 
-        self::assertEquals($expected, (new TcaSelectItems)->addData($input));
+        self::assertEquals($expected, (new TcaSelectItems())->addData($input));
     }
 
     /**
      * @test
      */
-    public function addDataRemovesItemsByRemoveItemsPageTsConfig()
+    public function addDataRemovesItemsByRemoveItemsPageTsConfig(): void
     {
         $input = [
             'databaseRow' => [
@@ -2259,6 +2490,7 @@ class TcaSelectItemsTest extends UnitTestCase
                                     1 => 'keep',
                                     null,
                                     null,
+                                    null,
                                 ],
                                 1 => [
                                     0 => 'removeMe',
@@ -2267,6 +2499,7 @@ class TcaSelectItemsTest extends UnitTestCase
                                 2 => [
                                     0 => 'keep me',
                                     1 => 0,
+                                    null,
                                     null,
                                     null,
                                 ],
@@ -2291,13 +2524,13 @@ class TcaSelectItemsTest extends UnitTestCase
         $expected['databaseRow']['aField'] = [];
         unset($expected['processedTca']['columns']['aField']['config']['items'][1]);
         $expected['processedTca']['columns']['aField']['config']['items'] = array_values($expected['processedTca']['columns']['aField']['config']['items']);
-        self::assertEquals($expected, (new TcaSelectItems)->addData($input));
+        self::assertEquals($expected, (new TcaSelectItems())->addData($input));
     }
 
     /**
      * @test
      */
-    public function addDataRemovesItemsByZeroValueRemoveItemsPageTsConfig()
+    public function addDataRemovesItemsByZeroValueRemoveItemsPageTsConfig(): void
     {
         $input = [
             'databaseRow' => [
@@ -2316,10 +2549,12 @@ class TcaSelectItemsTest extends UnitTestCase
                                     1 => 'keep',
                                     null,
                                     null,
+                                    null,
                                 ],
                                 1 => [
                                     0 => 'keepMe',
                                     1 => 'keepMe2',
+                                    null,
                                     null,
                                     null,
                                 ],
@@ -2347,13 +2582,13 @@ class TcaSelectItemsTest extends UnitTestCase
         $expected = $input;
         $expected['databaseRow']['aField'] = [];
         unset($expected['processedTca']['columns']['aField']['config']['items'][2]);
-        self::assertEquals($expected, (new TcaSelectItems)->addData($input));
+        self::assertEquals($expected, (new TcaSelectItems())->addData($input));
     }
 
     /**
      * @test
      */
-    public function addDataRemovesItemsAddedByAddItemsFromPageTsConfigByRemoveItemsPageTsConfig()
+    public function addDataRemovesItemsAddedByAddItemsFromPageTsConfigByRemoveItemsPageTsConfig(): void
     {
         $input = [
             'databaseRow' => [
@@ -2370,6 +2605,7 @@ class TcaSelectItemsTest extends UnitTestCase
                                 0 => [
                                     0 => 'keepMe',
                                     1 => 'keep',
+                                    null,
                                     null,
                                     null,
                                 ],
@@ -2401,13 +2637,13 @@ class TcaSelectItemsTest extends UnitTestCase
         $expected['databaseRow']['aField'] = [];
         unset($expected['processedTca']['columns']['aField']['config']['items'][1]);
 
-        self::assertEquals($expected, (new TcaSelectItems)->addData($input));
+        self::assertEquals($expected, (new TcaSelectItems())->addData($input));
     }
 
     /**
      * @test
      */
-    public function addDataRemovesItemsByLanguageFieldUserRestriction()
+    public function addDataRemovesItemsByLanguageFieldUserRestriction(): void
     {
         $input = [
             'databaseRow' => [
@@ -2427,6 +2663,7 @@ class TcaSelectItemsTest extends UnitTestCase
                                 0 => [
                                     0 => 'keepMe',
                                     1 => 'keep',
+                                    null,
                                     null,
                                     null,
                                 ],
@@ -2457,17 +2694,17 @@ class TcaSelectItemsTest extends UnitTestCase
         $expected = $input;
         $expected['databaseRow']['aField'] = [];
         $expected['processedTca']['columns']['aField']['config']['items'] = [
-            [ '[ INVALID VALUE "aValue" ]', 'aValue', null, null ],
-            [ 'keepMe', 'keep', null, null ],
+            [ '[ INVALID VALUE "aValue" ]', 'aValue', null, 'none', null ],
+            [ 'keepMe', 'keep', null, null, null ],
         ];
 
-        self::assertEquals($expected, (new TcaSelectItems)->addData($input));
+        self::assertEquals($expected, (new TcaSelectItems())->addData($input));
     }
 
     /**
      * @test
      */
-    public function addDataRemovesItemsByUserAuthModeRestriction()
+    public function addDataRemovesItemsByUserAuthModeRestriction(): void
     {
         $input = [
             'databaseRow' => [
@@ -2485,6 +2722,7 @@ class TcaSelectItemsTest extends UnitTestCase
                                 0 => [
                                     0 => 'keepMe',
                                     1 => 'keep',
+                                    null,
                                     null,
                                     null,
                                 ],
@@ -2510,13 +2748,13 @@ class TcaSelectItemsTest extends UnitTestCase
         $expected['databaseRow']['aField'] = ['keep'];
         unset($expected['processedTca']['columns']['aField']['config']['items'][1]);
 
-        self::assertEquals($expected, (new TcaSelectItems)->addData($input));
+        self::assertEquals($expected, (new TcaSelectItems())->addData($input));
     }
 
     /**
      * @test
      */
-    public function addDataKeepsAllPagesDoktypesForAdminUser()
+    public function addDataKeepsAllPagesDoktypesForAdminUser(): void
     {
         $input = [
             'databaseRow' => [
@@ -2533,6 +2771,7 @@ class TcaSelectItemsTest extends UnitTestCase
                                 0 => [
                                     0 => 'keepMe',
                                     1 => 'keep',
+                                    null,
                                     null,
                                     null,
                                 ],
@@ -2552,13 +2791,13 @@ class TcaSelectItemsTest extends UnitTestCase
         $expected = $input;
         $expected['databaseRow']['doktype'] = ['keep'];
 
-        self::assertEquals($expected, (new TcaSelectItems)->addData($input));
+        self::assertEquals($expected, (new TcaSelectItems())->addData($input));
     }
 
     /**
      * @test
      */
-    public function addDataKeepsAllowedPageTypesForNonAdminUser()
+    public function addDataKeepsAllowedPageTypesForNonAdminUser(): void
     {
         $input = [
             'databaseRow' => [
@@ -2575,6 +2814,7 @@ class TcaSelectItemsTest extends UnitTestCase
                                 0 => [
                                     0 => 'keepMe',
                                     1 => 'keep',
+                                    null,
                                     null,
                                     null,
                                 ],
@@ -2602,13 +2842,13 @@ class TcaSelectItemsTest extends UnitTestCase
         $expected['databaseRow']['doktype'] = ['keep'];
         unset($expected['processedTca']['columns']['doktype']['config']['items'][1]);
 
-        self::assertEquals($expected, (new TcaSelectItems)->addData($input));
+        self::assertEquals($expected, (new TcaSelectItems())->addData($input));
     }
 
     /**
      * @test
      */
-    public function addDataCallsItemsProcFunc()
+    public function addDataCallsItemsProcFunc(): void
     {
         $input = [
             'tableName' => 'aTable',
@@ -2629,6 +2869,7 @@ class TcaSelectItemsTest extends UnitTestCase
                                         1 => 'aValue',
                                         2 => null,
                                         3 => null,
+                                        4 => null,
                                     ],
                                 ];
                             },
@@ -2649,18 +2890,479 @@ class TcaSelectItemsTest extends UnitTestCase
                     1 => 'aValue',
                     2 => null,
                     3 => null,
+                    4 => null,
                 ],
             ],
             'maxitems' => 99999,
         ];
 
-        self::assertSame($expected, (new TcaSelectItems)->addData($input));
+        self::assertSame($expected, (new TcaSelectItems())->addData($input));
     }
 
     /**
      * @test
      */
-    public function addDataItemsProcFuncReceivesParameters()
+    public function addDataForeignTableItemsWillReceiveTheLabelFromForeignTableLabelField(): void
+    {
+        $input = [
+            'databaseRow' => [
+                'uid' => 5,
+                'aField' => 2
+            ],
+            'tableName' => 'aTable',
+            'effectivePid' => 42,
+            'processedTca' => [
+                'columns' => [
+                    'aField' => [
+                        'config' => [
+                            'type' => 'select',
+                            'renderType' => 'selectSingle',
+                            'foreign_table' => 'fTable',
+                            'maxitems' => 99999,
+                        ],
+                    ],
+                ]
+            ],
+            'rootline' => [],
+        ];
+
+        $GLOBALS['TCA']['fTable'] = [
+            'ctrl' => [
+                'label' => 'labelField',
+            ],
+            'columns' => [
+                'labelField' => []
+            ],
+        ];
+
+        $fileRepositoryProphecy = $this->prophesize(FileRepository::class);
+        $fileRepositoryProphecy->findByRelation(Argument::cetera())->shouldNotBeCalled();
+        GeneralUtility::setSingletonInstance(FileRepository::class, $fileRepositoryProphecy->reveal());
+
+        $iconFactoryProphecy = $this->prophesize(IconFactory::class);
+        GeneralUtility::addInstance(IconFactory::class, $iconFactoryProphecy->reveal());
+
+        /** @var BackendUserAuthentication|ObjectProphecy $backendUserProphecy */
+        $backendUserProphecy = $this->prophesize(BackendUserAuthentication::class);
+        $GLOBALS['BE_USER'] = $backendUserProphecy->reveal();
+        $backendUserProphecy->getPagePermsClause(1)->shouldBeCalled()->willReturn(' 1=1');
+
+        [$connectionPoolProphet, $statementProphet] = $this->mockForeignTableItemsQuery();
+
+        // Two instances are needed due to the push/pop behavior of addInstance()
+        GeneralUtility::addInstance(ConnectionPool::class, $connectionPoolProphet->reveal());
+        GeneralUtility::addInstance(ConnectionPool::class, $connectionPoolProphet->reveal());
+
+        $counter = 0;
+        $statementProphet->fetch()->shouldBeCalled()->will(function ($args) use (&$counter) {
+            $counter++;
+            if ($counter >= 3) {
+                return false;
+            }
+            return [
+                'uid' => $counter,
+                'pid' => 23,
+                'labelField' => 'aLabel_' . $counter,
+                'aValue' => 'bar,',
+                'dbfield' => 'some data'
+            ];
+        });
+
+        $expected = $input;
+        $expected['processedTca']['columns']['aField']['config']['items'] = [
+            0 => [
+                0 => 'aLabel_1',
+                1 => 1,
+                2 => null,
+                3 => null,
+                4 => null,
+            ],
+            1 => [
+                0 => 'aLabel_2',
+                1 => 2,
+                2 => null,
+                3 => null,
+                4 => null,
+            ],
+        ];
+
+        $expected['databaseRow']['aField'] = [
+            0 => '2' // the selected value stored in db
+        ];
+
+        self::assertEquals($expected, (new TcaSelectItems())->addData($input));
+    }
+
+    /**
+     * This test case combines the use of itemsProcFunc and foreign_table
+     *
+     * In the itemsProcFunc we will iterate over the items given from foreign_table and filter out every item that
+     * does not have a uid of 2
+     *
+     * @test
+     */
+    public function addDataItemsProcFuncWillUseItemsFromForeignTable(): void
+    {
+        $input = [
+            'databaseRow' => [
+                'uid' => 5,
+                'aField' => ''
+            ],
+            'tableName' => 'aTable',
+            'effectivePid' => 42,
+            'processedTca' => [
+                'columns' => [
+                    'aField' => [
+                        'config' => [
+                            'type' => 'select',
+                            'renderType' => 'selectSingle',
+                            'foreign_table' => 'fTable',
+                            'itemsProcFunc' => function (array $parameters, $pObj) {
+                                $filteredItems = [];
+                                // Iterate over given items to filter them
+                                foreach ($parameters['items'] as $item) {
+                                    if ($item[1] === 2) { // uid === 2
+                                        $filteredItems[] = [
+                                            $item[0],   // label
+                                            $item[1],   // uid
+                                            null,       // icon
+                                            null,       // groupID
+                                            null        // helpText
+                                        ];
+                                    }
+                                }
+                                $parameters['items'] = $filteredItems;
+                            },
+                            'maxitems' => 99999,
+                        ],
+                    ],
+                ]
+            ],
+            'rootline' => [],
+        ];
+
+        $GLOBALS['TCA']['fTable'] = [
+            'ctrl' => [
+                'label' => 'labelField',
+            ],
+            'columns' => [],
+        ];
+
+        // FileRepository to get the icon of the foreign table
+        $fileRepositoryProphecy = $this->prophesize(FileRepository::class);
+        $fileRepositoryProphecy->findByRelation(Argument::cetera())->shouldNotBeCalled();
+        GeneralUtility::setSingletonInstance(FileRepository::class, $fileRepositoryProphecy->reveal());
+
+        $iconFactoryProphecy = $this->prophesize(IconFactory::class);
+        GeneralUtility::addInstance(IconFactory::class, $iconFactoryProphecy->reveal());
+
+        /** @var BackendUserAuthentication|ObjectProphecy $backendUserProphecy */
+        $backendUserProphecy = $this->prophesize(BackendUserAuthentication::class);
+        $GLOBALS['BE_USER'] = $backendUserProphecy->reveal();
+        $backendUserProphecy->getPagePermsClause(1)->shouldBeCalled()->willReturn(' 1=1');
+
+        [$connectionPoolProphet, $statementProphet] = $this->mockForeignTableItemsQuery();
+
+        // Two instances are needed due to the push/pop behavior of addInstance()
+        GeneralUtility::addInstance(ConnectionPool::class, $connectionPoolProphet->reveal());
+        GeneralUtility::addInstance(ConnectionPool::class, $connectionPoolProphet->reveal());
+
+        $counter = 0;
+
+        // simulates foreign_table containing two rows
+        $statementProphet->fetch()->shouldBeCalled()->will(function ($args) use (&$counter) {
+            $counter++;
+            if ($counter >= 3) {
+                return false;
+            }
+            return [
+                'uid' => $counter,
+                'pid' => 23,
+                'labelField' => 'aLabel will be replaced since the label column is not configured',
+                'aValue' => 'bar, irrelevant',
+                'dbfield' => 'some random data, irrelevant'
+            ];
+        });
+
+        $expected = $input;
+        $expected['processedTca']['columns']['aField']['config'] = [
+            'type' => 'select',
+            'renderType' => 'selectSingle',
+            'foreign_table' => 'fTable',
+            'items' => [
+                0 => [
+                    0 => '[LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.no_title]',
+                    1 => 2,
+                    2 => null,
+                    3 => null,
+                    4 => null,
+                ],
+            ],
+            'maxitems' => 99999
+        ];
+
+        $expected['databaseRow']['aField'] = [];
+
+        self::assertEquals($expected, (new TcaSelectItems())->addData($input));
+    }
+
+    /**
+     * This test case combines the use of itemsProcFunc, foreign_table and pageTsConfig
+     *
+     * In the itemsProcFunc we will iterate over the items given from foreign_table and filter out every item that
+     * does not have a uid lower than 3.
+     * The pageTsConfig will remove the item with the uid=2 from the list so only one item with uid=1 will remain
+     *
+     * @test
+     */
+    public function addDataItemsProcFuncWillUseItemsFromForeignTableAndRemoveItemsByPageTsConfig(): void
+    {
+        $input = [
+            'databaseRow' => [
+                'uid' => 5,
+                'aField' => ''
+            ],
+            'tableName' => 'aTable',
+            'effectivePid' => 42,
+            'processedTca' => [
+                'columns' => [
+                    'aField' => [
+                        'config' => [
+                            'type' => 'select',
+                            'renderType' => 'selectSingle',
+                            'foreign_table' => 'fTable',
+                            'itemsProcFunc' => function (array $parameters, $pObj) {
+                                $filteredItems = [];
+                                // Iterate over given items to filter them
+                                foreach ($parameters['items'] as $item) {
+                                    if ($item[1] < 3) { // uid < 2
+                                        $filteredItems[] = [
+                                            $item[0],   // label
+                                            $item[1],   // uid
+                                            null,       // icon
+                                            null,       // groupId
+                                            null        // helpText
+                                        ];
+                                    }
+                                }
+                                $parameters['items'] = $filteredItems;
+                            },
+                            'maxitems' => 99999,
+                        ],
+                    ],
+                ]
+            ],
+            'pageTsConfig' => [
+                'TCEFORM.' => [
+                    'aTable.' => [
+                        'aField.' => [
+                            'removeItems' => '2'
+                        ],
+                    ],
+                ],
+            ],
+            'rootline' => [],
+        ];
+
+        $GLOBALS['TCA']['fTable'] = [
+            'ctrl' => [
+                'label' => 'labelField',
+            ],
+            'columns' => [],
+        ];
+
+        // FileRepository to get the icon of the foreign table
+        $fileRepositoryProphecy = $this->prophesize(FileRepository::class);
+        $fileRepositoryProphecy->findByRelation(Argument::cetera())->shouldNotBeCalled();
+        GeneralUtility::setSingletonInstance(FileRepository::class, $fileRepositoryProphecy->reveal());
+
+        $iconFactoryProphecy = $this->prophesize(IconFactory::class);
+        GeneralUtility::addInstance(IconFactory::class, $iconFactoryProphecy->reveal());
+
+        /** @var BackendUserAuthentication|ObjectProphecy $backendUserProphecy */
+        $backendUserProphecy = $this->prophesize(BackendUserAuthentication::class);
+        $GLOBALS['BE_USER'] = $backendUserProphecy->reveal();
+        $backendUserProphecy->getPagePermsClause(1)->shouldBeCalled()->willReturn(' 1=1');
+
+        [$connectionPoolProphet, $statementProphet] = $this->mockForeignTableItemsQuery();
+
+        // Two instances are needed due to the push/pop behavior of addInstance()
+        GeneralUtility::addInstance(ConnectionPool::class, $connectionPoolProphet->reveal());
+        GeneralUtility::addInstance(ConnectionPool::class, $connectionPoolProphet->reveal());
+
+        $counter = 0;
+
+        // simulates foreign_table containing two rows
+        $statementProphet->fetch()->shouldBeCalled()->will(function ($args) use (&$counter) {
+            $counter++;
+            if ($counter >= 3) {
+                return false;
+            }
+            return [
+                'uid' => $counter,
+                'pid' => 23,
+                'labelField' => 'aLabel will be replaced since the label column is not configured',
+                'randomDbField' => 'bar, irrelevant'
+            ];
+        });
+
+        $expected = $input;
+        $expected['processedTca']['columns']['aField']['config'] = [
+            'type' => 'select',
+            'renderType' => 'selectSingle',
+            'foreign_table' => 'fTable',
+            'items' => [
+                0 => [
+                    0 => '[LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.no_title]',
+                    1 => 1,
+                    2 => null,
+                    3 => null,
+                    4 => null,
+                ]
+            ],
+            'maxitems' => 99999
+        ];
+
+        $expected['databaseRow']['aField'] = [];
+
+        self::assertEquals($expected, (new TcaSelectItems())->addData($input));
+    }
+
+    /**
+     * This test case combines the use of itemsProcFunc, foreign_table and pageTsConfig
+     *
+     * In the itemsProcFunc we will iterate over the items given from foreign_table and filter out every item that
+     * does not have the uid of 2.
+     * The pageTsConfig will add an item with the uid=12 to the list so only one item with uid=1 will remain
+     *
+     * @test
+     */
+    public function addDataItemsProcFuncWillUseItemsFromForeignTableAndAddItemsByPageTsConfig(): void
+    {
+        $input = [
+            'databaseRow' => [
+                'uid' => 5,
+                'aField' => ''
+            ],
+            'tableName' => 'aTable',
+            'effectivePid' => 42,
+            'processedTca' => [
+                'columns' => [
+                    'aField' => [
+                        'config' => [
+                            'type' => 'select',
+                            'renderType' => 'selectSingle',
+                            'foreign_table' => 'fTable',
+                            'itemsProcFunc' => function (array $parameters, $pObj) {
+                                $filteredItems = [];
+                                // Iterate over given items to filter them
+                                foreach ($parameters['items'] as $item) {
+                                    if ($item[1] === 2) { // uid must be 2
+                                        $filteredItems[] = [
+                                            $item[0],   // label
+                                            $item[1],   // uid
+                                            null,       // icon
+                                            null,       // groupID
+                                            null        // helpText
+                                        ];
+                                    }
+                                }
+                                $parameters['items'] = $filteredItems;
+                            },
+                            'maxitems' => 99999,
+                        ],
+                    ],
+                ]
+            ],
+            'pageTsConfig' => [
+                'TCEFORM.' => [
+                    'aTable.' => [
+                        'aField.' => [
+                            'addItems.' => [
+                                '12' => 'Label of the added item'
+                            ]
+                        ],
+                    ],
+                ],
+            ],
+            'rootline' => [],
+        ];
+
+        $GLOBALS['TCA']['fTable'] = [
+            'ctrl' => [
+                'label' => 'labelField',
+            ],
+            'columns' => [],
+        ];
+
+        // FileRepository to get the icon of the foreign table
+        $fileRepositoryProphecy = $this->prophesize(FileRepository::class);
+        $fileRepositoryProphecy->findByRelation(Argument::cetera())->shouldNotBeCalled();
+        GeneralUtility::setSingletonInstance(FileRepository::class, $fileRepositoryProphecy->reveal());
+
+        $iconFactoryProphecy = $this->prophesize(IconFactory::class);
+        GeneralUtility::addInstance(IconFactory::class, $iconFactoryProphecy->reveal());
+
+        /** @var BackendUserAuthentication|ObjectProphecy $backendUserProphecy */
+        $backendUserProphecy = $this->prophesize(BackendUserAuthentication::class);
+        $GLOBALS['BE_USER'] = $backendUserProphecy->reveal();
+        $backendUserProphecy->getPagePermsClause(1)->shouldBeCalled()->willReturn(' 1=1');
+
+        [$connectionPoolProphet, $statementProphet] = $this->mockForeignTableItemsQuery();
+
+        // Two instances are needed due to the push/pop behavior of addInstance()
+        GeneralUtility::addInstance(ConnectionPool::class, $connectionPoolProphet->reveal());
+        GeneralUtility::addInstance(ConnectionPool::class, $connectionPoolProphet->reveal());
+
+        $counter = 0;
+
+        // simulates foreign_table containing two rows
+        $statementProphet->fetch()->shouldBeCalled()->will(function ($args) use (&$counter) {
+            $counter++;
+            if ($counter >= 3) {
+                return false;
+            }
+            return [
+                'uid' => $counter,
+                'pid' => 23,
+                'labelField' => 'aLabel will be replaced since the label column is not configured',
+                'randomDbField' => 'bar, irrelevant'
+            ];
+        });
+
+        $expected = $input;
+        $expected['processedTca']['columns']['aField']['config'] = [
+            'type' => 'select',
+            'renderType' => 'selectSingle',
+            'foreign_table' => 'fTable',
+            'items' => [
+                0 => [
+                    0 => '[LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.no_title]',
+                    1 => 2,
+                    2 => null,
+                    3 => null,
+                    4 => null,
+                ],
+                1 => [
+                    0 => 'Label of the added item',
+                    1 => 12,
+                    2 => null,
+                    3 => null,
+                    4 => null,
+                ],
+            ],
+            'maxitems' => 99999
+        ];
+
+        $expected['databaseRow']['aField'] = [];
+
+        self::assertEquals($expected, (new TcaSelectItems())->addData($input));
+    }
+
+    /**
+     * @test
+     */
+    public function addDataItemsProcFuncReceivesParameters(): void
     {
         $input = [
             'tableName' => 'aTable',
@@ -2724,13 +3426,13 @@ class TcaSelectItemsTest extends UnitTestCase
         // itemsProcFunc must NOT have raised an exception
         $flashMessageQueue->enqueue($flashMessage)->shouldNotBeCalled();
 
-        (new TcaSelectItems)->addData($input);
+        (new TcaSelectItems())->addData($input);
     }
 
     /**
      * @test
      */
-    public function addDataItemsProcFuncEnqueuesFlashMessageOnException()
+    public function addDataItemsProcFuncEnqueuesFlashMessageOnException(): void
     {
         $input = [
             'tableName' => 'aTable',
@@ -2784,13 +3486,13 @@ class TcaSelectItemsTest extends UnitTestCase
 
         $flashMessageQueue->enqueue($flashMessage)->shouldBeCalled();
 
-        (new TcaSelectItems)->addData($input);
+        (new TcaSelectItems())->addData($input);
     }
 
     /**
      * @test
      */
-    public function addDataTranslatesItemLabelsFromPageTsConfig()
+    public function addDataTranslatesItemLabelsFromPageTsConfig(): void
     {
         $input = [
             'databaseRow' => [
@@ -2809,6 +3511,7 @@ class TcaSelectItemsTest extends UnitTestCase
                                     1 => 'aValue',
                                     null,
                                     null,
+                                    null
                                 ],
                             ],
                             'maxitems' => 99999,
@@ -2840,13 +3543,13 @@ class TcaSelectItemsTest extends UnitTestCase
         $expected['databaseRow']['aField'] = ['aValue'];
         $expected['processedTca']['columns']['aField']['config']['items'][0][0] = 'labelOverride';
 
-        self::assertSame($expected, (new TcaSelectItems)->addData($input));
+        self::assertSame($expected, (new TcaSelectItems())->addData($input));
     }
 
     /**
      * @test
      */
-    public function processSelectFieldValueSetsMmForeignRelationValues()
+    public function processSelectFieldValueSetsMmForeignRelationValues(): void
     {
         $GLOBALS['TCA']['foreignTable'] = [];
 
@@ -2895,19 +3598,19 @@ class TcaSelectItemsTest extends UnitTestCase
             24
         ];
 
-        $relationHandlerProphecy->start(2, 'foreignTable', 'aTable_foreignTable_mm', 42, 'aTable', $fieldConfig)->shouldBeCalled();
+        $relationHandlerProphecy->start('', 'foreignTable', 'aTable_foreignTable_mm', 42, 'aTable', $fieldConfig)->shouldBeCalled();
         $relationHandlerProphecy->getValueArray()->shouldBeCalled()->willReturn($relationHandlerUids);
 
         $expected = $input;
         $expected['databaseRow']['aField'] = $relationHandlerUids;
 
-        self::assertEquals($expected, (new TcaSelectItems)->addData($input));
+        self::assertEquals($expected, (new TcaSelectItems())->addData($input));
     }
 
     /**
      * @test
      */
-    public function processSelectFieldValueSetsForeignRelationValues()
+    public function processSelectFieldValueSetsForeignRelationValues(): void
     {
         $GLOBALS['TCA']['foreignTable'] = [];
 
@@ -2960,13 +3663,13 @@ class TcaSelectItemsTest extends UnitTestCase
         $expected = $input;
         $expected['databaseRow']['aField'] = $relationHandlerUids;
 
-        self::assertEquals($expected, (new TcaSelectItems)->addData($input));
+        self::assertEquals($expected, (new TcaSelectItems())->addData($input));
     }
 
     /**
      * @test
      */
-    public function processSelectFieldValueRemovesInvalidDynamicValues()
+    public function processSelectFieldValueRemovesInvalidDynamicValues(): void
     {
         $GLOBALS['TCA']['foreignTable'] = [];
 
@@ -3002,7 +3705,7 @@ class TcaSelectItemsTest extends UnitTestCase
                             'foreign_table' => 'foreignTable',
                             'maxitems' => 999,
                             'items' => [
-                                ['foo', 'foo', null, null],
+                                ['foo', 'foo', null, null, null],
                             ],
                         ],
                     ],
@@ -3011,15 +3714,15 @@ class TcaSelectItemsTest extends UnitTestCase
         ];
 
         $expected = $input;
-        $expected['databaseRow']['aField'] = ['foo', 1];
+        $expected['databaseRow']['aField'] = [1, 'foo'];
 
-        self::assertEquals($expected, (new TcaSelectItems)->addData($input));
+        self::assertEquals($expected, (new TcaSelectItems())->addData($input));
     }
 
     /**
      * @test
      */
-    public function processSelectFieldValueKeepsValuesFromStaticItems()
+    public function processSelectFieldValueKeepsValuesFromStaticItems(): void
     {
         $input = [
             'tableName' => 'aTable',
@@ -3034,8 +3737,8 @@ class TcaSelectItemsTest extends UnitTestCase
                             'renderType' => 'selectSingle',
                             'maxitems' => 999,
                             'items' => [
-                                ['foo', 'foo', null, null],
-                                ['bar', 'bar', null, null],
+                                ['foo', 'foo', null, null, null],
+                                ['bar', 'bar', null, null, null],
                             ],
                         ],
                     ],
@@ -3049,13 +3752,13 @@ class TcaSelectItemsTest extends UnitTestCase
             'bar'
         ];
 
-        self::assertEquals($expected, (new TcaSelectItems)->addData($input));
+        self::assertEquals($expected, (new TcaSelectItems())->addData($input));
     }
 
     /**
      * @test
      */
-    public function processSelectFieldValueReturnsEmptyValueForSingleSelect()
+    public function processSelectFieldValueReturnsEmptyValueForSingleSelect(): void
     {
         $input = [
             'tableName' => 'aTable',
@@ -3079,13 +3782,13 @@ class TcaSelectItemsTest extends UnitTestCase
         $expected = $input;
         $expected['databaseRow']['aField'] = [];
 
-        self::assertEquals($expected, (new TcaSelectItems)->addData($input));
+        self::assertEquals($expected, (new TcaSelectItems())->addData($input));
     }
 
     /**
      * @test
      */
-    public function processSelectFieldValueTrimsEmptyValueForMultiValueSelect()
+    public function processSelectFieldValueTrimsEmptyValueForMultiValueSelect(): void
     {
         $input = [
             'tableName' => 'aTable',
@@ -3100,9 +3803,9 @@ class TcaSelectItemsTest extends UnitTestCase
                             'renderType' => 'selectSingle',
                             'maxitems' => 999,
                             'items' => [
-                                ['a', '', null, null],
-                                ['b', 'b', null, null],
-                                ['c', 'c', null, null],
+                                ['a', '', null, null, null],
+                                ['b', 'b', null, null, null],
+                                ['c', 'c', null, null, null],
                             ],
                         ],
                     ],
@@ -3116,13 +3819,13 @@ class TcaSelectItemsTest extends UnitTestCase
             'c',
         ];
 
-        self::assertEquals($expected, (new TcaSelectItems)->addData($input));
+        self::assertEquals($expected, (new TcaSelectItems())->addData($input));
     }
 
     /**
      * @test
      */
-    public function processSelectFieldValueDoesNotCallRelationManagerForStaticOnlyItems()
+    public function processSelectFieldValueDoesNotCallRelationManagerForStaticOnlyItems(): void
     {
         $relationHandlerProphecy = $this->prophesize(RelationHandler::class);
         GeneralUtility::addInstance(RelationHandler::class, $relationHandlerProphecy->reveal());
@@ -3142,7 +3845,7 @@ class TcaSelectItemsTest extends UnitTestCase
                             'renderType' => 'selectSingle',
                             'maxitems' => 999,
                             'items' => [
-                                ['foo', 'foo', null, null],
+                                ['foo', 'foo', null, null, null],
                             ],
                         ],
                     ],
@@ -3153,13 +3856,13 @@ class TcaSelectItemsTest extends UnitTestCase
         $expected = $input;
         $expected['databaseRow']['aField'] = ['foo'];
 
-        self::assertEquals($expected, (new TcaSelectItems)->addData($input));
+        self::assertEquals($expected, (new TcaSelectItems())->addData($input));
     }
 
     /**
      * @test
      */
-    public function processSelectFieldValueAddsInvalidValuesToItemsForSingleSelects()
+    public function processSelectFieldValueAddsInvalidValuesToItemsForSingleSelects(): void
     {
         $languageService = $this->prophesize(LanguageService::class);
         $GLOBALS['LANG'] = $languageService->reveal();
@@ -3184,7 +3887,7 @@ class TcaSelectItemsTest extends UnitTestCase
                             'renderType' => 'selectSingle',
                             'maxitems' => 99999,
                             'items' => [
-                                ['foo', 'foo', null, null],
+                                ['foo', 'foo', null, null, null],
                             ],
                         ],
                     ],
@@ -3195,18 +3898,18 @@ class TcaSelectItemsTest extends UnitTestCase
         $expected = $input;
         $expected['databaseRow']['aField'] = ['foo'];
         $expected['processedTca']['columns']['aField']['config']['items'] = [
-            ['[ INVALID VALUE "bar" ]', 'bar', null, null],
-            ['[ INVALID VALUE "2" ]', '2', null, null],
-            ['[ INVALID VALUE "1" ]', '1', null, null],
-            ['foo', 'foo', null, null],
+            ['[ INVALID VALUE "bar" ]', 'bar', null, 'none', null],
+            ['[ INVALID VALUE "2" ]', '2', null, 'none', null],
+            ['[ INVALID VALUE "1" ]', '1', null, 'none', null],
+            ['foo', 'foo', null, null, null],
         ];
-        self::assertEquals($expected, (new TcaSelectItems)->addData($input));
+        self::assertEquals($expected, (new TcaSelectItems())->addData($input));
     }
 
     /**
      * @test
      */
-    public function processSelectFieldValueReturnsDuplicateValuesForMultipleSelect()
+    public function processSelectFieldValueReturnsDuplicateValuesForMultipleSelect(): void
     {
         $input = [
             'tableName' => 'aTable',
@@ -3222,10 +3925,10 @@ class TcaSelectItemsTest extends UnitTestCase
                             'multiple' => true,
                             'maxitems' => 999,
                             'items' => [
-                                ['1', '1', null, null],
-                                ['foo', 'foo', null, null],
-                                ['bar', 'bar', null, null],
-                                ['2', '2', null, null],
+                                ['1', '1', null, null, null],
+                                ['foo', 'foo', null, null, null],
+                                ['bar', 'bar', null, null, null],
+                                ['2', '2', null, null, null],
                             ],
                         ],
                     ],
@@ -3242,13 +3945,13 @@ class TcaSelectItemsTest extends UnitTestCase
             'bar'
         ];
 
-        self::assertEquals($expected, (new TcaSelectItems)->addData($input));
+        self::assertEquals($expected, (new TcaSelectItems())->addData($input));
     }
 
     /**
      * @test
      */
-    public function processSelectFieldValueReturnsUniqueValuesForMultipleSelect()
+    public function processSelectFieldValueReturnsUniqueValuesForMultipleSelect(): void
     {
         $input = [
             'tableName' => 'aTable',
@@ -3264,10 +3967,10 @@ class TcaSelectItemsTest extends UnitTestCase
                             'multiple' => false,
                             'maxitems' => 999,
                             'items' => [
-                                ['1', '1', null, null],
-                                ['foo', 'foo', null, null],
-                                ['bar', 'bar', null, null],
-                                ['2', '2', null, null],
+                                ['1', '1', null, null, null],
+                                ['foo', 'foo', null, null, null],
+                                ['bar', 'bar', null, null, null],
+                                ['2', '2', null, null, null],
                             ],
                         ],
                     ],
@@ -3283,7 +3986,7 @@ class TcaSelectItemsTest extends UnitTestCase
             4 => 'bar',
         ];
 
-        self::assertEquals($expected, (new TcaSelectItems)->addData($input));
+        self::assertEquals($expected, (new TcaSelectItems())->addData($input));
     }
 
     /**
@@ -3291,7 +3994,7 @@ class TcaSelectItemsTest extends UnitTestCase
      *
      * @return array
      */
-    public function processSelectFieldSetsCorrectValuesForMmRelationsDataProvider()
+    public function processSelectFieldSetsCorrectValuesForMmRelationsDataProvider(): array
     {
         return [
             'Relation with MM table and new status with default values' => [
@@ -3331,8 +4034,8 @@ class TcaSelectItemsTest extends UnitTestCase
                     'command' => 'edit',
                     'effectivePid' => 42,
                     'databaseRow' => [
-                        'uid' => 'NEW1234',
-                        'aField' => '24,35',
+                        'uid' => 42,
+                        'aField' => '2',
                     ],
                     'processedTca' => [
                         'columns' => [
@@ -3349,7 +4052,9 @@ class TcaSelectItemsTest extends UnitTestCase
                         ],
                     ],
                 ],
-                [],
+                [
+                    'relationHandlerStartItemList' => '',
+                ],
                 []
             ],
             'Relation with MM table and maxitems = 1 processes field value (item count)' => [
@@ -3377,7 +4082,9 @@ class TcaSelectItemsTest extends UnitTestCase
                         ],
                     ],
                 ],
-                [],
+                [
+                    'relationHandlerStartItemList' => '',
+                ],
                 [
                     24
                 ]
@@ -3407,7 +4114,9 @@ class TcaSelectItemsTest extends UnitTestCase
                         ],
                     ],
                 ],
-                [],
+                [
+                    'relationHandlerStartItemList' => '',
+                ],
                 []
             ]
         ];
@@ -3421,9 +4130,9 @@ class TcaSelectItemsTest extends UnitTestCase
      * @param array $overrideRelationHandlerSettings
      * @param array $relationHandlerUids
      */
-    public function processSelectFieldSetsCorrectValuesForMmRelations(array $input, array $overrideRelationHandlerSettings, array $relationHandlerUids)
+    public function processSelectFieldSetsCorrectValuesForMmRelations(array $input, array $overrideRelationHandlerSettings, array $relationHandlerUids): void
     {
-        $field = $input['databaseRow']['aField'];
+        $field = $overrideRelationHandlerSettings['relationHandlerStartItemList'] ?? $input['databaseRow']['aField'];
         $foreignTable = $overrideRelationHandlerSettings['foreign_table'] ?? $input['processedTca']['columns']['aField']['config']['foreign_table'];
         $mmTable = $overrideRelationHandlerSettings['MM'] ?? $input['processedTca']['columns']['aField']['config']['MM'];
         $uid = $input['databaseRow']['uid'];
@@ -3453,6 +4162,6 @@ class TcaSelectItemsTest extends UnitTestCase
         $expected = $input;
         $expected['databaseRow']['aField'] = $relationHandlerUids;
 
-        self::assertEquals($expected, (new TcaSelectItems)->addData($input));
+        self::assertEquals($expected, (new TcaSelectItems())->addData($input));
     }
 }

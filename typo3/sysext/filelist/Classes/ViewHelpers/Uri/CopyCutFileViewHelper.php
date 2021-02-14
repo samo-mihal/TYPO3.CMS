@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Filelist\ViewHelpers\Uri;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,8 +13,11 @@ namespace TYPO3\CMS\Filelist\ViewHelpers\Uri;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Filelist\ViewHelpers\Uri;
+
 use Closure;
 use TYPO3\CMS\Backend\Clipboard\Clipboard;
+use TYPO3\CMS\Core\Resource\AbstractFile;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
@@ -33,7 +35,7 @@ class CopyCutFileViewHelper extends AbstractViewHelper
      */
     public function initializeArguments()
     {
-        $this->registerArgument('file', \TYPO3\CMS\Core\Resource\AbstractFile::class, '', true);
+        $this->registerArgument('file', AbstractFile::class, '', true);
         $this->registerArgument('copyOrCut', 'string', '', false, 'copy');
     }
 

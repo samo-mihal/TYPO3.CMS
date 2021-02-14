@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\TypoScript;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Core\TypoScript;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\TypoScript;
+
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Compatibility\PublicPropertyDeprecationTrait;
 use TYPO3\CMS\Core\Context\Context;
@@ -24,8 +25,12 @@ use TYPO3\CMS\Core\Database\Query\Restriction\AbstractRestrictionContainer;
 use TYPO3\CMS\Core\Database\Query\Restriction\DefaultRestrictionContainer;
 use TYPO3\CMS\Core\Database\Query\Restriction\HiddenRestriction;
 use TYPO3\CMS\Core\Domain\Repository\PageRepository;
+use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Package\PackageManager;
+use TYPO3\CMS\Core\Site\Entity\Site;
+use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\TimeTracker\TimeTracker;
+use TYPO3\CMS\Core\TypoScript\Parser\TypoScriptParser;
 use TYPO3\CMS\Core\Utility\ArrayUtility;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -41,6 +46,9 @@ class TemplateService
 {
     use PublicPropertyDeprecationTrait;
 
+    /**
+     * @var string[]
+     */
     private $deprecatedPublicProperties = [
         'forceTemplateParsing' => 'Using tmpl->forceTemplateParsing is deprecated and will no longer work with TYPO3 v11.0. Use TypoScriptAspect from Context instead.'
     ];
@@ -220,6 +228,7 @@ class TemplateService
 
     /**
      * Used by Backend only (Typoscript Template Analyzer)
+     * @var string[]
      */
     public $clearList_const = [];
 
@@ -389,7 +398,7 @@ class TemplateService
         if (is_array($cc['all'])) {
             /** @var ConditionMatcher $matchObj */
             $matchObj = GeneralUtility::makeInstance(ConditionMatcher::class);
-            $matchObj->setRootline((array)$cc['rootLine']);
+            $matchObj->setRootline((array)($cc['rootLine'] ?? []));
             $sectionsMatch = [];
             foreach ($cc['all'] as $key => $pre) {
                 if ($matchObj->match($pre)) {
@@ -411,6 +420,7 @@ class TemplateService
      */
     public function start($theRootLine)
     {
+        $cc = [];
         // @deprecated - can be removed with TYPO3 v11.0
         if ((bool)$this->forceTemplateParsing) {
             $this->context->setAspect('typoscript', GeneralUtility::makeInstance(TypoScriptAspect::class, true));
@@ -429,7 +439,7 @@ class TemplateService
                 $cc = $this->getTypoScriptFrontendController()->all;
                 // The two rowSums must NOT be different from each other - which they will be if start/endtime or hidden has changed!
                 if (serialize($this->rowSum) !== serialize($cc['rowSum'])) {
-                    unset($cc);
+                    $cc = [];
                 } else {
                     // If $TSFE->all contains valid data, we don't need to update cache_pagesection (because this data was fetched from there already)
                     if (serialize($this->rootLine) === serialize($cc['rootLine'])) {
@@ -441,7 +451,7 @@ class TemplateService
             }
             // This is about getting the hash string which is used to fetch the cached TypoScript template.
             // If there was some cached currentPageData ($cc) then that's good (it gives us the hash).
-            if (isset($cc) && is_array($cc)) {
+            if (!empty($cc)) {
                 // If currentPageData was actually there, we match the result (if this wasn't done already in $TSFE->getFromCache()...)
                 if (!$cc['match']) {
                     // @todo check if this can ever be the case - otherwise remove
@@ -454,7 +464,6 @@ class TemplateService
                 $rowSumHash = md5('ROWSUM:' . serialize($this->rowSum));
                 $result = $this->getCacheEntry($rowSumHash);
                 if (is_array($result)) {
-                    $cc = [];
                     $cc['all'] = $result;
                     $cc['rowSum'] = $this->rowSum;
                     $cc = $this->matching($cc);
@@ -788,17 +797,32 @@ class TemplateService
             // Traversing list
             foreach ($include_static_fileArr as $ISF_file) {
                 if (strpos($ISF_file, 'EXT:') === 0) {
-                    list($ISF_extKey, $ISF_localPath) = explode('/', substr($ISF_file, 4), 2);
+                    [$ISF_extKey, $ISF_localPath] = explode('/', substr($ISF_file, 4), 2);
                     if ((string)$ISF_extKey !== '' && ExtensionManagementUtility::isLoaded($ISF_extKey) && (string)$ISF_localPath !== '') {
                         $ISF_localPath = rtrim($ISF_localPath, '/') . '/';
                         $ISF_filePath = ExtensionManagementUtility::extPath($ISF_extKey) . $ISF_localPath;
                         if (@is_dir($ISF_filePath)) {
                             $mExtKey = str_replace('_', '', $ISF_extKey . '/' . $ISF_localPath);
+
+                            $includeStaticTxtPath = $ISF_filePath . 'include_static.txt';
+                            $includeStaticTxtContents = '';
+                            if (@file_exists($includeStaticTxtPath)) {
+                                $includeStaticTxtContents = (string)file_get_contents($includeStaticTxtPath);
+                                $includeStaticTxtContents = implode(',', array_unique(GeneralUtility::intExplode(',', $includeStaticTxtContents)));
+                            }
+
+                            $includeStaticFileTxtPath = $ISF_filePath . 'include_static_file.txt';
+                            $includeStaticFileTxtContents = '';
+                            if (@file_exists($includeStaticFileTxtPath)) {
+                                $includeStaticFileTxtContents = (string)file_get_contents($includeStaticFileTxtPath);
+                                $includeStaticFileTxtContents = implode(',', array_unique(GeneralUtility::trimExplode(',', $includeStaticFileTxtContents)));
+                            }
+
                             $subrow = [
                                 'constants' => $this->getTypoScriptSourceFileContent($ISF_filePath, 'constants'),
                                 'config' => $this->getTypoScriptSourceFileContent($ISF_filePath, 'setup'),
-                                'include_static' => @file_exists($ISF_filePath . 'include_static.txt') ? implode(',', array_unique(GeneralUtility::intExplode(',', file_get_contents($ISF_filePath . 'include_static.txt')))) : '',
-                                'include_static_file' => @file_exists($ISF_filePath . 'include_static_file.txt') ? implode(',', array_unique(explode(',', file_get_contents($ISF_filePath . 'include_static_file.txt')))) : '',
+                                'include_static' => $includeStaticTxtContents,
+                                'include_static_file' => $includeStaticFileTxtContents,
                                 'title' => $ISF_file,
                                 'uid' => $mExtKey
                             ];
@@ -976,7 +1000,7 @@ class TemplateService
         // ****************************
         // Initialize parser and match-condition classes:
         /** @var Parser\TypoScriptParser $constants */
-        $constants = GeneralUtility::makeInstance(Parser\TypoScriptParser::class);
+        $constants = GeneralUtility::makeInstance(TypoScriptParser::class);
         $constants->breakPointLN = (int)$this->ext_constants_BRP;
         /** @var ConditionMatcher $matchObj */
         $matchObj = GeneralUtility::makeInstance(ConditionMatcher::class);
@@ -995,7 +1019,7 @@ class TemplateService
         // ***********************************************
         // Initialize parser and match-condition classes:
         /** @var Parser\TypoScriptParser $config */
-        $config = GeneralUtility::makeInstance(Parser\TypoScriptParser::class);
+        $config = GeneralUtility::makeInstance(TypoScriptParser::class);
         $config->breakPointLN = (int)$this->ext_config_BRP;
         $config->regLinenumbers = $this->ext_regLinenumbers;
         $config->regComments = $this->ext_regComments;
@@ -1088,14 +1112,14 @@ class TemplateService
         $paths = $this->templateIncludePaths;
         $files = [];
         foreach ($this->constants as &$value) {
-            $includeData = Parser\TypoScriptParser::checkIncludeLines($value, 1, true, array_shift($paths));
+            $includeData = TypoScriptParser::checkIncludeLines($value, 1, true, array_shift($paths));
             $files = array_merge($files, $includeData['files']);
             $value = $includeData['typoscript'];
         }
         unset($value);
         $paths = $this->templateIncludePaths;
         foreach ($this->config as &$value) {
-            $includeData = Parser\TypoScriptParser::checkIncludeLines($value, 1, true, array_shift($paths));
+            $includeData = TypoScriptParser::checkIncludeLines($value, 1, true, array_shift($paths));
             $files = array_merge($files, $includeData['files']);
             $value = $includeData['typoscript'];
         }
@@ -1127,7 +1151,7 @@ class TemplateService
         // Recursive substitution of constants (up to 10 nested levels)
         for ($i = 0; $i < 10 && !$noChange; $i++) {
             $old_all = $all;
-            $all = preg_replace_callback('/\\{\\$(.[^}]*)\\}/', [$this, 'substituteConstantsCallBack'], $all);
+            $all = preg_replace_callback('/\\{\\$(.[^}]*)\\}/', [$this, 'substituteConstantsCallBack'], $all) ?? '';
             if ($old_all == $all) {
                 $noChange = true;
             }
@@ -1188,7 +1212,6 @@ class TemplateService
      * Functions for creating links
      *
      *******************************************************************/
-
     /**
      * Adds the TypoScript from the global array.
      * The class property isDefaultTypoScriptAdded ensures
@@ -1200,6 +1223,53 @@ class TemplateService
     {
         // Add default TS for all code types, if not done already
         if (!$this->isDefaultTypoScriptAdded) {
+            $rootTemplateId = $this->hierarchyInfo[count($this->hierarchyInfo) - 1]['templateID'] ?? null;
+
+            // adding constants from site settings
+            $siteConstants = '';
+            if ($this->getTypoScriptFrontendController() instanceof TypoScriptFrontendController) {
+                $site = $this->getTypoScriptFrontendController()->getSite();
+            } else {
+                $currentPage = end($this->absoluteRootLine);
+                try {
+                    $site = GeneralUtility::makeInstance(SiteFinder::class)->getSiteByPageId((int)($currentPage['uid'] ?? 0));
+                } catch (SiteNotFoundException $exception) {
+                    $site = null;
+                }
+            }
+            if ($site instanceof Site) {
+                $siteSettings = $site->getConfiguration()['settings'] ?? [];
+                if (!empty($siteSettings)) {
+                    $siteSettings = ArrayUtility::flatten($siteSettings);
+                    foreach ($siteSettings as $k => $v) {
+                        $siteConstants .= $k . ' = ' . $v . LF;
+                    }
+                }
+            }
+
+            if ($siteConstants !== '') {
+                // the count of elements in ->constants, ->config and ->templateIncludePaths have to be in sync
+                array_unshift($this->constants, $siteConstants);
+                array_unshift($this->config, '');
+                array_unshift($this->templateIncludePaths, '');
+                // prepare a proper entry to hierachyInfo (used by TemplateAnalyzer in BE)
+                $defaultTemplateInfo = [
+                    'root' => '',
+                    'clConst' => '',
+                    'clConf' => '',
+                    'templateID' => '_siteConstants_',
+                    'templateParent' => $rootTemplateId,
+                    'title' => 'Site settings',
+                    'uid' => '_siteConstants_',
+                    'pid' => '',
+                    'configLines' => 0
+                ];
+                // push info to information arrays used in BE by TemplateTools (Analyzer)
+                array_unshift($this->clearList_const, $defaultTemplateInfo['uid']);
+                array_unshift($this->clearList_setup, $defaultTemplateInfo['uid']);
+                array_unshift($this->hierarchyInfo, $defaultTemplateInfo);
+            }
+
             // adding default setup and constants
             // defaultTypoScript_setup is *very* unlikely to be empty
             // the count of elements in ->constants, ->config and ->templateIncludePaths have to be in sync
@@ -1207,7 +1277,6 @@ class TemplateService
             array_unshift($this->config, (string)$GLOBALS['TYPO3_CONF_VARS']['FE']['defaultTypoScript_setup']);
             array_unshift($this->templateIncludePaths, '');
             // prepare a proper entry to hierachyInfo (used by TemplateAnalyzer in BE)
-            $rootTemplateId = $this->hierarchyInfo[count($this->hierarchyInfo) - 1]['templateID'] ?? null;
             $defaultTemplateInfo = [
                 'root' => '',
                 'clConst' => '',
@@ -1223,6 +1292,7 @@ class TemplateService
             array_unshift($this->clearList_const, $defaultTemplateInfo['uid']);
             array_unshift($this->clearList_setup, $defaultTemplateInfo['uid']);
             array_unshift($this->hierarchyInfo, $defaultTemplateInfo);
+
             $this->isDefaultTypoScriptAdded = true;
         }
     }
@@ -1232,7 +1302,7 @@ class TemplateService
      */
     protected function getTypoScriptFrontendController()
     {
-        return $this->frontendController ?? $GLOBALS['TSFE'];
+        return $this->frontendController ?? $GLOBALS['TSFE'] ?? null;
     }
 
     /**

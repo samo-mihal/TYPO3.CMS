@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Domain\Repository;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Domain\Repository;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Domain\Repository;
 
 use TYPO3\CMS\Backend\Controller\HelpController;
 use TYPO3\CMS\Backend\Module\ModuleLoader;
@@ -44,6 +45,7 @@ class TableManualRepository
             $parts[0] = '';
             // Traverse table columns as listed in TCA_DESCR
             foreach ($GLOBALS['TCA_DESCR'][$table]['columns'] as $field => $_) {
+                /** @var string $field */
                 if (!$this->isExcludableField($table, $field) || $this->checkAccess('non_exclude_fields', $table . ':' . $field)) {
                     if (!$field) {
                         // Header
@@ -84,6 +86,7 @@ class TableManualRepository
     {
         // Initialize
         $cshKeys = array_flip(array_keys($GLOBALS['TCA_DESCR']));
+        /** @var string[] $tcaKeys */
         $tcaKeys = array_keys($GLOBALS['TCA']);
         $outputSections = [];
         $tocArray = [];
@@ -178,7 +181,7 @@ class TableManualRepository
     protected function getTableFieldLabel($key, $field = '', $mergeToken = ': ')
     {
         // Get table / field parts
-        list($tableName, $fieldName) = $this->getTableFieldNames($key, $field);
+        [$tableName, $fieldName] = $this->getTableFieldNames($key, $field);
         // Create label
         return $this->getLanguageService()->sL($tableName) . ($field ? $mergeToken . rtrim(trim($this->getLanguageService()->sL($fieldName)), ':') : '');
     }
@@ -305,7 +308,8 @@ class TableManualRepository
                                 'internal' => true,
                                 'arguments' => [
                                     'table' => $table,
-                                    'field' => $field
+                                    'field' => $field,
+                                    'action' => 'detail',
                                 ],
                                 'title' => $label
                             ];

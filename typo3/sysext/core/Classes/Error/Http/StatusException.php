@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Error\Http;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,14 @@ namespace TYPO3\CMS\Core\Error\Http;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Error\Http;
+
+use TYPO3\CMS\Core\Error\Exception;
+
 /**
  * HTTP Status Exception
  */
-class StatusException extends \TYPO3\CMS\Core\Error\Exception
+class StatusException extends Exception
 {
     /**
      * @var array HTTP Status Header lines

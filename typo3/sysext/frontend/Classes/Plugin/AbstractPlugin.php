@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Frontend\Plugin;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Frontend\Plugin;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Frontend\Plugin;
 
 use Doctrine\DBAL\Driver\Statement;
 use TYPO3\CMS\Core\Database\Connection;
@@ -85,9 +86,9 @@ class AbstractPlugin
     ];
 
     /**
-     * Local pointer variabe array.
+     * Local pointer variable array.
      * Holds pointer information for the MVC like approach Kasper
-     * initially proposed
+     * initially proposed.
      *
      * @var array
      */
@@ -184,23 +185,6 @@ class AbstractPlugin
     public $pi_autoCacheEn = false;
 
     /**
-     * If set, then links are
-     * 1) not using cHash and
-     * 2) not allowing pages to be cached. (Set this for all USER_INT plugins!)
-     *
-     * @var bool
-     */
-    public $pi_USER_INT_obj = false;
-
-    /**
-     * If set, then caching is disabled if piVars are incoming while
-     * no cHash was set (Set this for all USER plugins!)
-     *
-     * @var bool
-     */
-    public $pi_checkCHash = false;
-
-    /**
      * Should normally be set in the main function with the TypoScript content passed to the method.
      *
      * $conf[LOCAL_LANG][_key_] is reserved for Local Language overrides.
@@ -249,18 +233,6 @@ class AbstractPlugin
         // Setting piVars:
         if ($this->prefixId) {
             $this->piVars = GeneralUtility::_GPmerged($this->prefixId);
-            // cHash mode check
-            // IMPORTANT FOR CACHED PLUGINS (USER cObject): As soon as you generate cached plugin output which
-            // depends on parameters (eg. seeing the details of a news item) you MUST check if a cHash value is set.
-            // Background: The function call will check if a cHash parameter was sent with the URL because only if
-            // it was the page may be cached. If no cHash was found the function will simply disable caching to
-            // avoid unpredictable caching behaviour. In any case your plugin can generate the expected output and
-            // the only risk is that the content may not be cached. A missing cHash value is considered a mistake
-            // in the URL resulting from either URL manipulation, "realurl" "grayzones" etc. The problem is rare
-            // (more frequent with "realurl") but when it occurs it is very puzzling!
-            if ($this->pi_checkCHash && !empty($this->piVars)) {
-                $this->frontendController->reqCHash();
-            }
         }
         $this->LLkey = $this->frontendController->getLanguage()->getTypo3Language();
 
@@ -401,8 +373,10 @@ class AbstractPlugin
     public function pi_linkTP($str, $urlParameters = [], $cache = false, $altPageId = 0)
     {
         $conf = [];
-        $conf['no_cache'] = $this->pi_USER_INT_obj ? 0 : !$cache;
-        $conf['parameter'] = $altPageId ?: ($this->pi_tmpPageId ?: $this->frontendController->id);
+        if (!$cache) {
+            $conf['no_cache'] = true;
+        }
+        $conf['parameter'] = $altPageId ?: ($this->pi_tmpPageId ?: 'current');
         $conf['additionalParams'] = $this->conf['parent.']['addParams'] . HttpUtility::buildQueryString($urlParameters, '&', true) . $this->pi_moreParams;
         return $this->cObj->typoLink($str, $conf);
     }
@@ -428,7 +402,7 @@ class AbstractPlugin
             ArrayUtility::mergeRecursiveWithOverrule($piVars, $overrulePIvars);
             $overrulePIvars = $piVars;
             if ($this->pi_autoCacheEn) {
-                $cache = $this->pi_autoCache($overrulePIvars);
+                $cache = (bool)$this->pi_autoCache($overrulePIvars);
             }
         }
         return $this->pi_linkTP($str, [$this->prefixId => $overrulePIvars], $cache, $altPageId);
@@ -475,7 +449,7 @@ class AbstractPlugin
             } else {
                 $overrulePIvars = ['showUid' => $uid ?: ''];
                 $overrulePIvars = array_merge($overrulePIvars, (array)$mergeArr);
-                $str = $this->pi_linkTP_keepPIvars($str, $overrulePIvars, $cache, 0, $altPageId);
+                $str = $this->pi_linkTP_keepPIvars($str, $overrulePIvars, $cache, false, $altPageId);
             }
             // If urlOnly flag, return only URL as it has recently be generated.
             if ($urlOnly) {
@@ -496,7 +470,8 @@ class AbstractPlugin
     public function pi_openAtagHrefInJSwindow($str, $winName = '', $winParams = 'width=670,height=500,status=0,menubar=0,scrollbars=1,resizable=1')
     {
         if (preg_match('/(.*)(<a[^>]*>)(.*)/i', $str, $match)) {
-            $aTagContent = GeneralUtility::get_tag_attributes($match[2]);
+            // decode HTML entities, `href` is used in escaped JavaScript context
+            $aTagContent = GeneralUtility::get_tag_attributes($match[2], true);
             $onClick = 'vHWin=window.open('
                 . GeneralUtility::quoteJSvalue($this->frontendController->baseUrlWrap($aTagContent['href'])) . ','
                 . GeneralUtility::quoteJSvalue($winName ?: md5($aTagContent['href'])) . ','
@@ -538,6 +513,8 @@ class AbstractPlugin
      */
     public function pi_list_browseresults($showResultCount = 1, $tableParams = '', $wrapArr = [], $pointerName = 'pointer', $hscText = true, $forceOutput = false)
     {
+        $wrapper = [];
+        $markerArray = [];
         foreach ($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS'][self::class]['pi_list_browseresults'] ?? [] as $classRef) {
             $hookObj = GeneralUtility::makeInstance($classRef);
             if (method_exists($hookObj, 'pi_list_browseresults')) {
@@ -561,9 +538,9 @@ class AbstractPlugin
         $pointer = (int)$this->piVars[$pointerName];
         $count = (int)$this->internal['res_count'];
         $results_at_a_time = MathUtility::forceIntegerInRange($this->internal['results_at_a_time'], 1, 1000);
-        $totalPages = ceil($count / $results_at_a_time);
+        $totalPages = (int)ceil($count / $results_at_a_time);
         $maxPages = MathUtility::forceIntegerInRange($this->internal['maxPages'], 1, 100);
-        $pi_isOnlyFields = $this->pi_isOnlyFields($this->pi_isOnlyFields);
+        $pi_isOnlyFields = (bool)$this->pi_isOnlyFields($this->pi_isOnlyFields);
         if (!$forceOutput && $count <= $results_at_a_time) {
             return '';
         }
@@ -714,7 +691,7 @@ class AbstractPlugin
         $cells = [];
         foreach ($items as $k => $v) {
             $cells[] = '
-					<td' . ($this->piVars['mode'] == $k ? $this->pi_classParam('modeSelector-SCell') : '') . '><p>' . $this->pi_linkTP_keepPIvars(htmlspecialchars($v), ['mode' => $k], $this->pi_isOnlyFields($this->pi_isOnlyFields)) . '</p></td>';
+					<td' . ($this->piVars['mode'] == $k ? $this->pi_classParam('modeSelector-SCell') : '') . '><p>' . $this->pi_linkTP_keepPIvars(htmlspecialchars($v), ['mode' => $k], (bool)$this->pi_isOnlyFields($this->pi_isOnlyFields)) . '</p></td>';
         }
         $sTables = '
 
@@ -1106,9 +1083,9 @@ class AbstractPlugin
             $queryBuilder->getRestrictions()->removeAll();
 
             // Split the "FROM ... WHERE" string so we get the WHERE part and TABLE names separated...:
-            list($tableListFragment, $whereFragment) = preg_split('/WHERE/i', trim($query), 2);
+            [$tableListFragment, $whereFragment] = preg_split('/WHERE/i', trim($query), 2);
             foreach (QueryHelper::parseTableList($tableListFragment) as $tableNameAndAlias) {
-                list($tableName, $tableAlias) = $tableNameAndAlias;
+                [$tableName, $tableAlias] = $tableNameAndAlias;
                 $queryBuilder->from($tableName, $tableAlias);
             }
             $queryBuilder->where(QueryHelper::stripLogicalOperatorPrefix($whereFragment));
@@ -1143,7 +1120,7 @@ class AbstractPlugin
                 }
             } elseif ($orderBy) {
                 foreach (QueryHelper::parseOrderBy($orderBy) as $fieldNameAndSorting) {
-                    list($fieldName, $sorting) = $fieldNameAndSorting;
+                    [$fieldName, $sorting] = $fieldNameAndSorting;
                     $queryBuilder->addOrderBy($fieldName, $sorting);
                 }
             }
@@ -1190,7 +1167,7 @@ class AbstractPlugin
             $pid_list = $this->frontendController->id;
         }
         $recursive = MathUtility::forceIntegerInRange($recursive, 0);
-        $pid_list_arr = array_unique(GeneralUtility::trimExplode(',', $pid_list, true));
+        $pid_list_arr = array_unique(GeneralUtility::intExplode(',', $pid_list, true));
         $pid_list = [];
         foreach ($pid_list_arr as $val) {
             $val = MathUtility::forceIntegerInRange($val, 0);
@@ -1248,7 +1225,7 @@ class AbstractPlugin
 
         if (!empty($orderBy)) {
             foreach (QueryHelper::parseOrderBy($orderBy) as $fieldNameAndSorting) {
-                list($fieldName, $sorting) = $fieldNameAndSorting;
+                [$fieldName, $sorting] = $fieldNameAndSorting;
                 $queryBuilder->addOrderBy($fieldName, $sorting);
             }
         }
@@ -1299,7 +1276,7 @@ class AbstractPlugin
             }
         }
         if (empty($tempPiVars)) {
-            //@TODO: How do we deal with this? return TRUE would be the right thing to do here but that might be breaking
+            // @TODO: How do we deal with this? return TRUE would be the right thing to do here but that might be breaking
             return 1;
         }
         return null;
@@ -1331,7 +1308,7 @@ class AbstractPlugin
             }
         }
         if (empty($inArray)) {
-            //@TODO: How do we deal with this? return TRUE would be the right thing to do here but that might be breaking
+            // @TODO: How do we deal with this? return TRUE would be the right thing to do here but that might be breaking
             return 1;
         }
         return null;

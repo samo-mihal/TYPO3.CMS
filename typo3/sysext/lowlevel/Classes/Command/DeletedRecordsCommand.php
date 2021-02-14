@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Lowlevel\Command;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Lowlevel\Command;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Lowlevel\Command;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -67,6 +69,7 @@ class DeletedRecordsCommand extends Command
      *
      * @param InputInterface $input
      * @param OutputInterface $output
+     * @return int
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
@@ -115,6 +118,7 @@ class DeletedRecordsCommand extends Command
         $this->deleteRecords($deletedRecords, $dryRun, $io);
 
         $io->success('All done!');
+        return 0;
     }
 
     /**

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Utility;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,10 @@ namespace TYPO3\CMS\Core\Utility;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Utility;
+
+use TYPO3\CMS\Core\Mail\Rfc822AddressesParser;
 
 /**
  * Class to handle mail specific functionality
@@ -113,7 +116,7 @@ class MailUtility
      * @param string $str The string to break up
      * @param string $newlineChar The string to implode the broken lines with (default/typically \n)
      * @param int $lineWidth The line width
-     * @return string Reformated text
+     * @return string Reformatted text
      */
     public static function breakLinesForEmail($str, $newlineChar = LF, $lineWidth = 76)
     {
@@ -169,7 +172,7 @@ class MailUtility
     {
         /** @var \TYPO3\CMS\Core\Mail\Rfc822AddressesParser $addressParser */
         $addressParser = GeneralUtility::makeInstance(
-            \TYPO3\CMS\Core\Mail\Rfc822AddressesParser::class,
+            Rfc822AddressesParser::class,
             $rawAddresses
         );
         $addresses = $addressParser->parseAddressList();

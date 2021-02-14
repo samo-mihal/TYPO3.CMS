@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\ManyToMany;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\ManyToMany;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\ManyToMany;
 
 /**
  * Functional test for the DataHandler
@@ -42,13 +43,6 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         $this->setWorkspaceId(self::VALUE_WorkspaceId);
     }
 
-    /**
-     * MM Relations
-     */
-
-    /**
-     * See DataSet/createContentRecordAndAddCategoryRelation.csv
-     */
     public function createContentAndAddRelation()
     {
         $newTableIds = $this->actionService->createNewRecord(
@@ -59,9 +53,6 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         $this->recordIds['newContentId'] = $newTableIds[self::TABLE_Content][0];
     }
 
-    /**
-     * See DataSet/createCategoryRecordAndAddCategoryRelation.csv
-     */
     public function createCategoryAndAddRelation()
     {
         $newTableIds = $this->actionService->createNewRecord(
@@ -72,9 +63,6 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         $this->recordIds['newCategoryId'] = $newTableIds[self::TABLE_Category][0];
     }
 
-    /**
-     * See DataSet/createContentRecordAndCreateCategoryRelation.csv
-     */
     public function createContentAndCreateRelation()
     {
         $newTableIds = $this->actionService->createNewRecords(
@@ -88,9 +76,6 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         $this->recordIds['newContentId'] = $newTableIds[self::TABLE_Content][0];
     }
 
-    /**
-     * See DataSet/createCategoryRecordAndCreateCategoryRelation.csv
-     */
     public function createCategoryAndCreateRelation()
     {
         $newTableIds = $this->actionService->createNewRecords(

@@ -1,16 +1,21 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Unit\Package;
 
-/*                                                                        *
- * This script belongs to the TYPO3 Flow framework.                       *
- *                                                                        *
- * It is free software; you can redistribute it and/or modify it under    *
- * the terms of the GNU Lesser General Public License, either version 3   *
- * of the License, or (at your option) any later version.                 *
- *                                                                        *
- * The TYPO3 project - inspiring people to share!                         *
- *                                                                        */
+declare(strict_types=1);
+
+/*
+ * This file is part of the TYPO3 CMS project.
+ *
+ * It is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License, either version 2
+ * of the License, or any later version.
+ *
+ * For the full copyright and license information, please read the
+ * LICENSE.txt file that was distributed with this source code.
+ *
+ * The TYPO3 project - inspiring people to share!
+ */
+
+namespace TYPO3\CMS\Core\Tests\Unit\Package;
 
 use org\bovigo\vfs\vfsStream;
 use TYPO3\CMS\Core\Cache\Backend\SimpleFileBackend;
@@ -22,6 +27,7 @@ use TYPO3\CMS\Core\Package\Exception\UnknownPackageException;
 use TYPO3\CMS\Core\Package\Package;
 use TYPO3\CMS\Core\Package\PackageManager;
 use TYPO3\CMS\Core\Service\DependencyOrderingService;
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -58,7 +64,7 @@ class PackageManagerTest extends UnitTestCase
         $this->packageManager = $this->getAccessibleMock(
             PackageManager::class,
             ['sortAndSavePackageStates', 'sortActivePackagesByDependencies', 'registerTransientClassLoadingInformationForPackage'],
-            [new DependencyOrderingService]
+            [new DependencyOrderingService()]
         );
 
         mkdir('vfs://Test/Packages/Application', 0700, true);
@@ -124,10 +130,10 @@ class PackageManagerTest extends UnitTestCase
     public function scanAvailablePackagesTraversesThePackagesDirectoryAndRegistersPackagesItFinds(): void
     {
         $expectedPackageKeys = [
-            $this->getUniqueId('TYPO3.CMS'),
-            $this->getUniqueId('TYPO3.CMS.Test'),
-            $this->getUniqueId('TYPO3.YetAnotherTestPackage'),
-            $this->getUniqueId('Lolli.Pop.NothingElse')
+            StringUtility::getUniqueId('TYPO3.CMS'),
+            StringUtility::getUniqueId('TYPO3.CMS.Test'),
+            StringUtility::getUniqueId('TYPO3.YetAnotherTestPackage'),
+            StringUtility::getUniqueId('Lolli.Pop.NothingElse')
         ];
 
         foreach ($expectedPackageKeys as $packageKey) {
@@ -137,7 +143,7 @@ class PackageManagerTest extends UnitTestCase
             file_put_contents($packagePath . 'composer.json', '{"name": "' . $packageKey . '", "type": "typo3-test"}');
         }
 
-        $packageManager = $this->getAccessibleMock(PackageManager::class, ['sortAndSavePackageStates'], [new DependencyOrderingService]);
+        $packageManager = $this->getAccessibleMock(PackageManager::class, ['sortAndSavePackageStates'], [new DependencyOrderingService()]);
         $packageManager->_set('packagesBasePath', 'vfs://Test/Packages/');
         $packageManager->_set('packageStatesPathAndFilename', 'vfs://Test/Configuration/PackageStates.php');
 
@@ -155,10 +161,10 @@ class PackageManagerTest extends UnitTestCase
     public function scanAvailablePackagesKeepsExistingPackageConfiguration(): void
     {
         $expectedPackageKeys = [
-            $this->getUniqueId('TYPO3.CMS'),
-            $this->getUniqueId('TYPO3.CMS.Test'),
-            $this->getUniqueId('TYPO3.YetAnotherTestPackage'),
-            $this->getUniqueId('Lolli.Pop.NothingElse')
+            StringUtility::getUniqueId('TYPO3.CMS'),
+            StringUtility::getUniqueId('TYPO3.CMS.Test'),
+            StringUtility::getUniqueId('TYPO3.YetAnotherTestPackage'),
+            StringUtility::getUniqueId('Lolli.Pop.NothingElse')
         ];
 
         $packagePaths = [];
@@ -172,7 +178,7 @@ class PackageManagerTest extends UnitTestCase
         }
 
         /** @var PackageManager|\PHPUnit\Framework\MockObject\MockObject|\TYPO3\TestingFramework\Core\AccessibleObjectInterface $packageManager */
-        $packageManager = $this->getAccessibleMock(PackageManager::class, ['dummy'], [new DependencyOrderingService]);
+        $packageManager = $this->getAccessibleMock(PackageManager::class, ['dummy'], [new DependencyOrderingService()]);
         $packageManager->_set('packagesBasePaths', $packagePaths);
         $packageManager->_set('packagesBasePath', 'vfs://Test/Packages/');
         $packageManager->_set('packageStatesPathAndFilename', 'vfs://Test/Configuration/PackageStates.php');
@@ -199,9 +205,9 @@ class PackageManagerTest extends UnitTestCase
     public function packageStatesConfigurationContainsRelativePaths(): void
     {
         $packageKeys = [
-            $this->getUniqueId('Lolli.Pop.NothingElse'),
-            $this->getUniqueId('TYPO3.Package'),
-            $this->getUniqueId('TYPO3.YetAnotherTestPackage')
+            StringUtility::getUniqueId('Lolli.Pop.NothingElse'),
+            StringUtility::getUniqueId('TYPO3.Package'),
+            StringUtility::getUniqueId('TYPO3.YetAnotherTestPackage')
         ];
 
         $packagePaths = [];
@@ -215,7 +221,7 @@ class PackageManagerTest extends UnitTestCase
         }
 
         /** @var PackageManager|\PHPUnit\Framework\MockObject\MockObject|\TYPO3\TestingFramework\Core\AccessibleObjectInterface $packageManager */
-        $packageManager = $this->getAccessibleMock(PackageManager::class, ['sortAndSavePackageStates', 'registerTransientClassLoadingInformationForPackage'], [new DependencyOrderingService]);
+        $packageManager = $this->getAccessibleMock(PackageManager::class, ['sortAndSavePackageStates', 'registerTransientClassLoadingInformationForPackage'], [new DependencyOrderingService()]);
         $packageManager->_set('packagesBasePaths', $packagePaths);
         $packageManager->_set('packagesBasePath', 'vfs://Test/Packages/');
         $packageManager->_set('packageStatesPathAndFilename', 'vfs://Test/Configuration/PackageStates.php');
@@ -390,7 +396,7 @@ class PackageManagerTest extends UnitTestCase
             'imagine/imagine' => 'imagine.Imagine'
         ];
 
-        $packageManager = $this->getAccessibleMock(PackageManager::class, ['resolvePackageDependencies'], [new DependencyOrderingService]);
+        $packageManager = $this->getAccessibleMock(PackageManager::class, ['resolvePackageDependencies'], [new DependencyOrderingService()]);
         $packageManager->_set('packageStatesConfiguration', $packageStatesConfiguration);
         $packageManager->_set('composerNameToPackageKeyMap', $composerNameToPackageKeyMap);
 
@@ -647,7 +653,7 @@ class PackageManagerTest extends UnitTestCase
      */
     public function buildDependencyGraphBuildsCorrectGraph(array $unsortedPackageStatesConfiguration, array $frameworkPackageKeys, array $expectedGraph): void
     {
-        $packageManager = $this->getAccessibleMock(PackageManager::class, ['findFrameworkPackages'], [new DependencyOrderingService]);
+        $packageManager = $this->getAccessibleMock(PackageManager::class, ['findFrameworkPackages'], [new DependencyOrderingService()]);
         $packageManager->expects(self::any())->method('findFrameworkPackages')->willReturn($frameworkPackageKeys);
 
         $dependencyGraph = $packageManager->_call('buildDependencyGraph', $unsortedPackageStatesConfiguration);
@@ -776,7 +782,7 @@ class PackageManagerTest extends UnitTestCase
      */
     public function sortPackageStatesConfigurationByDependencyMakesSureThatDependantPackagesAreStandingBeforeAPackageInTheInternalPackagesAndPackagesConfigurationArrays($unsortedPackageStatesConfiguration, $frameworkPackageKeys, $expectedSortedPackageKeys): void
     {
-        $packageManager = $this->getAccessibleMock(PackageManager::class, ['findFrameworkPackages'], [new DependencyOrderingService]);
+        $packageManager = $this->getAccessibleMock(PackageManager::class, ['findFrameworkPackages'], [new DependencyOrderingService()]);
         $packageManager->expects(self::any())->method('findFrameworkPackages')->willReturn($frameworkPackageKeys);
 
         $sortedPackageKeys = $packageManager->_call('sortPackageStatesConfigurationByDependency', $unsortedPackageStatesConfiguration);
@@ -801,7 +807,7 @@ class PackageManagerTest extends UnitTestCase
         $this->expectException(\UnexpectedValueException::class);
         $this->expectExceptionCode(1381960494);
 
-        $packageManager = $this->getAccessibleMock(PackageManager::class, ['findFrameworkPackages'], [new DependencyOrderingService]);
+        $packageManager = $this->getAccessibleMock(PackageManager::class, ['findFrameworkPackages'], [new DependencyOrderingService()]);
         $packageManager->expects(self::any())->method('findFrameworkPackages')->willReturn([]);
 
         $packageManager->_call('sortPackageStatesConfigurationByDependency', $unsortedPackageStatesConfiguration);

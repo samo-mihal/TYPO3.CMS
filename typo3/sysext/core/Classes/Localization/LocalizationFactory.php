@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Localization;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,14 +13,18 @@ namespace TYPO3\CMS\Core\Localization;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Localization;
+
 use TYPO3\CMS\Core\Cache\CacheManager;
+use TYPO3\CMS\Core\Localization\Exception\FileNotFoundException;
+use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Core\Utility\ArrayUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Provides a language parser factory.
  */
-class LocalizationFactory implements \TYPO3\CMS\Core\SingletonInterface
+class LocalizationFactory implements SingletonInterface
 {
     /**
      * @var \TYPO3\CMS\Core\Cache\Frontend\FrontendInterface
@@ -33,21 +36,10 @@ class LocalizationFactory implements \TYPO3\CMS\Core\SingletonInterface
      */
     public $store;
 
-    /**
-     * Class constructor
-     */
-    public function __construct()
+    public function __construct(LanguageStore $languageStore, CacheManager $cacheManager)
     {
-        $this->store = GeneralUtility::makeInstance(LanguageStore::class);
-        $this->initializeCache();
-    }
-
-    /**
-     * Initialize cache instance to be ready to use
-     */
-    protected function initializeCache()
-    {
-        $this->cacheInstance = GeneralUtility::makeInstance(CacheManager::class)->getCache('l10n');
+        $this->store = $languageStore;
+        $this->cacheInstance = $cacheManager->getCache('l10n');
     }
 
     /**
@@ -86,7 +78,7 @@ class LocalizationFactory implements \TYPO3\CMS\Core\SingletonInterface
             $parser = $this->store->getParserInstance($fileReference);
             // Get parsed data
             $LOCAL_LANG = $parser->getParsedData($this->store->getAbsoluteFileReference($fileReference), $languageKey);
-        } catch (Exception\FileNotFoundException $exception) {
+        } catch (FileNotFoundException $exception) {
             // Source localization file not found, set empty data as there could be an override
             $this->store->setData($fileReference, $languageKey, []);
             $LOCAL_LANG = $this->store->getData($fileReference);
@@ -130,7 +122,10 @@ class LocalizationFactory implements \TYPO3\CMS\Core\SingletonInterface
         if (!empty($overrides)) {
             foreach ($overrides as $overrideFile) {
                 $languageOverrideFileName = GeneralUtility::getFileAbsFileName($overrideFile);
-                ArrayUtility::mergeRecursiveWithOverrule($LOCAL_LANG, $this->getParsedData($languageOverrideFileName, $languageKey, null, null, true));
+                $parsedData = $this->getParsedData($languageOverrideFileName, $languageKey, null, null, true);
+                if (is_array($parsedData)) {
+                    ArrayUtility::mergeRecursiveWithOverrule($LOCAL_LANG, $parsedData);
+                }
             }
         }
     }

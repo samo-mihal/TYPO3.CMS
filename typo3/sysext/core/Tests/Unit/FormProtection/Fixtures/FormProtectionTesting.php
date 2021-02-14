@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Unit\FormProtection\Fixtures;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,13 +13,17 @@ namespace TYPO3\CMS\Core\Tests\Unit\FormProtection\Fixtures;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\FormProtection\Fixtures;
+
+use TYPO3\CMS\Core\FormProtection\AbstractFormProtection;
+
 /**
  * Class \TYPO3\CMS\Core\Tests\Unit\FormProtection\Fixtures\FormProtectionTesting.
  *
  * This is a testing subclass of the abstract \TYPO3\CMS\Core\FormProtection\AbstractFormProtection
  * class.
  */
-class FormProtectionTesting extends \TYPO3\CMS\Core\FormProtection\AbstractFormProtection
+class FormProtectionTesting extends AbstractFormProtection
 {
     /**
      * Retrieves all saved tokens.

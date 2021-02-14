@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Tstemplate\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Tstemplate\Controller;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Tstemplate\Controller;
 
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
@@ -144,7 +145,7 @@ class TypoScriptTemplateConstantEditorModuleFunctionController
                 if ($this->templateService->changed) {
                     // Set the data to be saved
                     $recData = [];
-                    $recData['sys_template'][$saveId]['constants'] = implode($this->templateService->raw, LF);
+                    $recData['sys_template'][$saveId]['constants'] = implode(LF, $this->templateService->raw);
                     // Create new  tce-object
                     $tce = GeneralUtility::makeInstance(DataHandler::class);
                     $tce->start($recData, []);

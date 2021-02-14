@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
 
 use TYPO3\CMS\Backend\Form\FormDataProvider\DatabaseParentPageRow;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
@@ -49,15 +50,10 @@ class DatabaseParentPageRowTest extends UnitTestCase
             'pid' => 321
         ];
 
-        $this->subject->expects(self::at(0))
+        $this->subject->expects(self::exactly(2))
             ->method('getDatabaseRow')
-            ->with($input['tableName'], 10)
-            ->willReturn(['pid' => 123]);
-
-        $this->subject->expects(self::at(1))
-            ->method('getDatabaseRow')
-            ->with('pages', 123)
-            ->willReturn($parentPageRow);
+            ->withConsecutive([$input['tableName'], 10], ['pages', 123])
+            ->willReturnOnConsecutiveCalls(['pid' => 123], $parentPageRow);
 
         $result = $this->subject->addData($input);
 
@@ -67,14 +63,14 @@ class DatabaseParentPageRowTest extends UnitTestCase
     /**
      * @test
      */
-    public function addDataSetsNeigborRowIfNegativeUidGiven()
+    public function addDataSetsNeighborRowIfNegativeUidGiven()
     {
         $input = [
             'tableName' => 'tt_content',
             'command' => 'new',
             'vanillaUid' => -10,
         ];
-        $neigborRow = [
+        $neighborRow = [
             'uid' => 10,
             'pid' => 321
         ];
@@ -82,19 +78,14 @@ class DatabaseParentPageRowTest extends UnitTestCase
             'uid' => 123,
             'pid' => 321
         ];
-        $this->subject->expects(self::at(0))
+        $this->subject->expects(self::exactly(2))
             ->method('getDatabaseRow')
-            ->with($input['tableName'], 10)
-            ->willReturn($neigborRow);
-
-        $this->subject->expects(self::at(1))
-            ->method('getDatabaseRow')
-            ->with('pages', 321)
-            ->willReturn($parentPageRow);
+            ->withConsecutive([$input['tableName'], 10], ['pages', 321])
+            ->willReturnOnConsecutiveCalls($neighborRow, $parentPageRow);
 
         $result = $this->subject->addData($input);
 
-        self::assertSame($neigborRow, $result['neighborRow']);
+        self::assertSame($neighborRow, $result['neighborRow']);
     }
 
     /**

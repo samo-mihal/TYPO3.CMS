@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Tests\Unit\TypoScript\Parser;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\TypoScript\Parser;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\TypoScript\Parser;
 
 use Prophecy\Argument;
 use TYPO3\CMS\Backend\Configuration\TypoScript\ConditionMatching\ConditionMatcher;
@@ -42,8 +43,7 @@ class TypoScriptParserTest extends UnitTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $accessibleClassName = $this->buildAccessibleProxy(TypoScriptParser::class);
-        $this->typoScriptParser = new $accessibleClassName();
+        $this->typoScriptParser = $this->getAccessibleMock(TypoScriptParser::class, ['dummy']);
     }
 
     /**
@@ -386,6 +386,33 @@ class TypoScriptParserTest extends UnitTestCase
         self::assertEquals($expected, $this->typoScriptParser->errors[0][0]);
     }
 
+    public function invalidConditionsDataProvider(): array
+    {
+        return [
+            '[1 == 1]a' => ['[1 == 1]a', false],
+            '[1 == 1] # a comment' => ['[1 == 1] # a comment', false],
+            '[1 == 1]' => ['[1 == 1]', true],
+        ];
+    }
+
+    /**
+     * @test
+     * @dataProvider invalidConditionsDataProvider
+     * @param string $condition
+     * @param bool $isValid
+     */
+    public function invalidConditionsAreReported(string $condition, bool $isValid): void
+    {
+        $timeTrackerProphecy = $this->prophesize(TimeTracker::class);
+        GeneralUtility::setSingletonInstance(TimeTracker::class, $timeTrackerProphecy->reveal());
+
+        $this->typoScriptParser->parse($condition);
+        if (!$isValid) {
+            $expected = 'Line 0: Invalid condition found, any condition must end with "]": ' . $condition;
+            self::assertEquals($expected, $this->typoScriptParser->errors[0][0]);
+        }
+    }
+
     /**
      * @test
      */
@@ -555,20 +582,6 @@ test.TYPO3Forever.TypoScript = 1
                 // Expected
                 '
 bennilove = before
-
-### @import \'EXT:core/Tests/Unit/TypoScript/Fixtures/badfilename.php\' begin ###
-
-###
-### ERROR: File "EXT:core/Tests/Unit/TypoScript/Fixtures/badfilename.php" was not included since it is not allowed due to fileDenyPattern.
-###
-
-### @import \'EXT:core/Tests/Unit/TypoScript/Fixtures/badfilename.php\' end ###
-
-
-### @import \'EXT:core/Tests/Unit/TypoScript/Fixtures/ext_typoscript_setup.txt\' begin ###
-test.Core.TypoScript = 1
-### @import \'EXT:core/Tests/Unit/TypoScript/Fixtures/ext_typoscript_setup.txt\' end ###
-
 
 ### @import \'EXT:core/Tests/Unit/TypoScript/Fixtures/recursive_includes_setup.typoscript\' begin ###
 

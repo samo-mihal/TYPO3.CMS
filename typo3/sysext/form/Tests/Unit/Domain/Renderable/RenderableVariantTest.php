@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\Tests\Unit\Domain\Renderable;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Form\Tests\Unit\Domain\Renderable;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Form\Tests\Unit\Domain\Renderable;
 
 use TYPO3\CMS\Form\Domain\Model\FormElements\GenericFormElement;
 use TYPO3\CMS\Form\Domain\Model\Renderable\RenderableVariant;
@@ -72,7 +74,7 @@ class RenderableVariantTest extends UnitTestCase
             'label' => 'some label',
             'properties' => $variantProperties
         ];
-        $mockVariant = $this->getAccessibleMock(RenderableVariant::class, ['getIdentifier'], [$variantIdentifier, $options, $mockFormElement], '', true);
+        $mockVariant = $this->getMockBuilder(RenderableVariant::class)->onlyMethods(['getIdentifier'])->setConstructorArgs([$variantIdentifier, $options, $mockFormElement])->getMock();
         $mockFormElement->addVariant($mockVariant);
         $mockFormElement->applyVariant($mockVariant);
 

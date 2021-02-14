@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Controller;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Controller;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -120,7 +121,7 @@ class OnlineMediaController
         $targetFolder = null;
         if ($targetFolderIdentifier) {
             try {
-                $targetFolder = ResourceFactory::getInstance()->getFolderObjectFromCombinedIdentifier($targetFolderIdentifier);
+                $targetFolder = GeneralUtility::makeInstance(ResourceFactory::class)->getFolderObjectFromCombinedIdentifier($targetFolderIdentifier);
             } catch (\Exception $e) {
                 $targetFolder = null;
             }

@@ -1,0 +1,226 @@
+includes:
+    - vendor/friendsoftypo3/phpstan-typo3/extension.neon
+    - Build/phpstan.level8.neon
+# Include bleeding edge rules if necessary but do not commit
+#    - vendor/phpstan/phpstan/conf/bleedingEdge.neon
+
+parameters:
+  # Use local .cache dir instead of /tmp
+  tmpDir: .cache/phpstan
+
+  parallel:
+    # Don't be overly greedy on machines with more CPU's to be a good neighbor especially on CI
+    maximumNumberOfProcesses: 5
+
+  level: 2
+
+  # level 2 parameters which are set to opposite values in the original level 2 configuration. Parameters need to be
+  # set to their opposite values and the resulting errors need to be fixed. Once they are fixed, the parameters can be
+  # removed from this file.
+  checkThisOnly: true
+  checkPhpDocMissingReturn: false
+
+  # Set to true during local runs to find unmatched ignored errors. bamboo needs this to be set to false.
+  reportUnmatchedIgnoredErrors: false
+
+  scanDirectories:
+    - %currentWorkingDirectory%/typo3/sysext/
+  paths:
+    - %currentWorkingDirectory%/typo3/sysext/
+
+  excludes_analyse:
+    - %currentWorkingDirectory%/typo3/sysext/*/Tests/*
+    - %currentWorkingDirectory%/typo3/sysext/*/Documentation/*
+    - %currentWorkingDirectory%/typo3/sysext/*/Resources/*
+    - %currentWorkingDirectory%/typo3/sysext/*/Configuration/*
+
+  ignoreErrors:
+    # ignored errors for level 0
+    - '#Variable \$_EXTKEY might not be defined\.#'
+    -
+      message: '#Instantiated class Composer\\Util\\Filesystem not found\.#'
+      path: %currentWorkingDirectory%/typo3/sysext/core/Classes/Composer/CliEntryPoint.php
+    -
+      message: '#Parameter \$event of method [\w\\]+::\w+\(\) has invalid typehint type Composer\\Script\\Event\.#'
+      path: %currentWorkingDirectory%/typo3/sysext/*/Classes/Composer/*
+    -
+      message: "#^Access to undefined constant TYPO3\\\\CMS\\\\Core\\\\Type\\\\Enumeration\\:\\:__default\\.$#"
+      count: 1
+      path: typo3/sysext/core/Classes/Type/Enumeration.php
+    -
+      message: "#^Call to an undefined method TYPO3\\\\CMS\\\\Fluid\\\\Core\\\\Widget\\\\AbstractWidgetViewHelper\\:\\:getArguments\\(\\)\\.$#"
+      count: 1
+      path: typo3/sysext/fluid/Classes/Core/Widget/AbstractWidgetViewHelper.php
+    -
+      message: "#^Call to an undefined static method TYPO3Fluid\\\\Fluid\\\\Core\\\\ViewHelper\\\\AbstractViewHelper\\:\\:onClose\\(\\)\\.$#"
+      count: 1
+      path: typo3/sysext/fluid/Classes/Core/Widget/AbstractWidgetViewHelper.php
+    -
+      message: "#^Call to an undefined method TYPO3\\\\CMS\\\\Fluid\\\\Core\\\\Widget\\\\AbstractWidgetViewHelper\\:\\:getChildren\\(\\)\\.$#"
+      count: 1
+      path: typo3/sysext/fluid/Classes/Core/Widget/AbstractWidgetViewHelper.php
+    -
+      message: "#^Unsafe usage of new static\\(\\)\\.$#"
+      count: 1
+      path: typo3/sysext/core/Classes/Collection/AbstractRecordCollection.php
+    -
+      message: "#^Unsafe usage of new static\\(\\)\\.$#"
+      count: 1
+      path: typo3/sysext/core/Classes/Type/Enumeration.php
+    -
+      message: "#^Unsafe usage of new static\\(\\)\\.$#"
+      count: 1
+      path: typo3/sysext/workspaces/Classes/Domain/Record/WorkspaceRecord.php
+    -
+      message: "#^Class TYPO3Fluid\\\\Fluid\\\\Core\\\\Parser\\\\TemplateParser does not have a constructor and must be instantiated without any parameters\\.$#"
+      count: 1
+      path: typo3/sysext/fluid/Classes/Core/Rendering/RenderingContext.php
+    -
+      message: "#^Call to an undefined static method TYPO3Fluid\\\\Fluid\\\\Core\\\\Rendering\\\\RenderingContext\\:\\:getParserConfiguration\\(\\)\\.$#"
+      count: 1
+      path: typo3/sysext/fluid/Classes/Core/Rendering/RenderingContext.php
+
+    # ignored errors for level 1
+    -
+      message: "#^Variable \\$value in isset\\(\\) always exists and is not nullable\\.$#"
+      count: 1
+      path: typo3/sysext/backend/Classes/Utility/BackendUtility.php
+    -
+      message: "#^Variable \\$pidConf in isset\\(\\) always exists and is not nullable\\.$#"
+      count: 1
+      path: typo3/sysext/frontend/Classes/ContentObject/ContentObjectRenderer.php
+    -
+      message: "#^Variable \\$column in isset\\(\\) always exists and is not nullable\\.$#"
+      count: 1
+      path: typo3/sysext/workspaces/Classes/Service/GridDataService.php
+    -
+      message: "#^Constructor of class TYPO3\\\\CMS\\\\Frontend\\\\Controller\\\\TypoScriptFrontendController has an unused parameter \\$_2\\.$#"
+      count: 1
+      path: typo3/sysext/frontend/Classes/Controller/TypoScriptFrontendController.php
+    -
+      message: "#^Constructor of class TYPO3\\\\CMS\\\\Frontend\\\\Plugin\\\\AbstractPlugin has an unused parameter \\$_\\.$#"
+      count: 1
+      path: typo3/sysext/frontend/Classes/Plugin/AbstractPlugin.php
+    -
+      message: "#^Constructor of class TYPO3\\\\CMS\\\\RteCKEditor\\\\Form\\\\Resolver\\\\RichTextNodeResolver has an unused parameter \\$nodeFactory\\.$#"
+      count: 1
+      path: typo3/sysext/rte_ckeditor/Classes/Form/Resolver/RichTextNodeResolver.php
+
+    # Ignored errors for level 3
+    -
+      message: "#^Property TYPO3\\\\CMS\\\\Belog\\\\Domain\\\\Model\\\\LogEntry\\:\\:\\$tableName \\(string\\) does not accept default value of type int\\.$#"
+      count: 1
+      path: typo3/sysext/belog/Classes/Domain/Model/LogEntry.php
+    -
+      message: "#^Property TYPO3\\\\CMS\\\\Belog\\\\Domain\\\\Model\\\\LogEntry\\:\\:\\$newId \\(string\\) does not accept default value of type int\\.$#"
+      count: 1
+      path: typo3/sysext/belog/Classes/Domain/Model/LogEntry.php
+
+    # Ignored errors for level 4
+    -
+      message: "#^Ternary operator condition is always false\\.$#"
+      count: 1
+      path: typo3/sysext/backend/Classes/Form/Element/SelectCheckBoxElement.php
+    -
+      message: "#^Ternary operator condition is always true\\.$#"
+      count: 2
+      path: typo3/sysext/backend/Classes/Form/Element/SelectSingleElement.php
+    -
+      message: "#^Instanceof between TYPO3\\\\CMS\\\\Extbase\\\\Domain\\\\Model\\\\Category\\|null and TYPO3\\\\CMS\\\\Extbase\\\\Persistence\\\\Generic\\\\LazyLoadingProxy will always evaluate to false\\.$#"
+      count: 1
+      path: typo3/sysext/extbase/Classes/Domain/Model/Category.php
+    -
+      message: "#^Instanceof between TYPO3\\\\CMS\\\\Core\\\\Resource\\\\File and TYPO3\\\\CMS\\\\Core\\\\Resource\\\\FileReference will always evaluate to false\\.$#"
+      count: 1
+      path: typo3/sysext/frontend/Classes/ContentObject/ContentObjectRenderer.php
+
+    # Ignored errors for level 5
+    -
+      message: "#^Parameter \\#1 \\$var of function count expects array\\|Countable, string given\\.$#"
+      count: 2
+      path: typo3/sysext/core/Classes/Database/QueryGenerator.php
+
+    -
+      message: "#^Parameter \\#1 \\$input of function array_slice expects array, string given\\.$#"
+      count: 2
+      path: typo3/sysext/core/Classes/Database/QueryGenerator.php
+
+    -
+      message: "#^Parameter \\#1 \\$stack of function array_shift expects array, string given\\.$#"
+      count: 1
+      path: typo3/sysext/core/Classes/Database/QueryGenerator.php
+
+    -
+      message: "#^Parameter \\#1 \\$arr1 of function array_merge expects array, string given\\.$#"
+      count: 1
+      path: typo3/sysext/core/Classes/Database/QueryGenerator.php
+
+    -
+      message: "#^Parameter \\#3 \\.\\.\\.\\$args of function array_merge expects array, string given\\.$#"
+      count: 1
+      path: typo3/sysext/core/Classes/Database/QueryGenerator.php
+
+    -
+      message: "#^Parameter \\#2 \\$suffix of method TYPO3\\\\CMS\\\\Core\\\\Database\\\\QueryGenerator\\:\\:cleanInputVal\\(\\) expects string, int given\\.$#"
+      count: 1
+      path: typo3/sysext/core/Classes/Database/QueryGenerator.php
+
+    -
+      message: "#^Parameter \\#3 \\$draw of method TYPO3\\\\CMS\\\\Core\\\\Database\\\\QueryGenerator\\:\\:mkOperatorSelect\\(\\) expects bool, int given\\.$#"
+      count: 1
+      path: typo3/sysext/core/Classes/Database/QueryGenerator.php
+
+    -
+      message: "#^Parameter \\#2 \\$first of method TYPO3\\\\CMS\\\\Core\\\\Database\\\\QueryGenerator\\:\\:getQuerySingle\\(\\) expects bool, int given\\.$#"
+      count: 2
+      path: typo3/sysext/core/Classes/Database/QueryGenerator.php
+
+    -
+      message: "#^Parameter \\#2 \\$item of static method TYPO3\\\\CMS\\\\Core\\\\Utility\\\\GeneralUtility\\:\\:inList\\(\\) expects string, \\(float\\|int\\) given\\.$#"
+      count: 1
+      path: typo3/sysext/core/Classes/Database/QueryGenerator.php
+
+    -
+      message: "#^Parameter \\#2 \\$first of method TYPO3\\\\CMS\\\\Core\\\\Database\\\\QueryGenerator\\:\\:getUserDefQuery\\(\\) expects bool, int given\\.$#"
+      count: 1
+      path: typo3/sysext/core/Classes/Database/QueryGenerator.php
+
+    -
+      message: "#^Parameter \\#2 \\$time of static method DateTime\\:\\:createFromFormat\\(\\) expects string, int\\|string given\\.$#"
+      count: 1
+      path: typo3/sysext/core/Classes/Database/QueryGenerator.php
+
+    -
+      message: "#^Parameter \\#2 \\$replace of function str_replace expects array\\|string, int given\\.$#"
+      count: 1
+      path: typo3/sysext/core/Classes/Database/QueryGenerator.php
+
+    -
+      message: "#^Parameter \\#1 \\$str of function trim expects string, array\\|string given\\.$#"
+      count: 1
+      path: typo3/sysext/core/Classes/Database/QueryGenerator.php
+
+    -
+      message: "#^Parameter \\#2 \\$timestamp of function date expects int, int\\|false given\\.$#"
+      count: 1
+      path: typo3/sysext/core/Classes/Database/QueryGenerator.php
+
+    -
+      message: "#^Parameter \\#2 \\$storeIndex of method TYPO3\\\\CMS\\\\Core\\\\Database\\\\QueryView\\:\\:loadStoreQueryConfigs\\(\\) expects int, string given\\.$#"
+      count: 1
+      path: typo3/sysext/core/Classes/Database/QueryView.php
+
+    -
+      message: "#^Parameter \\#2 \\$index of method TYPO3\\\\CMS\\\\Core\\\\Database\\\\QueryView\\:\\:addToStoreQueryConfigs\\(\\) expects int, int\\|string\\|null given\\.$#"
+      count: 1
+      path: typo3/sysext/core/Classes/Database/QueryView.php
+
+    -
+      message: "#^Parameter \\#2 \\$timestamp of function strftime expects int, string given\\.$#"
+      count: 3
+      path: typo3/sysext/core/Classes/Database/QueryView.php
+
+    -
+      message: "#^Parameter \\#1 \\$constraint of static method TYPO3\\\\CMS\\\\Core\\\\Database\\\\Query\\\\QueryHelper\\:\\:stripLogicalOperatorPrefix\\(\\) expects string, string\\|null given\\.$#"
+      count: 1
+      path: typo3/sysext/core/Classes/Database/QueryView.php

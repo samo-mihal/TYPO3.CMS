@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Tests\Unit\Form;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Tests\Unit\Form;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Tests\Unit\Form;
 
 use Prophecy\Argument;
 use Prophecy\Prophecy\ObjectProphecy;
@@ -31,7 +32,7 @@ class FormDataCompilerTest extends UnitTestCase
     protected $subject;
 
     /**
-     * @var FormDataGroupInterface | ObjectProphecy
+     * @var FormDataGroupInterface|ObjectProphecy
      */
     protected $formDataGroupProphecy;
 

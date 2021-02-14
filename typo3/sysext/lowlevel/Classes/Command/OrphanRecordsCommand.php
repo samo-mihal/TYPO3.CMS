@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Lowlevel\Command;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Lowlevel\Command;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Lowlevel\Command;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -65,6 +67,7 @@ Manual repair suggestions:
      *
      * @param InputInterface $input
      * @param OutputInterface $output
+     * @return int
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
@@ -108,21 +111,16 @@ Manual repair suggestions:
                 ->orderBy('uid')
                 ->execute();
 
-            $totalOrphans = 0;
             $rowCount = $queryBuilder->count('uid')->execute()->fetchColumn(0);
             if ($rowCount) {
                 $orphans[$tableName] = [];
                 while ($orphanRecord = $result->fetch()) {
                     $orphans[$tableName][$orphanRecord['uid']] = $orphanRecord['uid'];
                 }
-                $totalOrphans += count($orphans[$tableName]);
 
-                if ($io->isVeryVerbose() && count($orphans[$tableName])) {
-                    $io->writeln('Found ' . count($orphans[$tableName]) . ' orphan records in table "' . $tableName . '".');
+                if (count($orphans[$tableName])) {
+                    $io->note('Found ' . count($orphans[$tableName]) . ' orphan records in table "' . $tableName . '" with following ids: ' . implode(', ', $orphans[$tableName]));
                 }
-            }
-            if (!$io->isQuiet() && $totalOrphans) {
-                $io->note('Found ' . $totalOrphans . ' records in ' . count($orphans) . ' database tables.');
             }
         }
 
@@ -136,6 +134,7 @@ Manual repair suggestions:
         } else {
             $io->success('No orphan records found.');
         }
+        return 0;
     }
 
     /**
@@ -157,6 +156,7 @@ Manual repair suggestions:
         }
         // Traverse tables of records that belongs to page
         foreach (array_keys($GLOBALS['TCA']) as $tableName) {
+            /** @var string $tableName */
             if ($tableName !== 'pages') {
                 // Select all records belonging to page:
                 $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)

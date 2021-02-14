@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Reports;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,9 @@ namespace TYPO3\CMS\Reports;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Reports;
+
 use TYPO3\CMS\Core\Utility\MathUtility;
 
 /**
@@ -55,7 +57,7 @@ class Status
      * @param string $title Status title, eg. "Deprecation log"
      * @param string $value Status value, eg. "Disabled"
      * @param string $message Optional message further describing the title/value combination
-     * 			Example:, eg "The deprecation log is important and does foo, to disable it do bar"
+     *        Example:, eg "The deprecation log is important and does foo, to disable it do bar"
      * @param int $severity A severity level. Use one of the constants above!
      */
     public function __construct($title, $value, $message = '', $severity = self::OK)

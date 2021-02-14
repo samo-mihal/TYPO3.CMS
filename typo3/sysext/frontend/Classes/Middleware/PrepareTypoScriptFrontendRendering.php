@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Frontend\Middleware;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Frontend\Middleware;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Frontend\Middleware;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -63,15 +64,15 @@ class PrepareTypoScriptFrontendRendering implements MiddlewareInterface
         // Get from cache
         $this->timeTracker->push('Get Page from cache');
         // Locks may be acquired here
-        $this->controller->getFromCache();
+        $this->controller->getFromCache($request);
         $this->timeTracker->pull();
         // Get config if not already gotten
         // After this, we should have a valid config-array ready
-        $this->controller->getConfigArray();
+        $this->controller->getConfigArray($request);
 
         // Setting language and locale
         $this->timeTracker->push('Setting language');
-        $this->controller->settingLanguage();
+        $this->controller->settingLanguage($request);
         $this->timeTracker->pull();
 
         // Convert POST data to utf-8 for internal processing if metaCharset is different

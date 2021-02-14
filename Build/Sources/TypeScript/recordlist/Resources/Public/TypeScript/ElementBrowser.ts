@@ -12,7 +12,7 @@
  */
 
 import {MessageUtility} from 'TYPO3/CMS/Backend/Utility/MessageUtility';
-import * as $ from 'jquery';
+import $ from 'jquery';
 import Modal = require('TYPO3/CMS/Backend/Modal');
 
 interface RTESettings {
@@ -141,7 +141,7 @@ class ElementBrowser {
     if (this.irre.objectId) {
       if (this.getParent()) {
         const message = {
-          actionName: 'typo3:elementBrowser:elementInserted',
+          actionName: 'typo3:foreignRelation:insert',
           objectGroup: this.irre.objectId,
           table: table,
           uid: uid,

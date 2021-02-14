@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Tests\Unit\Persistence\Fixture\Model;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,14 @@ namespace TYPO3\CMS\Extbase\Tests\Unit\Persistence\Fixture\Model;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Tests\Unit\Persistence\Fixture\Model;
+
+use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
+
 /**
  * A model fixture used for testing the persistence manager
  */
-class Entity2 extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity
+class Entity2 extends AbstractEntity
 {
     /**
      * Just a normal string

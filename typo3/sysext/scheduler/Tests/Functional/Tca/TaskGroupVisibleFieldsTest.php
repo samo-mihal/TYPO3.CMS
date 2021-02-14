@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Scheduler\Tests\Functional\Tca;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,11 +13,14 @@ namespace TYPO3\CMS\Scheduler\Tests\Functional\Tca;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Scheduler\Tests\Functional\Tca;
+
 use TYPO3\CMS\Backend\Tests\Functional\Form\FormTestService;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
-class TaskGroupVisibleFieldsTest extends \TYPO3\TestingFramework\Core\Functional\FunctionalTestCase
+class TaskGroupVisibleFieldsTest extends FunctionalTestCase
 {
     /**
      * @var array

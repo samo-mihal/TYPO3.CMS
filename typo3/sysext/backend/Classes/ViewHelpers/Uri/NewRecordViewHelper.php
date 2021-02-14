@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Backend\ViewHelpers\Uri;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Backend\ViewHelpers\Uri;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\ViewHelpers\Uri;
 
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -71,7 +72,7 @@ class NewRecordViewHelper extends AbstractTagBasedViewHelper
         $this->registerArgument('uid', 'int', 'uid < 0 will insert the record after the given uid', false);
         $this->registerArgument('pid', 'int', 'the page id where the record will be created', false);
         $this->registerArgument('table', 'string', 'target database table', true);
-        $this->registerArgument('returnUrl', 'string', '', false, '');
+        $this->registerArgument('returnUrl', 'string', 'return to this URL after closing the edit dialog', false, '');
     }
 
     /**

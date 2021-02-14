@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Context;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Context;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Context;
 
 use TYPO3\CMS\Core\Context\Exception\AspectNotFoundException;
 use TYPO3\CMS\Core\Context\Exception\AspectPropertyNotFoundException;
@@ -57,7 +59,7 @@ class Context implements SingletonInterface
     /**
      * Sets up the context with pre-defined aspects
      *
-     * @param array|null $defaultAspects
+     * @param array $defaultAspects
      */
     public function __construct(array $defaultAspects = [])
     {

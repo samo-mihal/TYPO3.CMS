@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
 
 use Prophecy\Argument;
 use Prophecy\Prophecy\ObjectProphecy;
@@ -72,8 +73,8 @@ class TcaCheckboxItemsTest extends UnitTestCase
                                     'type' => 'check',
                                     'items' => [
                                         0 => [
-                                            'foo', //@todo a followup patch should refactor towards 'label' => 'foo'
-                                            'bar', //@todo a followup patch should remove this numeric key altogether
+                                            'foo', // @todo a followup patch should refactor towards 'label' => 'foo'
+                                            'bar', // @todo a followup patch should remove this numeric key altogether
                                             'invertStateDisplay' => false
                                         ],
                                     ],
@@ -409,7 +410,7 @@ class TcaCheckboxItemsTest extends UnitTestCase
         $GLOBALS['LANG'] = $languageService->reveal();
         $languageService->sL(Argument::cetera())->willReturnArgument(0);
 
-        self::assertSame($expectedResult, (new TcaCheckboxItems)->addData($input));
+        self::assertSame($expectedResult, (new TcaCheckboxItems())->addData($input));
     }
 
     /**
@@ -439,7 +440,7 @@ class TcaCheckboxItemsTest extends UnitTestCase
 
         $this->expectException(\UnexpectedValueException::class);
         $this->expectExceptionCode(1440499337);
-        (new TcaCheckboxItems)->addData($input);
+        (new TcaCheckboxItems())->addData($input);
     }
 
     /**
@@ -471,7 +472,7 @@ class TcaCheckboxItemsTest extends UnitTestCase
 
         $this->expectException(\UnexpectedValueException::class);
         $this->expectExceptionCode(1440499338);
-        (new TcaCheckboxItems)->addData($input);
+        (new TcaCheckboxItems())->addData($input);
     }
 
     /**
@@ -508,7 +509,7 @@ class TcaCheckboxItemsTest extends UnitTestCase
         $expected['processedTca']['columns']['aField']['config']['items'][0][0] = 'translated';
         $expected['processedTca']['columns']['aField']['config']['items'][0]['invertStateDisplay'] = false;
 
-        self::assertSame($expected, (new TcaCheckboxItems)->addData($input));
+        self::assertSame($expected, (new TcaCheckboxItems())->addData($input));
     }
 
     /**
@@ -547,7 +548,7 @@ class TcaCheckboxItemsTest extends UnitTestCase
                 'foo' => 'bar',
             ],
         ];
-        self::assertSame($expected, (new TcaCheckboxItems)->addData($input));
+        self::assertSame($expected, (new TcaCheckboxItems())->addData($input));
     }
 
     /**
@@ -622,7 +623,7 @@ class TcaCheckboxItemsTest extends UnitTestCase
         // itemsProcFunc must NOT have raised an exception
         $flashMessageQueue->enqueue($flashMessage)->shouldNotBeCalled();
 
-        (new TcaCheckboxItems)->addData($input);
+        (new TcaCheckboxItems())->addData($input);
     }
 
     /**
@@ -681,7 +682,7 @@ class TcaCheckboxItemsTest extends UnitTestCase
 
         $flashMessageQueue->enqueue($flashMessage)->shouldBeCalled();
 
-        (new TcaCheckboxItems)->addData($input);
+        (new TcaCheckboxItems())->addData($input);
     }
 
     /**
@@ -730,6 +731,6 @@ class TcaCheckboxItemsTest extends UnitTestCase
         $expected['processedTca']['columns']['aField']['config']['items'][0][0] = 'labelOverride';
         $expected['processedTca']['columns']['aField']['config']['items'][0]['invertStateDisplay'] = false;
 
-        self::assertSame($expected, (new TcaCheckboxItems)->addData($input));
+        self::assertSame($expected, (new TcaCheckboxItems())->addData($input));
     }
 }

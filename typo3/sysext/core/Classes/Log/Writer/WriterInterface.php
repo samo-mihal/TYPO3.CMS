@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Log\Writer;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,10 @@ namespace TYPO3\CMS\Core\Log\Writer;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Log\Writer;
+
+use TYPO3\CMS\Core\Log\LogRecord;
+
 /**
  * Log writer interface
  */
@@ -26,5 +29,5 @@ interface WriterInterface
      * @return \TYPO3\CMS\Core\Log\Writer\WriterInterface $this
      * @throws \Exception
      */
-    public function writeLog(\TYPO3\CMS\Core\Log\LogRecord $record);
+    public function writeLog(LogRecord $record);
 }

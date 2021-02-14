@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\ViewHelpers\Form;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,11 @@ namespace TYPO3\CMS\Fluid\ViewHelpers\Form;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Fluid\ViewHelpers\Form;
+
+use TYPO3\CMS\Extbase\Reflection\ObjectAccess;
+use TYPO3Fluid\Fluid\Core\ViewHelper\Exception;
 
 /**
  * This ViewHelper generates a :html:`<select>` dropdown list for the use with a form.
@@ -87,7 +91,7 @@ namespace TYPO3\CMS\Fluid\ViewHelpers\Form;
  *
  * The ``value`` property now expects a domain object, and tests for object equivalence.
  */
-class SelectViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormFieldViewHelper
+class SelectViewHelper extends AbstractFormFieldViewHelper
 {
     /**
      * @var string
@@ -139,36 +143,41 @@ class SelectViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormFie
         $this->tag->addAttribute('name', $name);
         $options = $this->getOptions();
 
+        $viewHelperVariableContainer = $this->renderingContext->getViewHelperVariableContainer();
+
         $this->addAdditionalIdentityPropertiesIfNeeded();
         $this->setErrorClassAttribute();
         $content = '';
+
         // register field name for token generation.
+        $this->registerFieldNameForFormTokenGeneration($name);
         // in case it is a multi-select, we need to register the field name
         // as often as there are elements in the box
         if (isset($this->arguments['multiple']) && $this->arguments['multiple']) {
             $content .= $this->renderHiddenFieldForEmptyValue();
+            // Register the field name additional times as required by the total number of
+            // options. Since we already registered it once above, we start the counter at 1
+            // instead of 0.
             $optionsCount = count($options);
-            for ($i = 0; $i < $optionsCount; $i++) {
+            for ($i = 1; $i < $optionsCount; $i++) {
                 $this->registerFieldNameForFormTokenGeneration($name);
             }
             // save the parent field name so that any child f:form.select.option
             // tag will know to call registerFieldNameForFormTokenGeneration
             // this is the reason why "self::class" is used instead of static::class (no LSB)
-            $this->viewHelperVariableContainer->addOrUpdate(
+            $viewHelperVariableContainer->addOrUpdate(
                 self::class,
                 'registerFieldNameForFormTokenGeneration',
                 $name
             );
-        } else {
-            $this->registerFieldNameForFormTokenGeneration($name);
         }
 
-        $this->viewHelperVariableContainer->addOrUpdate(self::class, 'selectedValue', $this->getSelectedValue());
+        $viewHelperVariableContainer->addOrUpdate(self::class, 'selectedValue', $this->getSelectedValue());
         $prependContent = $this->renderPrependOptionTag();
         $tagContent = $this->renderOptionTags($options);
         $childContent = $this->renderChildren();
-        $this->viewHelperVariableContainer->remove(self::class, 'selectedValue');
-        $this->viewHelperVariableContainer->remove(self::class, 'registerFieldNameForFormTokenGeneration');
+        $viewHelperVariableContainer->remove(self::class, 'selectedValue');
+        $viewHelperVariableContainer->remove(self::class, 'registerFieldNameForFormTokenGeneration');
         if (isset($this->arguments['optionsAfterContent']) && $this->arguments['optionsAfterContent']) {
             $tagContent = $childContent . $tagContent;
         } else {
@@ -229,32 +238,32 @@ class SelectViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormFie
         foreach ($optionsArgument as $key => $value) {
             if (is_object($value) || is_array($value)) {
                 if ($this->hasArgument('optionValueField')) {
-                    $key = \TYPO3\CMS\Extbase\Reflection\ObjectAccess::getPropertyPath($value, $this->arguments['optionValueField']);
+                    $key = ObjectAccess::getPropertyPath($value, $this->arguments['optionValueField']);
                     if (is_object($key)) {
                         if (method_exists($key, '__toString')) {
                             $key = (string)$key;
                         } else {
-                            throw new \TYPO3Fluid\Fluid\Core\ViewHelper\Exception('Identifying value for object of class "' . get_class($value) . '" was an object.', 1247827428);
+                            throw new Exception('Identifying value for object of class "' . (is_object($value) ? get_class($value) : gettype($value)) . '" was an object.', 1247827428);
                         }
                     }
                 } elseif ($this->persistenceManager->getIdentifierByObject($value) !== null) {
                     // @todo use $this->persistenceManager->isNewObject() once it is implemented
                     $key = $this->persistenceManager->getIdentifierByObject($value);
-                } elseif (method_exists($value, '__toString')) {
+                } elseif (is_object($value) && method_exists($value, '__toString')) {
                     $key = (string)$value;
-                } else {
-                    throw new \TYPO3Fluid\Fluid\Core\ViewHelper\Exception('No identifying value for object of class "' . get_class($value) . '" found.', 1247826696);
+                } elseif (is_object($value)) {
+                    throw new Exception('No identifying value for object of class "' . get_class($value) . '" found.', 1247826696);
                 }
                 if ($this->hasArgument('optionLabelField')) {
-                    $value = \TYPO3\CMS\Extbase\Reflection\ObjectAccess::getPropertyPath($value, $this->arguments['optionLabelField']);
+                    $value = ObjectAccess::getPropertyPath($value, $this->arguments['optionLabelField']);
                     if (is_object($value)) {
                         if (method_exists($value, '__toString')) {
                             $value = (string)$value;
                         } else {
-                            throw new \TYPO3Fluid\Fluid\Core\ViewHelper\Exception('Label value for object of class "' . get_class($value) . '" was an object without a __toString() method.', 1247827553);
+                            throw new Exception('Label value for object of class "' . get_class($value) . '" was an object without a __toString() method.', 1247827553);
                         }
                     }
-                } elseif (method_exists($value, '__toString')) {
+                } elseif (is_object($value) && method_exists($value, '__toString')) {
                     $value = (string)$value;
                 } elseif ($this->persistenceManager->getIdentifierByObject($value) !== null) {
                     // @todo use $this->persistenceManager->isNewObject() once it is implemented
@@ -321,7 +330,7 @@ class SelectViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormFie
     {
         if (is_object($valueElement)) {
             if ($this->hasArgument('optionValueField')) {
-                return \TYPO3\CMS\Extbase\Reflection\ObjectAccess::getPropertyPath($valueElement, $this->arguments['optionValueField']);
+                return ObjectAccess::getPropertyPath($valueElement, $this->arguments['optionValueField']);
             }
             // @todo use $this->persistenceManager->isNewObject() once it is implemented
             if ($this->persistenceManager->getIdentifierByObject($valueElement) !== null) {

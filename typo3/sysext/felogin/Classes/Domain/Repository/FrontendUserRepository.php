@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\FrontendLogin\Domain\Repository;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\FrontendLogin\Domain\Repository;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\FrontendLogin\Domain\Repository;
 
 use Doctrine\DBAL\FetchMode;
 use TYPO3\CMS\Core\Context\Context;
@@ -128,7 +129,8 @@ class FrontendUserRepository
     }
 
     /**
-     * Fetches array containing uid, username, email, first_name, middle_name & last_name by email.
+     * Fetches array containing uid, username, email, first_name, middle_name & last_name by email
+     * or empty array if user was not found.
      *
      * @param string $emailAddress
      * @return array
@@ -147,8 +149,11 @@ class FrontendUserRepository
                 )
             )
         ;
-
-        return $query->execute()->fetch(FetchMode::ASSOCIATIVE);
+        $result = $query->execute()->fetch(FetchMode::ASSOCIATIVE);
+        if (!is_array($result)) {
+            $result = [];
+        }
+        return $result;
     }
 
     /**

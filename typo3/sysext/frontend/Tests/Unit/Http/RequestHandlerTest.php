@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Frontend\Tests\Unit\Http;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,16 +15,21 @@ namespace TYPO3\CMS\Frontend\Tests\Unit\Http;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Frontend\Tests\Unit\Http;
+
 use Prophecy\Argument;
+use Psr\EventDispatcher\EventDispatcherInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Http\ServerRequestFactory;
-use TYPO3\CMS\Core\Http\Uri;
+use TYPO3\CMS\Core\Information\Typo3Information;
 use TYPO3\CMS\Core\Page\PageRenderer;
-use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
+use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\TimeTracker\TimeTracker;
 use TYPO3\CMS\Core\TypoScript\TemplateService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
 use TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController;
+use TYPO3\CMS\Frontend\Event\ModifyHrefLangTagsEvent;
 use TYPO3\CMS\Frontend\Http\RequestHandler;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
@@ -33,6 +38,8 @@ use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
  */
 class RequestHandlerTest extends UnitTestCase
 {
+    protected $resetSingletonInstances = true;
+
     public function generateHtmlTagIncludesAllPossibilitiesDataProvider()
     {
         return [
@@ -228,7 +235,7 @@ class RequestHandlerTest extends UnitTestCase
             'content' => '10'
         ];
 
-        $siteLanguage = new SiteLanguage(3, 'fr_FR', new Uri(), []);
+        $siteLanguage = $this->createSiteWithLanguage()->getLanguageById(3);
         $cObj = $this->prophesize(ContentObjectRenderer::class);
         $cObj->cObjGet(Argument::cetera())->shouldBeCalled();
         $cObj->stdWrap(Argument::cetera())->willReturn($stdWrapResult);
@@ -244,11 +251,19 @@ class RequestHandlerTest extends UnitTestCase
         $tsfe->pSetup = [
             'meta.' => $typoScript
         ];
+        $typo3InformationProphecy = $this->prophesize(Typo3Information::class);
+        $typo3InformationProphecy->getInlineHeaderComment()->willReturn('dummy');
+        GeneralUtility::addInstance(Typo3Information::class, $typo3InformationProphecy->reveal());
 
         $pageRendererProphecy = $this->prophesize(PageRenderer::class);
         $subject = $this->getAccessibleMock(RequestHandler::class, ['getPageRenderer'], [], '', false);
+        $requestProphecy = $this->prophesize(ServerRequestInterface::class)->reveal();
+        $modifyHrefLangTagsEvent = new ModifyHrefLangTagsEvent($requestProphecy);
+        $dispatcherProphecy = $this->prophesize(EventDispatcherInterface::class);
+        $dispatcherProphecy->dispatch($modifyHrefLangTagsEvent)->willReturn($modifyHrefLangTagsEvent);
+        $subject->_set('eventDispatcher', $dispatcherProphecy->reveal());
         $subject->expects(self::any())->method('getPageRenderer')->willReturn($pageRendererProphecy->reveal());
-        $subject->_call('processHtmlBasedRenderingSettings', $tsfe->reveal(), $siteLanguage);
+        $subject->_call('processHtmlBasedRenderingSettings', $tsfe->reveal(), $siteLanguage, $requestProphecy);
         $pageRendererProphecy->setMetaTag($expectedTags['type'], $expectedTags['name'], $expectedTags['content'])->willThrow(\InvalidArgumentException::class);
     }
 
@@ -262,7 +277,7 @@ class RequestHandlerTest extends UnitTestCase
      */
     public function generateMetaTagHtmlGeneratesCorrectTags(array $typoScript, string $stdWrapResult, array $expectedTags)
     {
-        $siteLanguage = new SiteLanguage(3, 'fr_FR', new Uri(), []);
+        $siteLanguage = $this->createSiteWithLanguage()->getLanguageById(3);
         $cObj = $this->prophesize(ContentObjectRenderer::class);
         $cObj->cObjGet(Argument::cetera())->shouldBeCalled();
         $cObj->stdWrap(Argument::cetera())->willReturn($stdWrapResult);
@@ -281,10 +296,19 @@ class RequestHandlerTest extends UnitTestCase
         $tsfe->pSetup = [
             'meta.' => $typoScript
         ];
+        $typo3InformationProphecy = $this->prophesize(Typo3Information::class);
+        $typo3InformationProphecy->getInlineHeaderComment()->willReturn('dummy');
+        GeneralUtility::addInstance(Typo3Information::class, $typo3InformationProphecy->reveal());
+
         $pageRendererProphecy = $this->prophesize(PageRenderer::class);
         $subject = $this->getAccessibleMock(RequestHandler::class, ['getPageRenderer'], [], '', false);
+        $requestProphecy = $this->prophesize(ServerRequestInterface::class)->reveal();
+        $modifyHrefLangTagsEvent = new ModifyHrefLangTagsEvent($requestProphecy);
+        $dispatcherProphecy = $this->prophesize(EventDispatcherInterface::class);
+        $dispatcherProphecy->dispatch($modifyHrefLangTagsEvent)->willReturn($modifyHrefLangTagsEvent);
+        $subject->_set('eventDispatcher', $dispatcherProphecy->reveal());
         $subject->expects(self::any())->method('getPageRenderer')->willReturn($pageRendererProphecy->reveal());
-        $subject->_call('processHtmlBasedRenderingSettings', $tsfe->reveal(), $siteLanguage);
+        $subject->_call('processHtmlBasedRenderingSettings', $tsfe->reveal(), $siteLanguage, $requestProphecy);
 
         $pageRendererProphecy->setMetaTag($expectedTags['type'], $expectedTags['name'], $expectedTags['content'], [], false)->shouldHaveBeenCalled();
     }
@@ -300,7 +324,7 @@ class RequestHandlerTest extends UnitTestCase
             'custom:key' => '',
         ];
 
-        $siteLanguage = new SiteLanguage(3, 'fr_FR', new Uri(), []);
+        $siteLanguage = $this->createSiteWithLanguage()->getLanguageById(3);
         $cObj = $this->prophesize(ContentObjectRenderer::class);
         $cObj->cObjGet(Argument::cetera())->shouldBeCalled();
         $cObj->stdWrap(Argument::cetera())->willReturn($stdWrapResult);
@@ -319,12 +343,20 @@ class RequestHandlerTest extends UnitTestCase
         $tsfe->pSetup = [
             'meta.' => $typoScript
         ];
+        $typo3InformationProphecy = $this->prophesize(Typo3Information::class);
+        $typo3InformationProphecy->getInlineHeaderComment()->willReturn('dummy');
+        GeneralUtility::addInstance(Typo3Information::class, $typo3InformationProphecy->reveal());
 
         $pageRendererProphecy = $this->prophesize(PageRenderer::class);
         $subject = $this->getAccessibleMock(RequestHandler::class, ['getPageRenderer'], [], '', false);
         $subject->expects(self::any())->method('getPageRenderer')->willReturn($pageRendererProphecy->reveal());
         $subject->_set('timeTracker', new TimeTracker(false));
-        $subject->_call('processHtmlBasedRenderingSettings', $tsfe->reveal(), $siteLanguage);
+        $requestProphecy = $this->prophesize(ServerRequestInterface::class)->reveal();
+        $modifyHrefLangTagsEvent = new ModifyHrefLangTagsEvent($requestProphecy);
+        $dispatcherProphecy = $this->prophesize(EventDispatcherInterface::class);
+        $dispatcherProphecy->dispatch($modifyHrefLangTagsEvent)->willReturn($modifyHrefLangTagsEvent);
+        $subject->_set('eventDispatcher', $dispatcherProphecy->reveal());
+        $subject->_call('processHtmlBasedRenderingSettings', $tsfe->reveal(), $siteLanguage, $requestProphecy);
 
         $pageRendererProphecy->setMetaTag(null, null, null)->shouldNotBeCalled();
     }
@@ -394,7 +426,7 @@ class RequestHandlerTest extends UnitTestCase
      */
     public function generateMultipleMetaTags(array $typoScript, string $stdWrapResult, array $expectedTags)
     {
-        $siteLanguage = new SiteLanguage(3, 'fr_FR', new Uri(), []);
+        $siteLanguage = $this->createSiteWithLanguage()->getLanguageById(3);
         $cObj = $this->prophesize(ContentObjectRenderer::class);
         $cObj->cObjGet(Argument::cetera())->shouldBeCalled();
         $cObj->stdWrap(Argument::cetera())->willReturn($stdWrapResult);
@@ -413,11 +445,20 @@ class RequestHandlerTest extends UnitTestCase
         $tsfe->pSetup = [
             'meta.' => $typoScript
         ];
+        $typo3InformationProphecy = $this->prophesize(Typo3Information::class);
+        $typo3InformationProphecy->getInlineHeaderComment()->willReturn('This website is...');
+        GeneralUtility::addInstance(Typo3Information::class, $typo3InformationProphecy->reveal());
+
         $pageRendererProphecy = $this->prophesize(PageRenderer::class);
         $subject = $this->getAccessibleMock(RequestHandler::class, ['getPageRenderer'], [], '', false);
         $subject->expects(self::any())->method('getPageRenderer')->willReturn($pageRendererProphecy->reveal());
         $subject->_set('timeTracker', new TimeTracker(false));
-        $subject->_call('processHtmlBasedRenderingSettings', $tsfe->reveal(), $siteLanguage);
+        $requestProphecy = $this->prophesize(ServerRequestInterface::class)->reveal();
+        $modifyHrefLangTagsEvent = new ModifyHrefLangTagsEvent($requestProphecy);
+        $dispatcherProphecy = $this->prophesize(EventDispatcherInterface::class);
+        $dispatcherProphecy->dispatch($modifyHrefLangTagsEvent)->willReturn($modifyHrefLangTagsEvent);
+        $subject->_set('eventDispatcher', $dispatcherProphecy->reveal());
+        $subject->_call('processHtmlBasedRenderingSettings', $tsfe->reveal(), $siteLanguage, $requestProphecy);
 
         $pageRendererProphecy->setMetaTag($expectedTags[0]['type'], $expectedTags[0]['name'], $expectedTags[0]['content'], [], false)->shouldHaveBeenCalled();
         $pageRendererProphecy->setMetaTag($expectedTags[1]['type'], $expectedTags[1]['name'], $expectedTags[1]['content'], [], false)->shouldHaveBeenCalled();
@@ -469,5 +510,21 @@ class RequestHandlerTest extends UnitTestCase
         $subject->_call('resetGlobalsToCurrentRequest', $request);
         self::assertEquals($_GET, $modifiedGetVars);
         self::assertEquals($_POST, $modifiedPostVars);
+    }
+
+    private function createSiteWithLanguage(): Site
+    {
+        return new Site('test', 1, [
+            'identifier' => 'test',
+            'rootPageId' => 1,
+            'base' => '/',
+            'languages' => [
+                [
+                    'base' => '/',
+                    'languageId' => 3,
+                    'locale' => 'fr_FR',
+                ],
+            ]
+        ]);
     }
 }

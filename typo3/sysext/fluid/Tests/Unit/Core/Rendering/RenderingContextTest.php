@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\Tests\Unit\Core\Rendering;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Fluid\Tests\Unit\Core\Rendering;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Fluid\Tests\Unit\Core\Rendering;
 
 use TYPO3\CMS\Extbase\Mvc\Controller\ControllerContext;
 use TYPO3\CMS\Extbase\Mvc\Request;
@@ -79,7 +80,7 @@ class RenderingContextTest extends UnitTestCase
      */
     public function controllerContextCanBeReadCorrectly()
     {
-        $controllerContext = $this->getMockBuilder(\TYPO3\CMS\Extbase\Mvc\Controller\ControllerContext::class)
+        $controllerContext = $this->getMockBuilder(ControllerContext::class)
             ->disableOriginalConstructor()
             ->getMock();
         $controllerContext->expects(self::atLeastOnce())->method('getRequest')->willReturn($this->createMock(Request::class));
@@ -109,14 +110,14 @@ class RenderingContextTest extends UnitTestCase
             ->addMethods(['dummy'])
             ->disableOriginalConstructor()
             ->getMock();
-        $request = $this->getMockBuilder(Request::class)->setMethods(['setControllerActionName'])->getMock();
-        $request->expects(self::at(0))->method('setControllerActionName')->with('index');
-        $request->expects(self::at(1))->method('setControllerActionName')->with(lcfirst($expected));
+        $request = $this->getMockBuilder(Request::class)->getMock();
+        $request->expects(self::exactly(2))->method('setControllerActionName')->with(lcfirst($expected));
+        $request->expects(self::exactly(2))->method('getControllerActionName')->willReturn(lcfirst($expected));
         $controllerContext = $this->getMockBuilder(ControllerContext::class)->setMethods(['getRequest'])->getMock();
         $controllerContext->expects(self::atLeastOnce())->method('getRequest')->willReturn($request);
         $subject->setControllerContext($controllerContext);
         $subject->setControllerAction($input);
-        self::assertEquals($expected, $subject->getControllerAction());
+        self::assertSame(lcfirst($expected), $subject->getControllerAction());
     }
 
     /**

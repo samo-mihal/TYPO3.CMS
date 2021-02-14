@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Template\Components;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Template\Components;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Template\Components;
 
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Imaging\Icon;
@@ -66,17 +67,16 @@ class MetaInformation
             }
         } elseif (!empty($pageRecord['combined_identifier'])) {
             try {
-                $resourceObject = ResourceFactory::getInstance()->getObjectFromCombinedIdentifier($pageRecord['combined_identifier']);
+                $resourceObject = GeneralUtility::makeInstance(ResourceFactory::class)->getObjectFromCombinedIdentifier($pageRecord['combined_identifier']);
                 $title = $resourceObject->getStorage()->getName() . ':';
                 $title .= $resourceObject->getParentFolder()->getReadablePath();
-            } catch (ResourceDoesNotExistException $e) {
-            } catch (InsufficientFolderAccessPermissionsException $e) {
+            } catch (ResourceDoesNotExistException|InsufficientFolderAccessPermissionsException $e) {
             }
         }
         // Setting the path of the page
         // crop the title to title limit (or 50, if not defined)
         $beUser = $this->getBackendUser();
-        $cropLength = empty($beUser->uc['titleLen']) ? 50 : $beUser->uc['titleLen'];
+        $cropLength = empty($beUser->uc['titleLen']) ? 50 : (int)$beUser->uc['titleLen'];
         $croppedTitle = GeneralUtility::fixed_lgd_cs($title, -$cropLength);
         if ($croppedTitle !== $title) {
             $pagePath = '<abbr title="' . htmlspecialchars($title) . '">' . htmlspecialchars($croppedTitle) . '</abbr>';
@@ -195,7 +195,7 @@ class MetaInformation
         } elseif (is_array($pageRecord) && !empty($pageRecord['combined_identifier'])) {
             // If the module is about a FAL resource
             try {
-                $resourceObject = ResourceFactory::getInstance()->getObjectFromCombinedIdentifier($pageRecord['combined_identifier']);
+                $resourceObject = GeneralUtility::makeInstance(ResourceFactory::class)->getObjectFromCombinedIdentifier($pageRecord['combined_identifier']);
                 $fileMountTitle = $resourceObject->getStorage()->getFileMounts()[$resourceObject->getIdentifier()]['title'] ?? '';
                 $title = $fileMountTitle ?: $resourceObject->getName();
                 // If this is a folder but not in within file mount boundaries this is the root folder
@@ -212,7 +212,9 @@ class MetaInformation
                         Icon::SIZE_SMALL
                     )->render() . '</span>';
                 }
-                $theIcon = BackendUtility::wrapClickMenuOnIcon($iconImg, 'sys_file', $pageRecord['combined_identifier']);
+                $tableName = ($resourceObject->getIdentifier() === $resourceObject->getStorage()->getRootLevelFolder()->getIdentifier())
+                    ? 'sys_filemounts' : 'sys_file';
+                $theIcon = BackendUtility::wrapClickMenuOnIcon($iconImg, $tableName, $pageRecord['combined_identifier']);
             } catch (ResourceDoesNotExistException $e) {
                 $theIcon = '';
             }

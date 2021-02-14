@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Frontend\Page;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Frontend\Page;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Frontend\Page;
+
 use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -23,36 +24,18 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 class CacheHashCalculator implements SingletonInterface
 {
     /**
-     * @var array Parameters that are relevant for cacheHash calculation. Optional.
+     * @var CacheHashConfiguration
      */
-    protected $cachedParametersWhiteList = [];
-
-    /**
-     * @var array Parameters that are not relevant for cacheHash calculation.
-     */
-    protected $excludedParameters = [];
-
-    /**
-     * @var array Parameters that forces a presence of a valid cacheHash.
-     */
-    protected $requireCacheHashPresenceParameters = [];
-
-    /**
-     * @var array Parameters that need a value to be relevant for cacheHash calculation
-     */
-    protected $excludedParametersIfEmpty = [];
-
-    /**
-     * @var bool Whether to exclude all empty parameters for cacheHash calculation
-     */
-    protected $excludeAllEmptyParameters = false;
+    protected $configuration;
 
     /**
      * Initialise class properties by using the relevant TYPO3 configuration
+     *
+     * @param CacheHashConfiguration|null $configuration
      */
-    public function __construct()
+    public function __construct(CacheHashConfiguration $configuration = null)
     {
-        $this->setConfiguration($GLOBALS['TYPO3_CONF_VARS']['FE']['cacheHash'] ?? []);
+        $this->configuration = $configuration ?? GeneralUtility::makeInstance(CacheHashConfiguration::class);
     }
 
     /**
@@ -87,18 +70,20 @@ class CacheHashCalculator implements SingletonInterface
      */
     public function doParametersRequireCacheHash($queryString)
     {
-        if (empty($this->requireCacheHashPresenceParameters)) {
+        if (!$this->configuration->hasData(CacheHashConfiguration::ASPECT_REQUIRED_CACHE_HASH_PRESENCE_PARAMETERS)) {
             return false;
         }
-        $hasRequiredParameter = false;
         $parameterNames = array_keys($this->splitQueryStringToArray($queryString));
         foreach ($parameterNames as $parameterName) {
-            if (in_array($parameterName, $this->requireCacheHashPresenceParameters, true)) {
-                $hasRequiredParameter = true;
-                break;
+            $hasRequiredParameter = $this->configuration->applies(
+                CacheHashConfiguration::ASPECT_REQUIRED_CACHE_HASH_PRESENCE_PARAMETERS,
+                $parameterName
+            );
+            if ($hasRequiredParameter) {
+                return  true;
             }
         }
-        return $hasRequiredParameter;
+        return false;
     }
 
     /**
@@ -121,7 +106,7 @@ class CacheHashCalculator implements SingletonInterface
             if ($this->hasCachedParametersWhiteList() && !$this->isInCachedParametersWhiteList($parameterName)) {
                 continue;
             }
-            if (($parameterValue === null || $parameterValue === '') && !$this->isAllowedWithEmptyValue($parameterName)) {
+            if (($parameterValue === null || $parameterValue === '') && $this->isAllowedWithEmptyValue($parameterName)) {
                 continue;
             }
             $relevantParameters[$parameterName] = $parameterValue;
@@ -167,16 +152,14 @@ class CacheHashCalculator implements SingletonInterface
 
     /**
      * Checks whether the given parameter is out of a known data-set starting
-     * with ADMCMD or starts with TSFE_ADMIN_PANEL.
+     * with ADMCMD.
      *
      * @param string $key
      * @return bool
      */
     protected function isAdminPanelParameter($key)
     {
-        return $key === 'ADMCMD_noBeUser' || $key === 'ADMCMD_view' || $key === 'ADMCMD_editIcons'
-            || $key === 'ADMCMD_simUser' || $key === 'ADMCMD_simTime' || $key === 'ADMCMD_prev'
-            || stripos($key, 'TSFE_ADMIN_PANEL') !== false && preg_match('/TSFE_ADMIN_PANEL\\[.*?\\]/', $key);
+        return $key === 'ADMCMD_simUser' || $key === 'ADMCMD_simTime' || $key === 'ADMCMD_prev';
     }
 
     /**
@@ -198,7 +181,10 @@ class CacheHashCalculator implements SingletonInterface
      */
     protected function isExcludedParameter($key)
     {
-        return in_array($key, $this->excludedParameters, true);
+        return $this->configuration->applies(
+            CacheHashConfiguration::ASPECT_EXCLUDED_PARAMETERS,
+            $key
+        );
     }
 
     /**
@@ -209,7 +195,10 @@ class CacheHashCalculator implements SingletonInterface
      */
     protected function isInCachedParametersWhiteList($key)
     {
-        return in_array($key, $this->cachedParametersWhiteList, true);
+        return $this->configuration->applies(
+            CacheHashConfiguration::ASPECT_CACHED_PARAMETERS_WHITELIST,
+            $key
+        );
     }
 
     /**
@@ -219,73 +208,37 @@ class CacheHashCalculator implements SingletonInterface
      */
     protected function hasCachedParametersWhiteList()
     {
-        return !empty($this->cachedParametersWhiteList);
+        return $this->configuration->hasData(
+            CacheHashConfiguration::ASPECT_CACHED_PARAMETERS_WHITELIST
+        );
     }
 
     /**
      * Check whether the given parameter may be used even with an empty value
      *
-     * @param $key
+     * @param string $key
      * @return bool
      */
     protected function isAllowedWithEmptyValue($key)
     {
-        return !($this->excludeAllEmptyParameters || in_array($key, $this->excludedParametersIfEmpty, true));
+        return $this->configuration->shallExcludeAllEmptyParameters()
+            || $this->configuration->applies(
+                CacheHashConfiguration::ASPECT_EXCLUDED_PARAMETERS_IF_EMPTY,
+                $key
+            );
     }
 
     /**
-     * Loops through the configuration array and calls the accordant
-     * getters with the value.
+     * Extends (or overrides) property names of current configuration.
      *
      * @param array $configuration
      */
     public function setConfiguration(array $configuration)
     {
-        foreach ($configuration as $name => $value) {
-            $setterName = 'set' . ucfirst($name);
-            if (method_exists($this, $setterName)) {
-                $this->{$setterName}($value);
-            }
-        }
-    }
-
-    /**
-     * @param array $cachedParametersWhiteList
-     */
-    protected function setCachedParametersWhiteList(array $cachedParametersWhiteList)
-    {
-        $this->cachedParametersWhiteList = $cachedParametersWhiteList;
-    }
-
-    /**
-     * @param bool $excludeAllEmptyParameters
-     */
-    protected function setExcludeAllEmptyParameters($excludeAllEmptyParameters)
-    {
-        $this->excludeAllEmptyParameters = $excludeAllEmptyParameters;
-    }
-
-    /**
-     * @param array $excludedParameters
-     */
-    protected function setExcludedParameters(array $excludedParameters)
-    {
-        $this->excludedParameters = $excludedParameters;
-    }
-
-    /**
-     * @param array $excludedParametersIfEmpty
-     */
-    protected function setExcludedParametersIfEmpty(array $excludedParametersIfEmpty)
-    {
-        $this->excludedParametersIfEmpty = $excludedParametersIfEmpty;
-    }
-
-    /**
-     * @param array $requireCacheHashPresenceParameters
-     */
-    protected function setRequireCacheHashPresenceParameters(array $requireCacheHashPresenceParameters)
-    {
-        $this->requireCacheHashPresenceParameters = $requireCacheHashPresenceParameters;
+        $newConfiguration = GeneralUtility::makeInstance(
+            CacheHashConfiguration::class,
+            $configuration ?? $GLOBALS['TYPO3_CONF_VARS']['FE']['cacheHash'] ?? []
+        );
+        $this->configuration = $this->configuration->with($newConfiguration);
     }
 }

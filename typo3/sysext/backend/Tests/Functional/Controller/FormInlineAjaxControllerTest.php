@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Tests\Functional\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Tests\Functional\Controller;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Tests\Functional\Controller;
 
 use TYPO3\CMS\Backend\Controller\FormInlineAjaxController;
 use TYPO3\CMS\Core\Core\Bootstrap;
@@ -158,46 +159,43 @@ class FormInlineAjaxControllerTest extends FunctionalTestCase
      */
     protected function getContextForSysLanguageUid(int $sysLanguageUid): array
     {
-        $context = [
-            'config' => [
-                'type' => 'inline',
-                'foreign_table' => 'tx_irretutorial_1ncsv_offer',
-                'maxitems' => 10,
-                'appearance' => [
-                    'showSynchronizationLink' => 1,
-                    'showAllLocalizationLink' => 1,
-                    'showPossibleLocalizationRecords' => true,
-                    'showRemovedLocalizationRecords' => true,
-                    'levelLinksPosition' => 'top',
-                    'enabledControls' => [
-                        'info' => true,
-                        'new' => true,
-                        'dragdrop' => true,
-                        'sort' => true,
-                        'hide' => true,
-                        'delete' => true,
-                        'localize' => true,
-                    ],
+        $config = [
+            'type' => 'inline',
+            'foreign_table' => 'tx_irretutorial_1ncsv_offer',
+            'maxitems' => 10,
+            'appearance' => [
+                'showSynchronizationLink' => 1,
+                'showAllLocalizationLink' => 1,
+                'showPossibleLocalizationRecords' => true,
+                'showRemovedLocalizationRecords' => true,
+                'levelLinksPosition' => 'top',
+                'enabledControls' => [
+                    'info' => true,
+                    'new' => true,
+                    'dragdrop' => true,
+                    'sort' => true,
+                    'hide' => true,
+                    'delete' => true,
+                    'localize' => true,
                 ],
-                'behaviour' => [
-                    'localizationMode' => 'none',
-                    'localizeChildrenAtParentLocalization' => true,
-                ],
-                'default' => '',
-                'minitems' => 0,
-                'inline' => [
-                    'parentSysLanguageUid' => $sysLanguageUid,
-                    'first' => false,
-                    'last' => false,
-                ],
+            ],
+            'behaviour' => [
+                'localizationMode' => 'none',
+                'localizeChildrenAtParentLocalization' => true,
+            ],
+            'default' => '',
+            'minitems' => 0,
+            'inline' => [
+                'parentSysLanguageUid' => $sysLanguageUid,
+                'first' => false,
+                'last' => false,
             ],
         ];
 
-        return array_merge(
-            $context,
-            [
-                'hmac' => GeneralUtility::hmac(json_encode($context['config']), 'InlineContext'),
-            ]
-        );
+        $configJson = json_encode($config);
+        return [
+            'config' => $configJson,
+            'hmac' => GeneralUtility::hmac($configJson, 'InlineContext'),
+        ];
     }
 }

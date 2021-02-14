@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Unit\FormProtection;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\FormProtection;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\FormProtection;
 
 use TYPO3\CMS\Core\Tests\Unit\FormProtection\Fixtures\FormProtectionTesting;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
@@ -128,7 +130,13 @@ class AbstractFormProtectionTest extends UnitTestCase
      */
     public function generateTokenReturns32CharacterHexToken(): void
     {
-        self::assertRegExp('/^[0-9a-f]{40}$/', $this->subject->generateToken('foo'));
+
+        // @todo remove condition and else branch as soon as phpunit v8 goes out of support
+        if (method_exists($this, 'assertMatchesRegularExpression')) {
+            self::assertMatchesRegularExpression('/^[0-9a-f]{40}$/', $this->subject->generateToken('foo'));
+        } else {
+            self::assertRegExp('/^[0-9a-f]{40}$/', $this->subject->generateToken('foo'));
+        }
     }
 
     /**

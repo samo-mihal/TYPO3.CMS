@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Configuration\FlexForm;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Configuration\FlexForm;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Configuration\FlexForm;
 
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Configuration\FlexForm\Exception\InvalidCombinedPointerFieldException;
@@ -372,7 +374,7 @@ class FlexFormTools
                     1464116002
                 );
             }
-            list($foreignTableName, $foreignFieldName) = GeneralUtility::trimExplode(':', $fieldTca['config']['ds_tableField']);
+            [$foreignTableName, $foreignFieldName] = GeneralUtility::trimExplode(':', $fieldTca['config']['ds_tableField']);
             $dataStructureIdentifier = [
                 'type' => 'record',
                 'tableName' => $foreignTableName,
@@ -500,7 +502,7 @@ class FlexFormTools
                     $dataStructureIdentifier['dataStructureKey'] = 'default';
                 } else {
                     // The value of the ds_pointerField field points to a key in the ds array that does
-                    // not exists, and there is no fallback either. This can happen if an extension brings
+                    // not exist, and there is no fallback either. This can happen if an extension brings
                     // new flex form definitions and that extension is unloaded later. "Old" records of the
                     // extension could then still point to the no longer existing key in ds. We throw a
                     // specific exception here to give controllers an opportunity to catch this case.
@@ -688,7 +690,7 @@ class FlexFormTools
                         1478105826
                     );
                 }
-                $dataStructure = file_get_contents($file);
+                $dataStructure = (string)file_get_contents($file);
             }
 
             // Parse main structure
@@ -727,7 +729,7 @@ class FlexFormTools
                         $file = GeneralUtility::getFileAbsFileName(trim($sheetStructure));
                     }
                     if ($file && @is_file($file)) {
-                        $sheetStructure = GeneralUtility::xml2array(file_get_contents($file));
+                        $sheetStructure = GeneralUtility::xml2array((string)file_get_contents($file));
                     }
                 }
                 $dataStructure['sheets'][$sheetName] = $sheetStructure;
@@ -766,6 +768,7 @@ class FlexFormTools
      */
     public function traverseFlexFormXMLData($table, $field, $row, $callBackObj, $callBackMethod_value)
     {
+        $PA = [];
         if (!is_array($GLOBALS['TCA'][$table]) || !is_array($GLOBALS['TCA'][$table]['columns'][$field])) {
             return 'TCA table/field was not defined.';
         }
@@ -778,11 +781,7 @@ class FlexFormTools
         try {
             $dataStructureIdentifier = $this->getDataStructureIdentifier($GLOBALS['TCA'][$table]['columns'][$field], $table, $field, $row);
             $dataStructureArray = $this->parseDataStructureByIdentifier($dataStructureIdentifier);
-        } catch (InvalidParentRowException $e) {
-        } catch (InvalidParentRowLoopException $e) {
-        } catch (InvalidParentRowRootException $e) {
-        } catch (InvalidPointerFieldValueException $e) {
-        } catch (InvalidIdentifierException $e) {
+        } catch (InvalidParentRowException|InvalidParentRowLoopException|InvalidParentRowRootException|InvalidPointerFieldValueException|InvalidIdentifierException $e) {
         }
 
         // Get flexform XML data

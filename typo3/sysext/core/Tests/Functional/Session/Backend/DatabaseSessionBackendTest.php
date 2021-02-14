@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Functional\Session\Backend;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Functional\Session\Backend;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Functional\Session\Backend;
 
 use TYPO3\CMS\Core\Session\Backend\DatabaseSessionBackend;
 use TYPO3\CMS\Core\Session\Backend\Exception\SessionNotCreatedException;
@@ -34,7 +36,8 @@ class DatabaseSessionBackendTest extends FunctionalTestCase
      * @var array
      */
     protected $testSessionRecord = [
-        'ses_id' => 'randomSessionId',
+        // DatabaseSessionBackend::hash('randomSessionId') with encryption key 12345
+        'ses_id' => '76898588caa1baee7984f4dc8adfed3b',
         'ses_userid' => 1,
         // serialize(['foo' => 'bar', 'boo' => 'far'])
         'ses_data' => 'a:2:{s:3:"foo";s:3:"bar";s:3:"boo";s:3:"far";}',
@@ -46,6 +49,7 @@ class DatabaseSessionBackendTest extends FunctionalTestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $GLOBALS['TYPO3_CONF_VARS']['SYS']['encryptionKey'] = '12345';
 
         $this->subject = new DatabaseSessionBackend();
         $this->subject->initialize('default', [

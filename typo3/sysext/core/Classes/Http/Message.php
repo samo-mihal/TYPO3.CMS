@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Http;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Http;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Http;
 
 use Psr\Http\Message\MessageInterface;
 use Psr\Http\Message\StreamInterface;
@@ -370,7 +371,7 @@ class Message implements MessageInterface
     /**
      * Assert that the provided header values are valid.
      *
-     * @see http://tools.ietf.org/html/rfc7230#section-3.2
+     * @see https://tools.ietf.org/html/rfc7230#section-3.2
      * @param string[] $values
      * @throws \InvalidArgumentException
      */
@@ -436,7 +437,7 @@ class Message implements MessageInterface
     /**
      * Check whether or not a header name is valid and throw an exception.
      *
-     * @see http://tools.ietf.org/html/rfc7230#section-3.2
+     * @see https://tools.ietf.org/html/rfc7230#section-3.2
      * @param string $name
      * @throws \InvalidArgumentException
      */

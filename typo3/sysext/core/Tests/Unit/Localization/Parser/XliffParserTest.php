@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Unit\Localization\Parser;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,13 +13,15 @@ namespace TYPO3\CMS\Core\Tests\Unit\Localization\Parser;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\Localization\Parser;
+
 use Prophecy\Argument;
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
 use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\Localization\LanguageStore;
 use TYPO3\CMS\Core\Localization\LocalizationFactory;
 use TYPO3\CMS\Core\Localization\Parser\XliffParser;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -32,6 +33,11 @@ class XliffParserTest extends UnitTestCase
      * @var array
      */
     protected $xliffFileNames;
+
+    /**
+     * @var ObjectProphecy|CacheManager
+     */
+    protected $cacheManagerProphecy;
 
     /**
      * Prepares the environment before running a test.
@@ -48,22 +54,13 @@ class XliffParserTest extends UnitTestCase
         ];
         $GLOBALS['TYPO3_CONF_VARS']['SYS']['lang']['format']['priority'] = 'xlf';
 
-        $cacheManagerProphecy = $this->prophesize(CacheManager::class);
-        GeneralUtility::setSingletonInstance(CacheManager::class, $cacheManagerProphecy->reveal());
+        $this->languageStoreProphecy = $this->prophesize(LanguageStore::class);
+        $this->cacheManagerProphecy = $this->prophesize(CacheManager::class);
         $cacheFrontendProphecy = $this->prophesize(FrontendInterface::class);
-        $cacheManagerProphecy->getCache('l10n')->willReturn($cacheFrontendProphecy->reveal());
+        $this->cacheManagerProphecy->getCache('l10n')->willReturn($cacheFrontendProphecy->reveal());
         $cacheFrontendProphecy->get(Argument::cetera())->willReturn(false);
         $cacheFrontendProphecy->set(Argument::cetera())->willReturn(null);
         $cacheFrontendProphecy->flush()->willReturn(null);
-    }
-
-    /**
-     * Cleans up the environment after running a test.
-     */
-    protected function tearDown(): void
-    {
-        GeneralUtility::purgeInstances();
-        parent::tearDown();
     }
 
     /**
@@ -71,7 +68,7 @@ class XliffParserTest extends UnitTestCase
      */
     public function canParseXliffInEnglish()
     {
-        $LOCAL_LANG = (new XliffParser)->getParsedData($this->xliffFileNames['locallang'], 'default');
+        $LOCAL_LANG = (new XliffParser())->getParsedData($this->xliffFileNames['locallang'], 'default');
         self::assertArrayHasKey('default', $LOCAL_LANG, 'default key not found in $LOCAL_LANG');
         $expectedLabels = [
             'label1' => 'This is label #1',
@@ -88,7 +85,7 @@ class XliffParserTest extends UnitTestCase
      */
     public function canParseXliffInFrench()
     {
-        $LOCAL_LANG = (new XliffParser)->getParsedData($this->xliffFileNames['locallang'], 'fr');
+        $LOCAL_LANG = (new XliffParser())->getParsedData($this->xliffFileNames['locallang'], 'fr');
         self::assertArrayHasKey('fr', $LOCAL_LANG, 'fr key not found in $LOCAL_LANG');
         $expectedLabels = [
             'label1' => 'Ceci est le libellé no. 1',
@@ -106,7 +103,7 @@ class XliffParserTest extends UnitTestCase
     public function canOverrideXliff()
     {
         /** @var $factory LocalizationFactory */
-        $factory = new LocalizationFactory;
+        $factory = new LocalizationFactory(new LanguageStore(), $this->cacheManagerProphecy->reveal());
 
         $GLOBALS['TYPO3_CONF_VARS']['SYS']['locallangXMLOverride'][$this->xliffFileNames['locallang']][] = $this->xliffFileNames['locallang_override'];
         $GLOBALS['TYPO3_CONF_VARS']['SYS']['locallangXMLOverride']['fr'][$this->xliffFileNames['locallang']][] = $this->xliffFileNames['locallang_override_fr'];
@@ -143,7 +140,7 @@ class XliffParserTest extends UnitTestCase
      */
     public function canOverrideXliffWithFrenchOnly()
     {
-        $factory = new LocalizationFactory;
+        $factory = new LocalizationFactory(new LanguageStore(), $this->cacheManagerProphecy->reveal());
 
         $GLOBALS['TYPO3_CONF_VARS']['SYS']['locallangXMLOverride']['fr'][$this->xliffFileNames['locallang']][] = $this->xliffFileNames['locallang_override_fr'];
         $LOCAL_LANG = $factory->getParsedData($this->xliffFileNames['locallang'], 'fr');

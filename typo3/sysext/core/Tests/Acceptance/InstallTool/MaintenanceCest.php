@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Acceptance\InstallTool;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,8 @@ namespace TYPO3\CMS\Core\Tests\Acceptance\InstallTool;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Acceptance\InstallTool;
+
 use TYPO3\CMS\Core\Tests\Acceptance\Support\BackendTester;
 
 class MaintenanceCest extends AbstractCest
@@ -26,6 +28,11 @@ class MaintenanceCest extends AbstractCest
         $I->click('Maintenance');
         $I->see('Maintenance', 'h1');
     }
+
+    /**
+     * @param BackendTester $I
+     * @throws \Exception
+     */
     public function flushCacheWorks(BackendTester $I)
     {
         $I->click('Flush cache');
@@ -33,6 +40,10 @@ class MaintenanceCest extends AbstractCest
         $I->see('Caches cleared', '.alert-success h4');
     }
 
+    /**
+     * @param BackendTester $I
+     * @throws \Exception
+     */
     public function analyzeDatabaseStructureWorks(BackendTester $I)
     {
         $I->click('Analyze database');
@@ -44,6 +55,10 @@ class MaintenanceCest extends AbstractCest
         $I->waitForElementNotVisible('.modal-dialog');
     }
 
+    /**
+     * @param BackendTester $I
+     * @throws \Exception
+     */
     public function removeTemporaryAssetsWorks(BackendTester $I)
     {
         $I->click('Scan temporary files');
@@ -53,6 +68,10 @@ class MaintenanceCest extends AbstractCest
         $I->waitForElementNotVisible('.modal-dialog');
     }
 
+    /**
+     * @param BackendTester $I
+     * @throws \Exception
+     */
     public function dumpAutoloadWorks(BackendTester $I)
     {
         $I->click('Dump autoload');
@@ -60,6 +79,10 @@ class MaintenanceCest extends AbstractCest
         $I->see('Successfully dumped class loading information for extensions.', '.alert-success h4');
     }
 
+    /**
+     * @param BackendTester $I
+     * @throws \Exception
+     */
     public function clearPersistentTablesWorks(BackendTester $I)
     {
         $I->click('Scan tables');
@@ -69,6 +92,10 @@ class MaintenanceCest extends AbstractCest
         $I->waitForElementNotVisible('.modal-dialog');
     }
 
+    /**
+     * @param BackendTester $I
+     * @throws \Exception
+     */
     public function createAdminUserWorks(BackendTester $I)
     {
         $I->click('Create Administrator');
@@ -78,19 +105,28 @@ class MaintenanceCest extends AbstractCest
         $I->waitForElementNotVisible('.modal-dialog');
     }
 
+    /**
+     * @param BackendTester $I
+     * @throws \Exception
+     */
     public function resetBackendUserPreferencesWorks(BackendTester $I)
     {
         $I->click('Reset backend user preferences');
         $I->waitForElementVisible('.alert-success');
-        $I->see('Preferences of all backend users have been reset', '.alert-success h4');
+        $I->see('Reset preferences of all backend users', '.alert-success h4');
+        $I->see('Preferences of all backend users have been reset', '.alert-success p');
     }
 
+    /**
+     * @param BackendTester $I
+     * @throws \Exception
+     */
     public function manageLanguagePacksWorks(BackendTester $I)
     {
         $I->click('Manage languages');
         $I->waitForElementVisible('.modal-dialog');
         $I->see('Manage Language Packs', '.modal-dialog h4');
-        $I->see('Active Languages', '.modal-dialog h3');
+        $I->waitForText('Active languages', 30, '.modal-dialog h3');
         $I->click('.t3js-modal-close');
         $I->waitForElementNotVisible('.modal-dialog');
     }

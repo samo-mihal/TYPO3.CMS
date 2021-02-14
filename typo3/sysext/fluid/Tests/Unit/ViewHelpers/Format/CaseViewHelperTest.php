@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\Tests\Unit\ViewHelpers\Format;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,8 +13,11 @@ namespace TYPO3\CMS\Fluid\Tests\Unit\ViewHelpers\Format;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Fluid\Tests\Unit\ViewHelpers\Format;
+
 use TYPO3\CMS\Fluid\ViewHelpers\Format\CaseViewHelper;
 use TYPO3\TestingFramework\Fluid\Unit\ViewHelpers\ViewHelperBaseTestcase;
+use TYPO3Fluid\Fluid\Core\ViewHelper\Exception;
 
 /**
  * Test case
@@ -69,7 +71,7 @@ class CaseViewHelperTest extends ViewHelperBaseTestcase
      */
     public function viewHelperThrowsExceptionIfIncorrectModeIsGiven()
     {
-        $this->expectException(\TYPO3Fluid\Fluid\Core\ViewHelper\Exception::class);
+        $this->expectException(Exception::class);
         $this->expectExceptionCode(1358349150);
         $this->setArgumentsUnderTest(
             $this->viewHelper,

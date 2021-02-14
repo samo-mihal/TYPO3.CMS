@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\ViewHelpers\Be;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Fluid\ViewHelpers\Be;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Fluid\ViewHelpers\Be;
 
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Imaging\Icon;
@@ -50,7 +51,6 @@ class PageInfoViewHelper extends AbstractBackendViewHelper
      * Render javascript in header
      *
      * @return string the rendered page info icon
-     * @see \TYPO3\CMS\Backend\Template\DocumentTemplate::getPageInfo() Note: can't call this method as it's protected!
      */
     public function render()
     {
@@ -73,9 +73,8 @@ class PageInfoViewHelper extends AbstractBackendViewHelper
         $id = GeneralUtility::_GP('id');
         $pageRecord = BackendUtility::readPageAccess($id, $GLOBALS['BE_USER']->getPagePermsClause(Permission::PAGE_SHOW));
         // Add icon with context menu, etc:
-        /** @var IconFactory $iconFactory */
         $iconFactory = GeneralUtility::makeInstance(IconFactory::class);
-        if ($pageRecord['uid']) {
+        if (is_array($pageRecord) && $pageRecord['uid']) {
             // If there IS a real page
             $altText = BackendUtility::getRecordIconAltText($pageRecord, 'pages');
             $theIcon = '<span title="' . $altText . '">' . $iconFactory->getIconForRecord('pages', $pageRecord, Icon::SIZE_SMALL)->render() . '</span>';

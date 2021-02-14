@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Extbase\Tests\Unit\Reflection\ClassSchema;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,7 +15,10 @@ namespace TYPO3\CMS\Extbase\Tests\Unit\Reflection\ClassSchema;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Tests\Unit\Reflection\ClassSchema;
+
 use TYPO3\CMS\Extbase\Reflection\ClassSchema;
+use TYPO3\CMS\Extbase\Reflection\ClassSchema\Exception\NoSuchMethodParameterException;
 use TYPO3\CMS\Extbase\Tests\Unit\Reflection\Fixture\DummyClassWithAllTypesOfMethods;
 use TYPO3\CMS\Extbase\Tests\Unit\Reflection\Fixture\DummyClassWithConstructorAndConstructorArgumentsWithDependencies;
 use TYPO3\CMS\Extbase\Tests\Unit\Reflection\Fixture\DummyClassWithGettersAndSetters;
@@ -98,7 +100,7 @@ class MethodParameterTest extends UnitTestCase
         self::assertTrue($classSchemaMethod->getParameter('foo')->ignoreValidation());
         self::assertTrue($classSchemaMethod->getParameter('bar')->ignoreValidation());
 
-        static::expectException(ClassSchema\Exception\NoSuchMethodParameterException::class);
+        static::expectException(NoSuchMethodParameterException::class);
         $classSchemaMethod->getParameter('baz')->ignoreValidation();
     }
 

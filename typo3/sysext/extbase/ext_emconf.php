@@ -1,4 +1,5 @@
 <?php
+
 $EM_CONF[$_EXTKEY] = [
     'title' => 'Extbase Framework for Extensions',
     'description' => 'A framework to build extensions for TYPO3 CMS.',
@@ -8,10 +9,10 @@ $EM_CONF[$_EXTKEY] = [
     'author_company' => '',
     'state' => 'stable',
     'clearCacheOnLoad' => 1,
-    'version' => '10.2.3',
+    'version' => '10.4.13',
     'constraints' => [
         'depends' => [
-            'typo3' => '10.2.3',
+            'typo3' => '10.4.13',
         ],
         'conflicts' => [],
         'suggests' => [

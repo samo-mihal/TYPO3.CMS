@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Install\Configuration\Mail;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,13 +13,16 @@ namespace TYPO3\CMS\Install\Configuration\Mail;
  * The TYPO3 project - inspiring people to share!
  */
 
-use TYPO3\CMS\Install\Configuration;
+namespace TYPO3\CMS\Install\Configuration\Mail;
+
+use TYPO3\CMS\Install\Configuration\AbstractFeature;
+use TYPO3\CMS\Install\Configuration\FeatureInterface;
 
 /**
  * Mail feature detects sendmail settings
  * @internal only to be used within EXT:install
  */
-class MailFeature extends Configuration\AbstractFeature implements Configuration\FeatureInterface
+class MailFeature extends AbstractFeature implements FeatureInterface
 {
     /**
      * @var string Name of feature

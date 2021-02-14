@@ -1,4 +1,5 @@
 <?php
+
 return [
     'ctrl' => [
         'title' => 'LLL:EXT:core/Resources/Private/Language/locallang_tca.xlf:sys_file_storage',
@@ -16,9 +17,6 @@ return [
             'default' => 'mimetypes-x-sys_file_storage'
         ],
         'searchFields' => 'name,description'
-    ],
-    'interface' => [
-        'showRecordFieldList' => 'name,description,driver,processingfolder,configuration,auto_extract_metadata'
     ],
     'columns' => [
         'name' => [

@@ -1,11 +1,12 @@
 <?php
+
 defined('TYPO3_MODE') or die();
 
 // Module Web->Info->Log
 \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::insertModuleFunction(
     'web_info',
     \TYPO3\CMS\Belog\Module\BackendLogModuleBootstrap::class,
-    null,
+    '',
     'Log'
 );
 

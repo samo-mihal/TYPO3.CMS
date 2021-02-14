@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Lowlevel\Command;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,11 +15,14 @@ namespace TYPO3\CMS\Lowlevel\Command;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Lowlevel\Command;
+
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use TYPO3\CMS\Backend\Command\ProgressListener\ReferenceIndexProgressListener;
 use TYPO3\CMS\Core\Core\Bootstrap;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\ReferenceIndex;
@@ -49,7 +52,7 @@ Assumptions:
 Files attached to records in TYPO3 using a "group" type configuration in TCA or FlexForm DataStructure are managed exclusively by the system and there must always exist a 1-1 reference between the file and the reference in the record.
 This tool will expose when such files are referenced from multiple locations which is considered an integrity error.
 If a multi-reference is found it was typically created because the record was copied or modified outside of DataHandler which will otherwise maintain the relations correctly.
-Multi-references should be resolved to 1-1 references as soon as possible. The danger of keeping multi-references is that if the file is removed from one of the referring records it will actually be deleted in the file system, leaving missing files for the remaining referers!
+Multi-references should be resolved to 1-1 references as soon as possible. The danger of keeping multi-references is that if the file is removed from one of the referring records it will actually be deleted in the file system, leaving missing files for the remaining referrers!
 
 If the option "--dry-run" is not set, the files that are referenced multiple times are copied with a new name
 and the references are updated accordingly.
@@ -78,6 +81,7 @@ If you want to get more detailed information, use the --verbose option.')
      *
      * @param InputInterface $input
      * @param OutputInterface $output
+     * @return int
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
@@ -107,6 +111,7 @@ If you want to get more detailed information, use the --verbose option.')
         } else {
             $io->success('Nothing to do, no files found which are referenced more than once.');
         }
+        return 0;
     }
 
     /**
@@ -131,8 +136,12 @@ If you want to get more detailed information, use the --verbose option.')
 
         // Update the reference index
         if ($updateReferenceIndex) {
+            $progressListener = GeneralUtility::makeInstance(ReferenceIndexProgressListener::class);
+            $progressListener->initialize($io);
+
             $referenceIndex = GeneralUtility::makeInstance(ReferenceIndex::class);
-            $referenceIndex->updateIndex(false, !$io->isQuiet());
+            $io->section('Reference Index is now being updated');
+            $referenceIndex->updateIndex(false, $progressListener);
         } else {
             $io->writeln('Reference index is assumed to be up to date, continuing.');
         }
@@ -209,7 +218,7 @@ If you want to get more detailed information, use the --verbose option.')
                         $io->writeln('Keeping "' . $fileName . '" for record "' . $recReference . '"');
                     } else {
                         // Create unique name for file
-                        $newName = $fileFunc->getUniqueName(PathUtility::basename($fileName), PathUtility::dirname($absoluteFileName));
+                        $newName = (string)$fileFunc->getUniqueName(PathUtility::basename($fileName), PathUtility::dirname($absoluteFileName));
                         $io->writeln('Copying "' . $fileName . '" to "' . PathUtility::stripPathSitePrefix($newName) . '" for record "' . $recReference . '"');
                         if (!$dryRun) {
                             GeneralUtility::upload_copy_move($absoluteFileName, $newName);

@@ -1,20 +1,20 @@
 <?php
+
+/*
+ * This file is part of the TYPO3 CMS project.
+ *
+ * It is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License, either version 2
+ * of the License, or any later version.
+ *
+ * For the full copyright and license information, please read the
+ * LICENSE.txt file that was distributed with this source code.
+ *
+ * The TYPO3 project - inspiring people to share!
+ */
+
 namespace TYPO3\CMS\Backend\ViewHelpers;
 
-/*                                                                        *
- * This script is part of the TYPO3 project - inspiring people to share!  *
- *                                                                        *
- * TYPO3 is free software; you can redistribute it and/or modify it under *
- * the terms of the GNU General Public License version 2 as published by  *
- * the Free Software Foundation.                                          *
- *                                                                        *
- * This script is distributed in the hope that it will be useful, but     *
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHAN-    *
- * TABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General      *
- * Public License for more details.                                       *
- *                                                                        */
-
-use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Imaging\ImageManipulation\CropVariantCollection;
 use TYPO3\CMS\Core\Resource\Exception\ResourceDoesNotExistException;
 use TYPO3\CMS\Core\Resource\ProcessedFile;
@@ -22,7 +22,7 @@ use TYPO3\CMS\Fluid\ViewHelpers\ImageViewHelper;
 use TYPO3Fluid\Fluid\Core\ViewHelper\Exception;
 
 /**
- * ViewHelper for the backend which generates a :html:`<img>` tag with the special URI to render thumbnails deffered.
+ * ViewHelper for the backend which generates an :html:`<img>` tag with the special URI to render thumbnails deferred.
  *
  * Examples
  * ========
@@ -32,7 +32,7 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Exception;
  *
  * ::
  *
- *    <be:thumbnail image="{file.resource}" maxWidth="{thumbnail.width}" maxHeight="{thumbnail.height}" />
+ *    <be:thumbnail image="{file.resource}" width="{thumbnail.width}" height="{thumbnail.height}" />
  *
  * Output::
  *
@@ -94,9 +94,6 @@ class ThumbnailViewHelper extends ImageViewHelper
             $cropVariant = $this->arguments['cropVariant'] ?: 'default';
             $cropArea = $cropVariantCollection->getCropArea($cropVariant);
             $processingInstructions = [];
-            if (!empty($this->arguments['context'])) {
-                $processingInstructions['_context'] = $this->arguments['context'];
-            }
             if (!$cropArea->isEmpty()) {
                 $processingInstructions['crop'] = $cropArea->makeAbsoluteBasedOnFile($image);
             }
@@ -105,7 +102,9 @@ class ThumbnailViewHelper extends ImageViewHelper
                     $processingInstructions[$argument] = $this->arguments[$argument];
                 }
             }
-            $imageUri = BackendUtility::getThumbnailUrl($image->getUid(), $processingInstructions);
+
+            $processedFile = $image->process($this->arguments['context'], $processingInstructions);
+            $imageUri = $processedFile->getPublicUrl(true);
 
             if (!$this->tag->hasAttribute('data-focus-area')) {
                 $focusArea = $cropVariantCollection->getFocusArea($cropVariant);
@@ -114,7 +113,8 @@ class ThumbnailViewHelper extends ImageViewHelper
                 }
             }
             $this->tag->addAttribute('src', $imageUri);
-            $this->tag->addAttribute('width', $this->arguments['maxWidth'] ?? $this->arguments['width']);
+            $this->tag->addAttribute('width', $processedFile->getProperty('width'));
+            $this->tag->addAttribute('height', $processedFile->getProperty('height'));
 
             $alt = $image->getProperty('alternative');
             $title = $image->getProperty('title');

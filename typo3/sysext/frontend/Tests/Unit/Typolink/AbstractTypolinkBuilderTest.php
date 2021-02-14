@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Frontend\Tests\Unit\Typolink;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,10 +15,13 @@ namespace TYPO3\CMS\Frontend\Tests\Unit\Typolink;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Frontend\Tests\Unit\Typolink;
+
 use Psr\Log\LoggerInterface;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
 use TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController;
 use TYPO3\CMS\Frontend\Typolink\AbstractTypolinkBuilder;
@@ -51,13 +54,10 @@ class AbstractTypolinkBuilderTest extends UnitTestCase
     {
         parent::setUp();
         $this->createMockedLoggerAndLogManager();
-        $this->frontendControllerMock = $this->getAccessibleMock(
-            TypoScriptFrontendController::class,
-            ['dummy'],
-            [],
-            '',
-            false
-        );
+        $this->frontendControllerMock = $this
+            ->getMockBuilder(TypoScriptFrontendController::class)
+            ->disableOriginalConstructor()
+            ->getMock();
     }
 
     //////////////////////
@@ -238,9 +238,9 @@ class AbstractTypolinkBuilderTest extends UnitTestCase
      */
     public function resolveTargetAttributeDataProvider(): array
     {
-        $targetName = $this->getUniqueId('name_');
-        $target = $this->getUniqueId('target_');
-        $fallback = $this->getUniqueId('fallback_');
+        $targetName = StringUtility::getUniqueId('name_');
+        $target = StringUtility::getUniqueId('target_');
+        $fallback = StringUtility::getUniqueId('fallback_');
         return [
             'Take target from $conf, if $conf[$targetName] is set.' =>
                 [
@@ -254,7 +254,7 @@ class AbstractTypolinkBuilderTest extends UnitTestCase
             'Else from fallback, if not $respectFrameSetOption ...' =>
                 [
                     $fallback,
-                    [],
+                    ['directImageLink' => false],
                     $targetName,
                     false, // $respectFrameSetOption false
                     $fallback,
@@ -263,7 +263,7 @@ class AbstractTypolinkBuilderTest extends UnitTestCase
             ' ... or no doctype ... ' =>
                 [
                     $fallback,
-                    [],
+                    ['directImageLink' => false],
                     $targetName,
                     true,
                     $fallback,
@@ -272,7 +272,7 @@ class AbstractTypolinkBuilderTest extends UnitTestCase
             ' ... or doctype xhtml_trans... ' =>
                 [
                     $fallback,
-                    [],
+                    ['directImageLink' => false],
                     $targetName,
                     true,
                     $fallback,
@@ -281,7 +281,7 @@ class AbstractTypolinkBuilderTest extends UnitTestCase
             ' ... or doctype xhtml_basic... ' =>
                 [
                     $fallback,
-                    [],
+                    ['directImageLink' => false],
                     $targetName,
                     true,
                     $fallback,
@@ -290,7 +290,7 @@ class AbstractTypolinkBuilderTest extends UnitTestCase
             ' ... or doctype html5... ' =>
                 [
                     $fallback,
-                    [],
+                    ['directImageLink' => false],
                     $targetName,
                     true,
                     $fallback,

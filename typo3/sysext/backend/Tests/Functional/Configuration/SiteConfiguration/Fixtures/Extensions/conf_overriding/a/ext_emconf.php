@@ -1,4 +1,5 @@
 <?php
+
 $EM_CONF[$_EXTKEY] = [
     'title' => '',
     'description' => '',
@@ -9,10 +10,10 @@ $EM_CONF[$_EXTKEY] = [
     'state' => 'stable',
     'uploadfolder' => 0,
     'clearCacheOnLoad' => 1,
-    'version' => '10.2.3',
+    'version' => '10.4.13',
     'constraints' => [
         'depends' => [
-            'typo3' => '10.2.3',
+            'typo3' => '10.4.13',
         ],
         'conflicts' => [],
         'suggests' => [],

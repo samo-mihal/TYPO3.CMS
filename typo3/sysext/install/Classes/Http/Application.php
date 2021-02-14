@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Install\Http;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Install\Http;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Install\Http;
+
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
@@ -22,6 +23,7 @@ use TYPO3\CMS\Core\Context\DateTimeAspect;
 use TYPO3\CMS\Core\Context\UserAspect;
 use TYPO3\CMS\Core\Context\VisibilityAspect;
 use TYPO3\CMS\Core\Context\WorkspaceAspect;
+use TYPO3\CMS\Core\Core\SystemEnvironmentBuilder;
 use TYPO3\CMS\Core\Http\AbstractApplication;
 
 /**
@@ -46,7 +48,9 @@ class Application extends AbstractApplication
     protected function handle(ServerRequestInterface $request): ResponseInterface
     {
         $this->initializeContext();
-        return parent::handle($request);
+        $request = $request->withAttribute('applicationType', SystemEnvironmentBuilder::REQUESTTYPE_INSTALL);
+        return parent::handle($request)
+            ->withHeader('X-Frame-Options', 'SAMEORIGIN');
     }
 
     /**

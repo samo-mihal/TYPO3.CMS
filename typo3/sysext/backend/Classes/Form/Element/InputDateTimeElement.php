@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Form\Element;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Form\Element;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Form\Element;
 
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Localization\LanguageService;
@@ -106,8 +107,13 @@ class InputDateTimeElement extends AbstractFormElement
         $fieldInformationHtml = $fieldInformationResult['html'];
         $resultArray = $this->mergeChildReturnIntoExistingResult($resultArray, $fieldInformationResult, false);
 
+        // Early return for read only fields
         if (isset($config['readOnly']) && $config['readOnly']) {
-            // Early return for read only fields
+            // Ensure dbType values (see DatabaseRowDateTimeFields) are converted to a UNIX timestamp before rendering read-only
+            if (!empty($itemValue) && !MathUtility::canBeInterpretedAsInteger($itemValue)) {
+                $itemValue = (new \DateTime($itemValue))->getTimestamp();
+            }
+            // Format the unix-timestamp to the defined format (date/year etc)
             $itemValue = $this->formatValue($format, $itemValue);
             $html = [];
             $html[] = '<div class="formengine-field-item t3js-formengine-field-item">';
@@ -136,7 +142,7 @@ class InputDateTimeElement extends AbstractFormElement
             ]),
             'data-date-type' => $format,
             'data-formengine-validation-rules' => $this->getValidationDataAsJsonString($config),
-            'data-formengine-input-params' => json_encode([
+            'data-formengine-input-params' => (string)json_encode([
                 'field' => $parameterArray['itemFormElName'],
                 'evalList' => implode(',', $evalList)
             ]),
@@ -145,7 +151,7 @@ class InputDateTimeElement extends AbstractFormElement
 
         $maxLength = $config['max'] ?? 0;
         if ((int)$maxLength > 0) {
-            $attributes['maxlength'] = (int)$maxLength;
+            $attributes['maxlength'] = (string)(int)$maxLength;
         }
         if (!empty($config['placeholder'])) {
             $attributes['placeholder'] = trim($config['placeholder']);
@@ -165,10 +171,10 @@ class InputDateTimeElement extends AbstractFormElement
                 $itemValue = gmdate('c', $adjustedValue);
             }
             if (isset($config['range']['lower'])) {
-                $attributes['data-date-min-date'] = (int)$config['range']['lower'] * 1000;
+                $attributes['data-date-min-date'] = (string)((int)$config['range']['lower'] * 1000);
             }
             if (isset($config['range']['upper'])) {
-                $attributes['data-date-max-date'] = (int)$config['range']['upper'] * 1000;
+                $attributes['data-date-max-date'] = (string)((int)$config['range']['upper'] * 1000);
             }
         }
         if (($format === 'time' || $format === 'timesec') && MathUtility::canBeInterpretedAsInteger($itemValue) && $itemValue != 0) {
@@ -190,7 +196,7 @@ class InputDateTimeElement extends AbstractFormElement
         $expansionHtml[] =  '<div class="form-wizards-wrap">';
         $expansionHtml[] =      '<div class="form-wizards-element">';
         $expansionHtml[] =          '<div class="input-group">';
-        $expansionHtml[] =              '<input type="text"' . GeneralUtility::implodeAttributes($attributes, true) . ' />';
+        $expansionHtml[] =              '<input type="text" ' . GeneralUtility::implodeAttributes($attributes, true) . ' />';
         $expansionHtml[] =              '<input type="hidden" name="' . $parameterArray['itemFormElName'] . '" value="' . htmlspecialchars($itemValue) . '" />';
         $expansionHtml[] =              '<span class="input-group-btn">';
         $expansionHtml[] =                  '<label class="btn btn-default" for="' . $attributes['id'] . '">';
@@ -262,7 +268,7 @@ class InputDateTimeElement extends AbstractFormElement
             $fullElement[] = '</div>';
             $fullElement[] = '<div class="t3js-formengine-placeholder-placeholder">';
             $fullElement[] =    '<div class="form-control-wrap" style="max-width:' . $width . 'px">';
-            $fullElement[] =        '<input type="text" class="form-control" disabled="disabled" value="' . $shortenedPlaceholder . '" />';
+            $fullElement[] =        '<input type="text" class="form-control" disabled="disabled" value="' . htmlspecialchars($shortenedPlaceholder) . '" />';
             $fullElement[] =    '</div>';
             $fullElement[] = '</div>';
             $fullElement[] = '<div class="t3js-formengine-placeholder-formfield">';

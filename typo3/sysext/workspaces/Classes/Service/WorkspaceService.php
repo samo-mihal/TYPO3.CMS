@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Workspaces\Service;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Workspaces\Service;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Workspaces\Service;
 
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Database\Connection;
@@ -44,7 +45,6 @@ class WorkspaceService implements SingletonInterface
     protected $pagesWithVersionsInTable = [];
 
     const TABLE_WORKSPACE = 'sys_workspace';
-    const SELECT_ALL_WORKSPACES = -98;
     const LIVE_WORKSPACE_ID = 0;
 
     /**
@@ -86,18 +86,30 @@ class WorkspaceService implements SingletonInterface
      */
     public function getCurrentWorkspace()
     {
-        $workspaceId = $GLOBALS['BE_USER']->workspace;
-        $activeId = $GLOBALS['BE_USER']->getSessionData('tx_workspace_activeWorkspace');
+        return $GLOBALS['BE_USER']->workspace;
+    }
 
-        // Avoid invalid workspace settings
-        if ($activeId !== null && $activeId !== self::SELECT_ALL_WORKSPACES) {
-            $availableWorkspaces = $this->getAvailableWorkspaces();
-            if (isset($availableWorkspaces[$activeId])) {
-                $workspaceId = $activeId;
+    /**
+     * easy function to just return the number of hours.
+     *
+     * a preview link is valid, based on the workspaces' custom value (default to 48 hours)
+     * or falls back to the users' TSconfig value "options.workspaces.previewLinkTTLHours".
+     *
+     * by default, it's 48hs.
+     *
+     * @return int The hours as a number
+     */
+    public function getPreviewLinkLifetime(): int
+    {
+        $workspaceId = $GLOBALS['BE_USER']->workspace;
+        if ($workspaceId > 0) {
+            $wsRecord = BackendUtility::getRecord('sys_workspace', $workspaceId, '*');
+            if (($wsRecord['previewlink_lifetime'] ?? 0) > 0) {
+                return (int)$wsRecord['previewlink_lifetime'];
             }
         }
-
-        return $workspaceId;
+        $ttlHours = (int)($GLOBALS['BE_USER']->getTSConfig()['options.']['workspaces.']['previewLinkTTLHours'] ?? 0);
+        return $ttlHours ?: 24 * 2;
     }
 
     /**
@@ -214,7 +226,7 @@ class WorkspaceService implements SingletonInterface
         if ($pageId != -1 && $recursionLevel > 0) {
             $pageList = $this->getTreeUids($pageId, $wsid, $recursionLevel);
         } elseif ($pageId != -1) {
-            $pageList = $pageId;
+            $pageList = (string)$pageId;
         } else {
             $pageList = '';
             // check if person may only see a "virtual" page-root
@@ -343,18 +355,10 @@ class WorkspaceService implements SingletonInterface
             );
         }
 
-        // For "real" workspace numbers, select by that.
-        // If = -98, select all that are NOT online (zero).
-        // Anything else below -1 will not select on the wsid and therefore select all!
-        if ($wsid > self::SELECT_ALL_WORKSPACES) {
+        if ($wsid >= 0) {
             $constraints[] = $queryBuilder->expr()->eq(
                 'A.t3ver_wsid',
                 $queryBuilder->createNamedParameter($wsid, \PDO::PARAM_INT)
-            );
-        } elseif ($wsid === self::SELECT_ALL_WORKSPACES) {
-            $constraints[] = $queryBuilder->expr()->neq(
-                'A.t3ver_wsid',
-                $queryBuilder->createNamedParameter(0, \PDO::PARAM_INT)
             );
         }
 
@@ -442,10 +446,6 @@ class WorkspaceService implements SingletonInterface
                 $queryBuilder->createNamedParameter(0, \PDO::PARAM_INT)
             ),
             $queryBuilder->expr()->eq(
-                'C.pid',
-                $queryBuilder->createNamedParameter(-1, \PDO::PARAM_INT)
-            ),
-            $queryBuilder->expr()->eq(
                 'C.t3ver_state',
                 $queryBuilder->createNamedParameter(
                     (string)new VersionState(VersionState::MOVE_POINTER),
@@ -456,7 +456,7 @@ class WorkspaceService implements SingletonInterface
             $queryBuilder->expr()->eq('B.uid', $queryBuilder->quoteIdentifier('C.t3ver_oid'))
         ];
 
-        if ($wsid > self::SELECT_ALL_WORKSPACES) {
+        if ($wsid >= 0) {
             $constraints[] = $queryBuilder->expr()->eq(
                 'A.t3ver_wsid',
                 $queryBuilder->createNamedParameter($wsid, \PDO::PARAM_INT)
@@ -464,15 +464,6 @@ class WorkspaceService implements SingletonInterface
             $constraints[] = $queryBuilder->expr()->eq(
                 'C.t3ver_wsid',
                 $queryBuilder->createNamedParameter($wsid, \PDO::PARAM_INT)
-            );
-        } elseif ($wsid === self::SELECT_ALL_WORKSPACES) {
-            $constraints[] = $queryBuilder->expr()->neq(
-                'A.t3ver_wsid',
-                $queryBuilder->createNamedParameter(0, \PDO::PARAM_INT)
-            );
-            $constraints[] = $queryBuilder->expr()->neq(
-                'C.t3ver_wsid',
-                $queryBuilder->createNamedParameter(0, \PDO::PARAM_INT)
             );
         }
 

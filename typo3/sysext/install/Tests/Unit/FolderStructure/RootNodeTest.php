@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Install\Tests\Unit\FolderStructure;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,13 +13,17 @@ namespace TYPO3\CMS\Install\Tests\Unit\FolderStructure;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Install\Tests\Unit\FolderStructure;
+
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\CMS\Install\FolderStructure\DirectoryNode;
 use TYPO3\CMS\Install\FolderStructure\Exception\InvalidArgumentException;
 use TYPO3\CMS\Install\FolderStructure\Exception\RootNodeException;
 use TYPO3\CMS\Install\FolderStructure\RootNode;
+use TYPO3\CMS\Install\FolderStructure\RootNodeInterface;
 use TYPO3\TestingFramework\Core\AccessibleObjectInterface;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
@@ -38,7 +41,7 @@ class RootNodeTest extends UnitTestCase
         $this->expectExceptionCode(1366140117);
         /** @var $node RootNode|AccessibleObjectInterface|\PHPUnit\Framework\MockObject\MockObject */
         $node = $this->getAccessibleMock(RootNode::class, ['isWindowsOs'], [], '', false);
-        $falseParent = $this->createMock(\TYPO3\CMS\Install\FolderStructure\RootNodeInterface::class);
+        $falseParent = $this->createMock(RootNodeInterface::class);
         $node->__construct([], $falseParent);
     }
 
@@ -124,7 +127,7 @@ class RootNodeTest extends UnitTestCase
             ->expects(self::any())
             ->method('isWindowsOs')
             ->willReturn(false);
-        $childName = $this->getUniqueId('test_');
+        $childName = StringUtility::getUniqueId('test_');
         $structure = [
             'name' => '/foo',
             'children' => [
@@ -173,7 +176,7 @@ class RootNodeTest extends UnitTestCase
             ->expects(self::any())
             ->method('isWindowsOs')
             ->willReturn(false);
-        $name = '/' . $this->getUniqueId('test_');
+        $name = '/' . StringUtility::getUniqueId('test_');
         $node->__construct(['name' => $name], null);
         self::assertSame($name, $node->getName());
     }
@@ -192,7 +195,7 @@ class RootNodeTest extends UnitTestCase
             false
         );
         // do not use var path here, as root nodes get checked for public path as first part
-        $path = Environment::getPublicPath() . '/typo3temp/tests/' . $this->getUniqueId('dir_');
+        $path = Environment::getPublicPath() . '/typo3temp/tests/' . StringUtility::getUniqueId('dir_');
         GeneralUtility::mkdir_deep($path);
         $this->testFilesToDelete[] = $path;
         $node->expects(self::any())->method('getAbsolutePath')->willReturn($path);
@@ -218,7 +221,7 @@ class RootNodeTest extends UnitTestCase
             false
         );
         // do not use var path here, as root nodes get checked for public path as first part
-        $path = Environment::getPublicPath() . '/typo3temp/tests/' . $this->getUniqueId('dir_');
+        $path = Environment::getPublicPath() . '/typo3temp/tests/' . StringUtility::getUniqueId('dir_');
         GeneralUtility::mkdir_deep($path);
         $this->testFilesToDelete[] = $path;
         $node->expects(self::any())->method('getAbsolutePath')->willReturn($path);

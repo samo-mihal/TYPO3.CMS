@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Install\FolderStructure;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,7 +13,10 @@ namespace TYPO3\CMS\Install\FolderStructure;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Install\FolderStructure;
+
 use TYPO3\CMS\Core\Messaging\FlashMessage;
+use TYPO3\CMS\Install\FolderStructure\Exception\InvalidArgumentException;
 
 /**
  * A file
@@ -23,7 +25,7 @@ use TYPO3\CMS\Core\Messaging\FlashMessage;
 class FileNode extends AbstractNode implements NodeInterface
 {
     /**
-     * @var int|null Default for files is octal 0664 == decimal 436
+     * @var string Default for files is octal 0664 == decimal 436
      */
     protected $targetPermission = '0664';
 
@@ -42,7 +44,7 @@ class FileNode extends AbstractNode implements NodeInterface
     public function __construct(array $structure, NodeInterface $parent = null)
     {
         if ($parent === null) {
-            throw new Exception\InvalidArgumentException(
+            throw new InvalidArgumentException(
                 'File node must have parent',
                 1366927513
             );
@@ -51,7 +53,7 @@ class FileNode extends AbstractNode implements NodeInterface
 
         // Ensure name is a single segment, but not a path like foo/bar or an absolute path /foo
         if (strpos($structure['name'], '/') !== false) {
-            throw new Exception\InvalidArgumentException(
+            throw new InvalidArgumentException(
                 'File name must not contain forward slash',
                 1366222207
             );
@@ -63,7 +65,7 @@ class FileNode extends AbstractNode implements NodeInterface
         }
 
         if (isset($structure['targetContent']) && isset($structure['targetContentFile'])) {
-            throw new Exception\InvalidArgumentException(
+            throw new InvalidArgumentException(
                 'Either targetContent or targetContentFile can be set, but not both',
                 1380364361
             );
@@ -74,7 +76,7 @@ class FileNode extends AbstractNode implements NodeInterface
         }
         if (isset($structure['targetContentFile'])) {
             if (!is_readable($structure['targetContentFile'])) {
-                throw new Exception\InvalidArgumentException(
+                throw new InvalidArgumentException(
                     'targetContentFile ' . $structure['targetContentFile'] . ' does not exist or is not readable',
                     1380364362
                 );
@@ -255,7 +257,7 @@ class FileNode extends AbstractNode implements NodeInterface
             $result = true;
         } else {
             $targetContentHash = md5($this->targetContent);
-            $currentContentHash = md5(file_get_contents($absolutePath));
+            $currentContentHash = md5((string)file_get_contents($absolutePath));
             if ($targetContentHash === $currentContentHash) {
                 $result = true;
             }

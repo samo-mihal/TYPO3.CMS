@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Domain\Model;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,11 +13,13 @@ namespace TYPO3\CMS\Extbase\Domain\Model;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Domain\Model;
+
 /**
  * A folder object (File Abstraction Layer)
  *
  * @internal experimental! This class is experimental and subject to change!
  */
-class Folder extends \TYPO3\CMS\Extbase\Domain\Model\AbstractFileFolder
+class Folder extends AbstractFileFolder
 {
 }

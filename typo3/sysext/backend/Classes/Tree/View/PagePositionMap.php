@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Tree\View;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,18 +13,22 @@ namespace TYPO3\CMS\Backend\Tree\View;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Tree\View;
+
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Backend\View\BackendLayoutView;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\ConnectionPool;
-use TYPO3\CMS\Core\Database\Query\Restriction\BackendWorkspaceRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\EndTimeRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\HiddenRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\StartTimeRestriction;
+use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\MathUtility;
 
 /**
  * Position map class - generating a page tree / content element list which links for inserting (copy/move) of records.
@@ -53,7 +56,7 @@ class PagePositionMap
 
     // Can be set to the sys_language uid to select content elements for.
     /**
-     * @var string
+     * @var int
      */
     public $cur_sys_language;
 
@@ -140,9 +143,13 @@ class PagePositionMap
      */
     public function positionTree($id, $pageinfo, $perms_clause, $R_URI)
     {
-        // Make page tree object:
-        /** @var \TYPO3\CMS\Backend\Tree\View\PageTreeView $pageTree */
-        $pageTree = GeneralUtility::makeInstance($this->pageTreeClassName);
+        // Make page tree object
+        if ($this->pageTreeClassName === NewRecordPageTreeView::class) {
+            $pageTree = GeneralUtility::makeInstance($this->pageTreeClassName, (int)$id);
+        } else {
+            $pageTree = GeneralUtility::makeInstance($this->pageTreeClassName);
+        }
+        /** @var PageTreeView $pageTree */
         $pageTree->init(' AND ' . $perms_clause);
         $pageTree->addField('pid');
         // Initialize variables:
@@ -183,7 +190,7 @@ class PagePositionMap
                     if (!$this->dontPrintPageInsertIcons && $this->checkNewPageInPid($prev_dat['row']['pid'])) {
                         $prevPid = -$prev_dat['row']['uid'];
                         end($lines);
-                        $lines[] = '<li><span class="text-nowrap"><a href="' . htmlspecialchars($this->getActionLink($prevPid, $prev_dat['row']['pid'])) . '"><i class="t3-icon fa fa-long-arrow-left" title="' . $this->insertlabel() . '"></i></a></span></li>';
+                        $lines[] = '<li><span class="text-nowrap"><a href="' . htmlspecialchars($this->getActionLink((int)$prevPid, $prev_dat['row']['pid'])) . '"><i class="t3-icon fa fa-long-arrow-left" title="' . $this->insertlabel() . '"></i></a></span></li>';
                     }
                     // Then set the current prevPid
                     $prevPid = -$prev_dat['row']['pid'];
@@ -222,7 +229,7 @@ class PagePositionMap
                 if ($latestInvDepth < $dat['invertedDepth']) {
                     $lines[] = '</ul>';
                 }
-                $lines[] = '<span class="text-nowrap"><a href="' . htmlspecialchars($this->getActionLink($prevPid, $dat['row']['pid'])) . '"><i class="t3-icon fa fa-long-arrow-left" title="' . $this->insertlabel() . '"></i></a></span>';
+                $lines[] = '<span class="text-nowrap"><a href="' . htmlspecialchars($this->getActionLink((int)$prevPid, $dat['row']['pid'])) . '"><i class="t3-icon fa fa-long-arrow-left" title="' . $this->insertlabel() . '"></i></a></span>';
             }
         }
 
@@ -355,7 +362,7 @@ class PagePositionMap
         $lines = [];
         foreach ($colPosArray as $kk => $vv) {
             $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('tt_content');
-            $queryBuilder->getRestrictions()->add(GeneralUtility::makeInstance(BackendWorkspaceRestriction::class));
+            $queryBuilder->getRestrictions()->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, (int)$this->getBackendUser()->workspace));
             if ($showHidden) {
                 $queryBuilder->getRestrictions()
                     ->removeByType(HiddenRestriction::class)
@@ -387,7 +394,7 @@ class PagePositionMap
             while ($row = $res->fetch()) {
                 BackendUtility::workspaceOL('tt_content', $row);
                 if (is_array($row)) {
-                    $lines[$vv][] = $this->wrapRecordHeader($this->getRecordHeader($row), $row);
+                    $lines[$vv][] = $this->getRecordHeader($row);
                     $lines[$vv][] = $this->insertPositionIcon($row, $vv, $kk, $moveUid, $pid);
                 }
             }
@@ -405,8 +412,9 @@ class PagePositionMap
      */
     public function printRecordMap($lines, $colPosArray, $pid = 0)
     {
-        $count = \TYPO3\CMS\Core\Utility\MathUtility::forceIntegerInRange(count($colPosArray), 1);
-        $backendLayout = GeneralUtility::callUserFunction(\TYPO3\CMS\Backend\View\BackendLayoutView::class . '->getSelectedBackendLayout', $pid, $this);
+        $count = MathUtility::forceIntegerInRange(count($colPosArray), 1);
+        $backendLayoutProvider = GeneralUtility::makeInstance(BackendLayoutView::class);
+        $backendLayout = $backendLayoutProvider->getSelectedBackendLayout($pid);
         if (isset($backendLayout['__config']['backend_layout.'])) {
             $this->getLanguageService()->includeLLFile('EXT:backend/Resources/Private/Language/locallang_layout.xlf');
             $table = '<div class="table-fit"><table class="table table-condensed table-bordered table-vertical-top">';
@@ -418,7 +426,7 @@ class PagePositionMap
             }
             $table .= '</colgroup>';
             $table .= '<tbody>';
-            $tcaItems = GeneralUtility::callUserFunction(\TYPO3\CMS\Backend\View\BackendLayoutView::class . '->getColPosListItemsParsed', $pid, $this);
+            $tcaItems = $backendLayoutProvider->getColPosListItemsParsed($pid);
             // Cycle through rows
             for ($row = 1; $row <= $rowCount; $row++) {
                 $rowConfig = $backendLayout['__config']['backend_layout.']['rows.'][$row . '.'];
@@ -449,11 +457,11 @@ class PagePositionMap
                     // Render header
                     $table .= '<p>';
                     if (isset($columnConfig['colPos']) && $head) {
-                        $table .= '<strong>' . $this->wrapColumnHeader($head, '') . '</strong>';
+                        $table .= '<strong>' . $head . '</strong>';
                     } elseif ($columnConfig['colPos']) {
-                        $table .= '<em>' . $this->wrapColumnHeader($this->getLanguageService()->getLL('noAccess'), '') . '</em>';
+                        $table .= '<em>' . $this->getLanguageService()->getLL('noAccess') . '</em>';
                     } else {
-                        $table .= '<em>' . $this->wrapColumnHeader(($this->getLanguageService()->sL($columnConfig['name']) ?: '') . ' (' . $this->getLanguageService()->getLL('notAssigned') . ')', '') . '</em>';
+                        $table .= '<em>' . ($this->getLanguageService()->sL($columnConfig['name']) ?: '') . ' (' . $this->getLanguageService()->getLL('notAssigned') . ')' . '</em>';
                     }
                     $table .= '</p>';
                     // Render lines
@@ -475,7 +483,7 @@ class PagePositionMap
             $row = '';
             foreach ($colPosArray as $kk => $vv) {
                 $row .= '<td class="col-nowrap col-min" width="' . round(100 / $count) . '%">';
-                $row .= '<p><strong>' . $this->wrapColumnHeader(htmlspecialchars($this->getLanguageService()->sL(BackendUtility::getLabelFromItemlist('tt_content', 'colPos', $vv))), $vv) . '</strong></p>';
+                $row .= '<p><strong>' . htmlspecialchars($this->getLanguageService()->sL(BackendUtility::getLabelFromItemlist('tt_content', 'colPos', $vv))) . '</strong></p>';
                 if (!empty($lines[$vv])) {
                     $row .= '<ul class="list-unstyled">';
                     foreach ($lines[$vv] as $line) {
@@ -499,19 +507,6 @@ class PagePositionMap
 			';
         }
         return $table;
-    }
-
-    /**
-     * Wrapping the column header
-     *
-     * @param string $str Header value
-     * @param string $vv Column info.
-     * @return string
-     * @see printRecordMap()
-     */
-    public function wrapColumnHeader($str, $vv)
-    {
-        return $str;
     }
 
     /**
@@ -566,18 +561,6 @@ class PagePositionMap
         }
         // returns to prev. page
         return $this->clientContext . '.location.href=' . GeneralUtility::quoteJSvalue((string)$location) . ';return false;';
-    }
-
-    /**
-     * Wrapping the record header  (from getRecordHeader())
-     *
-     * @param string $str HTML content
-     * @param string $row Record array.
-     * @return string HTML content
-     */
-    public function wrapRecordHeader($str, $row)
-    {
-        return $str;
     }
 
     /**

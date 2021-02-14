@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Search\LiveSearch;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,7 +13,10 @@ namespace TYPO3\CMS\Backend\Search\LiveSearch;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Search\LiveSearch;
+
 use TYPO3\CMS\Backend\Routing\UriBuilder;
+use TYPO3\CMS\Backend\Tree\View\PageTreeView;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
@@ -38,24 +40,9 @@ use TYPO3\CMS\Core\Utility\MathUtility;
 class LiveSearch
 {
     /**
-     * @var string
-     */
-    const PAGE_JUMP_TABLE = 'pages';
-
-    /**
      * @var int
      */
     const RECURSIVE_PAGE_LEVEL = 99;
-
-    /**
-     * @var int
-     */
-    const GROUP_TITLE_MAX_LENGTH = 15;
-
-    /**
-     * @var int
-     */
-    const RECORD_TITLE_MAX_LENGTH = 28;
 
     /**
      * @var string
@@ -198,7 +185,7 @@ class LiveSearch
 
             $orderBy = $GLOBALS['TCA'][$tableName]['ctrl']['sortby'] ?: $GLOBALS['TCA'][$tableName]['ctrl']['default_sortby'];
             foreach (QueryHelper::parseOrderBy((string)$orderBy) as $orderPair) {
-                list($fieldName, $order) = $orderPair;
+                [$fieldName, $order] = $orderPair;
                 $queryBuilder->addOrderBy($fieldName, $order);
             }
 
@@ -284,24 +271,6 @@ class LiveSearch
     }
 
     /**
-     * Crops a title string to a limited length and if it really was cropped,
-     * wrap it in a <span title="...">|</span>,
-     * which offers a tooltip with the original title when moving mouse over it.
-     *
-     * @param string $title The title string to be cropped
-     * @param int $titleLength Crop title after this length - if not set, BE_USER->uc['titleLen'] is used
-     * @return string The processed title string, wrapped in <span title="...">|</span> if cropped
-     */
-    public function getRecordTitlePrep($title, $titleLength = 0)
-    {
-        // If $titleLength is not a valid positive integer, use BE_USER->uc['titleLen']:
-        if (!$titleLength || !MathUtility::canBeInterpretedAsInteger($titleLength) || $titleLength < 0) {
-            $titleLength = $GLOBALS['BE_USER']->uc['titleLen'];
-        }
-        return htmlspecialchars(GeneralUtility::fixed_lgd_cs($title, $titleLength));
-    }
-
-    /**
      * Build the MySql where clause by table.
      *
      * @param QueryBuilder $queryBuilder
@@ -337,7 +306,8 @@ class LiveSearch
                     );
                 } elseif ($fieldType === 'text'
                     || $fieldType === 'flex'
-                    || ($fieldType === 'input' && (!$evalRules || !preg_match('/date|time|int/', $evalRules)))
+                    || $fieldType === 'slug'
+                    || ($fieldType === 'input' && (!$evalRules || !preg_match('/\b(?:date|time|int)\b/', $evalRules)))
                 ) {
                     // Otherwise and if the field makes sense to be searched, assemble a like condition
                     $constraints[] = $constraints[] = $queryBuilder->expr()->like(
@@ -388,7 +358,8 @@ class LiveSearch
                 // Assemble the search condition only if the field makes sense to be searched
                 if ($fieldType === 'text'
                     || $fieldType === 'flex'
-                    || ($fieldType === 'input' && (!$evalRules || !preg_match('/date|time|int/', $evalRules)))
+                    || $fieldType === 'slug'
+                    || ($fieldType === 'input' && (!$evalRules || !preg_match('/\b(?:date|time|int)\b/', $evalRules)))
                 ) {
                     if ($searchConstraint->count() !== 0) {
                         $constraints[] = $searchConstraint;
@@ -470,7 +441,7 @@ class LiveSearch
      */
     protected function getAvailablePageIds($id, $depth)
     {
-        $tree = GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Tree\View\PageTreeView::class);
+        $tree = GeneralUtility::makeInstance(PageTreeView::class);
         $tree->init('AND ' . $this->userPermissions);
         $tree->makeHTML = 0;
         $tree->fieldArray = ['uid', 'php_tree_stop'];

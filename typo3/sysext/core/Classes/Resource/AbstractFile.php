@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Resource;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,9 @@ namespace TYPO3\CMS\Core\Resource;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Resource;
+
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
 use TYPO3\CMS\Core\Utility\PathUtility;
 
@@ -293,7 +295,7 @@ abstract class AbstractFile implements FileInterface
         // we don't need to make an SQL statement like EXT:media does currently
         if (!$this->properties['type']) {
             $mimeType = $this->getMimeType();
-            list($fileType) = explode('/', $mimeType);
+            [$fileType] = explode('/', $mimeType);
             switch (strtolower($fileType)) {
                 case 'text':
                     $this->properties['type'] = self::FILETYPE_TEXT;
@@ -319,6 +321,33 @@ abstract class AbstractFile implements FileInterface
         return (int)$this->properties['type'];
     }
 
+    /**
+     * Useful to find out if this file can be previewed or resized as image.
+     * @return bool true if File has an image-extension according to $GLOBALS['TYPO3_CONF_VARS']['GFX']['imagefile_ext']
+     */
+    public function isImage(): bool
+    {
+        return GeneralUtility::inList(strtolower($GLOBALS['TYPO3_CONF_VARS']['GFX']['imagefile_ext'] ?? ''), $this->getExtension()) && $this->getSize() > 0;
+    }
+
+    /**
+     * Useful to find out if this file has a file extension based on any of the registered media extensions
+     * @return bool true if File is a media-extension according to $GLOBALS['TYPO3_CONF_VARS']['SYS']['mediafile_ext']
+     */
+    public function isMediaFile(): bool
+    {
+        return GeneralUtility::inList(strtolower($GLOBALS['TYPO3_CONF_VARS']['SYS']['mediafile_ext'] ?? ''), $this->getExtension()) && $this->getSize() > 0;
+    }
+
+    /**
+     * Useful to find out if this file can be edited.
+     *
+     * @return bool true if File is a text-based file extension according to $GLOBALS['TYPO3_CONF_VARS']['SYS']['textfile_ext']
+     */
+    public function isTextFile(): bool
+    {
+        return GeneralUtility::inList(strtolower($GLOBALS['TYPO3_CONF_VARS']['SYS']['textfile_ext'] ?? ''), $this->getExtension());
+    }
     /******************
      * CONTENTS RELATED
      ******************/
@@ -354,7 +383,7 @@ abstract class AbstractFile implements FileInterface
     }
 
     /****************************************
-     * STORAGE AND MANAGEMENT RELATED METHDOS
+     * STORAGE AND MANAGEMENT RELATED METHODS
      ****************************************/
 
     /**

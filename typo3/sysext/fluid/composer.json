@@ -9,19 +9,28 @@
 		"email": "typo3cms@typo3.org",
 		"role": "Developer"
 	}],
+	"support": {
+		"chat": "https://typo3.org/help",
+		"docs": "https://docs.typo3.org",
+		"issues": "https://forge.typo3.org",
+		"source": "https://github.com/TYPO3/TYPO3.CMS"
+	},
 	"config": {
 		"sort-packages": true
 	},
 	"require": {
 		"symfony/dependency-injection": "^4.4 || ^5.0",
-		"typo3/cms-core": "10.2.*@dev",
-		"typo3/cms-extbase": "10.2.*@dev",
-		"typo3fluid/fluid": "^2.6.8"
+		"typo3/cms-core": "10.4.*@dev",
+		"typo3/cms-extbase": "10.4.*@dev",
+		"typo3fluid/fluid": "^2.6.10 || ^3"
 	},
 	"conflict": {
 		"typo3/cms": "*"
 	},
 	"extra": {
+		"branch-alias": {
+			"dev-master": "10.4.x-dev"
+		},
 		"typo3/cms": {
 			"Package": {
 				"protected": true,
@@ -39,6 +48,9 @@
 	"autoload-dev": {
 		"psr-4": {
 			"TYPO3\\CMS\\Fluid\\Tests\\": "Tests/"
-		}
+		},
+		"classmap": [
+			"Tests/Functional/Fixtures/Extensions/fluid_test/Classes/"
+		]
 	}
 }

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\ViewHelpers\Format;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Fluid\ViewHelpers\Format;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Fluid\ViewHelpers\Format;
 
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
@@ -85,6 +86,6 @@ class NumberViewHelper extends AbstractViewHelper
         $thousandsSeparator = $arguments['thousandsSeparator'];
 
         $stringToFormat = $renderChildrenClosure();
-        return number_format($stringToFormat, $decimals, $decimalSeparator, $thousandsSeparator);
+        return number_format((float)$stringToFormat, $decimals, $decimalSeparator, $thousandsSeparator);
     }
 }

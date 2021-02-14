@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\View;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,7 +13,11 @@ namespace TYPO3\CMS\Fluid\View;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Fluid\View;
+
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Extbase\Mvc\Controller\ControllerContext;
+use TYPO3\CMS\Extbase\Mvc\View\ViewInterface;
 use TYPO3\CMS\Extbase\Object\ObjectManager;
 use TYPO3\CMS\Fluid\Core\Rendering\RenderingContext;
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
@@ -26,7 +29,7 @@ use TYPO3Fluid\Fluid\View\TemplateView;
  *
  * Contains the fundamental methods which any Fluid based template view needs.
  */
-abstract class AbstractTemplateView extends TemplateView implements \TYPO3\CMS\Extbase\Mvc\View\ViewInterface
+abstract class AbstractTemplateView extends TemplateView implements ViewInterface
 {
     /**
      * @var \TYPO3\CMS\Extbase\Mvc\Controller\ControllerContext
@@ -61,7 +64,7 @@ abstract class AbstractTemplateView extends TemplateView implements \TYPO3\CMS\E
      * @param \TYPO3\CMS\Extbase\Mvc\Controller\ControllerContext $controllerContext Controller context which is available inside the view
      * @return bool TRUE if the view has something useful to display, otherwise FALSE
      */
-    public function canRender(\TYPO3\CMS\Extbase\Mvc\Controller\ControllerContext $controllerContext)
+    public function canRender(ControllerContext $controllerContext)
     {
         return true;
     }
@@ -72,7 +75,7 @@ abstract class AbstractTemplateView extends TemplateView implements \TYPO3\CMS\E
      * @param \TYPO3\CMS\Extbase\Mvc\Controller\ControllerContext $controllerContext
      * @internal
      */
-    public function setControllerContext(\TYPO3\CMS\Extbase\Mvc\Controller\ControllerContext $controllerContext)
+    public function setControllerContext(ControllerContext $controllerContext)
     {
         $request = $controllerContext->getRequest();
         $this->controllerContext = $controllerContext;

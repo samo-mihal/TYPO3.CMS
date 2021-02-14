@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Frontend\ContentObject\Menu;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Frontend\ContentObject\Menu;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Frontend\ContentObject\Menu;
 
 use TYPO3\CMS\Core\Collection\AbstractRecordCollection;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -138,7 +139,7 @@ class CategoryMenuUtility
      *
      * @param array $pageA Record for first page to be compared
      * @param array $pageB Record for second page to be compared
-     * @return array -1 if first argument is smaller than second argument, 1 if first is greater than second and 0 if both are equal
+     * @return int -1 if first argument is smaller than second argument, 1 if first is greater than second and 0 if both are equal
      */
     public static function sortPagesUtility($pageA, $pageB)
     {

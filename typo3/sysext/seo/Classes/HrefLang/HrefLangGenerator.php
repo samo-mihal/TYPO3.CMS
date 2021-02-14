@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Seo\HrefLang;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,14 +15,20 @@ namespace TYPO3\CMS\Seo\HrefLang;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Seo\HrefLang;
+
 use Psr\Http\Message\ServerRequestInterface;
+use TYPO3\CMS\Core\Context\Context;
+use TYPO3\CMS\Core\Context\LanguageAspectFactory;
+use TYPO3\CMS\Core\Domain\Repository\PageRepository;
 use TYPO3\CMS\Core\Http\Uri;
-use TYPO3\CMS\Core\Site\Entity\Site;
+use TYPO3\CMS\Core\Site\Entity\SiteInterface;
 use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
 use TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController;
 use TYPO3\CMS\Frontend\DataProcessing\LanguageMenuProcessor;
+use TYPO3\CMS\Frontend\Event\ModifyHrefLangTagsEvent;
 
 /**
  * Class to add the hreflang tags to the page
@@ -40,77 +45,60 @@ class HrefLangGenerator
     public $cObj;
 
     /**
-     * @var TypoScriptFrontendController
+     * @var LanguageMenuProcessor
      */
-    protected $typoScriptFrontendController;
+    protected $languageMenuProcessor;
 
-    /**
-     * @var ServerRequestInterface
-     */
-    protected $request;
-
-    /**
-     * HreflangGenerator constructor
-     *
-     * @param ContentObjectRenderer|null $cObj
-     * @param TypoScriptFrontendController|null $typoScriptFrontendController
-     */
-    public function __construct(ContentObjectRenderer $cObj = null, TypoScriptFrontendController $typoScriptFrontendController = null, ServerRequestInterface $request = null)
+    public function __construct(ContentObjectRenderer $cObj, LanguageMenuProcessor $languageMenuProcessor)
     {
-        if ($cObj === null) {
-            $cObj = GeneralUtility::makeInstance(ContentObjectRenderer::class);
-        }
-        if ($typoScriptFrontendController === null) {
-            $typoScriptFrontendController = $this->getTypoScriptFrontendController();
-        }
-        if ($request === null) {
-            $request = $this->getRequest();
-        }
-
         $this->cObj = $cObj;
-        $this->typoScriptFrontendController = $typoScriptFrontendController;
-        $this->request = $request;
+        $this->languageMenuProcessor = $languageMenuProcessor;
     }
 
-    public function generate(): string
+    public function __invoke(ModifyHrefLangTagsEvent $event): void
     {
-        $hreflangs = [];
-        if ((int)$this->typoScriptFrontendController->page['no_index'] === 1) {
-            return '';
+        $hrefLangs = $event->getHrefLangs();
+        if ((int)$this->getTypoScriptFrontendController()->page['no_index'] === 1) {
+            return;
         }
 
-        if ($this->request->getAttribute('site') instanceof Site) {
-            $languageMenu = GeneralUtility::makeInstance(LanguageMenuProcessor::class);
-            $languages = $languageMenu->process($this->cObj, [], [], []);
-            foreach ($languages['languagemenu'] as $language) {
-                if ($language['available'] === 1 && !empty($language['link'])) {
-                    $href = $this->getAbsoluteUrl($language['link']);
-                    $hreflangs[] =
-                        '<link rel="alternate" hreflang="' . htmlspecialchars($language['hreflang']) . '" href="' . htmlspecialchars($href) . '"/>';
+        $languages = $this->languageMenuProcessor->process($this->cObj, [], [], []);
+        /** @var SiteLanguage $siteLanguage */
+        $siteLanguage = $event->getRequest()->getAttribute('language');
+        $pageId = (int)$this->getTypoScriptFrontendController()->id;
+
+        foreach ($languages['languagemenu'] as $language) {
+            if (!empty($language['link']) && $language['hreflang']) {
+                $page = $this->getTranslatedPageRecord($pageId, $language['languageId'], $event->getRequest());
+                if (!empty($page['canonical_link'])) {
+                    // do not set hreflang when canonical is set
+                    continue;
                 }
-            }
 
-            if (count($hreflangs) > 1) {
-                $href = $this->getAbsoluteUrl($languages['languagemenu'][0]['link']);
-                $hreflangs[] =
-                    '<link rel="alternate" hreflang="x-default" href="' . htmlspecialchars($href) . '"/>' . LF;
-
-                $this->getTypoScriptFrontendController()->additionalHeaderData[] = implode(LF, $hreflangs);
+                $href = $this->getAbsoluteUrl($language['link'], $siteLanguage);
+                $hrefLangs[$language['hreflang']] = $href;
             }
         }
 
-        return implode(LF, $hreflangs);
+        if (count($hrefLangs) > 1) {
+            if (array_key_exists($languages['languagemenu'][0]['hreflang'], $hrefLangs)) {
+                $hrefLangs['x-default'] = $hrefLangs[$languages['languagemenu'][0]['hreflang']];
+            }
+        }
+
+        $event->setHrefLangs($hrefLangs);
     }
 
     /**
      * @param string $url
+     * @param SiteLanguage $siteLanguage
      * @return string
      */
-    protected function getAbsoluteUrl(string $url): string
+    protected function getAbsoluteUrl(string $url, SiteLanguage $siteLanguage): string
     {
         $uri = new Uri($url);
         if (empty($uri->getHost())) {
-            $url = $this->getSiteLanguage()->getBase()->withPath($uri->getPath());
+            $url = $siteLanguage->getBase()->withPath($uri->getPath());
 
             if ($uri->getQuery()) {
                 $url = $url->withQuery($uri->getQuery());
@@ -121,14 +109,6 @@ class HrefLangGenerator
     }
 
     /**
-     * @return SiteLanguage
-     */
-    protected function getSiteLanguage(): SiteLanguage
-    {
-        return $this->request->getAttribute('language');
-    }
-
-    /**
      * @return TypoScriptFrontendController
      */
     protected function getTypoScriptFrontendController(): TypoScriptFrontendController
@@ -136,11 +116,23 @@ class HrefLangGenerator
         return $GLOBALS['TSFE'];
     }
 
-    /**
-     * @return ServerRequestInterface
-     */
-    protected function getRequest(): ServerRequestInterface
+    protected function getTranslatedPageRecord(int $pageId, int $languageId, ServerRequestInterface $request): array
     {
-        return $GLOBALS['TYPO3_REQUEST'];
+        $site = $request->getAttribute('site');
+        if (!$site instanceof SiteInterface) {
+            return $this->getTypoScriptFrontendController()->page;
+        }
+
+        $targetSiteLanguage = $site->getLanguageById($languageId);
+        $languageAspect = LanguageAspectFactory::createFromSiteLanguage($targetSiteLanguage);
+
+        $context = clone GeneralUtility::makeInstance(Context::class);
+        $context->setAspect('language', $languageAspect);
+
+        $pageRepository = GeneralUtility::makeInstance(PageRepository::class, $context);
+        if ($languageId > 0) {
+            return $pageRepository->getPageOverlay($pageId, $languageId);
+        }
+        return $pageRepository->getPage($pageId);
     }
 }

@@ -22,3 +22,10 @@
         </div>
     </div>
 </f:section>
+<f:section name="ResetPassword">
+    <div class="forgot-password">
+        <div class="text-right">
+            <f:be.link route="password_forget" parameters="{loginProvider: loginProviderIdentifier}">{f:translate(key: 'login.password_forget')}</f:be.link>
+        </div>
+    </div>
+</f:section>

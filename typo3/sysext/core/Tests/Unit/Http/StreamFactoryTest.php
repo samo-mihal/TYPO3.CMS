@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Unit\Http;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,9 +15,12 @@ namespace TYPO3\CMS\Core\Tests\Unit\Http;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\Http;
+
 use Psr\Http\Message\StreamFactoryInterface;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Http\StreamFactory;
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -91,7 +94,7 @@ class StreamFactoryTest extends UnitTestCase
      */
     public function testCreateStreamFromFile()
     {
-        $fileName = Environment::getVarPath() . '/tests/' . $this->getUniqueId('test_');
+        $fileName = Environment::getVarPath() . '/tests/' . StringUtility::getUniqueId('test_');
         file_put_contents($fileName, 'Foo');
 
         $factory = new StreamFactory();
@@ -104,7 +107,7 @@ class StreamFactoryTest extends UnitTestCase
      */
     public function testCreateStreamFromFileWithMode()
     {
-        $fileName = Environment::getVarPath() . '/tests/' . $this->getUniqueId('test_');
+        $fileName = Environment::getVarPath() . '/tests/' . StringUtility::getUniqueId('test_');
 
         $factory = new StreamFactory();
         $stream = $factory->createStreamFromFile($fileName, 'w');
@@ -119,7 +122,7 @@ class StreamFactoryTest extends UnitTestCase
      */
     public function testCreateStreamFromFileWithInvalidMode()
     {
-        $fileName = Environment::getVarPath() . '/tests/' . $this->getUniqueId('test_');
+        $fileName = Environment::getVarPath() . '/tests/' . StringUtility::getUniqueId('test_');
         touch($fileName);
 
         $this->expectException(\InvalidArgumentException::class);
@@ -133,7 +136,7 @@ class StreamFactoryTest extends UnitTestCase
      */
     public function testCreateStreamFromFileWithMissingFile()
     {
-        $unavailableFileName = Environment::getVarPath() . '/tests/' . $this->getUniqueId('test_');
+        $unavailableFileName = Environment::getVarPath() . '/tests/' . StringUtility::getUniqueId('test_');
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionCode(1566823435);
         $factory = new StreamFactory();
@@ -145,7 +148,7 @@ class StreamFactoryTest extends UnitTestCase
      */
     public function testCreateStreamFromResource()
     {
-        $fileName = Environment::getVarPath() . '/tests/' . $this->getUniqueId('test_');
+        $fileName = Environment::getVarPath() . '/tests/' . StringUtility::getUniqueId('test_');
         touch($fileName);
         file_put_contents($fileName, 'Foo');
 

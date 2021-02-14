@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Utility;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Utility;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Utility;
 
 /**
  * Utility class for the File Abstraction Layer (aka subpackage Resource in EXT:core)
@@ -47,8 +48,8 @@ class ResourceUtility
                 $result = -1;
             } else {
                 // both elements are directories => we have to recursively sort here
-                list($pathPartA, $elementA) = explode('/', $elementA, 2);
-                list($pathPartB, $elementB) = explode('/', $elementB, 2);
+                [$pathPartA, $elementA] = explode('/', $elementA, 2);
+                [$pathPartB, $elementB] = explode('/', $elementB, 2);
 
                 if ($pathPartA === $pathPartB) {
                     // same directory => sort by subpaths

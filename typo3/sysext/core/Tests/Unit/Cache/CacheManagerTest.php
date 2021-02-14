@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Unit\Cache;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,14 @@ namespace TYPO3\CMS\Core\Tests\Unit\Cache;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\Cache;
+
 use Prophecy\Argument;
 use TYPO3\CMS\Core\Cache\CacheManager;
+use TYPO3\CMS\Core\Cache\Exception\DuplicateIdentifierException;
 use TYPO3\CMS\Core\Cache\Exception\InvalidBackendException;
 use TYPO3\CMS\Core\Cache\Exception\InvalidCacheException;
+use TYPO3\CMS\Core\Cache\Exception\NoSuchCacheException;
 use TYPO3\CMS\Core\Cache\Exception\NoSuchCacheGroupException;
 use TYPO3\CMS\Core\Cache\Frontend\AbstractFrontend;
 use TYPO3\CMS\Core\Tests\Unit\Cache\Fixtures\BackendConfigurationOptionFixture;
@@ -29,6 +32,7 @@ use TYPO3\CMS\Core\Tests\Unit\Cache\Fixtures\FrontendDefaultFixture;
 use TYPO3\CMS\Core\Tests\Unit\Cache\Fixtures\FrontendFixture;
 use TYPO3\CMS\Core\Tests\Unit\Cache\Fixtures\FrontendIdentifierFixture;
 use TYPO3\CMS\Core\Tests\Unit\Cache\Fixtures\FrontendInitializeObjectFixture;
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -41,7 +45,7 @@ class CacheManagerTest extends UnitTestCase
      */
     public function managerThrowsExceptionOnCacheRegistrationWithAlreadyExistingIdentifier()
     {
-        $this->expectException(\TYPO3\CMS\Core\Cache\Exception\DuplicateIdentifierException::class);
+        $this->expectException(DuplicateIdentifierException::class);
         $this->expectExceptionCode(1203698223);
 
         $manager = new CacheManager();
@@ -85,7 +89,7 @@ class CacheManagerTest extends UnitTestCase
      */
     public function getCacheThrowsExceptionForNonExistingIdentifier()
     {
-        $this->expectException(\TYPO3\CMS\Core\Cache\Exception\NoSuchCacheException::class);
+        $this->expectException(NoSuchCacheException::class);
         $this->expectExceptionCode(1203699034);
 
         $manager = new CacheManager();
@@ -317,7 +321,7 @@ class CacheManagerTest extends UnitTestCase
     {
         /** @var \PHPUnit\Framework\MockObject\MockObject|\TYPO3\TestingFramework\Core\AccessibleObjectInterface|CacheManager $manager */
         $manager = $this->getAccessibleMock(CacheManager::class, ['dummy'], [], '', false);
-        $cacheIdentifier = $this->getUniqueId('Test');
+        $cacheIdentifier = StringUtility::getUniqueId('Test');
         $configuration = [
             $cacheIdentifier => [
                 'backend' => BackendFixture::class,
@@ -343,7 +347,7 @@ class CacheManagerTest extends UnitTestCase
     {
         /** @var \PHPUnit\Framework\MockObject\MockObject|\TYPO3\TestingFramework\Core\AccessibleObjectInterface|CacheManager $manager */
         $manager = $this->getAccessibleMock(CacheManager::class, ['dummy'], [], '', false);
-        $cacheIdentifier = $this->getUniqueId('Test');
+        $cacheIdentifier = StringUtility::getUniqueId('Test');
         $configuration = [
             $cacheIdentifier => [
                 'frontend' => FrontendFixture::class,
@@ -491,5 +495,90 @@ class CacheManagerTest extends UnitTestCase
         ];
         $manager->setCacheConfigurations($configuration);
         $manager->flushCachesInGroupByTags('group2', $tags);
+    }
+
+    /**
+     * @test
+     */
+    public function setCacheConfigurationsMergesLegacyConfigCorrectly()
+    {
+        $rawConfiguration = [
+            'pages' => [
+                'frontend' => \TYPO3\CMS\Core\Cache\Frontend\VariableFrontend::class,
+                'backend' => \TYPO3\CMS\Core\Cache\Backend\Typo3DatabaseBackend::class,
+                'options' => [
+                    'compression' => true,
+                ],
+                'groups' => ['pages'],
+            ],
+            'cache_pages' => [
+                'backend' => \TYPO3\CMS\Core\Cache\Backend\RedisBackend::class,
+                'options' => [
+                    'hostname' => 'redis',
+                ],
+                'groups' => ['pages'],
+            ],
+        ];
+        $expectedConfiguration = [
+            'pages' => [
+                'frontend' => \TYPO3\CMS\Core\Cache\Frontend\VariableFrontend::class,
+                'backend' => \TYPO3\CMS\Core\Cache\Backend\RedisBackend::class,
+                'options' => [
+                    'compression' => true,
+                    'hostname' => 'redis',
+                ],
+                'groups' => ['pages']
+            ],
+        ];
+        $this->expectDeprecation();
+
+        /** @var \PHPUnit\Framework\MockObject\MockObject|\TYPO3\TestingFramework\Core\AccessibleObjectInterface|CacheManager $manager */
+        $manager = $this->getAccessibleMock(CacheManager::class, ['dummy']);
+        $manager->setCacheConfigurations($rawConfiguration);
+        self::assertEquals($expectedConfiguration, $manager->_get('cacheConfigurations'));
+    }
+
+    /**
+     * @test
+     */
+    public function setCacheConfigurationsThrowsExceptionIfConfiguredCacheDoesNotHaveAnIdentifier()
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionCode(1596980032);
+
+        /** @var \PHPUnit\Framework\MockObject\MockObject|\TYPO3\TestingFramework\Core\AccessibleObjectInterface|CacheManager $manager */
+        $manager = $this->getAccessibleMock(CacheManager::class, ['dummy']);
+        $manager->setCacheConfigurations([
+            '' => [
+                'frontend' => \TYPO3\CMS\Core\Cache\Frontend\VariableFrontend::class,
+                'backend' => \TYPO3\CMS\Core\Cache\Backend\Typo3DatabaseBackend::class,
+                'options' => [
+                    'compression' => true,
+                ],
+                'groups' => ['pages'],
+            ]
+        ]);
+    }
+
+    /**
+     * @test
+     */
+    public function setCacheConfigurationsThrowsExceptionIfMigratedConfiguredCacheDoesNotHaveAnIdentifier()
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionCode(1596980033);
+
+        /** @var \PHPUnit\Framework\MockObject\MockObject|\TYPO3\TestingFramework\Core\AccessibleObjectInterface|CacheManager $manager */
+        $manager = $this->getAccessibleMock(CacheManager::class, ['dummy']);
+        $manager->setCacheConfigurations([
+            'cache_' => [
+                'frontend' => \TYPO3\CMS\Core\Cache\Frontend\VariableFrontend::class,
+                'backend' => \TYPO3\CMS\Core\Cache\Backend\Typo3DatabaseBackend::class,
+                'options' => [
+                    'compression' => true,
+                ],
+                'groups' => ['pages'],
+            ]
+        ]);
     }
 }

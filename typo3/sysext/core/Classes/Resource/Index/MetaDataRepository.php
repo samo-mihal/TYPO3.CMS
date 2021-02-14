@@ -1,7 +1,5 @@
 <?php
 
-namespace TYPO3\CMS\Core\Resource\Index;
-
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -15,6 +13,8 @@ namespace TYPO3\CMS\Core\Resource\Index;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Resource\Index;
+
 use Doctrine\DBAL\Platforms\SQLServerPlatform;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\Database\Connection;
@@ -27,7 +27,7 @@ use TYPO3\CMS\Core\Resource\Event\EnrichFileMetaDataEvent;
 use TYPO3\CMS\Core\Resource\Exception\InvalidUidException;
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\SingletonInterface;
-use TYPO3\CMS\Core\Type\File as FileType;
+use TYPO3\CMS\Core\Type\File\ImageInfo;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -74,11 +74,13 @@ class MetaDataRepository implements SingletonInterface
         // created and inserted into the database. If this is the case
         // we have to take care about correct meta information for width and
         // height in case of an image.
-        if (!empty($record['newlyCreated'])) {
+        // This logic can be transferred into a custom PSR-14 event listener in the future by just using
+        // the AfterMetaDataCreated event.
+        if (!empty($record['crdate']) && (int)$record['crdate'] === $GLOBALS['EXEC_TIME']) {
             if ($file->getType() === File::FILETYPE_IMAGE && $file->getStorage()->getDriverType() === 'Local') {
                 $fileNameAndPath = $file->getForLocalProcessing(false);
 
-                $imageInfo = GeneralUtility::makeInstance(FileType\ImageInfo::class, $fileNameAndPath);
+                $imageInfo = GeneralUtility::makeInstance(ImageInfo::class, $fileNameAndPath);
 
                 $additionalMetaInformation = [
                     'width' => $imageInfo->getWidth(),
@@ -157,7 +159,6 @@ class MetaDataRepository implements SingletonInterface
 
         $record = $emptyRecord;
         $record['uid'] = $connection->lastInsertId($this->tableName);
-        $record['newlyCreated'] = true;
 
         return $this->eventDispatcher->dispatch(new AfterFileMetaDataCreatedEvent($fileUid, (int)$record['uid'], $record))->getRecord();
     }

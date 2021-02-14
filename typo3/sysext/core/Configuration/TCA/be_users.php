@@ -1,4 +1,5 @@
 <?php
+
 return [
     'ctrl' => [
         'label' => 'username',
@@ -26,9 +27,6 @@ return [
         'useColumnsForDefaultValues' => 'usergroup,lockToDomain,options,db_mountpoints,file_mountpoints,file_permissions,userMods',
         'versioningWS_alwaysAllowLiveEdit' => true,
         'searchFields' => 'username,email,realName'
-    ],
-    'interface' => [
-        'showRecordFieldList' => 'username,description,usergroup,db_mountpoints,file_mountpoints,admin,options,file_permissions,userMods,lockToDomain,realName,email,disable,starttime,endtime,lastlogin'
     ],
     'columns' => [
         'username' => [
@@ -190,6 +188,7 @@ return [
         ],
         'disableIPlock' => [
             'exclude' => 1,
+            'displayCond' => 'USER:TYPO3\CMS\Core\Hooks\TcaDisplayConditions->isIPLockEnabled:backend',
             'label' => 'LLL:EXT:core/Resources/Private/Language/locallang_tca.xlf:be_users.IPlockState',
             'config' => [
                 'type' => 'check',
@@ -268,6 +267,7 @@ return [
         ],
         'workspace_perms' => [
             'exclude' => 1,
+            'displayCond' => 'USER:TYPO3\CMS\Core\Hooks\TcaDisplayConditions->isExtensionInstalled:workspaces',
             'label' => 'LLL:EXT:core/Resources/Private/Language/locallang_tca.xlf:workspace_perms',
             'config' => [
                 'type' => 'check',

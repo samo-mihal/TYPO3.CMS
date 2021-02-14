@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Form\Container;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Form\Container;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Form\Container;
 
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Imaging\Icon;
@@ -129,6 +130,7 @@ class FlexFormSectionContainer extends AbstractContainer
         $html[] =                 '</a>';
         $html[] =             '</div>';
         $html[] =             '<div';
+        $html[] =                 'id="flexform-container-' . htmlspecialchars($flexFormFieldName) . '"';
         $html[] =                 'class="panel-group panel-hover t3-form-field-container-flexsection t3-flex-container"';
         $html[] =                 'data-t3-flex-allow-restructure="' . ($userHasAccessToDefaultLanguage ? '1' : '0') . '"';
         $html[] =             '>';

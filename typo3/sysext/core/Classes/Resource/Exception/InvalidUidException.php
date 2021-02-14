@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Resource\Exception;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,9 +13,13 @@ namespace TYPO3\CMS\Core\Resource\Exception;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Resource\Exception;
+
+use TYPO3\CMS\Core\Resource\Exception;
+
 /**
  * Thrown if an invalid uid is handled.
  */
-class InvalidUidException extends \TYPO3\CMS\Core\Resource\Exception
+class InvalidUidException extends Exception
 {
 }

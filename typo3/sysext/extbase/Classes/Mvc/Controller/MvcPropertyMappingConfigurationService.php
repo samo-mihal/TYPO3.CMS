@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Mvc\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,17 @@ namespace TYPO3\CMS\Extbase\Mvc\Controller;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Extbase\Mvc\Controller;
+
+use TYPO3\CMS\Core\Error\Http\BadRequestException;
+use TYPO3\CMS\Core\SingletonInterface;
+use TYPO3\CMS\Extbase\Mvc\Request;
+use TYPO3\CMS\Extbase\Property\PropertyMappingConfiguration;
+use TYPO3\CMS\Extbase\Property\TypeConverter\PersistentObjectConverter;
+use TYPO3\CMS\Extbase\Security\Cryptography\HashService;
+use TYPO3\CMS\Extbase\Security\Exception\InvalidArgumentForHashGenerationException;
+use TYPO3\CMS\Extbase\Security\Exception\InvalidHashException;
 
 /**
  * This is a Service which can generate a request hash and check whether the currently given arguments
@@ -32,7 +42,7 @@ namespace TYPO3\CMS\Extbase\Mvc\Controller;
  *
  * @internal only to be used within Extbase, not part of TYPO3 Core API.
  */
-class MvcPropertyMappingConfigurationService implements \TYPO3\CMS\Core\SingletonInterface
+class MvcPropertyMappingConfigurationService implements SingletonInterface
 {
     /**
      * The hash service class to use
@@ -44,7 +54,7 @@ class MvcPropertyMappingConfigurationService implements \TYPO3\CMS\Core\Singleto
     /**
      * @param \TYPO3\CMS\Extbase\Security\Cryptography\HashService $hashService
      */
-    public function injectHashService(\TYPO3\CMS\Extbase\Security\Cryptography\HashService $hashService)
+    public function injectHashService(HashService $hashService)
     {
         $this->hashService = $hashService;
     }
@@ -69,11 +79,11 @@ class MvcPropertyMappingConfigurationService implements \TYPO3\CMS\Core\Singleto
                 $formFieldPart = $formFieldParts[$i];
                 $formFieldPart = rtrim($formFieldPart, ']');
                 if (!is_array($currentPosition)) {
-                    throw new \TYPO3\CMS\Extbase\Security\Exception\InvalidArgumentForHashGenerationException('The form field "' . $formField . '" is declared as array, but it collides with a previous form field of the same name which declared the field as string. This is an inconsistency you need to fix inside your Fluid form. (String overridden by Array)', 1255072196);
+                    throw new InvalidArgumentForHashGenerationException('The form field "' . $formField . '" is declared as array, but it collides with a previous form field of the same name which declared the field as string. This is an inconsistency you need to fix inside your Fluid form. (String overridden by Array)', 1255072196);
                 }
                 if ($i === $formFieldPartsCount - 1) {
                     if (isset($currentPosition[$formFieldPart]) && is_array($currentPosition[$formFieldPart])) {
-                        throw new \TYPO3\CMS\Extbase\Security\Exception\InvalidArgumentForHashGenerationException('The form field "' . $formField . '" is declared as string, but it collides with a previous form field of the same name which declared the field as array. This is an inconsistency you need to fix inside your Fluid form. (Array overridden by String)', 1255072587);
+                        throw new InvalidArgumentForHashGenerationException('The form field "' . $formField . '" is declared as string, but it collides with a previous form field of the same name which declared the field as array. This is an inconsistency you need to fix inside your Fluid form. (Array overridden by String)', 1255072587);
                     }
                     // Last iteration - add a string
                     if ($formFieldPart === '') {
@@ -83,7 +93,7 @@ class MvcPropertyMappingConfigurationService implements \TYPO3\CMS\Core\Singleto
                     }
                 } else {
                     if ($formFieldPart === '') {
-                        throw new \TYPO3\CMS\Extbase\Security\Exception\InvalidArgumentForHashGenerationException('The form field "' . $formField . '" is invalid. Reason: "[]" used not as last argument, but somewhere in the middle (like foo[][bar]).', 1255072832);
+                        throw new InvalidArgumentForHashGenerationException('The form field "' . $formField . '" is invalid. Reason: "[]" used not as last argument, but somewhere in the middle (like foo[][bar]).', 1255072832);
                     }
                     if (!isset($currentPosition[$formFieldPart])) {
                         $currentPosition[$formFieldPart] = [];
@@ -117,15 +127,20 @@ class MvcPropertyMappingConfigurationService implements \TYPO3\CMS\Core\Singleto
      *
      * @param \TYPO3\CMS\Extbase\Mvc\Request $request
      * @param \TYPO3\CMS\Extbase\Mvc\Controller\Arguments $controllerArguments
+     * @throws BadRequestException
      */
-    public function initializePropertyMappingConfigurationFromRequest(\TYPO3\CMS\Extbase\Mvc\Request $request, \TYPO3\CMS\Extbase\Mvc\Controller\Arguments $controllerArguments)
+    public function initializePropertyMappingConfigurationFromRequest(Request $request, Arguments $controllerArguments)
     {
         $trustedPropertiesToken = $request->getInternalArgument('__trustedProperties');
         if (!is_string($trustedPropertiesToken)) {
             return;
         }
 
-        $serializedTrustedProperties = $this->hashService->validateAndStripHmac($trustedPropertiesToken);
+        try {
+            $serializedTrustedProperties = $this->hashService->validateAndStripHmac($trustedPropertiesToken);
+        } catch (InvalidHashException | InvalidArgumentForHashGenerationException $e) {
+            throw new BadRequestException('The HMAC of the form could not be validated.', 1581862822);
+        }
         $trustedProperties = json_decode($serializedTrustedProperties, true);
         foreach ($trustedProperties as $propertyName => $propertyConfiguration) {
             if (!$controllerArguments->hasArgument($propertyName)) {
@@ -146,17 +161,17 @@ class MvcPropertyMappingConfigurationService implements \TYPO3\CMS\Core\Singleto
      * @param array $propertyConfiguration
      * @param \TYPO3\CMS\Extbase\Property\PropertyMappingConfiguration $propertyMappingConfiguration
      */
-    protected function modifyPropertyMappingConfiguration($propertyConfiguration, \TYPO3\CMS\Extbase\Property\PropertyMappingConfiguration $propertyMappingConfiguration)
+    protected function modifyPropertyMappingConfiguration($propertyConfiguration, PropertyMappingConfiguration $propertyMappingConfiguration)
     {
         if (!is_array($propertyConfiguration)) {
             return;
         }
 
         if (isset($propertyConfiguration['__identity'])) {
-            $propertyMappingConfiguration->setTypeConverterOption(\TYPO3\CMS\Extbase\Property\TypeConverter\PersistentObjectConverter::class, \TYPO3\CMS\Extbase\Property\TypeConverter\PersistentObjectConverter::CONFIGURATION_MODIFICATION_ALLOWED, true);
+            $propertyMappingConfiguration->setTypeConverterOption(PersistentObjectConverter::class, PersistentObjectConverter::CONFIGURATION_MODIFICATION_ALLOWED, true);
             unset($propertyConfiguration['__identity']);
         } else {
-            $propertyMappingConfiguration->setTypeConverterOption(\TYPO3\CMS\Extbase\Property\TypeConverter\PersistentObjectConverter::class, \TYPO3\CMS\Extbase\Property\TypeConverter\PersistentObjectConverter::CONFIGURATION_CREATION_ALLOWED, true);
+            $propertyMappingConfiguration->setTypeConverterOption(PersistentObjectConverter::class, PersistentObjectConverter::CONFIGURATION_CREATION_ALLOWED, true);
         }
 
         foreach ($propertyConfiguration as $innerKey => $innerValue) {

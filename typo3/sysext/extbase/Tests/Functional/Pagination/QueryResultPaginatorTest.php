@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Extbase\Tests\Functional\Pagination;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Extbase\Tests\Functional\Pagination;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Extbase\Tests\Functional\Pagination;
 
 use ExtbaseTeam\BlogExample\Domain\Repository\PostRepository;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -142,7 +143,23 @@ class QueryResultPaginatorTest extends FunctionalTestCase
     /**
      * @test
      */
-    public function paginatorProperlyCalulatesOnlyOnePage()
+    public function paginatorSetsCurrentPageToLastPageIfCurrentPageExceedsMaximum(): void
+    {
+        $paginator = new QueryResultPaginator(
+            $this->postRepository->findAll(),
+            3,
+            10
+        );
+
+        self::assertEquals(2, $paginator->getCurrentPageNumber());
+        self::assertEquals(2, $paginator->getNumberOfPages());
+        self::assertCount(4, $paginator->getPaginatedItems());
+    }
+
+    /**
+     * @test
+     */
+    public function paginatorProperlyCalculatesOnlyOnePage()
     {
         $paginator = new QueryResultPaginator(
             $this->postRepository->findAll(),

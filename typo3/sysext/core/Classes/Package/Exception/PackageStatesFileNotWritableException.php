@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Package\Exception;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,9 +13,13 @@ namespace TYPO3\CMS\Core\Package\Exception;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Package\Exception;
+
+use TYPO3\CMS\Core\Package\Exception;
+
 /**
  * "Package states file not writable" Exception
  */
-class PackageStatesFileNotWritableException extends \TYPO3\CMS\Core\Package\Exception
+class PackageStatesFileNotWritableException extends Exception
 {
 }

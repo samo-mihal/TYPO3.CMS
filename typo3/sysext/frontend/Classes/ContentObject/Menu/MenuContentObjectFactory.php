@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Frontend\ContentObject\Menu;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,8 +13,11 @@ namespace TYPO3\CMS\Frontend\ContentObject\Menu;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Frontend\ContentObject\Menu;
+
 use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Frontend\ContentObject\Menu\Exception\NoSuchMenuTypeException;
 
 /**
  * Factory for menu content objects. Allows overriding the default
@@ -48,7 +50,7 @@ class MenuContentObjectFactory implements SingletonInterface
             /** @var AbstractMenuContentObject $object */
             $object = GeneralUtility::makeInstance($this->menuTypeToClassMapping[$upperCasedClassName]);
         } else {
-            throw new Exception\NoSuchMenuTypeException(
+            throw new NoSuchMenuTypeException(
                 'Menu type ' . (string)$type . ' has no implementing class.',
                 1363278130
             );

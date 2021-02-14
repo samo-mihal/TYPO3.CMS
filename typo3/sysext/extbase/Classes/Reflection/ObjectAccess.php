@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Extbase\Reflection;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,12 +15,15 @@ namespace TYPO3\CMS\Extbase\Reflection;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Reflection;
+
 use Symfony\Component\PropertyAccess\PropertyAccess;
 use Symfony\Component\PropertyAccess\PropertyAccessor;
 use Symfony\Component\PropertyAccess\PropertyPath;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\CMS\Extbase\Persistence\ObjectStorage;
+use TYPO3\CMS\Extbase\Reflection\Exception\PropertyNotAccessibleException;
 
 /**
  * Provides methods to call appropriate getter/setter on an object given the
@@ -141,7 +143,7 @@ class ObjectAccess
             foreach (new PropertyPath($propertyPath) as $pathSegment) {
                 $subject = self::getPropertyInternal($subject, $pathSegment);
             }
-        } catch (Exception\PropertyNotAccessibleException $error) {
+        } catch (PropertyNotAccessibleException $error) {
             return null;
         }
         return $subject;
@@ -158,7 +160,7 @@ class ObjectAccess
      * on it without checking if it existed.
      * - else, return FALSE
      *
-     * @param mixed &$subject The target object or array
+     * @param mixed $subject The target object or array
      * @param string $propertyName Name of the property to set
      * @param mixed $propertyValue Value of the property
      * @param bool $forceDirectAccess directly access property using reflection(!)
@@ -409,11 +411,11 @@ class ObjectAccess
         $propertyName = (string)$propertyPath;
 
         if (!$forceDirectAccess) {
-            throw new Exception\PropertyNotAccessibleException('The property "' . $propertyName . '" on the subject does not exist.', 1476109666);
+            throw new PropertyNotAccessibleException('The property "' . $propertyName . '" on the subject does not exist.', 1476109666);
         }
 
         if (!property_exists($subject, $propertyName)) {
-            throw new Exception\PropertyNotAccessibleException('The property "' . $propertyName . '" on the subject does not exist.', 1302855001);
+            throw new PropertyNotAccessibleException('The property "' . $propertyName . '" on the subject does not exist.', 1302855001);
         }
 
         $propertyReflection = new \ReflectionProperty($subject, $propertyName);

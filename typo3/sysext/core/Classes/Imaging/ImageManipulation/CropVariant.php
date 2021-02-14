@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Imaging\ImageManipulation;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Imaging\ImageManipulation;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Imaging\ImageManipulation;
 
 use TYPO3\CMS\Core\Resource\FileInterface;
 
@@ -119,6 +121,7 @@ class CropVariant
      */
     public function asArray(): array
     {
+        $coverAreasAsArray = null;
         $allowedAspectRatiosAsArray = [];
         foreach ($this->allowedAspectRatios as $id => $allowedAspectRatio) {
             $allowedAspectRatiosAsArray[$id] = $allowedAspectRatio->asArray();
@@ -181,7 +184,7 @@ class CropVariant
     }
 
     /**
-     * @param Ratio[] $ratios
+     * @param Ratio ...$ratios
      * @throws InvalidConfigurationException
      */
     protected function setAllowedAspectRatios(Ratio ...$ratios)
@@ -205,7 +208,7 @@ class CropVariant
     }
 
     /**
-     * @param Area[] $areas
+     * @param Area ...$areas
      * @throws InvalidConfigurationException
      */
     protected function setCoverAreas(Area ...$areas)

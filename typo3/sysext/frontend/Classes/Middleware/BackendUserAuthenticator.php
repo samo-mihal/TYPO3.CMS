@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Frontend\Middleware;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,17 +15,16 @@ namespace TYPO3\CMS\Frontend\Middleware;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Frontend\Middleware;
+
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use TYPO3\CMS\Backend\FrontendBackendUserAuthentication;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
-use TYPO3\CMS\Core\Context\Context;
-use TYPO3\CMS\Core\Context\UserAspect;
-use TYPO3\CMS\Core\Context\WorkspaceAspect;
 use TYPO3\CMS\Core\Core\Bootstrap;
 use TYPO3\CMS\Core\Http\NormalizedParams;
+use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -37,18 +35,8 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  * page due to rights management. As this can only happen once the page ID is resolved, this will happen
  * after the routing middleware.
  */
-class BackendUserAuthenticator implements MiddlewareInterface
+class BackendUserAuthenticator extends \TYPO3\CMS\Core\Middleware\BackendUserAuthenticator
 {
-    /**
-     * @var Context
-     */
-    protected $context;
-
-    public function __construct(Context $context)
-    {
-        $this->context = $context;
-    }
-
     /**
      * Creates a backend user authentication object, tries to authenticate a user
      *
@@ -70,13 +58,18 @@ class BackendUserAuthenticator implements MiddlewareInterface
         // like $GLOBALS['LANG'] for labels in the language of the BE User, the router, and ext_tables.php for all modules
         // So things like Frontend Editing and Admin Panel can use this for generating links to the TYPO3 Backend.
         if ($GLOBALS['BE_USER'] instanceof FrontendBackendUserAuthentication) {
-            Bootstrap::initializeLanguageObject();
-            Bootstrap::initializeBackendRouter();
+            $GLOBALS['LANG'] = LanguageService::createFromUserPreferences($GLOBALS['BE_USER']);
             Bootstrap::loadExtTables();
             $this->setBackendUserAspect($GLOBALS['BE_USER']);
         }
 
-        return $handler->handle($request);
+        $response = $handler->handle($request);
+
+        // If, when building the response, the user is still available, then ensure that the headers are sent properly
+        if ($this->context->getAspect('backend.user')->isLoggedIn()) {
+            return $this->applyHeadersToResponse($response);
+        }
+        return $response;
     }
 
     /**
@@ -93,11 +86,13 @@ class BackendUserAuthenticator implements MiddlewareInterface
         $backendUserObject->start();
         $backendUserObject->unpack_uc();
         if (!empty($backendUserObject->user['uid'])) {
+            $this->setBackendUserAspect($backendUserObject, (int)$backendUserObject->user['workspace_id']);
             $backendUserObject->fetchGroupData();
         }
         // Unset the user initialization if any setting / restriction applies
         if (!$this->isAuthenticated($backendUserObject, $request->getAttribute('normalizedParams'))) {
             $backendUserObject = null;
+            $this->setBackendUserAspect(null);
         }
         return $backendUserObject;
     }
@@ -121,16 +116,5 @@ class BackendUserAuthenticator implements MiddlewareInterface
             return false;
         }
         return $user->backendCheckLogin();
-    }
-
-    /**
-     * Register the backend user as aspect
-     *
-     * @param BackendUserAuthentication|null $user
-     */
-    protected function setBackendUserAspect(BackendUserAuthentication $user)
-    {
-        $this->context->setAspect('backend.user', GeneralUtility::makeInstance(UserAspect::class, $user));
-        $this->context->setAspect('workspace', GeneralUtility::makeInstance(WorkspaceAspect::class, $user->workspace));
     }
 }

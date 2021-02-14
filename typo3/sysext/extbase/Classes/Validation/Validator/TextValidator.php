@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Validation\Validator;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Extbase\Validation\Validator;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Validation\Validator;
+
 /**
  * Validator for "plain" text.
  */
@@ -26,7 +27,7 @@ class TextValidator extends AbstractValidator
      * The validated text is not expected to be secure in every circumstance, if you
      * want to be sure of that, use a customized regular expression or filter on output.
      *
-     * See http://php.net/filter_var for details.
+     * See https://php.net/filter_var for details.
      *
      * @param mixed $value The value that should be validated
      */
@@ -37,7 +38,7 @@ class TextValidator extends AbstractValidator
                 $this->translateErrorMessage(
                     'validator.text.notvalid',
                     'extbase'
-                ),
+                ) ?? '',
                 1221565786
             );
         }

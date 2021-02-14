@@ -1048,7 +1048,7 @@ The following class properties have changed visibility:
 * :php:`TYPO3\CMS\Core\Authentication\BackendUserAuthentication->TSdataArray` changed from public to protected
 * :php:`TYPO3\CMS\Core\Authentication\BackendUserAuthentication->userTS` changed from public to protected
 * :php:`TYPO3\CMS\Core\Authentication\BackendUserAuthentication->userTSUpdated` changed from public to protected
-* :php:`TYPO3\CMS\Core\Authentication\BackendUserAuthentication->userTS_text` changed from public to protected
+* :php:`TYPO3\CMS\Core\Authentication\BackendUserAuthentication->userTS_text` has been removed
 * :php:`TYPO3\CMS\Core\Charset\CharsetConverter->eucBasedSets` changed from public to protected
 * :php:`TYPO3\CMS\Core\Charset\CharsetConverter->noCharByteVal` changed from public to protected
 * :php:`TYPO3\CMS\Core\Charset\CharsetConverter->parsedCharsets` changed from public to protected
@@ -1416,6 +1416,7 @@ The following hooks don't pass the class reference anymore:
 
 
 The following signals have been removed:
+
 * :php:`TYPO3\CMS\Extensionmanager\Service\ExtensionManagementService` signal `hasInstalledExtensions`
 * :php:`TYPO3\CMS\Extensionmanager\Utility\InstallUtility` signal `tablesDefinitionIsBeingBuilt`
 
@@ -1513,6 +1514,6 @@ The following global instances have been removed:
 Impact
 ======
 
-Instantiating or requiring the PHP classes or calling the PHP methods directly will trigger PHP :php:`E_ERRER` errors.
+Instantiating or requiring the PHP classes or calling the PHP methods directly will trigger PHP :php:`E_ERROR` errors.
 
 .. index:: Backend, CLI, FlexForm, Fluid, Frontend, JavaScript, LocalConfiguration, PHP-API, TCA, TSConfig, TypoScript, PartiallyScanned

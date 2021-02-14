@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Frontend\Tests\Unit\Middleware;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Frontend\Tests\Unit\Middleware;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Frontend\Tests\Unit\Middleware;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -60,11 +61,11 @@ class SiteResolverTest extends UnitTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->originalLocale = setlocale(LC_COLLATE, 0);
+        $this->originalLocale = setlocale(LC_COLLATE, '0');
         $this->siteFinder = $this->getAccessibleMock(SiteFinder::class, ['dummy'], [], '', false);
 
         // A request handler which expects a site to be found.
-        $this->siteFoundRequestHandler = new class implements RequestHandlerInterface {
+        $this->siteFoundRequestHandler = new class() implements RequestHandlerInterface {
             public function handle(ServerRequestInterface $request): ResponseInterface
             {
                 /** @var Site $site */

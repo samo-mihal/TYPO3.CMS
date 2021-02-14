@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\Hooks;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Form\Hooks;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Form\Hooks;
 
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Messaging\AbstractMessage;
@@ -184,10 +186,7 @@ class DataStructureIdentifierHook
                         );
                     }
                 }
-            } catch (NoSuchFileException $e) {
-                $dataStructure = $this->addSelectedPersistenceIdentifier($identifier['ext-form-persistenceIdentifier'], $dataStructure);
-                $this->addInvalidFrameworkConfigurationFlashMessage($e);
-            } catch (ParseErrorException $e) {
+            } catch (NoSuchFileException|ParseErrorException $e) {
                 $dataStructure = $this->addSelectedPersistenceIdentifier($identifier['ext-form-persistenceIdentifier'], $dataStructure);
                 $this->addInvalidFrameworkConfigurationFlashMessage($e);
             }
@@ -333,8 +332,7 @@ class DataStructureIdentifierHook
             $e->getMessage()
         );
 
-        GeneralUtility::makeInstance(ObjectManager::class)
-            ->get(FlashMessageService::class)
+        GeneralUtility::makeInstance(FlashMessageService::class)
             ->getMessageQueueByIdentifier('core.template.flashMessages')
             ->enqueue(
                 GeneralUtility::makeInstance(

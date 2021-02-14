@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Opendocs\Controller;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Opendocs\Controller;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Opendocs\Controller;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -71,6 +73,8 @@ class OpenDocumentController
 
         if ($identifier) {
             $this->documents->closeDocument($identifier);
+        } else {
+            $this->documents->closeAllDocuments();
         }
 
         return $this->renderMenu();

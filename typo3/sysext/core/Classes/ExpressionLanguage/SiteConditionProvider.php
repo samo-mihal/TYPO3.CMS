@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\ExpressionLanguage;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,15 +15,20 @@ namespace TYPO3\CMS\Core\ExpressionLanguage;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\ExpressionLanguage;
+
 use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\Information\Typo3Version;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 class SiteConditionProvider extends AbstractProvider
 {
     public function __construct()
     {
         $typo3 = new \stdClass();
-        $typo3->version = TYPO3_version;
-        $typo3->branch = TYPO3_branch;
+        $typo3Version = GeneralUtility::makeInstance(Typo3Version::class);
+        $typo3->version = $typo3Version->getVersion();
+        $typo3->branch = $typo3Version->getBranch();
         $typo3->devIpMask = trim($GLOBALS['TYPO3_CONF_VARS']['SYS']['devIPmask']);
         $this->expressionLanguageVariables = [
             'applicationContext' => (string)Environment::getContext(),

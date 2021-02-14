@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Backend\ViewHelpers\Link;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Backend\ViewHelpers\Link;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\ViewHelpers\Link;
 
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -74,7 +75,7 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractTagBasedViewHelper;
  *
  * Link to create a new record then return back to the BE module "web_MyextensionList"::
  *
- *    <be.link.newRecord table="a_table" returnUrl="{f:be.uri(route: 'web_MyextensionList')}" pid="17">
+ *    <be:link.newRecord table="a_table" returnUrl="{f:be.uri(route: 'web_MyextensionList')}" pid="17">
  */
 class NewRecordViewHelper extends AbstractTagBasedViewHelper
 {

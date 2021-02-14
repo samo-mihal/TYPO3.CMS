@@ -24,9 +24,9 @@
 &lt;b&gt;Special&lt;/b&gt;
 'Folder' is a page type which is not shown as a webpage but is instead stores records of your choice.
 'Recycler' is a garbage can. Pages and records in the Recycler are not visible in the Frontend.
-'Menu Separator' is only useful if your Frontend memus are programmed to use it. It does not represent a page with content but is intended to be an unclickable placeholder in the menu.
+'Menu Separator' is only useful if your Frontend menus are programmed to use it. It does not represent a page with content but is intended to be an unclickable placeholder in the menu.
 
-&lt;b&gt;Notice&lt;/b&gt; Each Page Type is represented by a unique icon. The available page types can be restricted for users so all of the options described above may not be visible. Finally, particuilar record typoes may only be allowed on certain page types, but any record can be placed in a 'Folder.'</source>
+&lt;b&gt;Notice&lt;/b&gt; Each Page Type is represented by a unique icon. The available page types can be restricted for users so all of the options described above may not be visible. Finally, particular record types may only be allowed on certain page types, but any record can be placed in a 'Folder.'</source>
 			</trans-unit>
 			<trans-unit id="_doktype.seeAlso" resname="_doktype.seeAlso" xml:space="preserve">
 				<source>pages:shortcut,
@@ -34,7 +34,7 @@ pages:url</source>
 				<note from="developer">This string contains an internal text, which must not be changed. Just copy the original text into the translation field. For more information have a look at the Tutorial.</note>
 			</trans-unit>
 			<trans-unit id="hidden.description" resname="hidden.description">
-				<source>If this is checked, the page will be disabled on the website.</source>
+				<source>If this is checked, the page will be visible on the website.</source>
 			</trans-unit>
 			<trans-unit id="hidden.details" resname="hidden.details" xml:space="preserve">
 				<source>The 'Disable,' 'Start,' 'Stop,' and 'Access' options are all about limiting access to pages and are thus related in functionality. When a page is not visible due to one of these options, the page will not show up in the site navigation.
@@ -135,7 +135,7 @@ Combined:
 When specific pages need a longer or shorter cache lifetime than the default, this option can be used.</source>
 			</trans-unit>
 			<trans-unit id="no_search.description" resname="no_search.description">
-				<source>If enabled, this option excludes the page from searching operations on the website.</source>
+				<source>If enabled, this option includes the page in searching operations on the website.</source>
 			</trans-unit>
 			<trans-unit id="php_tree_stop.description" resname="php_tree_stop.description">
 				<source>If enabled, this option excludes the subtree from rendering in the backend.</source>
@@ -288,7 +288,7 @@ The most common use is to display the date from the automatically updated 'tstam
 If you insert a 'd' the current time and date is inserted. You can also append any value in the field with a number lie '+10' which will add 10 days to the current value.</source>
 			</trans-unit>
 			<trans-unit id="nav_hide.description" resname="nav_hide.description">
-				<source>With this option the page will be not appear in menus in the Frontend. The page can still be viewed if linked by going directly to its URL.</source>
+				<source>With this option the page will appear in menus in the Frontend. If unchecked, the page can still be viewed if linked by going directly to its URL.</source>
 			</trans-unit>
 			<trans-unit id="_nav_hide.seeAlso" resname="_nav_hide.seeAlso">
 				<source>pages:nav_title</source>
@@ -337,7 +337,7 @@ If you enter this string in the 'TSConfig' field, the 'Web&gt;Page' Module will 
 				<source>Affect availability of pages in the various languages.</source>
 			</trans-unit>
 			<trans-unit id="l18n_cfg.details" resname="l18n_cfg.details" xml:space="preserve">
-				<source>&lt;b&gt;Hide default translation of page&lt;/b&gt;
+				<source>&lt;b&gt;Hide default language of page&lt;/b&gt;
 If set, the page is only available in translated versions and not in the default language. Any attempt to access the page in the default language will result in an error message.
 
 &lt;b&gt;Hide page if no translation for current language exists&lt;/b&gt;

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Install\Service;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,7 +13,10 @@ namespace TYPO3\CMS\Install\Service;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Install\Service;
+
 use TYPO3\CMS\Core\Configuration\ConfigurationManager;
+use TYPO3\CMS\Core\Crypto\PasswordHashing\Argon2idPasswordHash;
 use TYPO3\CMS\Core\Crypto\PasswordHashing\Argon2iPasswordHash;
 use TYPO3\CMS\Core\Crypto\PasswordHashing\BcryptPasswordHash;
 use TYPO3\CMS\Core\Crypto\PasswordHashing\PasswordHashInterface;
@@ -41,7 +43,7 @@ use TYPO3\CMS\Install\Service\Exception\ConfigurationChangedException;
 class SilentConfigurationUpgradeService
 {
     /**
-     * @var \TYPO3\CMS\Core\Configuration\ConfigurationManager
+     * @var ConfigurationManager
      */
     protected $configurationManager;
 
@@ -155,9 +157,9 @@ class SilentConfigurationUpgradeService
         'SYS/systemLogLevel',
     ];
 
-    public function __construct(ConfigurationManager $configurationManager = null)
+    public function __construct(ConfigurationManager $configurationManager)
     {
-        $this->configurationManager = $configurationManager ?: GeneralUtility::makeInstance(ConfigurationManager::class);
+        $this->configurationManager = $configurationManager;
     }
 
     /**
@@ -187,6 +189,7 @@ class SilentConfigurationUpgradeService
         $this->migrateSaltedPasswordsSettings();
         $this->migrateCachingFrameworkCaches();
         $this->migrateMailSettingsToSendmail();
+        $this->migrateMailSmtpEncryptSetting();
 
         // Should run at the end to prevent obsolete settings are removed before migration
         $this->removeObsoleteLocalConfigurationSettings();
@@ -1025,6 +1028,7 @@ class SilentConfigurationUpgradeService
         // Phpass is always available, so we have some last fallback if the others don't kick in
         $okHashMethods = [
             Argon2iPasswordHash::class,
+            Argon2idPasswordHash::class,
             BcryptPasswordHash::class,
             Pbkdf2PasswordHash::class,
             PhpassPasswordHash::class,
@@ -1092,11 +1096,47 @@ class SilentConfigurationUpgradeService
     {
         $confManager = $this->configurationManager;
         try {
-            $transport = (array)$confManager->getLocalConfigurationValueByPath('MAIL/transport');
+            $transport = $confManager->getLocalConfigurationValueByPath('MAIL/transport');
             if ($transport === 'mail') {
                 $confManager->setLocalConfigurationValueByPath('MAIL/transport', 'sendmail');
                 $confManager->setLocalConfigurationValueByPath('MAIL/transport_sendmail_command', (string)@ini_get('sendmail_path'));
                 $this->throwConfigurationChangedException();
+            }
+        } catch (MissingArrayPathException $e) {
+            // no change inside the LocalConfiguration.php found, so nothing needs to be modified
+        }
+    }
+
+    /**
+     * Migrates MAIL/transport_smtp_encrypt to a boolean value
+     * See #91070, #90295, #88643 and https://github.com/symfony/symfony/commit/5b8c4676d059
+     */
+    protected function migrateMailSmtpEncryptSetting()
+    {
+        $confManager = $this->configurationManager;
+        try {
+            $transport = $confManager->getLocalConfigurationValueByPath('MAIL/transport');
+            if ($transport === 'smtp') {
+                $encrypt = $confManager->getLocalConfigurationValueByPath('MAIL/transport_smtp_encrypt');
+                if (is_string($encrypt)) {
+                    // SwiftMailer used 'tls' as identifier to connect with STARTTLS via SMTP (as usually used with port 587).
+                    // See https://github.com/swiftmailer/swiftmailer/blob/v5.4.10/lib/classes/Swift/Transport/EsmtpTransport.php#L144
+                    if ($encrypt === 'tls') {
+                        // With TYPO3 v10 the MAIL/transport_smtp_encrypt option is passed as constructor parameter $tls to
+                        // Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport
+                        // $tls = true instructs to start a SMTPS connection – that means SSL/TLS via SMTPS, not STARTTLS via SMTP.
+                        // That means symfony/mailer will use STARTTLS when $tls = false or ($tls = null with port != 465) is passed.
+                        // Actually symfony/mailer will use STARTTLS by default now.
+                        // Due to the misleading name (transport_smtp_encrypt) we avoid to set the option to false, but rather remove it.
+                        // Note: symfony/mailer provides no way to enforce STARTTLS usage, see https://github.com/symfony/symfony/commit/5b8c4676d059
+                        $confManager->removeLocalConfigurationKeysByPath(['MAIL/transport_smtp_encrypt']);
+                    } elseif ($encrypt === '') {
+                        $confManager->setLocalConfigurationValueByPath('MAIL/transport_smtp_encrypt', false);
+                    } else {
+                        $confManager->setLocalConfigurationValueByPath('MAIL/transport_smtp_encrypt', true);
+                    }
+                    $this->throwConfigurationChangedException();
+                }
             }
         } catch (MissingArrayPathException $e) {
             // no change inside the LocalConfiguration.php found, so nothing needs to be modified

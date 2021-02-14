@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Resource\Search;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,8 @@ namespace TYPO3\CMS\Core\Resource\Search;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Resource\Search;
+
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Database\Query\QueryHelper;
@@ -24,6 +26,7 @@ use TYPO3\CMS\Core\Resource\Search\QueryRestrictions\FolderMountsRestriction;
 use TYPO3\CMS\Core\Resource\Search\QueryRestrictions\FolderRestriction;
 use TYPO3\CMS\Core\Resource\Search\QueryRestrictions\SearchTermRestriction;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\StringUtility;
 
 /**
  * Represents an SQL query to search for files.
@@ -69,9 +72,10 @@ class FileSearchQuery
         $query->additionalRestriction(
             new SearchTermRestriction($searchDemand, $query->queryBuilder)
         );
-        if ($searchDemand->getFolder()) {
+        $folder = $searchDemand->getFolder();
+        if ($folder !== null) {
             $query->additionalRestriction(
-                new FolderRestriction($searchDemand->getFolder(), $searchDemand->isRecursive())
+                new FolderRestriction($folder, $searchDemand->isRecursive())
             );
         } else {
             $query->additionalRestriction(
@@ -114,7 +118,7 @@ class FileSearchQuery
                     . preg_replace(
                         '/[^a-z0-9]/',
                         '',
-                        uniqid($tableName . $fieldName, true)
+                        StringUtility::getUniqueId($tableName . $fieldName)
                     )
                 ]),
                 true
@@ -138,9 +142,10 @@ class FileSearchQuery
         $query->additionalRestriction(
             new SearchTermRestriction($searchDemand, $query->queryBuilder)
         );
-        if ($searchDemand->getFolder()) {
+        $folder = $searchDemand->getFolder();
+        if ($folder !== null) {
             $query->additionalRestriction(
-                new FolderRestriction($searchDemand->getFolder(), $searchDemand->isRecursive())
+                new FolderRestriction($folder, $searchDemand->isRecursive())
             );
         }
 

@@ -1,4 +1,5 @@
 <?php
+
 defined('TYPO3_MODE') or die();
 
 // Register all available content objects
@@ -70,9 +71,6 @@ $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['proc
 $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processCmdmapClass'][] = \TYPO3\CMS\Frontend\Hooks\TreelistCacheUpdateHooks::class;
 $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['moveRecordClass'][] = \TYPO3\CMS\Frontend\Hooks\TreelistCacheUpdateHooks::class;
 
-// Register hook to show preview info
-$GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['tslib/class.tslib_fe.php']['hook_eofe']['preview-message'] = \TYPO3\CMS\Frontend\Hooks\FrontendHooks::class . '->displayPreviewInfoMessage';
-
 // Register for hooks to show preview of tt_content elements in page module
 $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['cms/layout/class.tx_cms_layout.php']['tt_content_drawItem']['image'] =
     \TYPO3\CMS\Frontend\Hooks\PageLayoutView\ImagePreviewRenderer::class;
@@ -95,9 +93,9 @@ $GLOBALS['TYPO3_CONF_VARS']['SYS']['livesearch']['content'] = 'tt_content';
 
 // Include new content elements to modWizards
 \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addPageTSConfig(
-    '<INCLUDE_TYPOSCRIPT: source="FILE:EXT:frontend/Configuration/TSconfig/Page/Mod/Wizards/NewContentElement.tsconfig">'
+    "@import 'EXT:frontend/Configuration/TSconfig/Page/Mod/Wizards/NewContentElement.tsconfig'"
 );
 // Include FormEngine adjustments
 \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addPageTSConfig(
-    '<INCLUDE_TYPOSCRIPT: source="FILE:EXT:frontend/Configuration/TSconfig/Page/TCEFORM.tsconfig">'
+    "@import 'EXT:frontend/Configuration/TSconfig/Page/TCEFORM.tsconfig'"
 );

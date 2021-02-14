@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Extbase\Routing;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Extbase\Routing;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Extbase\Routing;
 
 use TYPO3\CMS\Core\Routing\Enhancer\PluginEnhancer;
 use TYPO3\CMS\Core\Routing\Route;
@@ -82,23 +83,30 @@ class ExtbasePluginEnhancer extends PluginEnhancer
         $arguments = $configuration['_arguments'] ?? [];
         unset($configuration['_arguments']);
 
-        $namespacedRequirements = $this->getNamespacedRequirements();
+        $variableProcessor = $this->getVariableProcessor();
         $routePath = $this->modifyRoutePath($configuration['routePath']);
-        $routePath = $this->getVariableProcessor()->deflateRoutePath($routePath, $this->namespace, $arguments);
+        $routePath = $variableProcessor->deflateRoutePath($routePath, $this->namespace, $arguments);
         unset($configuration['routePath']);
-        $defaults = array_merge_recursive($defaultPageRoute->getDefaults(), $configuration);
         $options = array_merge($defaultPageRoute->getOptions(), ['_enhancer' => $this, 'utf8' => true, '_arguments' => $arguments]);
-        $route = new Route(rtrim($defaultPageRoute->getPath(), '/') . '/' . ltrim($routePath, '/'), $defaults, [], $options);
+        $route = new Route(rtrim($defaultPageRoute->getPath(), '/') . '/' . ltrim($routePath, '/'), [], [], $options);
+
+        $defaults = array_merge_recursive(
+            $defaultPageRoute->getDefaults(),
+            $variableProcessor->deflateKeys($this->configuration['defaults'] ?? [], $this->namespace, $arguments)
+        );
+        // only keep `defaults` that are actually used in `routePath`
+        $defaults = $this->filterValuesByPathVariables(
+            $route,
+            $defaults
+        );
+        // apply '_controller' to route defaults
+        $defaults = array_merge_recursive(
+            $defaults,
+            array_intersect_key($configuration, ['_controller' => true])
+        );
+        $route->setDefaults($defaults);
         $this->applyRouteAspects($route, $this->aspects ?? [], $this->namespace);
-        if ($namespacedRequirements) {
-            $compiledRoute = $route->compile();
-            $variables = $compiledRoute->getPathVariables();
-            $variables = array_flip($variables);
-            $requirements = array_filter($namespacedRequirements, function ($key) use ($variables) {
-                return isset($variables[$key]);
-            }, ARRAY_FILTER_USE_KEY);
-            $route->setRequirements($requirements);
-        }
+        $this->applyRequirements($route, $this->configuration['requirements'] ?? [], $this->namespace);
         return $route;
     }
 
@@ -134,11 +142,14 @@ class ExtbasePluginEnhancer extends PluginEnhancer
             unset($parameters[$this->namespace]['action']);
             unset($parameters[$this->namespace]['controller']);
             $compiledRoute = $variant->compile();
+            // contains all given parameters, even if not used as variables in route
             $deflatedParameters = $this->deflateParameters($variant, $parameters);
             $variables = array_flip($compiledRoute->getPathVariables());
             $mergedParams = array_replace($variant->getDefaults(), $deflatedParameters);
             // all params must be given, otherwise we exclude this variant
-            if ($diff = array_diff_key($variables, $mergedParams)) {
+            // (it is allowed that $variables is empty - in this case variables are
+            // "given" implicitly through controller-action pair in `_controller`)
+            if (array_diff_key($variables, $mergedParams)) {
                 continue;
             }
             $variant->addOptions(['deflatedParameters' => $deflatedParameters]);
@@ -188,7 +199,7 @@ class ExtbasePluginEnhancer extends PluginEnhancer
             return false;
         }
         $controller = $route->getDefault('_controller');
-        list($controllerName, $actionName) = explode('::', $controller);
+        [$controllerName, $actionName] = explode('::', $controller);
         if ($controllerName !== $parameters[$this->namespace]['controller']) {
             return false;
         }
@@ -220,7 +231,7 @@ class ExtbasePluginEnhancer extends PluginEnhancer
         if (strpos($controllerActionValue, '::') === false) {
             return;
         }
-        list($controllerName, $actionName) = explode('::', $controllerActionValue, 2);
+        [$controllerName, $actionName] = explode('::', $controllerActionValue, 2);
         // use default action name if controller matches
         if ($tryUpdate && empty($target['action']) && $controllerName === ($target['controller'] ?? null)) {
             $target['action'] = $actionName;

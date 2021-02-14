@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Form\FormDataProvider;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Form\FormDataProvider;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Form\FormDataProvider;
 
 use Doctrine\DBAL\DBALException;
 use TYPO3\CMS\Backend\Module\ModuleLoader;
@@ -32,6 +33,7 @@ use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Messaging\FlashMessageQueue;
 use TYPO3\CMS\Core\Messaging\FlashMessageService;
 use TYPO3\CMS\Core\Resource\FileRepository;
+use TYPO3\CMS\Core\Resource\ResourceStorage;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Utility\ArrayUtility;
@@ -185,7 +187,7 @@ abstract class AbstractItemProvider
                     if (!empty($helpTextArray['description'])) {
                         $helpText['description'] = $helpTextArray['description'];
                     }
-                    $items[] = [$label, $currentTable, $icon, $helpText];
+                    $items[] = [$label, $currentTable, $icon, null, $helpText];
                 }
                 break;
             case $special === 'pagetypes':
@@ -244,6 +246,7 @@ abstract class AbstractItemProvider
                         rtrim($excludeArray['origin'] === 'flexForm' ? $excludeArray['fieldLabel'] : $languageService->sL($GLOBALS['TCA'][$excludeArray['table']]['columns'][$excludeArray['fieldName']]['label']), ':') . ' (' . $excludeArray['fieldName'] . ')',
                         $excludeArray['table'] . ':' . $excludeArray['fullField'],
                         'empty-empty',
+                        null,
                         $helpText
                     ];
                 }
@@ -343,6 +346,7 @@ abstract class AbstractItemProvider
                                     $languageService->sL($itemCfg[0]),
                                     $coKey . ':' . preg_replace('/[:|,]/', '', $itemKey),
                                     $icon,
+                                    null,
                                     $helpText
                                 ];
                             }
@@ -383,7 +387,7 @@ abstract class AbstractItemProvider
                         $label .= $languageService->sL($moduleLabels['title']);
 
                         // Item configuration
-                        $items[] = [$label, $theMod, $icon, $helpText];
+                        $items[] = [$label, $theMod, $icon, null, $helpText];
                     }
                 }
                 break;
@@ -435,7 +439,7 @@ abstract class AbstractItemProvider
             $recursionLevels = isset($result['processedTca']['columns'][$fieldName]['config']['fileFolder_recursions'])
                 ? MathUtility::forceIntegerInRange($result['processedTca']['columns'][$fieldName]['config']['fileFolder_recursions'], 0, 99)
                 : 99;
-            $fileArray = GeneralUtility::getAllFilesAndFoldersInPath([], $fileFolder, $fileExtensionList, 0, $recursionLevels);
+            $fileArray = GeneralUtility::getAllFilesAndFoldersInPath([], $fileFolder, $fileExtensionList, false, $recursionLevels);
             $fileArray = GeneralUtility::removePrefixPathFromList($fileArray, $fileFolder);
             foreach ($fileArray as $fileReference) {
                 $fileInformation = pathinfo($fileReference);
@@ -466,6 +470,8 @@ abstract class AbstractItemProvider
      */
     protected function addItemsFromForeignTable(array $result, $fieldName, array $items)
     {
+        $databaseError = null;
+        $queryResult = null;
         // Guard
         if (empty($result['processedTca']['columns'][$fieldName]['config']['foreign_table'])
             || !is_string($result['processedTca']['columns'][$fieldName]['config']['foreign_table'])
@@ -514,6 +520,7 @@ abstract class AbstractItemProvider
         }
 
         $fileRepository = GeneralUtility::makeInstance(FileRepository::class);
+        $iconFactory = GeneralUtility::makeInstance(IconFactory::class);
 
         while ($foreignRow = $queryResult->fetch()) {
             BackendUtility::workspaceOL($foreignTable, $foreignRow);
@@ -538,6 +545,9 @@ abstract class AbstractItemProvider
                         $icon = reset($references);
                         $icon = $icon->getPublicUrl();
                     }
+                } else {
+                    // Else, determine icon based on record type, or a generic fallback
+                    $icon = $iconFactory->mapRecordTypeToIconIdentifier($foreignTable, $foreignRow);
                 }
                 // Add the item
                 $items[] = [
@@ -726,7 +736,7 @@ abstract class AbstractItemProvider
         }
 
         $allowedStorageIds = array_map(
-            function (\TYPO3\CMS\Core\Resource\ResourceStorage $storage) {
+            function (ResourceStorage $storage) {
                 return $storage->getUid();
             },
             $this->getBackendUser()->getFileStorages()
@@ -760,6 +770,7 @@ abstract class AbstractItemProvider
         foreach ($GLOBALS['TCA'] as $table => $conf) {
             $tableToTranslation[$table] = $languageService->sL($conf['ctrl']['title']);
         }
+        /** @var array<string, string> $tableToTranslation */
         // Sort by translations
         asort($tableToTranslation);
         foreach ($tableToTranslation as $table => $translatedTable) {
@@ -771,7 +782,10 @@ abstract class AbstractItemProvider
                 && (empty($GLOBALS['TCA'][$table]['ctrl']['rootLevel']) || !empty($GLOBALS['TCA'][$table]['ctrl']['security']['ignoreRootLevelRestriction']))
             ) {
                 foreach ($GLOBALS['TCA'][$table]['columns'] as $field => $_) {
-                    if (isset($GLOBALS['TCA'][$table]['columns'][$field]['exclude']) && (bool)$GLOBALS['TCA'][$table]['columns'][$field]['exclude']) {
+                    $isExcludeField = (bool)($GLOBALS['TCA'][$table]['columns'][$field]['exclude'] ?? false);
+                    $isOnlyVisibleForAdmins = ($GLOBALS['TCA'][$table]['columns'][$field]['displayCond'] ?? '') === 'HIDE_FOR_NON_ADMINS';
+                    // Only show fields that can be excluded for editors, or are hidden for non-admins
+                    if ($isExcludeField && !$isOnlyVisibleForAdmins) {
                         // Get human readable names of fields
                         $translatedField = $languageService->sL($GLOBALS['TCA'][$table]['columns'][$field]['label']);
                         // Add entry, key 'labels' needed for sorting
@@ -872,6 +886,7 @@ abstract class AbstractItemProvider
             if (!empty($fieldConf['config']['type']) && !empty($fieldConf['config']['ds']) && $fieldConf['config']['type'] === 'flex') {
                 $flexForms[$tableField] = [];
                 foreach (array_keys($fieldConf['config']['ds']) as $flexFormKey) {
+                    $flexFormKey = (string)$flexFormKey;
                     // Get extension identifier (uses second value if it's not empty, "list" or "*", else first one)
                     $identFields = GeneralUtility::trimExplode(',', $flexFormKey);
                     $extIdent = $identFields[0];
@@ -999,8 +1014,15 @@ abstract class AbstractItemProvider
 
         if (!empty($foreignTableClauseArray['ORDERBY'])) {
             foreach ($foreignTableClauseArray['ORDERBY'] as $orderPair) {
-                list($fieldName, $order) = $orderPair;
+                [$fieldName, $order] = $orderPair;
                 $queryBuilder->addOrderBy($fieldName, $order);
+            }
+        } elseif (!empty($GLOBALS['TCA'][$foreignTableName]['ctrl']['default_sortby'])) {
+            $orderByClauses = QueryHelper::parseOrderBy($GLOBALS['TCA'][$foreignTableName]['ctrl']['default_sortby']);
+            foreach ($orderByClauses as $orderByClause) {
+                if (!empty($orderByClause[0])) {
+                    $queryBuilder->addOrderBy($foreignTableName . '.' . $orderByClause[0], $orderByClause[1]);
+                }
             }
         }
 
@@ -1092,8 +1114,10 @@ abstract class AbstractItemProvider
                         $rowFieldValue = $result[$databaseRowKey][$whereClauseSubParts[0]] ?? '';
                         if (is_array($rowFieldValue)) {
                             // If a select or group field is used here, it may have been processed already and
-                            // is now an array. Use first selected value in this case.
-                            $rowFieldValue = $rowFieldValue[0];
+                            // is now an array containing uid + table + title + row.
+                            // See TcaGroup data provider for details.
+                            // Pick the first one (always on 0), and use uid only.
+                            $rowFieldValue = $rowFieldValue[0]['uid'] ?? $rowFieldValue[0];
                         }
                         if (substr($whereClauseParts[0], -1) === '\'' && $whereClauseSubParts[1][0] === '\'') {
                             $whereClauseParts[0] = substr($whereClauseParts[0], 0, -1);
@@ -1192,13 +1216,13 @@ abstract class AbstractItemProvider
         }
         // Find ORDER BY
         $reg = [];
-        if (preg_match('/^(.*)[[:space:]]+ORDER[[:space:]]+BY[[:space:]]+([[:alnum:][:space:],._]+)$/is', $foreignTableClause, $reg)) {
+        if (preg_match('/^(.*)[[:space:]]+ORDER[[:space:]]+BY[[:space:]]+([[:alnum:][:space:],._()"]+)$/is', $foreignTableClause, $reg)) {
             $foreignTableClauseArray['ORDERBY'] = QueryHelper::parseOrderBy(trim($reg[2]));
             $foreignTableClause = $reg[1];
         }
         // Find GROUP BY
         $reg = [];
-        if (preg_match('/^(.*)[[:space:]]+GROUP[[:space:]]+BY[[:space:]]+([[:alnum:][:space:],._]+)$/is', $foreignTableClause, $reg)) {
+        if (preg_match('/^(.*)[[:space:]]+GROUP[[:space:]]+BY[[:space:]]+([[:alnum:][:space:],._()"]+)$/is', $foreignTableClause, $reg)) {
             $foreignTableClauseArray['GROUPBY'] = QueryHelper::parseGroupBy(trim($reg[2]));
             $foreignTableClause = $reg[1];
         }
@@ -1266,6 +1290,7 @@ abstract class AbstractItemProvider
                     $result['tableName'],
                     $fieldConfig['config']
                 );
+                $newDatabaseValueArray = array_merge($newDatabaseValueArray, $relationHandler->getValueArray());
             } else {
                 // Non MM relation
                 // If not dealing with MM relations, use default live uid, not versioned uid for record relations
@@ -1277,8 +1302,10 @@ abstract class AbstractItemProvider
                     $result['tableName'],
                     $fieldConfig['config']
                 );
+                $databaseIds = array_merge($newDatabaseValueArray, $relationHandler->getValueArray());
+                // remove all items from the current DB values if not available as relation or static value anymore
+                $newDatabaseValueArray = array_values(array_intersect($currentDatabaseValueArray, $databaseIds));
             }
-            $newDatabaseValueArray = array_merge($newDatabaseValueArray, $relationHandler->getValueArray());
         }
 
         if ($fieldConfig['config']['multiple'] ?? false) {
@@ -1303,9 +1330,6 @@ abstract class AbstractItemProvider
         $languageService = $this->getLanguageService();
 
         foreach ($itemArray as $key => $item) {
-            if (!isset($dynamicItems[$key])) {
-                $staticValues[$item[1]] = $item;
-            }
             if (isset($result['pageTsConfig']['TCEFORM.'][$table . '.'][$fieldName . '.']['altLabels.'][$item[1]])
                 && !empty($result['pageTsConfig']['TCEFORM.'][$table . '.'][$fieldName . '.']['altLabels.'][$item[1]])
             ) {
@@ -1315,18 +1339,20 @@ abstract class AbstractItemProvider
             }
             $value = strlen((string)$item[1]) > 0 ? $item[1] : '';
             $icon = !empty($item[2]) ? $item[2] : null;
+            $groupId = $item[3] ?? null;
             $helpText = null;
-            if (!empty($item[3])) {
-                if (\is_string($item[3])) {
-                    $helpText = $languageService->sL($item[3]);
+            if (!empty($item[4])) {
+                if (\is_string($item[4])) {
+                    $helpText = $languageService->sL($item[4]);
                 } else {
-                    $helpText = $item[3];
+                    $helpText = $item[4];
                 }
             }
             $itemArray[$key] = [
                 $label,
                 $value,
                 $icon,
+                $groupId,
                 $helpText
             ];
         }
@@ -1379,27 +1405,6 @@ abstract class AbstractItemProvider
             $uid = $row['t3ver_oid'];
         }
         return $uid;
-    }
-
-    /**
-     * Determine the static values in the item array
-     *
-     * Used by TcaSelectItems and TcaSelectTreeItems data providers
-     *
-     * @param array $itemArray All item records for the select field
-     * @param array $dynamicItemArray Item records from dynamic sources
-     * @return array
-     * @todo: Check method usage, it's probably bogus in select context and was removed from select tree already.
-     */
-    protected function getStaticValues($itemArray, $dynamicItemArray)
-    {
-        $staticValues = [];
-        foreach ($itemArray as $key => $item) {
-            if (!isset($dynamicItemArray[$key])) {
-                $staticValues[$item[1]] = $item;
-            }
-        }
-        return $staticValues;
     }
 
     protected function getAllSites(): array

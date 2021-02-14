@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\LinkHandling;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,10 @@ namespace TYPO3\CMS\Core\LinkHandling;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\LinkHandling;
+
+use TYPO3\CMS\Core\Utility\StringUtility;
+
 /**
  * Resolves URLs (simple, no magic needed)
  */
@@ -24,7 +27,7 @@ class UrlLinkHandler implements LinkHandlingInterface
      * Returns the URL as given
      *
      * @param array $parameters
-     * @return mixed
+     * @return string
      */
     public function asString(array $parameters): string
     {
@@ -51,6 +54,9 @@ class UrlLinkHandler implements LinkHandlingInterface
     protected function addHttpSchemeAsFallback(string $url): string
     {
         if (!empty($url)) {
+            if (StringUtility::beginsWith($url, '//')) {
+                return $url;
+            }
             $scheme = parse_url($url, PHP_URL_SCHEME);
             if (empty($scheme)) {
                 $url = 'http://' . $url;

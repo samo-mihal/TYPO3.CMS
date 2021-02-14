@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Adminpanel\Tests\Unit\Middleware;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Adminpanel\Tests\Unit\Middleware;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Adminpanel\Tests\Unit\Middleware;
 
 use Prophecy\Argument;
 use Prophecy\Prophecy\ObjectProphecy;

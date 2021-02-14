@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Install\Report;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Install\Report;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Install\Report;
 
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
@@ -52,7 +53,7 @@ class EnvironmentStatusReport implements StatusProviderInterface, ExtendedStatus
     }
 
     /**
-     * @param $verbose
+     * @param bool $verbose
      * @return Status[]
      */
     protected function getStatusInternal($verbose)

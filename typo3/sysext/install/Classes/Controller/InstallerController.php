@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Install\Controller;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,15 +15,18 @@ namespace TYPO3\CMS\Install\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Install\Controller;
+
 use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\DriverManager;
-use Psr\Container\ContainerInterface;
+use Doctrine\DBAL\Exception\ConnectionException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Configuration\ConfigurationManager;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Configuration\SiteConfiguration;
 use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\Crypto\PasswordHashing\Argon2idPasswordHash;
 use TYPO3\CMS\Core\Crypto\PasswordHashing\Argon2iPasswordHash;
 use TYPO3\CMS\Core\Crypto\PasswordHashing\BcryptPasswordHash;
 use TYPO3\CMS\Core\Crypto\PasswordHashing\PasswordHashInterface;
@@ -32,6 +35,7 @@ use TYPO3\CMS\Core\Crypto\PasswordHashing\PhpassPasswordHash;
 use TYPO3\CMS\Core\Crypto\Random;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Database\Platform\PlatformInformation;
 use TYPO3\CMS\Core\Database\Schema\Exception\StatementException;
 use TYPO3\CMS\Core\Database\Schema\SchemaMigrator;
 use TYPO3\CMS\Core\Database\Schema\SqlReader;
@@ -40,21 +44,27 @@ use TYPO3\CMS\Core\FormProtection\InstallToolFormProtection;
 use TYPO3\CMS\Core\Http\HtmlResponse;
 use TYPO3\CMS\Core\Http\JsonResponse;
 use TYPO3\CMS\Core\Http\NormalizedParams;
+use TYPO3\CMS\Core\Information\Typo3Version;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Messaging\FlashMessageQueue;
+use TYPO3\CMS\Core\Package\FailsafePackageManager;
 use TYPO3\CMS\Core\Package\PackageInterface;
-use TYPO3\CMS\Core\Package\PackageManager;
 use TYPO3\CMS\Core\Registry;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Fluid\View\StandaloneView;
 use TYPO3\CMS\Install\Configuration\FeatureManager;
+use TYPO3\CMS\Install\Database\PermissionsCheck;
+use TYPO3\CMS\Install\Exception;
 use TYPO3\CMS\Install\FolderStructure\DefaultFactory;
 use TYPO3\CMS\Install\Service\EnableFileService;
 use TYPO3\CMS\Install\Service\Exception\ConfigurationChangedException;
 use TYPO3\CMS\Install\Service\LateBootService;
 use TYPO3\CMS\Install\Service\SilentConfigurationUpgradeService;
 use TYPO3\CMS\Install\SystemEnvironment\Check;
+use TYPO3\CMS\Install\SystemEnvironment\DatabaseCheck;
 use TYPO3\CMS\Install\SystemEnvironment\SetupCheck;
+use TYPO3\CMS\Install\Updates\DatabaseRowsUpdateWizard;
+use TYPO3\CMS\Install\Updates\RepeatableInterface;
 
 /**
  * Install step controller, dispatcher class of step actions.
@@ -62,6 +72,59 @@ use TYPO3\CMS\Install\SystemEnvironment\SetupCheck;
  */
 class InstallerController
 {
+    /**
+     * @var LateBootService
+     */
+    private $lateBootService;
+
+    /**
+     * @var SilentConfigurationUpgradeService
+     */
+    private $silentConfigurationUpgradeService;
+
+    /**
+     * @var ConfigurationManager
+     */
+    private $configurationManager;
+
+    /**
+     * @var SiteConfiguration
+     */
+    private $siteConfiguration;
+
+    /**
+     * @var Registry
+     */
+    private $registry;
+
+    /**
+     * @var FailsafePackageManager
+     */
+    private $packageManager;
+
+    /**
+     * @var PermissionsCheck
+     */
+    private $databasePermissionsCheck;
+
+    public function __construct(
+        LateBootService $lateBootService,
+        SilentConfigurationUpgradeService $silentConfigurationUpgradeService,
+        ConfigurationManager $configurationManager,
+        SiteConfiguration $siteConfiguration,
+        Registry $registry,
+        FailsafePackageManager $packageManager,
+        PermissionsCheck $databasePermissionsCheck
+    ) {
+        $this->lateBootService = $lateBootService;
+        $this->silentConfigurationUpgradeService = $silentConfigurationUpgradeService;
+        $this->configurationManager = $configurationManager;
+        $this->siteConfiguration = $siteConfiguration;
+        $this->registry = $registry;
+        $this->packageManager = $packageManager;
+        $this->databasePermissionsCheck = $databasePermissionsCheck;
+    }
+
     /**
      * Init action loads <head> with JS initiating further stuff
      *
@@ -71,7 +134,7 @@ class InstallerController
     {
         $bust = $GLOBALS['EXEC_TIME'];
         if (!Environment::getContext()->isDevelopment()) {
-            $bust = GeneralUtility::hmac(TYPO3_version . Environment::getProjectPath());
+            $bust = GeneralUtility::hmac((string)(new Typo3Version()) . Environment::getProjectPath());
         }
         $view = $this->initializeStandaloneView('Installer/Init.html');
         $view->assign('bust', $bust);
@@ -121,7 +184,7 @@ class InstallerController
     public function checkEnvironmentAndFoldersAction(): ResponseInterface
     {
         return new JsonResponse([
-            'success' => @is_file(GeneralUtility::makeInstance(ConfigurationManager::class)->getLocalConfigurationFileLocation()),
+            'success' => @is_file($this->configurationManager->getLocalConfigurationFileLocation()),
         ]);
     }
 
@@ -167,21 +230,19 @@ class InstallerController
         $errorsFromStructure = $structureFixMessageQueue->getAllMessages(FlashMessage::ERROR);
 
         if (@is_dir(Environment::getLegacyConfigPath())) {
-            $configurationManager = GeneralUtility::makeInstance(ConfigurationManager::class);
-            $configurationManager->createLocalConfigurationFromFactoryConfiguration();
+            $this->configurationManager->createLocalConfigurationFromFactoryConfiguration();
 
             // Create a PackageStates.php with all packages activated marked as "part of factory default"
             if (!file_exists(Environment::getLegacyConfigPath() . '/PackageStates.php')) {
-                $packageManager = GeneralUtility::makeInstance(PackageManager::class);
-                $packages = $packageManager->getAvailablePackages();
+                $packages = $this->packageManager->getAvailablePackages();
                 foreach ($packages as $package) {
                     if ($package instanceof PackageInterface
                         && $package->isPartOfFactoryDefault()
                     ) {
-                        $packageManager->activatePackage($package->getPackageKey());
+                        $this->packageManager->activatePackage($package->getPackageKey());
                     }
                 }
-                $packageManager->forceSortAndSavePackageStates();
+                $this->packageManager->forceSortAndSavePackageStates();
             }
             $extensionConfiguration = new ExtensionConfiguration();
             $extensionConfiguration->synchronizeExtConfTemplateWithLocalConfigurationOfAllExtensions();
@@ -216,8 +277,7 @@ class InstallerController
     public function executeAdjustTrustedHostsPatternAction(): ResponseInterface
     {
         if (!GeneralUtility::hostHeaderValueMatchesTrustedHostsPattern($_SERVER['HTTP_HOST'])) {
-            $configurationManager = new ConfigurationManager();
-            $configurationManager->setLocalConfigurationValueByPath('SYS/trustedHostsPattern', '.*');
+            $this->configurationManager->setLocalConfigurationValueByPath('SYS/trustedHostsPattern', '.*');
         }
         return new JsonResponse([
             'success' => true,
@@ -231,10 +291,9 @@ class InstallerController
      */
     public function executeSilentConfigurationUpdateAction(): ResponseInterface
     {
-        $silentUpdate = new SilentConfigurationUpgradeService();
         $success = true;
         try {
-            $silentUpdate->execute();
+            $this->silentConfigurationUpgradeService->execute();
         } catch (ConfigurationChangedException $e) {
             $success = false;
         }
@@ -266,15 +325,16 @@ class InstallerController
         $formProtection = FormProtectionFactory::get(InstallToolFormProtection::class);
         $hasAtLeastOneOption = false;
         $activeAvailableOption = '';
-        if (extension_loaded('mysqli')) {
+
+        if (DatabaseCheck::isMysqli()) {
             $hasAtLeastOneOption = true;
             $view->assign('hasMysqliManualConfiguration', true);
             $mysqliManualConfigurationOptions = [
-                'username' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['user'] ?? '',
-                'password' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['password'] ?? '',
-                'port' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['port'] ?? 3306,
+                'username' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['user'] ?? '',
+                'password' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['password'] ?? '',
+                'port' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['port'] ?? 3306,
             ];
-            $host = $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['host'] ?? '127.0.0.1';
+            $host = $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['host'] ?? '127.0.0.1';
             if ($host === 'localhost') {
                 $host = '127.0.0.1';
             }
@@ -286,41 +346,77 @@ class InstallerController
             $view->assign(
                 'mysqliSocketManualConfigurationOptions',
                 [
-                    'username' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['user'] ?? '',
-                    'password' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['password'] ?? '',
+                    'username' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['user'] ?? '',
+                    'password' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['password'] ?? '',
                     'socket' => $this->getDatabaseConfiguredMysqliSocket(),
                 ]
             );
-            if ($GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['driver'] === 'mysqli'
-                && $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['host'] === 'localhost') {
+            if ($GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['driver'] === 'mysqli'
+                && $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['host'] === 'localhost') {
                 $activeAvailableOption = 'mysqliSocketManualConfiguration';
             }
         }
-        if (extension_loaded('pdo_pgsql')) {
+
+        if (DatabaseCheck::isPdoMysql()) {
+            $hasAtLeastOneOption = true;
+            $view->assign('hasPdoMysqlManualConfiguration', true);
+            $pdoMysqlManualConfigurationOptions = [
+                'username' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['user'] ?? '',
+                'password' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['password'] ?? '',
+                'port' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['port'] ?? 3306,
+            ];
+            $host = $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['host'] ?? '127.0.0.1';
+            if ($host === 'localhost') {
+                $host = '127.0.0.1';
+            }
+            $pdoMysqlManualConfigurationOptions['host'] = $host;
+            $view->assign('pdoMysqlManualConfigurationOptions', $pdoMysqlManualConfigurationOptions);
+
+            // preselect PDO MySQL only if mysqli is not present
+            if (!DatabaseCheck::isMysqli()) {
+                $activeAvailableOption = 'pdoMysqlManualConfiguration';
+            }
+
+            $view->assign('hasPdoMysqlSocketManualConfiguration', true);
+            $view->assign(
+                'pdoMysqlSocketManualConfigurationOptions',
+                [
+                    'username' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['user'] ?? '',
+                    'password' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['password'] ?? '',
+                    'socket' => $this->getDatabaseConfiguredPdoMysqlSocket(),
+                ]
+            );
+            if ($GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['driver'] === 'pdo_mysql'
+                && $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['host'] === 'localhost') {
+                $activeAvailableOption = 'pdoMysqlSocketManualConfiguration';
+            }
+        }
+
+        if (DatabaseCheck::isPdoPgsql()) {
             $hasAtLeastOneOption = true;
             $view->assign('hasPostgresManualConfiguration', true);
             $view->assign(
                 'postgresManualConfigurationOptions',
                 [
-                    'username' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['user'] ?? '',
-                    'password' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['password'] ?? '',
-                    'host' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['host'] ?? '127.0.0.1',
-                    'port' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['port'] ?? 5432,
-                    'database' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['dbname'] ?? '',
+                    'username' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['user'] ?? '',
+                    'password' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['password'] ?? '',
+                    'host' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['host'] ?? '127.0.0.1',
+                    'port' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['port'] ?? 5432,
+                    'database' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['dbname'] ?? '',
                 ]
             );
-            if ($GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['driver'] === 'pdo_pgsql') {
+            if ($GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['driver'] === 'pdo_pgsql') {
                 $activeAvailableOption = 'postgresManualConfiguration';
             }
         }
-        if (extension_loaded('pdo_sqlite')) {
+        if (DatabaseCheck::isPdoSqlite()) {
             $hasAtLeastOneOption = true;
             $view->assign('hasSqliteManualConfiguration', true);
             $view->assign(
                 'sqliteManualConfigurationOptions',
                 []
             );
-            if ($GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['driver'] === 'pdo_sqlite') {
+            if ($GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['driver'] === 'pdo_sqlite') {
                 $activeAvailableOption = 'sqliteManualConfiguration';
             }
         }
@@ -483,11 +579,10 @@ class InstallerController
             foreach ($defaultConnectionSettings as $settingsName => $value) {
                 $localConfigurationPathValuePairs['DB/Connections/Default/' . $settingsName] = $value;
             }
-            $configurationManager = GeneralUtility::makeInstance(ConfigurationManager::class);
             // Remove full default connection array
-            $configurationManager->removeLocalConfigurationKeysByPath(['DB/Connections/Default']);
+            $this->configurationManager->removeLocalConfigurationKeysByPath(['DB/Connections/Default']);
             // Write new values
-            $configurationManager->setLocalConfigurationValuesByPathValuePairs($localConfigurationPathValuePairs);
+            $this->configurationManager->setLocalConfigurationValuesByPathValuePairs($localConfigurationPathValuePairs);
         }
 
         return new JsonResponse([
@@ -504,8 +599,8 @@ class InstallerController
     public function checkDatabaseSelectAction(): ResponseInterface
     {
         $success = false;
-        if ((string)$GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['dbname'] !== ''
-            || (string)$GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['path'] !== ''
+        if ((string)$GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['dbname'] !== ''
+            || (string)$GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['path'] !== ''
         ) {
             try {
                 $success = GeneralUtility::makeInstance(ConnectionPool::class)
@@ -537,6 +632,7 @@ class InstallerController
         $view->assignMultiple([
             'errors' => $errors,
             'executeDatabaseSelectToken' => $formProtection->generateToken('installTool', 'executeDatabaseSelect'),
+            'executeCheckDatabaseRequirementsToken' => $formProtection->generateToken('installTool', 'checkDatabaseRequirements'),
         ]);
         return new JsonResponse([
             'success' => true,
@@ -545,31 +641,18 @@ class InstallerController
     }
 
     /**
-     * Select / create and test a database
+     * Pre-check whether all requirements for the installed database driver and platform are fulfilled
      *
-     * @param ServerRequestInterface $request
      * @return ResponseInterface
      */
-    public function executeDatabaseSelectAction(ServerRequestInterface $request): ResponseInterface
+    public function checkDatabaseRequirementsAction(ServerRequestInterface $request): ResponseInterface
     {
-        $postValues = $request->getParsedBody()['install']['values'];
-        if ($postValues['type'] === 'new') {
-            $status = $this->createNewDatabase($postValues['new']);
-            if ($status->getSeverity() === FlashMessage::ERROR) {
-                return new JsonResponse([
-                    'success' => false,
-                    'status' => [$status],
-                ]);
-            }
-        } elseif ($postValues['type'] === 'existing' && !empty($postValues['existing'])) {
-            $status = $this->checkExistingDatabase($postValues['existing']);
-            if ($status->getSeverity() === FlashMessage::ERROR) {
-                return new JsonResponse([
-                    'success' => false,
-                    'status' => [$status],
-                ]);
-            }
-        } else {
+        $success = true;
+        $messages = [];
+        $databaseDriverName = $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['driver'];
+
+        $databaseName = $this->retrieveDatabaseNameFromRequest($request);
+        if ($databaseName === '') {
             return new JsonResponse([
                 'success' => false,
                 'status' => [
@@ -580,6 +663,160 @@ class InstallerController
                     ),
                 ],
             ]);
+        }
+
+        $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['dbname'] = $databaseName;
+
+        foreach ($this->checkDatabaseRequirementsForDriver($databaseDriverName) as $message) {
+            if ($message->getSeverity() === FlashMessage::ERROR) {
+                $success = false;
+                $messages[] = $message;
+            }
+        }
+
+        // Check create and drop permissions
+        $statusMessages = [];
+        foreach ($this->checkRequiredDatabasePermissions() as $checkRequiredPermission) {
+            $statusMessages[] = new FlashMessage(
+                $checkRequiredPermission,
+                'Missing required permissions',
+                FlashMessage::ERROR
+            );
+        }
+        if ($statusMessages !== []) {
+            return new JsonResponse([
+                'success' => false,
+                'status' => $statusMessages,
+            ]);
+        }
+
+        // if requirements are not fulfilled
+        if ($success === false) {
+            // remove the database again if we created it
+            if ($request->getParsedBody()['install']['values']['type'] === 'new') {
+                $connection = GeneralUtility::makeInstance(ConnectionPool::class)
+                    ->getConnectionByName(ConnectionPool::DEFAULT_CONNECTION_NAME);
+                $connection
+                    ->getSchemaManager()
+                    ->dropDatabase($connection->quoteIdentifier($databaseName));
+            }
+
+            $this->configurationManager->removeLocalConfigurationKeysByPath(['DB/Connections/Default/dbname']);
+
+            $message = new FlashMessage(
+                sprintf(
+                    'Database with name "%s" has been removed due to the following errors. '
+                    . 'Please solve them first and try again. If you tried to create a new database make also sure, that the DBMS charset is to use UTF-8',
+                    $databaseName
+                ),
+                '',
+                FlashMessage::INFO
+            );
+            array_unshift($messages, $message);
+        }
+
+        unset($GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['dbname']);
+
+        return new JsonResponse([
+            'success' => $success,
+            'status' => $messages,
+        ]);
+    }
+
+    private function checkRequiredDatabasePermissions(): array
+    {
+        try {
+            return $this->databasePermissionsCheck
+                ->checkCreateAndDrop()
+                ->checkAlter()
+                ->checkIndex()
+                ->checkCreateTemporaryTable()
+                ->checkLockTable()
+                ->checkInsert()
+                ->checkSelect()
+                ->checkUpdate()
+                ->checkDelete()
+                ->getMessages();
+        } catch (\TYPO3\CMS\Install\Configuration\Exception $exception) {
+            return $this->databasePermissionsCheck->getMessages();
+        }
+    }
+
+    private function checkDatabaseRequirementsForDriver(string $databaseDriverName): FlashMessageQueue
+    {
+        $databaseCheck = GeneralUtility::makeInstance(DatabaseCheck::class);
+        try {
+            $databaseDriverClassName = DatabaseCheck::retrieveDatabaseDriverClassByDriverName($databaseDriverName);
+
+            $databaseCheck->checkDatabasePlatformRequirements($databaseDriverClassName);
+            $databaseCheck->checkDatabaseDriverRequirements($databaseDriverClassName);
+
+            return $databaseCheck->getMessageQueue();
+        } catch (Exception $exception) {
+            $flashMessageQueue = new FlashMessageQueue('database-check-requirements');
+            $flashMessageQueue->enqueue(
+                new FlashMessage(
+                    '',
+                    $exception->getMessage(),
+                    FlashMessage::INFO
+                )
+            );
+            return $flashMessageQueue;
+        }
+    }
+
+    private function retrieveDatabaseNameFromRequest(ServerRequestInterface $request): string
+    {
+        $postValues = $request->getParsedBody()['install']['values'];
+        if ($postValues['type'] === 'new') {
+            return $postValues['new'];
+        }
+
+        if ($postValues['type'] === 'existing' && !empty($postValues['existing'])) {
+            return $postValues['existing'];
+        }
+        return '';
+    }
+
+    /**
+     * Select / create and test a database
+     *
+     * @param ServerRequestInterface $request
+     * @return ResponseInterface
+     */
+    public function executeDatabaseSelectAction(ServerRequestInterface $request): ResponseInterface
+    {
+        $databaseName = $this->retrieveDatabaseNameFromRequest($request);
+        if ($databaseName === '') {
+            return new JsonResponse([
+                'success' => false,
+                'status' => [
+                    new FlashMessage(
+                        'You must select a database.',
+                        'No Database selected',
+                        FlashMessage::ERROR
+                    ),
+                ],
+            ]);
+        }
+
+        $postValues = $request->getParsedBody()['install']['values'];
+        if ($postValues['type'] === 'new') {
+            $status = $this->createNewDatabase($databaseName);
+            if ($status->getSeverity() === FlashMessage::ERROR) {
+                return new JsonResponse([
+                    'success' => false,
+                    'status' => [$status],
+                ]);
+            }
+        } elseif ($postValues['type'] === 'existing') {
+            $status = $this->checkExistingDatabase($databaseName);
+            if ($status->getSeverity() === FlashMessage::ERROR) {
+                return new JsonResponse([
+                    'success' => false,
+                    'status' => [$status],
+                ]);
+            }
         }
         return new JsonResponse([
             'success' => true,
@@ -594,7 +831,7 @@ class InstallerController
     public function checkDatabaseDataAction(): ResponseInterface
     {
         $existingTables = GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getConnectionByName('Default')
+            ->getConnectionByName(ConnectionPool::DEFAULT_CONNECTION_NAME)
             ->getSchemaManager()
             ->listTableNames();
         return new JsonResponse([
@@ -630,7 +867,6 @@ class InstallerController
     public function executeDatabaseDataAction(ServerRequestInterface $request): ResponseInterface
     {
         $messages = [];
-        $configurationManager = new ConfigurationManager();
         $postValues = $request->getParsedBody()['install']['values'];
         $username = (string)$postValues['username'] !== '' ? $postValues['username'] : 'admin';
         // Check password and return early if not good enough
@@ -650,7 +886,7 @@ class InstallerController
         }
         // Set site name
         if (!empty($postValues['sitename'])) {
-            $configurationManager->setLocalConfigurationValueByPath('SYS/sitename', $postValues['sitename']);
+            $this->configurationManager->setLocalConfigurationValueByPath('SYS/sitename', $postValues['sitename']);
         }
         try {
             $messages = $this->importDatabaseData();
@@ -697,7 +933,7 @@ class InstallerController
             ]);
         }
         // Set password as install tool password, add admin user to system maintainers
-        $configurationManager->setLocalConfigurationValuesByPathValuePairs([
+        $this->configurationManager->setLocalConfigurationValuesByPathValuePairs([
             'BE/installToolPassword' => $this->getHashedPassword($password),
             'SYS/systemMaintainers' => [$adminUserUid]
         ]);
@@ -821,16 +1057,17 @@ For each website you need a TypoScript template on the main page of your website
         }
 
         // Mark upgrade wizards as done
-        $this->loadExtLocalconfDatabaseAndExtTables();
+        $this->lateBootService->loadExtLocalconfDatabaseAndExtTables();
         if (!empty($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['ext/install']['update'])) {
-            $registry = GeneralUtility::makeInstance(Registry::class);
             foreach ($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['ext/install']['update'] as $updateClassName) {
-                $registry->set('installUpdate', $updateClassName, 1);
+                if (!in_array(RepeatableInterface::class, class_implements($updateClassName), true)) {
+                    $this->registry->set('installUpdate', $updateClassName, 1);
+                }
             }
         }
+        $this->registry->set('installUpdateRows', 'rowUpdatersDone', GeneralUtility::makeInstance(DatabaseRowsUpdateWizard::class)->getAvailableRowUpdater());
 
-        $configurationManager = new ConfigurationManager();
-        $configurationManager->setLocalConfigurationValuesByPathValuePairs($configurationValues);
+        $this->configurationManager->setLocalConfigurationValuesByPathValuePairs($configurationValues);
 
         $formProtection = FormProtectionFactory::get(InstallToolFormProtection::class);
         $formProtection->clean();
@@ -869,7 +1106,9 @@ For each website you need a TypoScript template on the main page of your website
     protected function isDatabaseConnectSuccessful(): bool
     {
         try {
-            GeneralUtility::makeInstance(ConnectionPool::class)->getConnectionByName('Default')->ping();
+            GeneralUtility::makeInstance(ConnectionPool::class)
+                ->getConnectionByName(ConnectionPool::DEFAULT_CONNECTION_NAME)
+                ->ping();
         } catch (DBALException $e) {
             return false;
         }
@@ -886,15 +1125,15 @@ For each website you need a TypoScript template on the main page of your website
     protected function isDatabaseConfigurationComplete()
     {
         $configurationComplete = true;
-        if (!isset($GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['user'])) {
+        if (!isset($GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['user'])) {
             $configurationComplete = false;
         }
-        if (!isset($GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['password'])) {
+        if (!isset($GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['password'])) {
             $configurationComplete = false;
         }
-        if (isset($GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['driver'])
-            && $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['driver'] === 'pdo_sqlite'
-            && !empty($GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['path'])
+        if (isset($GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['driver'])
+            && $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['driver'] === 'pdo_sqlite'
+            && !empty($GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['path'])
         ) {
             $configurationComplete = true;
         }
@@ -906,12 +1145,32 @@ For each website you need a TypoScript template on the main page of your website
      *
      * @return string
      */
-    protected function getDatabaseConfiguredMysqliSocket()
+    protected function getDatabaseConfiguredMysqliSocket(): string
     {
-        $socket = $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['unix_socket'] ?? '';
+        return $this->getDefaultSocketFor('mysqli.default_socket');
+    }
+
+    /**
+     * Returns configured socket, if set.
+     *
+     * @return string
+     */
+    protected function getDatabaseConfiguredPdoMysqlSocket(): string
+    {
+        return $this->getDefaultSocketFor('pdo_mysql.default_socket');
+    }
+
+    /**
+     * Returns configured socket, if set.
+     *
+     * @return string
+     */
+    private function getDefaultSocketFor(string $phpIniSetting): string
+    {
+        $socket = $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['unix_socket'] ?? '';
         if ($socket === '') {
             // If no configured socket, use default php socket
-            $defaultSocket = (string)ini_get('mysqli.default_socket');
+            $defaultSocket = (string)ini_get($phpIniSetting);
             if ($defaultSocket !== '') {
                 $socket = $defaultSocket;
             }
@@ -976,14 +1235,26 @@ For each website you need a TypoScript template on the main page of your website
             // portable way to switch databases on the same Doctrine connection.
             // Directly using the Doctrine DriverManager here to avoid messing with
             // the $GLOBALS database configuration array.
-            $connectionParams['dbname'] = $databaseName;
-            $connection = DriverManager::getConnection($connectionParams);
+            try {
+                $connectionParams['dbname'] = $databaseName;
+                $connection = DriverManager::getConnection($connectionParams);
 
-            $databases[] = [
-                'name' => $databaseName,
-                'tables' => count($connection->getSchemaManager()->listTableNames()),
-            ];
-            $connection->close();
+                $databases[] = [
+                    'name' => $databaseName,
+                    'tables' => count($connection->getSchemaManager()->listTableNames()),
+                    'readonly' => false
+                ];
+                $connection->close();
+            } catch (ConnectionException $exception) {
+                $databases[] = [
+                    'name' => $databaseName,
+                    'tables' => 0,
+                    'readonly' => true
+                ];
+                // we ignore a connection exception here.
+                // if this happens here, the show tables was successful
+                // but the connection failed because of missing permissions.
+            }
         }
 
         return $databases;
@@ -997,21 +1268,19 @@ For each website you need a TypoScript template on the main page of your website
      */
     protected function createNewDatabase($dbName)
     {
-        if (!$this->isValidDatabaseName($dbName)) {
-            return new FlashMessage(
-                'Given database name must be shorter than fifty characters'
-                . ' and consist solely of basic latin letters (a-z), digits (0-9), dollar signs ($)'
-                . ' and underscores (_).',
-                'Database name not valid',
-                FlashMessage::ERROR
-            );
-        }
         try {
-            GeneralUtility::makeInstance(ConnectionPool::class)
+            $platform = GeneralUtility::makeInstance(ConnectionPool::class)
                 ->getConnectionByName(ConnectionPool::DEFAULT_CONNECTION_NAME)
-                ->getSchemaManager()
-                ->createDatabase($dbName);
-            GeneralUtility::makeInstance(ConfigurationManager::class)
+                ->getDatabasePlatform();
+            $connection = GeneralUtility::makeInstance(ConnectionPool::class)
+                ->getConnectionByName(ConnectionPool::DEFAULT_CONNECTION_NAME);
+            $connection->exec(
+                PlatformInformation::getDatabaseCreateStatementWithCharset(
+                    $platform,
+                    $connection->quoteIdentifier($dbName)
+                )
+            );
+            $this->configurationManager
                 ->setLocalConfigurationValueByPath('DB/Connections/Default/dbname', $dbName);
         } catch (DBALException $e) {
             return new FlashMessage(
@@ -1030,17 +1299,6 @@ For each website you need a TypoScript template on the main page of your website
     }
 
     /**
-     * Validate the database name against the lowest common denominator of valid identifiers across different DBMS
-     *
-     * @param string $databaseName
-     * @return bool
-     */
-    protected function isValidDatabaseName($databaseName)
-    {
-        return strlen($databaseName) <= 50 && preg_match('/^[a-zA-Z0-9\$_]*$/', $databaseName);
-    }
-
-    /**
      * Checks whether an existing database on the default connection
      * can be used for a TYPO3 installation. The database name is only
      * persisted to the local configuration if the database is empty.
@@ -1052,7 +1310,6 @@ For each website you need a TypoScript template on the main page of your website
     {
         $result = new FlashMessage('');
         $localConfigurationPathValuePairs = [];
-        $configurationManager = GeneralUtility::makeInstance(ConfigurationManager::class);
 
         $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections'][ConnectionPool::DEFAULT_CONNECTION_NAME]['dbname'] = $dbName;
         try {
@@ -1080,52 +1337,11 @@ For each website you need a TypoScript template on the main page of your website
             $localConfigurationPathValuePairs['DB/Connections/Default/dbname'] = $dbName;
         }
 
-        // check if database charset is utf-8 - also allow utf8mb4
-        $defaultDatabaseCharset = $this->getDefaultDatabaseCharset($dbName);
-        if (strpos($defaultDatabaseCharset, 'utf8') !== 0) {
-            $result = new FlashMessage(
-                'Your database uses character set "' . $defaultDatabaseCharset . '", '
-                . 'but only "utf8" and "utf8mb4" are supported with TYPO3. You probably want to change this before proceeding.',
-                'Invalid Charset',
-                FlashMessage::ERROR
-            );
-        }
-
         if ($result->getSeverity() === FlashMessage::OK && !empty($localConfigurationPathValuePairs)) {
-            $configurationManager->setLocalConfigurationValuesByPathValuePairs($localConfigurationPathValuePairs);
+            $this->configurationManager->setLocalConfigurationValuesByPathValuePairs($localConfigurationPathValuePairs);
         }
 
         return $result;
-    }
-
-    /**
-     * Retrieves the default character set of the database.
-     *
-     * @todo this function is MySQL specific. If the core has migrated to Doctrine it should be reexamined
-     * whether this function and the check in $this->checkExistingDatabase could be deleted and utf8 otherwise
-     * enforced (guaranteeing compatibility with other database servers).
-     *
-     * @param string $dbName
-     * @return string
-     */
-    protected function getDefaultDatabaseCharset(string $dbName): string
-    {
-        $connection = GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getConnectionByName(ConnectionPool::DEFAULT_CONNECTION_NAME);
-        $queryBuilder = $connection->createQueryBuilder();
-        $defaultDatabaseCharset = $queryBuilder->select('DEFAULT_CHARACTER_SET_NAME')
-            ->from('information_schema.SCHEMATA')
-            ->where(
-                $queryBuilder->expr()->eq(
-                    'SCHEMA_NAME',
-                    $queryBuilder->createNamedParameter($dbName, \PDO::PARAM_STR)
-                )
-            )
-            ->setMaxResults(1)
-            ->execute()
-            ->fetchColumn();
-
-        return (string)$defaultDatabaseCharset;
     }
 
     /**
@@ -1133,7 +1349,7 @@ For each website you need a TypoScript template on the main page of your website
      *
      * This method is executed during installation *before* the preset did set up proper hash method
      * selection in LocalConfiguration. So PasswordHashFactory is not usable at this point. We thus loop through
-     * the four default hash mechanisms and select the first one that works. The preset calculation of step
+     * the default hash mechanisms and select the first one that works. The preset calculation of step
      * executeDefaultConfigurationAction() basically does the same later.
      *
      * @param string $password Plain text password
@@ -1144,6 +1360,7 @@ For each website you need a TypoScript template on the main page of your website
     {
         $okHashMethods = [
             Argon2iPasswordHash::class,
+            Argon2idPasswordHash::class,
             BcryptPasswordHash::class,
             Pbkdf2PasswordHash::class,
             PhpassPasswordHash::class,
@@ -1168,7 +1385,7 @@ For each website you need a TypoScript template on the main page of your website
         // Will load ext_localconf and ext_tables. This is pretty safe here since we are
         // in first install (database empty), so it is very likely that no extension is loaded
         // that could trigger a fatal at this point.
-        $container = $this->loadExtLocalconfDatabaseAndExtTables();
+        $container = $this->lateBootService->loadExtLocalconfDatabaseAndExtTables();
 
         $sqlReader = $container->get(SqlReader::class);
         $sqlCode = $sqlReader->getTablesDefinitionString(true);
@@ -1197,20 +1414,6 @@ For each website you need a TypoScript template on the main page of your website
     }
 
     /**
-     * Some actions like the database analyzer and the upgrade wizards need additional
-     * bootstrap actions performed.
-     *
-     * Those actions can potentially fatal if some old extension is loaded that triggers
-     * a fatal in ext_localconf or ext_tables code! Use only if really needed.
-     *
-     * @return ContainerInterface
-     */
-    protected function loadExtLocalconfDatabaseAndExtTables(): ContainerInterface
-    {
-        return GeneralUtility::makeInstance(LateBootService::class)->loadExtLocalconfDatabaseAndExtTables();
-    }
-
-    /**
      * Creates a site configuration with one language "English" which is the de-facto default language for TYPO3 in general.
      *
      * @param string $identifier
@@ -1224,12 +1427,14 @@ For each website you need a TypoScript template on the main page of your website
         if (!($normalizedParams instanceof NormalizedParams)) {
             $normalizedParams = NormalizedParams::createFromRequest($request);
         }
+        // Check for siteUrl, despite there currently is no UI to provide it,
+        // to allow TYPO3 Console (for TYPO3 v10) to set this value to something reasonable,
+        // because on cli there is no way to find out which hostname the site is supposed to have.
+        // In the future this controller should be refactored to a generic service, where site URL is
+        // just one input argument.
+        $siteUrl = $request->getParsedBody()['install']['values']['siteUrl'] ?? $normalizedParams->getSiteUrl();
 
         // Create a default site configuration called "main" as best practice
-        $siteConfiguration = GeneralUtility::makeInstance(
-            SiteConfiguration::class,
-            Environment::getConfigPath() . '/sites'
-        );
-        $siteConfiguration->createNewBasicSite($identifier, $rootPageId, $normalizedParams->getSiteUrl());
+        $this->siteConfiguration->createNewBasicSite($identifier, $rootPageId, $siteUrl);
     }
 }

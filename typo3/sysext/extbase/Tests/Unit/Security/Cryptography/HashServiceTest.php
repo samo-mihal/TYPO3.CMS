@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Tests\Unit\Security\Cryptography;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,10 @@ namespace TYPO3\CMS\Extbase\Tests\Unit\Security\Cryptography;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Extbase\Tests\Unit\Security\Cryptography;
+
+use TYPO3\CMS\Extbase\Security\Cryptography\HashService;
 use TYPO3\CMS\Extbase\Security\Exception\InvalidArgumentForHashGenerationException;
 use TYPO3\CMS\Extbase\Security\Exception\InvalidHashException;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
@@ -30,7 +33,7 @@ class HashServiceTest extends UnitTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->hashService = new \TYPO3\CMS\Extbase\Security\Cryptography\HashService();
+        $this->hashService = new HashService();
         $GLOBALS['TYPO3_CONF_VARS']['SYS']['encryptionKey'] = 'Testing';
     }
 

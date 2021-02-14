@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Form\Element;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Form\Element;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Form\Element;
 
 use TYPO3\CMS\Backend\Form\Utility\FormEngineUtility;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
@@ -78,8 +79,14 @@ class SelectCheckBoxElement extends AbstractFormElement
 
         $selItems = $config['items'];
         if (!empty($selItems)) {
-            // Get values in an array (and make unique, which is fine because there can be no duplicates anyway):
-            $itemArray = array_flip($parameterArray['itemFormElValue']);
+            // Get values in an array (and make unique, which is fine because there can be no duplicates anyway)
+            // In case e.g. "l10n_display" is set to "defaultAsReadonly" only one value (as string) could be handed in
+            if (is_array($parameterArray['itemFormElValue'])) {
+                $itemArray = $parameterArray['itemFormElValue'];
+            } else {
+                $itemArray = [(string)$parameterArray['itemFormElValue']];
+            }
+            $itemArray = array_flip($itemArray);
 
             // Traverse the Array of selector box items:
             $groups = [];
@@ -155,7 +162,7 @@ class SelectCheckBoxElement extends AbstractFormElement
             $fieldWizardHtml = $fieldWizardResult['html'];
             $resultArray = $this->mergeChildReturnIntoExistingResult($resultArray, $fieldWizardResult, false);
 
-            $html[] = '<div class="formengine-field-item t3js-formengine-field-item">';
+            $html[] = '<div class="formengine-field-item t3js-formengine-field-item" data-formengine-validation-rules="' . htmlspecialchars($this->getValidationDataAsJsonString($config)) . '">';
             $html[] = $fieldInformationHtml;
             $html[] =   '<div class="form-wizards-wrap">';
             $html[] =       '<div class="form-wizards-element">';
@@ -191,11 +198,11 @@ class SelectCheckBoxElement extends AbstractFormElement
                                             . ($item['checked'] ? 'checked=checked ' : '')
                                             . ($item['disabled'] ? 'disabled=disabled ' : '') . '>';
                         $tableRows[] =    '</td>';
-                        $tableRows[] =    '<td class="col-icon">';
-                        $tableRows[] =        '<label class="label-block" for="' . $item['id'] . '">' . $item['icon'] . '</label>';
-                        $tableRows[] =    '</td>';
                         $tableRows[] =    '<td class="col-title">';
-                        $tableRows[] =        '<label class="label-block nowrap-disabled" for="' . $item['id'] . '">' . htmlspecialchars($this->appendValueToLabelInDebugMode($item['title'], $item['value']), ENT_COMPAT, 'UTF-8', false) . '</label>';
+                        $tableRows[] =        '<label class="label-block nowrap-disabled" for="' . $item['id'] . '">';
+                        $tableRows[] =            '<span class="inline-icon">' . $item['icon'] . '</span>';
+                        $tableRows[] =            htmlspecialchars($this->appendValueToLabelInDebugMode($item['title'], $item['value']), ENT_COMPAT, 'UTF-8', false);
+                        $tableRows[] =        '</label>';
                         $tableRows[] =    '</td>';
                         $tableRows[] =    '<td class="text-right">' . $item['help'] . '</td>';
                         $tableRows[] = '</tr>';
@@ -216,7 +223,7 @@ class SelectCheckBoxElement extends AbstractFormElement
                     if (is_array($group['header'])) {
                         $html[] = '<div id="' . $groupIdCollapsible . '" class="panel-collapse collapse" role="tabpanel">';
                     }
-                    $checkboxId = uniqid($groupId);
+                    $checkboxId = StringUtility::getUniqueId($groupId);
                     $title = htmlspecialchars($this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.toggleall'));
                     $html[] =    '<div class="table-responsive">';
                     $html[] =        '<table class="table table-transparent table-hover">';
@@ -225,7 +232,7 @@ class SelectCheckBoxElement extends AbstractFormElement
                     $html[] =                    '<th class="col-checkbox">';
                     $html[] =                       '<input type="checkbox" id="' . $checkboxId . '" class="t3js-toggle-checkboxes" data-trigger="hover" data-placement="right" data-title="' . $title . '" data-toggle="tooltip" />';
                     $html[] =                    '</th>';
-                    $html[] =                    '<th class="col-title" colspan="2"><label for="' . $checkboxId . '">' . $title . '</label></th>';
+                    $html[] =                    '<th class="col-title"><label for="' . $checkboxId . '">' . $title . '</label></th>';
                     $html[] =                    '<th class="text-right">' . $resetGroupBtn . '</th>';
                     $html[] =                '</tr>';
                     $html[] =            '</thead>';

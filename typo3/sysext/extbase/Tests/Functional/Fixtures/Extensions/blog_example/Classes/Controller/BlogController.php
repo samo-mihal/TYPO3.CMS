@@ -1,7 +1,5 @@
 <?php
 
-namespace ExtbaseTeam\BlogExample\Controller;
-
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -15,14 +13,22 @@ namespace ExtbaseTeam\BlogExample\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace ExtbaseTeam\BlogExample\Controller;
+
 use ExtbaseTeam\BlogExample\Domain\Model\Blog;
 use TYPO3\CMS\Extbase\Annotation as Extbase;
 use TYPO3\CMS\Extbase\Annotation\IgnoreValidation;
+use TYPO3\CMS\Extbase\Mvc\Controller\ActionController;
+use TYPO3\CMS\Extbase\Mvc\RequestInterface;
+use TYPO3\CMS\Extbase\Mvc\ResponseInterface;
+use TYPO3\CMS\Extbase\Mvc\View\JsonView;
+use TYPO3\CMS\Extbase\Property\Exception;
+use TYPO3\CMS\Extbase\Reflection\ObjectAccess;
 
 /**
  * BlogController
  */
-class BlogController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionController
+class BlogController extends ActionController
 {
     /**
      * @Extbase\Inject
@@ -33,7 +39,7 @@ class BlogController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionController
     /**
      * @var string
      */
-    protected $defaultViewObjectName = \TYPO3\CMS\Extbase\Mvc\View\JsonView::class;
+    protected $defaultViewObjectName = JsonView::class;
 
     /**
      * @Extbase\Inject
@@ -44,6 +50,7 @@ class BlogController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionController
     public function listAction()
     {
         $blogs = $this->blogRepository->findAll();
+        $value = [];
         $value[$this->getRuntimeIdentifier()] = $this->getStructure($blogs);
 
         $this->view->assign('value', $value);
@@ -96,11 +103,11 @@ class BlogController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionController
      * @param \TYPO3\CMS\Extbase\Mvc\ResponseInterface $response
      * @throws \RuntimeException
      */
-    public function processRequest(\TYPO3\CMS\Extbase\Mvc\RequestInterface $request, \TYPO3\CMS\Extbase\Mvc\ResponseInterface $response)
+    public function processRequest(RequestInterface $request, ResponseInterface $response)
     {
         try {
             parent::processRequest($request, $response);
-        } catch (\TYPO3\CMS\Extbase\Property\Exception $exception) {
+        } catch (Exception $exception) {
             throw new \RuntimeException(
                 $this->getRuntimeIdentifier() . ': ' . $exception->getMessage() . ' (' . $exception->getCode() . ')',
                 1476122222
@@ -135,7 +142,7 @@ class BlogController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionController
             $dataMap = $this->dataMapFactory->buildDataMap(get_class($entity));
             $tableName = $dataMap->getTableName();
             $identifier = $tableName . ':' . $entity->getUid();
-            $properties = \TYPO3\CMS\Extbase\Reflection\ObjectAccess::getGettableProperties($entity);
+            $properties = ObjectAccess::getGettableProperties($entity);
 
             $structureItem = [];
             foreach ($properties as $propertyName => $propertyValue) {

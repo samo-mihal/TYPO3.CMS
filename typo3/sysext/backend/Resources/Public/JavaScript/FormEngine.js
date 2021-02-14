@@ -33,12 +33,13 @@ var setFormValueOpenBrowser, // @deprecated
 define(['jquery',
   'TYPO3/CMS/Backend/FormEngineValidation',
   'TYPO3/CMS/Backend/DocumentSaveActions',
+  'TYPO3/CMS/Backend/Icons',
   'TYPO3/CMS/Backend/Modal',
   'TYPO3/CMS/Backend/Utility/MessageUtility',
   'TYPO3/CMS/Backend/Severity',
   'TYPO3/CMS/Backend/BackendException',
   'TYPO3/CMS/Backend/Event/InteractionRequestMap'
-], function($, FormEngineValidation, DocumentSaveActions, Modal, MessageUtility, Severity, BackendException, InteractionRequestMap) {
+], function($, FormEngineValidation, DocumentSaveActions, Icons, Modal, MessageUtility, Severity, BackendExceptionModule, InteractionRequestMap) {
 
   /**
    * @param {InteractionRequest} interactionRequest
@@ -164,9 +165,10 @@ define(['jquery',
     }
 
     if (isMultiple || isList) {
+      var $availableFieldEl = FormEngine.getFieldElement(fieldName, '_avail');
+
       // If multiple values are not allowed, clear anything that is in the control already
       if (!isMultiple) {
-        var $availableFieldEl = FormEngine.getFieldElement(fieldName, '_avail');
         $fieldEl.find('option').each(function() {
           $availableFieldEl
             .find('option[value="' + $.escapeSelector($(this).attr('value')) + '"]')
@@ -230,6 +232,7 @@ define(['jquery',
         // execute the phpcode from $FormEngine->TBE_EDITOR_fieldChanged_func
         FormEngine.legacyFieldChangedCb();
         FormEngineValidation.markFieldAsChanged($originalFieldEl);
+        FormEngine.Validation.validateField($availableFieldEl);
       }
 
     } else {
@@ -246,9 +249,7 @@ define(['jquery',
 
       // Change the selected value
       $fieldEl.val(value);
-    }
-    if (typeof FormEngine.Validation !== 'undefined' && typeof FormEngine.Validation.validate === 'function') {
-      FormEngine.Validation.validate();
+      FormEngine.Validation.validateField($fieldEl);
     }
   };
 
@@ -585,6 +586,7 @@ define(['jquery',
       $(this).closest('.t3js-formengine-field-item').toggleClass('disabled');
     }).on('change', '.t3js-form-field-eval-null-placeholder-checkbox input[type="checkbox"]', function(e) {
       FormEngine.toggleCheckboxField($(this));
+      FormEngineValidation.markFieldAsChanged($(this));
     }).on('change', function(event) {
       $('.module-docheader-bar .btn').removeClass('disabled').prop('disabled', false);
     }).on('click', '.t3js-element-browser', function(e) {
@@ -598,6 +600,29 @@ define(['jquery',
       FormEngine.openPopupWindow(mode, params);
     });
 
+    document.editform.addEventListener('submit', function () {
+      if (document.editform.closeDoc.value) {
+        return;
+      }
+
+      const elements = [
+        'button[form]',
+        'button[name^="_save"]',
+        'a[data-name^="_save"]',
+        'button[name="CMD"][value^="save"]',
+        'a[data-name="CMD"][data-value^="save"]',
+      ].join(',');
+
+      const button = document.querySelector(elements);
+      if (button !== null) {
+        button.disabled = true;
+
+        Icons.getIcon('spinner-circle-dark', Icons.sizes.small).then(function (markup) {
+          button.querySelector('.t3js-icon').outerHTML = markup;
+        });
+      }
+    });
+
     window.addEventListener('message', FormEngine.handlePostMessage);
   };
 
@@ -607,7 +632,7 @@ define(['jquery',
    */
   FormEngine.consume = function(interactionRequest) {
     if (!interactionRequest) {
-      throw new BackendException('No interaction request given', 1496589980);
+      throw new BackendExceptionModule.BackendException('No interaction request given', 1496589980);
     }
     if (interactionRequest.concernsTypes(FormEngine.consumeTypes)) {
       var outerMostRequest = interactionRequest.outerMostRequest;
@@ -760,6 +785,7 @@ define(['jquery',
     if ($checkbox.prop('checked')) {
       $item.find('.t3js-formengine-placeholder-placeholder').hide();
       $item.find('.t3js-formengine-placeholder-formfield').show();
+      $item.find('.t3js-formengine-placeholder-formfield').find(':input').focus();
     } else {
       $item.find('.t3js-formengine-placeholder-placeholder').show();
       $item.find('.t3js-formengine-placeholder-formfield').hide();
@@ -1291,12 +1317,25 @@ define(['jquery',
    */
   FormEngine.closeDocument = function() {
     document.editform.closeDoc.value = 1;
+
+    FormEngine.dispatchSubmitEvent();
     document.editform.submit();
   };
 
   FormEngine.saveDocument = function() {
     document.editform.doSave.value = 1;
+
+    FormEngine.dispatchSubmitEvent();
     document.editform.submit();
+  };
+
+  /**
+   * Dispatches the "submit" event to the form. This is necessary if .submit() is called directly.
+   */
+  FormEngine.dispatchSubmitEvent = function() {
+    const submitEvent = document.createEvent('Event');
+    submitEvent.initEvent('submit', false, true);
+    document.editform.dispatchEvent(submitEvent);
   };
 
   /**

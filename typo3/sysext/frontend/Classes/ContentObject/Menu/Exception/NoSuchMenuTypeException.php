@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Frontend\ContentObject\Menu\Exception;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,9 +13,13 @@ namespace TYPO3\CMS\Frontend\ContentObject\Menu\Exception;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Frontend\ContentObject\Menu\Exception;
+
+use TYPO3\CMS\Frontend\Exception;
+
 /**
  * No such menu type exception
  */
-class NoSuchMenuTypeException extends \TYPO3\CMS\Frontend\Exception
+class NoSuchMenuTypeException extends Exception
 {
 }

@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Scheduler\Controller;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Scheduler\Controller;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Scheduler\Controller;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -279,15 +281,13 @@ class SchedulerModuleController
                             // Try adding or editing
                             $content .= $this->editTaskAction();
                             $sectionTitle = $this->getLanguageService()->getLL('action.' . $this->getCurrentAction());
+                        } catch (\LogicException|\UnexpectedValueException|\OutOfBoundsException $e) {
+                            // Catching all types of exceptions that were previously handled and
+                            // converted to messages
+                            $content .= $this->listTasksAction();
                         } catch (\Exception $e) {
-                            if ($e->getCode() === 1305100019) {
-                                // Invalid controller class name exception
-                                $this->addMessage($e->getMessage(), FlashMessage::ERROR);
-                            }
-                            // An exception may also happen when the task to
-                            // edit could not be found. In this case revert
-                            // to displaying the list of tasks
-                            // It can also happen when attempting to edit a running task
+                            // Catching all "unexpected" exceptions not previously handled
+                            $this->addMessage($e->getMessage(), FlashMessage::ERROR);
                             $content .= $this->listTasksAction();
                         }
                         break;
@@ -364,26 +364,30 @@ class SchedulerModuleController
         $this->view->assign('lastRunMessage', $message);
         $this->view->assign('lastRunSeverity', $severity);
 
-        // Check if CLI script is executable or not
-        $script = GeneralUtility::getFileAbsFileName('EXT:core/bin/typo3');
-        $this->view->assign('script', $script);
+        if (Environment::isComposerMode()) {
+            $this->view->assign('composerMode', true);
+        } else {
+            // Check if CLI script is executable or not
+            $script = GeneralUtility::getFileAbsFileName('EXT:core/bin/typo3');
+            $this->view->assign('script', $script);
+            // Skip this check if running Windows, as rights do not work the same way on this platform
+            // (i.e. the script will always appear as *not* executable)
+            if (Environment::isWindows()) {
+                $isExecutable = true;
+            } else {
+                $isExecutable = is_executable($script);
+            }
+            if ($isExecutable) {
+                $message = $this->getLanguageService()->getLL('msg.cliScriptExecutable');
+                $severity = InfoboxViewHelper::STATE_OK;
+            } else {
+                $message = $this->getLanguageService()->getLL('msg.cliScriptNotExecutable');
+                $severity = InfoboxViewHelper::STATE_ERROR;
+            }
+            $this->view->assign('isExecutableMessage', $message);
+            $this->view->assign('isExecutableSeverity', $severity);
+        }
 
-        // Skip this check if running Windows, as rights do not work the same way on this platform
-        // (i.e. the script will always appear as *not* executable)
-        if (Environment::isWindows()) {
-            $isExecutable = true;
-        } else {
-            $isExecutable = is_executable($script);
-        }
-        if ($isExecutable) {
-            $message = $this->getLanguageService()->getLL('msg.cliScriptExecutable');
-            $severity = InfoboxViewHelper::STATE_OK;
-        } else {
-            $message = $this->getLanguageService()->getLL('msg.cliScriptNotExecutable');
-            $severity = InfoboxViewHelper::STATE_ERROR;
-        }
-        $this->view->assign('isExecutableMessage', $message);
-        $this->view->assign('isExecutableSeverity', $severity);
         $this->view->assign('now', $this->getServerTime());
 
         return $this->view->render();
@@ -522,7 +526,7 @@ class SchedulerModuleController
                 // If there's a registered execution, the task should not be edited
                 if (!empty($taskRecord['serialized_executions'])) {
                     $this->addMessage($this->getLanguageService()->getLL('msg.maynotEditRunningTask'), FlashMessage::ERROR);
-                    throw new \LogicException('Runnings tasks cannot not be edited', 1251232849);
+                    throw new \LogicException('Running tasks cannot not be edited', 1251232849);
                 }
 
                 // Get the task object
@@ -687,9 +691,9 @@ class SchedulerModuleController
                 $additionalFieldsStyle = ' style="display: none"';
             }
             // Add each field to the display, if there are indeed any
-            if (isset($fields) && is_array($fields)) {
+            if (is_array($fields)) {
                 foreach ($fields as $fieldID => $fieldInfo) {
-                    $htmlClassName = strtolower(str_replace('\\', '-', $class));
+                    $htmlClassName = strtolower(str_replace('\\', '-', (string)$class));
                     $field = [];
                     $field['htmlClassName'] = $htmlClassName;
                     $field['code'] = $fieldInfo['code'];
@@ -1121,6 +1125,7 @@ class SchedulerModuleController
      */
     protected function preprocessData()
     {
+        $cronErrorCode = 0;
         $result = true;
         // Validate id
         $this->submittedData['uid'] = empty($this->submittedData['uid']) ? 0 : (int)$this->submittedData['uid'];
@@ -1173,7 +1178,6 @@ class SchedulerModuleController
                 $this->addMessage($this->getLanguageService()->getLL('msg.noFrequency'), FlashMessage::ERROR);
                 $result = false;
             } else {
-                $cronErrorCode = 0;
                 $cronErrorMessage = '';
                 // Try interpreting the cron command
                 try {
@@ -1187,11 +1191,11 @@ class SchedulerModuleController
                     // If yes, assume it is a frequency in seconds, and unset cron error code
                     if (is_numeric($frequency)) {
                         $this->submittedData['interval'] = (int)$frequency;
-                        unset($cronErrorCode);
+                        $cronErrorCode = 0;
                     }
                 }
                 // If there's a cron error code, issue validation error message
-                if (!empty($cronErrorCode)) {
+                if ($cronErrorCode > 0) {
                     $this->addMessage(sprintf($this->getLanguageService()->getLL('msg.frequencyError'), $cronErrorMessage, $cronErrorCode), FlashMessage::ERROR);
                     $result = false;
                 }
@@ -1321,8 +1325,7 @@ class SchedulerModuleController
             $closeButton = $buttonBar->makeLinkButton()
                 ->setTitle($this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_common.xlf:cancel'))
                 ->setIcon($this->moduleTemplate->getIconFactory()->getIcon('actions-close', Icon::SIZE_SMALL))
-                ->setOnClick('document.location=' . GeneralUtility::quoteJSvalue($this->moduleUri))
-                ->setHref('#');
+                ->setHref($this->moduleUri);
             $buttonBar->addButton($closeButton, ButtonBar::BUTTON_POSITION_LEFT, 2);
             // Save, SaveAndClose, SaveAndNew
             $saveButtonDropdown = $buttonBar->makeSplitButton();

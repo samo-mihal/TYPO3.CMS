@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Form\FormDataProvider;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Form\FormDataProvider;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Form\FormDataProvider;
 
 use TYPO3\CMS\Backend\Form\FormDataProviderInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -177,7 +178,7 @@ class TcaTypesShowitem implements FormDataProviderInterface
      * -> showitem = 'foo,bar'
      *
      * @param array $result Result array
-     * @param string $bitmaskValue subtype value
+     * @param int $bitmaskValue subtype value
      * @param string $recordTypeValue Given record type value
      * @return array Modified result array
      */
@@ -190,8 +191,8 @@ class TcaTypesShowitem implements FormDataProviderInterface
             $bitKey = (int)$bitKey;
             $isNegative = (bool)($bitKey < 0);
             $bit = abs($bitKey);
-            if (!$isNegative && ($bitmaskValue & pow(2, $bit))
-                || $isNegative && !($bitmaskValue & pow(2, $bit))
+            if (!$isNegative && ($bitmaskValue & 2 ** $bit)
+                || $isNegative && !($bitmaskValue & 2 ** $bit)
             ) {
                 $removeListArray = array_merge($removeListArray, GeneralUtility::trimExplode(',', $excludeList, true));
             }

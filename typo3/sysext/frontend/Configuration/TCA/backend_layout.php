@@ -1,4 +1,5 @@
 <?php
+
 return [
     'ctrl' => [
         'title' => 'LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:backend_layout',
@@ -18,9 +19,6 @@ return [
             'default' => 'mimetypes-x-backend_layout'
         ],
         'selicon_field' => 'icon'
-    ],
-    'interface' => [
-        'showRecordFieldList' => 'title,config,description,hidden,icon'
     ],
     'columns' => [
         'title' => [

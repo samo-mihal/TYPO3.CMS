@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Form\FormDataProvider;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Backend\Form\FormDataProvider;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Form\FormDataProvider;
+
 use TYPO3\CMS\Backend\Form\Exception\DatabaseRecordException;
 use TYPO3\CMS\Backend\Form\FormDataCompiler;
 use TYPO3\CMS\Backend\Form\FormDataGroup\OnTheFly;
@@ -27,6 +28,7 @@ use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Messaging\FlashMessageService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\MathUtility;
 use TYPO3\CMS\Core\Versioning\VersionState;
 
 /**
@@ -99,18 +101,25 @@ class TcaInline extends AbstractDatabaseRecordProvider implements FormDataProvid
             // If the parent is a page, use the uid(!) of the (new?) page as pid for the child records:
             if ($table === 'pages') {
                 $liveVersionId = BackendUtility::getLiveVersionIdOfRecord('pages', $row['uid']);
-                $pid = $liveVersionId === null ? $row['uid'] : $liveVersionId;
-            } elseif ($row['pid'] < 0) {
-                $prevRec = BackendUtility::getRecord($table, abs($row['pid']));
+                $pid = $liveVersionId ?? $row['uid'];
+            } elseif (($row['pid'] ?? 0) < 0) {
+                $prevRec = BackendUtility::getRecord($table, (int)abs($row['pid']));
                 $pid = $prevRec['pid'];
             } else {
-                $pid = $row['pid'];
+                $pid = $row['pid'] ?? 0;
             }
-            $pageRecord = BackendUtility::getRecord('pages', $pid);
-            if ((int)$pageRecord[$GLOBALS['TCA']['pages']['ctrl']['transOrigPointerField']] > 0) {
-                $pid = (int)$pageRecord[$GLOBALS['TCA']['pages']['ctrl']['transOrigPointerField']];
+            if (MathUtility::canBeInterpretedAsInteger($pid)) {
+                $pageRecord = BackendUtility::getRecord('pages', (int)$pid);
+                if ((int)$pageRecord[$GLOBALS['TCA']['pages']['ctrl']['transOrigPointerField']] > 0) {
+                    $pid = (int)$pageRecord[$GLOBALS['TCA']['pages']['ctrl']['transOrigPointerField']];
+                }
+            } elseif (strpos($pid, 'NEW') !== 0) {
+                throw new \RuntimeException(
+                    'inlineFirstPid should either be an integer or a "NEW..." string',
+                    1521220142
+                );
             }
-            $result['inlineFirstPid'] = (int)$pid;
+            $result['inlineFirstPid'] = $pid;
         }
         return $result;
     }
@@ -189,7 +198,7 @@ class TcaInline extends AbstractDatabaseRecordProvider implements FormDataProvid
                             $e->getMessage(),
                             [
                                 'table' => $childTableName,
-                                'uid' => $localizedUid,
+                                'uid' => $defaultLanguageUid,
                                 'exception' => $e
                             ]
                         );
@@ -436,7 +445,7 @@ class TcaInline extends AbstractDatabaseRecordProvider implements FormDataProvid
      *
      * @param array $parentConfig TCA config section of parent
      * @param string $parentTableName Name of parent table
-     * @param string $parentUid Uid of parent record
+     * @param int $parentUid Uid of parent record
      * @param string $parentFieldValue Database value of parent record of this inline field
      * @return array Array with connected uids
      * @todo: Cover with unit tests

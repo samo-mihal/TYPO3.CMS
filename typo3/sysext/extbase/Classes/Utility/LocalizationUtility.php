@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Extbase\Utility;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,7 +15,10 @@ namespace TYPO3\CMS\Extbase\Utility;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Utility;
+
 use Psr\Http\Message\ServerRequestInterface;
+use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Localization\Locales;
 use TYPO3\CMS\Core\Localization\LocalizationFactory;
 use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
@@ -194,7 +196,9 @@ class LocalizationUtility
             $siteLanguage = self::getCurrentSiteLanguage();
 
             // Get values from site language
-            $languageKeys['languageKey'] = $siteLanguage->getTypo3Language();
+            if ($siteLanguage !== null) {
+                $languageKeys['languageKey'] = $siteLanguage->getTypo3Language();
+            }
 
             $locales = GeneralUtility::makeInstance(Locales::class);
             if (in_array($languageKeys['languageKey'], $locales->getLocales())) {
@@ -314,7 +318,7 @@ class LocalizationUtility
     /**
      * @return \TYPO3\CMS\Core\Localization\LanguageService
      */
-    protected static function getLanguageService(): \TYPO3\CMS\Core\Localization\LanguageService
+    protected static function getLanguageService(): LanguageService
     {
         return $GLOBALS['LANG'];
     }

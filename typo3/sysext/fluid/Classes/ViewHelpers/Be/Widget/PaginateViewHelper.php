@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\ViewHelpers\Be\Widget;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,7 +12,12 @@ namespace TYPO3\CMS\Fluid\ViewHelpers\Be\Widget;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Fluid\ViewHelpers\Be\Widget;
+
 use TYPO3\CMS\Extbase\Persistence\QueryResultInterface;
+use TYPO3\CMS\Fluid\Core\Widget\AbstractWidgetViewHelper;
+use TYPO3\CMS\Fluid\ViewHelpers\Be\Widget\Controller\PaginateController;
 
 /**
  * This ViewHelper renders a Pagination of objects for the TYPO3 Backend.
@@ -47,7 +51,7 @@ use TYPO3\CMS\Extbase\Persistence\QueryResultInterface;
  * only the small subset of objects.
  * So, there is no negative performance overhead in using the Be Paginate Widget.
  */
-class PaginateViewHelper extends \TYPO3\CMS\Fluid\Core\Widget\AbstractWidgetViewHelper
+class PaginateViewHelper extends AbstractWidgetViewHelper
 {
     /**
      * @var \TYPO3\CMS\Fluid\ViewHelpers\Be\Widget\Controller\PaginateController
@@ -57,7 +61,7 @@ class PaginateViewHelper extends \TYPO3\CMS\Fluid\Core\Widget\AbstractWidgetView
     /**
      * @param \TYPO3\CMS\Fluid\ViewHelpers\Be\Widget\Controller\PaginateController $controller
      */
-    public function injectPaginateController(\TYPO3\CMS\Fluid\ViewHelpers\Be\Widget\Controller\PaginateController $controller)
+    public function injectPaginateController(PaginateController $controller)
     {
         $this->controller = $controller;
     }

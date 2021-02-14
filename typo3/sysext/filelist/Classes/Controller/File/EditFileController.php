@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Filelist\Controller\File;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Filelist\Controller\File;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Filelist\Controller\File;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -30,6 +32,7 @@ use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Messaging\FlashMessageService;
 use TYPO3\CMS\Core\Resource\Exception\InsufficientFileAccessPermissionsException;
+use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Fluid\View\StandaloneView;
@@ -71,7 +74,7 @@ class EditFileController
     /**
      * the file that is being edited on
      *
-     * @var \TYPO3\CMS\Core\Resource\AbstractFile
+     * @var File
      */
     protected $fileObject;
 
@@ -83,11 +86,17 @@ class EditFileController
     protected $moduleTemplate;
 
     /**
+     * @var UriBuilder
+     */
+    protected $uriBuilder;
+
+    /**
      * Constructor
      */
     public function __construct()
     {
         $this->moduleTemplate = GeneralUtility::makeInstance(ModuleTemplate::class);
+        $this->uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
     }
 
     /**
@@ -120,10 +129,9 @@ class EditFileController
 
         // Setting target, which must be a file reference to a file within the mounts.
         $this->target = $this->origTarget = $parsedBody['target'] ?? $queryParams['target'] ?? '';
-        $this->returnUrl = GeneralUtility::sanitizeLocalUrl($parsedBody['returnUrl'] ?? $queryParams['returnUrl'] ?? '');
         // create the file object
         if ($this->target) {
-            $this->fileObject = ResourceFactory::getInstance()
+            $this->fileObject = GeneralUtility::makeInstance(ResourceFactory::class)
                 ->retrieveFileOrFolderObject($this->target);
         }
         // Cleaning and checking target directory
@@ -138,13 +146,12 @@ class EditFileController
                 1375889832
             );
         }
-
-        // Setting template object
-        $this->moduleTemplate->addJavaScriptCode(
-            'FileEditBackToList',
-            'function backToList() {
-				top.goToModule("file_FilelistList");
-			}'
+        $this->returnUrl = GeneralUtility::sanitizeLocalUrl(
+            $parsedBody['returnUrl']
+                ?? $queryParams['returnUrl']
+                ?? (string)$this->uriBuilder->buildUriFromRoute('file_FilelistList', [
+                    'id' => $this->fileObject->getParentFolder()->getCombinedIdentifier()
+                ])
         );
     }
 
@@ -178,29 +185,23 @@ class EditFileController
         }
 
         $assigns = [];
-        $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
-        $assigns['moduleUrlTceFile'] = (string)$uriBuilder->buildUriFromRoute('tce_file');
+        $assigns['moduleUrlTceFile'] = (string)$this->uriBuilder->buildUriFromRoute('tce_file');
         $assigns['fileName'] = $this->fileObject->getName();
 
-        $extList = $GLOBALS['TYPO3_CONF_VARS']['SYS']['textfile_ext'];
         try {
-            if (!$extList || !GeneralUtility::inList($extList, $this->fileObject->getExtension())) {
+            $extList = $GLOBALS['TYPO3_CONF_VARS']['SYS']['textfile_ext'];
+            if (!$this->fileObject->isTextFile()) {
                 // @todo throw a minor exception here, not the global one
                 throw new \Exception('Files with that extension are not editable. Allowed extensions are: ' . $extList, 1476050135);
             }
 
             // Making the formfields
-            $hValue = (string)$uriBuilder->buildUriFromRoute('file_edit', [
-                'target' => $this->origTarget,
-                'returnUrl' => $this->returnUrl
-            ]);
-
             $formData = [
                 'databaseRow' => [
                     'uid' => 0,
                     'data' => $this->fileObject->getContents(),
                     'target' => $this->fileObject->getUid(),
-                    'redirect' => $hValue,
+                    'redirect' => $this->returnUrl,
                 ],
                 'tableName' => 'editfile',
                 'processedTca' => [
@@ -301,11 +302,6 @@ class EditFileController
             ->setName('_saveandclosedok')
             ->setValue('1')
             ->setForm('EditFileController')
-            ->setOnClick(
-                'document.editform.elements.namedItem("data[editfile][0][redirect]").value='
-                . GeneralUtility::quoteJSvalue($this->returnUrl)
-                . ';'
-            )
             ->setTitle($lang->sL('LLL:EXT:filelist/Resources/Private/Language/locallang.xlf:file_edit.php.saveAndClose'))
             ->setIcon($this->moduleTemplate->getIconFactory()->getIcon(
                 'actions-document-save-close',
@@ -319,8 +315,8 @@ class EditFileController
 
         // Cancel button
         $closeButton = $buttonBar->makeLinkButton()
-            ->setHref('#')
-            ->setOnClick('backToList(); return false;')
+            ->setShowLabelText(true)
+            ->setHref($this->returnUrl)
             ->setTitle($lang->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.cancel'))
             ->setIcon($this->moduleTemplate->getIconFactory()->getIcon('actions-close', Icon::SIZE_SMALL));
         $buttonBar->addButton($closeButton, ButtonBar::BUTTON_POSITION_LEFT, 10);

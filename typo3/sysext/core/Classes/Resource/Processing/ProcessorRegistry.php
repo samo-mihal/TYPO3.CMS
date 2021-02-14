@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Resource\Processing;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Resource\Processing;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Resource\Processing;
 
 use TYPO3\CMS\Core\Service\DependencyOrderingService;
 use TYPO3\CMS\Core\SingletonInterface;
@@ -79,7 +81,7 @@ class ProcessorRegistry implements SingletonInterface
 
         if ($processor === null) {
             throw new \RuntimeException(
-                'No matching image processor found.',
+                sprintf('No matching file processor found for task type "%s" and name "%s".', $task->getType(), $task->getName()),
                 1560876294
             );
         }

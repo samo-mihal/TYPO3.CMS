@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Routing;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,9 +13,13 @@ namespace TYPO3\CMS\Backend\Routing;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Routing;
+
+use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Routing\Exception\RouteNotFoundException;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\FormProtection\FormProtectionFactory;
+use TYPO3\CMS\Core\Http\NormalizedParams;
 use TYPO3\CMS\Core\Http\Uri;
 use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -139,7 +142,13 @@ class UriBuilder implements SingletonInterface
         if ($referenceType === self::ABSOLUTE_PATH) {
             $uri = PathUtility::getAbsoluteWebPath(Environment::getBackendPath() . '/' . $uri);
         } else {
-            $uri = GeneralUtility::getIndpEnv('TYPO3_REQUEST_DIR') . $uri;
+            if (isset($GLOBALS['TYPO3_REQUEST'])
+                && $GLOBALS['TYPO3_REQUEST'] instanceof ServerRequestInterface
+                && $GLOBALS['TYPO3_REQUEST']->getAttribute('normalizedParams') instanceof NormalizedParams) {
+                $uri = $GLOBALS['TYPO3_REQUEST']->getAttribute('normalizedParams')->getRequestDir() . $uri;
+            } else {
+                $uri = GeneralUtility::getIndpEnv('TYPO3_REQUEST_DIR') . $uri;
+            }
         }
         return GeneralUtility::makeInstance(Uri::class, $uri);
     }

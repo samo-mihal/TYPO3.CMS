@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\FrontendLogin\Service;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,12 +15,15 @@ namespace TYPO3\CMS\FrontendLogin\Service;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\FrontendLogin\Service;
+
 use Psr\EventDispatcher\EventDispatcherInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
+use TYPO3\CMS\Core\Mail\FluidEmail;
 use TYPO3\CMS\Core\Mail\Mailer;
-use TYPO3\CMS\Core\Mail\MailMessage;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Configuration\ConfigurationManager;
 use TYPO3\CMS\Extbase\Configuration\Exception\InvalidConfigurationTypeException;
@@ -74,6 +76,7 @@ class RecoveryService implements RecoveryServiceInterface
      * @param RecoveryConfiguration $recoveryConfiguration
      * @param UriBuilder $uriBuilder
      * @param FrontendUserRepository $userRepository
+     *
      * @throws InvalidConfigurationTypeException
      */
     public function __construct(
@@ -140,6 +143,7 @@ class RecoveryService implements RecoveryServiceInterface
      *
      * @param Address $receiver
      * @param string $hash
+     *
      * @return Email
      * @throws IncompleteConfigurationException
      */
@@ -160,26 +164,22 @@ class RecoveryService implements RecoveryServiceInterface
             'validUntil' => date($this->settings['dateFormat'], $this->recoveryConfiguration->getLifeTimeTimestamp()),
         ];
 
-        $plainMailTemplate = $this->recoveryConfiguration->getPlainMailTemplate();
-        $plainMailTemplate->assignMultiple($variables);
+        $mailTemplatePaths = $this->recoveryConfiguration->getMailTemplatePaths();
 
-        $subject = $this->getEmailSubject();
-        $mail = GeneralUtility::makeInstance(MailMessage::class);
-        $mail
-            ->subject($subject)
+        $mail = GeneralUtility::makeInstance(FluidEmail::class, $mailTemplatePaths);
+        $mail->subject($this->getEmailSubject())
             ->from($this->recoveryConfiguration->getSender())
             ->to($receiver)
-            ->text($plainMailTemplate->render());
-
-        if ($this->recoveryConfiguration->hasHtmlMailTemplate()) {
-            $htmlMailTemplate = $this->recoveryConfiguration->getHtmlMailTemplate();
-            $htmlMailTemplate->assignMultiple($variables);
-            $mail->html($htmlMailTemplate->render());
-        }
+            ->assignMultiple($variables)
+            ->setTemplate($this->recoveryConfiguration->getMailTemplateName());
 
         $replyTo = $this->recoveryConfiguration->getReplyTo();
         if ($replyTo) {
             $mail->addReplyTo($replyTo);
+        }
+
+        if (($GLOBALS['TYPO3_REQUEST'] ?? null) instanceof ServerRequestInterface) {
+            $mail->setRequest($GLOBALS['TYPO3_REQUEST']);
         }
 
         return $mail;

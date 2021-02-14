@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Tests\Unit\Routing;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,13 @@ namespace TYPO3\CMS\Backend\Tests\Unit\Routing;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Tests\Unit\Routing;
+
 use TYPO3\CMS\Backend\Routing\Exception\RouteNotFoundException;
 use TYPO3\CMS\Backend\Routing\Route;
 use TYPO3\CMS\Backend\Routing\Router;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -106,6 +108,6 @@ class UriBuilderTest extends UnitTestCase
         $this->expectException(RouteNotFoundException::class);
         $this->expectExceptionCode(1476050190);
         $subject = new UriBuilder(new Router());
-        $subject->buildUriFromRoute(uniqid('any'));
+        $subject->buildUriFromRoute(StringUtility::getUniqueId('any'));
     }
 }

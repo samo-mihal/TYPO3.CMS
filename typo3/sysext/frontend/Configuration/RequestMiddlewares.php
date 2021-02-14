@@ -33,6 +33,7 @@ return [
             'target' => \TYPO3\CMS\Frontend\Middleware\MaintenanceMode::class,
             'after' => [
                 'typo3/cms-core/normalized-params-attribute',
+                'typo3/cms-frontend/site',
                 'typo3/cms-frontend/eid'
             ]
         ],
@@ -41,6 +42,16 @@ return [
             'target' => \TYPO3\CMS\Frontend\Middleware\ContentLengthResponseHeader::class,
             'after' => [
                 'typo3/cms-frontend/maintenance-mode'
+            ]
+        ],
+        'typo3/cms-frontend/preview-simulator' => [
+            'target' => \TYPO3\CMS\Frontend\Middleware\PreviewSimulator::class,
+            'after' => [
+                'typo3/cms-frontend/backend-user-authentication',
+                'typo3/cms-frontend/authentication',
+            ],
+            'before' => [
+                'typo3/cms-frontend/tsfe'
             ]
         ],
         'typo3/cms-frontend/site' => [

@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Routing\Enhancer;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Core\Routing\Enhancer;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Routing\Enhancer;
 
 use TYPO3\CMS\Core\Routing\Route;
 use TYPO3\CMS\Core\Routing\RouteCollection;
@@ -144,9 +145,14 @@ class PageTypeDecorator extends AbstractEnhancer implements DecoratingEnhancerIn
     {
         $type = isset($parameters['type']) ? (string)$parameters['type'] : null;
         $value = $this->resolveValue($type);
+        // If the type is > 0 but the value could not be resolved,
+        // the type is appended as GET argument, which can be resolved already anyway.
+        // This happens when the PageTypeDecorator is used, but hasn't been configured for all available types.
+        if ($value === '' && !empty($type)) {
+            return;
+        }
 
-        $considerIndex = $value !== ''
-            && in_array($value[0], static::ROUTE_PATH_DELIMITERS);
+        $considerIndex = $value !== '' && in_array($value[0], static::ROUTE_PATH_DELIMITERS);
         if ($value !== '' && !in_array($value[0], static::ROUTE_PATH_DELIMITERS)) {
             $value = '/' . $value;
         }
@@ -213,7 +219,7 @@ class PageTypeDecorator extends AbstractEnhancer implements DecoratingEnhancerIn
         if (!empty($regularItems) && !empty($this->index)) {
             $name = $useNames ? '?P<indexItems>' : '';
             $indexPattern = $this->quoteForRegularExpressionPattern($this->index);
-            $patterns[] = '(' . $name . $indexPattern . '(?:' . implode('|', $regularItems) . '))';
+            $patterns[] = '^' . $indexPattern . '(' . $name . '(?:' . implode('|', $regularItems) . '))';
         }
         if (!empty($regularItems)) {
             $name = $useNames ? '?P<regularItems>' : '';

@@ -1,11 +1,9 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\Mvc\Persistence;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
- *
- * It originated from the Neos.Form package (www.neos.io)
  *
  * It is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, either version 2
@@ -17,6 +15,12 @@ namespace TYPO3\CMS\Form\Mvc\Persistence;
  * The TYPO3 project - inspiring people to share!
  */
 
+/*
+ * Inspired by and partially taken from the Neos.Form package (www.neos.io)
+ */
+
+namespace TYPO3\CMS\Form\Mvc\Persistence;
+
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
 use TYPO3\CMS\Core\Resource\Exception\FolderDoesNotExistException;
@@ -26,6 +30,7 @@ use TYPO3\CMS\Core\Resource\Filter\FileExtensionFilter;
 use TYPO3\CMS\Core\Resource\Folder;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\Resource\ResourceStorage;
+use TYPO3\CMS\Core\Resource\StorageRepository;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\PathUtility;
 use TYPO3\CMS\Core\Utility\StringUtility;
@@ -33,6 +38,7 @@ use TYPO3\CMS\Extbase\Object\ObjectManager;
 use TYPO3\CMS\Form\Mvc\Configuration\ConfigurationManagerInterface;
 use TYPO3\CMS\Form\Mvc\Configuration\Exception\FileWriteException;
 use TYPO3\CMS\Form\Mvc\Configuration\Exception\NoSuchFileException;
+use TYPO3\CMS\Form\Mvc\Configuration\YamlSource;
 use TYPO3\CMS\Form\Mvc\Persistence\Exception\NoUniqueIdentifierException;
 use TYPO3\CMS\Form\Mvc\Persistence\Exception\NoUniquePersistenceIdentifierException;
 use TYPO3\CMS\Form\Mvc\Persistence\Exception\PersistenceManagerException;
@@ -81,7 +87,7 @@ class FormPersistenceManager implements FormPersistenceManagerInterface
      * @param \TYPO3\CMS\Form\Mvc\Configuration\YamlSource $yamlSource
      * @internal
      */
-    public function injectYamlSource(\TYPO3\CMS\Form\Mvc\Configuration\YamlSource $yamlSource)
+    public function injectYamlSource(YamlSource $yamlSource)
     {
         $this->yamlSource = $yamlSource;
     }
@@ -90,7 +96,7 @@ class FormPersistenceManager implements FormPersistenceManagerInterface
      * @param \TYPO3\CMS\Core\Resource\StorageRepository $storageRepository
      * @internal
      */
-    public function injectStorageRepository(\TYPO3\CMS\Core\Resource\StorageRepository $storageRepository)
+    public function injectStorageRepository(StorageRepository $storageRepository)
     {
         $this->storageRepository = $storageRepository;
     }
@@ -98,7 +104,7 @@ class FormPersistenceManager implements FormPersistenceManagerInterface
     /**
      * @param \TYPO3\CMS\Form\Slot\FilePersistenceSlot $filePersistenceSlot
      */
-    public function injectFilePersistenceSlot(\TYPO3\CMS\Form\Slot\FilePersistenceSlot $filePersistenceSlot)
+    public function injectFilePersistenceSlot(FilePersistenceSlot $filePersistenceSlot)
     {
         $this->filePersistenceSlot = $filePersistenceSlot;
     }
@@ -106,7 +112,7 @@ class FormPersistenceManager implements FormPersistenceManagerInterface
     /**
      * @param \TYPO3\CMS\Core\Resource\ResourceFactory $resourceFactory
      */
-    public function injectResourceFactory(\TYPO3\CMS\Core\Resource\ResourceFactory $resourceFactory)
+    public function injectResourceFactory(ResourceFactory $resourceFactory)
     {
         $this->resourceFactory = $resourceFactory;
     }
@@ -227,7 +233,7 @@ class FormPersistenceManager implements FormPersistenceManagerInterface
             $fileToDelete = GeneralUtility::getFileAbsFileName($persistenceIdentifier);
             unlink($fileToDelete);
         } else {
-            list($storageUid, $fileIdentifier) = explode(':', $persistenceIdentifier, 2);
+            [$storageUid, $fileIdentifier] = explode(':', $persistenceIdentifier, 2);
             $storage = $this->getStorageByUid((int)$storageUid);
             $file = $storage->getFile($fileIdentifier);
             if (!$storage->checkFileActionPermission('delete', $file)) {
@@ -253,7 +259,7 @@ class FormPersistenceManager implements FormPersistenceManagerInterface
                     $exists = file_exists(GeneralUtility::getFileAbsFileName($persistenceIdentifier));
                 }
             } else {
-                list($storageUid, $fileIdentifier) = explode(':', $persistenceIdentifier, 2);
+                [$storageUid, $fileIdentifier] = explode(':', $persistenceIdentifier, 2);
                 $storage = $this->getStorageByUid((int)$storageUid);
                 $exists = $storage->hasFile($fileIdentifier);
             }
@@ -372,7 +378,7 @@ class FormPersistenceManager implements FormPersistenceManagerInterface
      * Retrieves yaml files from extension folders for further processing.
      * At this time it's not determined yet, whether these files contain form data.
      *
-     * @return File[]
+     * @return array<string, string>
      * @internal
      */
     public function retrieveYamlFilesFromExtensionFolders(): array
@@ -576,7 +582,7 @@ class FormPersistenceManager implements FormPersistenceManagerInterface
     }
 
     /**
-     * Check if an identifier is already used by a formDefintion.
+     * Check if an identifier is already used by a formDefinition.
      *
      * @param string $identifier
      * @return bool
@@ -605,7 +611,7 @@ class FormPersistenceManager implements FormPersistenceManagerInterface
      */
     protected function getOrCreateFile(string $persistenceIdentifier): File
     {
-        list($storageUid, $fileIdentifier) = explode(':', $persistenceIdentifier, 2);
+        [$storageUid, $fileIdentifier] = explode(':', $persistenceIdentifier, 2);
         $storage = $this->getStorageByUid((int)$storageUid);
         $pathinfo = PathUtility::pathinfo($fileIdentifier);
 
@@ -787,7 +793,9 @@ class FormPersistenceManager implements FormPersistenceManagerInterface
      */
     protected function isFileWithinAccessibleExtensionFolders(string $fileName): bool
     {
-        $dirName = rtrim(PathUtility::pathinfo($fileName, PATHINFO_DIRNAME), '/') . '/';
+        $pathInfo = PathUtility::pathinfo($fileName, PATHINFO_DIRNAME);
+        $pathInfo = is_string($pathInfo) ? $pathInfo : '';
+        $dirName = rtrim($pathInfo, '/') . '/';
         return array_key_exists($dirName, $this->getAccessibleExtensionFolders());
     }
 

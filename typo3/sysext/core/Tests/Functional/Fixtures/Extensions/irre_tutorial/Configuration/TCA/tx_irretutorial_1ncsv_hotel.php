@@ -1,4 +1,5 @@
 <?php
+
 return [
     'ctrl' => [
         'title' => 'LLL:EXT:irre_tutorial/Resources/Private/Language/locallang_db.xml:tx_irretutorial_1ncsv_hotel',
@@ -20,9 +21,6 @@ return [
         'shadowColumnsForNewPlaceholders' => 'offers',
         'shadowColumnsForMovePlaceholders' => 'offers',
     ],
-    'interface' => [
-        'showRecordFieldList' => 'sys_language_uid,l18n_parent,l18n_diffsource,hidden,title,offers'
-    ],
     'columns' => [
         'sys_language_uid' => [
             'exclude' => true,
@@ -40,7 +38,6 @@ return [
         ],
         'l18n_parent' => [
             'displayCond' => 'FIELD:sys_language_uid:>:0',
-            'exclude' => true,
             'label' => 'LLL:EXT:core/Resources/Private/Language/locallang_general.xlf:LGL.l18n_parent',
             'config' => [
                 'type' => 'select',

@@ -1,5 +1,4 @@
 <?php
-namespace OliverHader\IrreTutorial\Domain\Model;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,12 +13,16 @@ namespace OliverHader\IrreTutorial\Domain\Model;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace OliverHader\IrreTutorial\Domain\Model;
+
 use TYPO3\CMS\Extbase\Annotation as Extbase;
+use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
+use TYPO3\CMS\Extbase\Persistence\ObjectStorage;
 
 /**
  * Offer
  */
-class Offer extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity
+class Offer extends AbstractEntity
 {
     /**
      * @var string
@@ -37,7 +40,7 @@ class Offer extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity
      */
     public function __construct()
     {
-        $this->prices = new \TYPO3\CMS\Extbase\Persistence\ObjectStorage();
+        $this->prices = new ObjectStorage();
     }
 
     /**
@@ -67,7 +70,7 @@ class Offer extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity
     /**
      * @param \TYPO3\CMS\Extbase\Persistence\ObjectStorage $prices
      */
-    public function setPrices(\TYPO3\CMS\Extbase\Persistence\ObjectStorage $prices)
+    public function setPrices(ObjectStorage $prices)
     {
         $this->prices = $prices;
     }

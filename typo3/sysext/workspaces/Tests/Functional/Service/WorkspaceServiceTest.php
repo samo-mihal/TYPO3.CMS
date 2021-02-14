@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Workspaces\Tests\Functional\Service;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Workspaces\Tests\Functional\Service;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Workspaces\Tests\Functional\Service;
 
 use TYPO3\CMS\Core\Core\Bootstrap;
 use TYPO3\CMS\Workspaces\Service\WorkspaceService;
@@ -68,23 +69,6 @@ class WorkspaceServiceTest extends FunctionalTestCase
         );
         self::assertEquals(102, $result['pages'][0]['uid'], 'Wrong workspace overlay record picked');
         self::assertEquals(1, $result['pages'][0]['livepid'], 'Real pid wasn\'t resolved correctly');
-    }
-
-    /**
-     * @test
-     */
-    public function versionsFromAllWorkspaceCanBeFound()
-    {
-        $this->importDataSet('PACKAGE:typo3/testing-framework/Resources/Core/Functional/Fixtures/pages.xml');
-        $this->importDataSet(__DIR__ . '/../Fixtures/pages.xml');
-        $service = new WorkspaceService();
-        $result = $service->selectVersionsInWorkspace(WorkspaceService::SELECT_ALL_WORKSPACES, 0, -99, 2);
-        self::assertTrue(is_array($result), 'The result from workspace 91 is supposed to be an array');
-        self::assertCount(
-            2,
-            $result['pages'],
-            'The result is supposed to contain one version for this page in workspace 91'
-        );
     }
 
     /**

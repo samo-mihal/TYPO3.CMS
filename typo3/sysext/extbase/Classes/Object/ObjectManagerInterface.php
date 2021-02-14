@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Extbase\Object;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,26 +15,22 @@ namespace TYPO3\CMS\Extbase\Object;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Object;
+
+use TYPO3\CMS\Core\SingletonInterface;
+
 /**
  * Interface for the TYPO3 Object Manager
  */
-interface ObjectManagerInterface extends \TYPO3\CMS\Core\SingletonInterface
+interface ObjectManagerInterface extends SingletonInterface
 {
-    /**
-     * Returns TRUE if an object with the given name is registered
-     *
-     * @param string $objectName Name of the object
-     * @return bool TRUE if the object has been registered, otherwise FALSE
-     * @internal only to be used within Extbase, not part of TYPO3 Core API.
-     */
-    public function isRegistered(string $objectName): bool;
-
     /**
      * Returns a fresh or existing instance of the object specified by $objectName.
      *
      * @param string $objectName The name of the object to return an instance of
      * @param array ...$constructorArguments
      * @return object The object instance
+     * @deprecated since TYPO3 10.4, will be removed in version 12.0
      */
     public function get(string $objectName, ...$constructorArguments): object;
 
@@ -46,13 +41,4 @@ interface ObjectManagerInterface extends \TYPO3\CMS\Core\SingletonInterface
      * @return object
      */
     public function getEmptyObject(string $className): object;
-
-    /**
-     * Returns the scope of the specified object.
-     *
-     * @param string $objectName The object name
-     * @return int One of the Container::SCOPE_ constants
-     * @internal only to be used within Extbase, not part of TYPO3 Core API.
-     */
-    public function getScope(string $objectName): int;
 }

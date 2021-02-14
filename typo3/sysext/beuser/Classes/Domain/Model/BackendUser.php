@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Beuser\Domain\Model;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,11 @@ namespace TYPO3\CMS\Beuser\Domain\Model;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Beuser\Domain\Model;
+
+use TYPO3\CMS\Backend\Authentication\PasswordReset;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Model for backend user
@@ -134,6 +138,16 @@ class BackendUser extends \TYPO3\CMS\Extbase\Domain\Model\BackendUser
     public function isCurrentlyLoggedIn()
     {
         return $this->getUid() === (int)$this->getBackendUser()->user['uid'];
+    }
+
+    /**
+     * Check if the user (not the currently logged in user) is allowed to trigger a password reset
+     *
+     * @return bool
+     */
+    public function isPasswordResetEnabled(): bool
+    {
+        return !$this->isCurrentlyLoggedIn() && GeneralUtility::makeInstance(PasswordReset::class)->isEnabledForUser((int)$this->getUid());
     }
 
     /**

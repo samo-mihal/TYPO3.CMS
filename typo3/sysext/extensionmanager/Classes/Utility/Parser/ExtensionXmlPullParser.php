@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extensionmanager\Utility\Parser;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,10 @@ namespace TYPO3\CMS\Extensionmanager\Utility\Parser;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Extensionmanager\Utility\Parser;
+
+use TYPO3\CMS\Extensionmanager\Exception\ExtensionManagerException;
 
 /**
  * Parser for TYPO3's extension.xml file.
@@ -49,10 +52,10 @@ class ExtensionXmlPullParser extends AbstractExtensionXmlParser
     {
         $this->createParser();
         if (!(is_object($this->objXml) && get_class($this->objXml) === \XMLReader::class)) {
-            throw new \TYPO3\CMS\Extensionmanager\Exception\ExtensionManagerException('Unable to create XML parser.', 1342640540);
+            throw new ExtensionManagerException('Unable to create XML parser.', 1342640540);
         }
         if ($this->objXml->open($file, 'utf-8') === false) {
-            throw new \TYPO3\CMS\Extensionmanager\Exception\ExtensionManagerException(
+            throw new ExtensionManagerException(
                 sprintf('Unable to open file resource %s.', $file),
                 1476108651
             );
@@ -142,7 +145,7 @@ class ExtensionXmlPullParser extends AbstractExtensionXmlParser
     /**
      * Method is invoked when parser accesses end tag of an element.
      *
-     * @param string $elementName: element name at parser's current position
+     * @param string $elementName element name at parser's current position
      */
     protected function endElement($elementName)
     {
@@ -164,8 +167,8 @@ class ExtensionXmlPullParser extends AbstractExtensionXmlParser
      * Method will read until it finds the end of the given element.
      * If element has no value, method returns NULL.
      *
-     * @param string  $elementName: name of element to retrieve it's value from
-     * @return string  an element's value if it has a value, otherwise NULL
+     * @param string $elementName name of element to retrieve it's value from
+     * @return string an element's value if it has a value, otherwise NULL
      */
     protected function getElementValue(&$elementName)
     {

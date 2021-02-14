@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Resource\Rendering;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Resource\Rendering;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Resource\Rendering;
 
 use TYPO3\CMS\Core\Resource\FileInterface;
 use TYPO3\CMS\Core\Resource\FileReference;
@@ -124,7 +125,7 @@ class VideoTagRenderer implements FileRendererInterface
         return sprintf(
             '<video%s><source src="%s" type="%s"></video>',
             empty($attributes) ? '' : ' ' . implode(' ', $attributes),
-            htmlspecialchars($file->getPublicUrl($usedPathsRelativeToCurrentScript)),
+            htmlspecialchars((string)$file->getPublicUrl($usedPathsRelativeToCurrentScript)),
             $file->getMimeType()
         );
     }

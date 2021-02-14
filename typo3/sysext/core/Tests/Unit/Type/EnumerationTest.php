@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Tests\Unit\Type;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,8 +15,12 @@ namespace TYPO3\CMS\Core\Tests\Unit\Type;
  * The TYPO3 project - inspiring people to share!
  */
 
-use TYPO3\CMS\Core\Tests\Unit\Type\Fixture\Enumeration;
+namespace TYPO3\CMS\Core\Tests\Unit\Type;
+
 use TYPO3\CMS\Core\Tests\Unit\Type\Fixture\Enumeration\CompleteEnumeration;
+use TYPO3\CMS\Core\Tests\Unit\Type\Fixture\Enumeration\DuplicateConstantValueEnumeration;
+use TYPO3\CMS\Core\Tests\Unit\Type\Fixture\Enumeration\InvalidConstantEnumeration;
+use TYPO3\CMS\Core\Tests\Unit\Type\Fixture\Enumeration\MissingConstantsEnumeration;
 use TYPO3\CMS\Core\Tests\Unit\Type\Fixture\Enumeration\MissingDefaultEnumeration;
 use TYPO3\CMS\Core\Type\Exception\InvalidEnumerationDefinitionException;
 use TYPO3\CMS\Core\Type\Exception\InvalidEnumerationValueException;
@@ -36,7 +39,7 @@ class EnumerationTest extends UnitTestCase
         $this->expectException(InvalidEnumerationValueException::class);
         $this->expectExceptionCode(1381512753);
 
-        new Enumeration\MissingConstantsEnumeration();
+        new MissingConstantsEnumeration();
     }
 
     /**
@@ -58,7 +61,7 @@ class EnumerationTest extends UnitTestCase
         $this->expectException(InvalidEnumerationValueException::class);
         $this->expectExceptionCode(1381512807);
 
-        new Enumeration\MissingConstantsEnumeration(2);
+        new MissingConstantsEnumeration(2);
     }
 
     /**
@@ -69,7 +72,7 @@ class EnumerationTest extends UnitTestCase
         $this->expectException(InvalidEnumerationDefinitionException::class);
         $this->expectExceptionCode(1381512797);
 
-        new Enumeration\InvalidConstantEnumeration(1);
+        new InvalidConstantEnumeration(1);
     }
 
     /**
@@ -80,7 +83,7 @@ class EnumerationTest extends UnitTestCase
         $this->expectException(InvalidEnumerationValueException::class);
         $this->expectExceptionCode(1381512753);
 
-        new Enumeration\MissingDefaultEnumeration();
+        new MissingDefaultEnumeration();
     }
 
     /**
@@ -91,7 +94,7 @@ class EnumerationTest extends UnitTestCase
         $this->expectException(InvalidEnumerationDefinitionException::class);
         $this->expectExceptionCode(1381512859);
 
-        new Enumeration\DuplicateConstantValueEnumeration(1);
+        new DuplicateConstantValueEnumeration(1);
     }
 
     /**
@@ -103,23 +106,23 @@ class EnumerationTest extends UnitTestCase
         return [
             [
                 1,
-                Enumeration\CompleteEnumeration::INTEGER_VALUE,
+                CompleteEnumeration::INTEGER_VALUE,
             ],
             [
                 '1',
-                Enumeration\CompleteEnumeration::INTEGER_VALUE,
+                CompleteEnumeration::INTEGER_VALUE,
             ],
             [
                 2,
-                Enumeration\CompleteEnumeration::STRING_INTEGER_VALUE,
+                CompleteEnumeration::STRING_INTEGER_VALUE,
             ],
             [
                 '2',
-                Enumeration\CompleteEnumeration::STRING_INTEGER_VALUE,
+                CompleteEnumeration::STRING_INTEGER_VALUE,
             ],
             [
                 'foo',
-                Enumeration\CompleteEnumeration::STRING_VALUE,
+                CompleteEnumeration::STRING_VALUE,
             ],
         ];
     }
@@ -132,7 +135,7 @@ class EnumerationTest extends UnitTestCase
      */
     public function doesTypeLooseComparison($testValue, $expectedValue): void
     {
-        $value = new Enumeration\CompleteEnumeration($testValue);
+        $value = new CompleteEnumeration($testValue);
 
         self::assertEquals((string)$expectedValue, (string)$value);
     }
@@ -148,7 +151,7 @@ class EnumerationTest extends UnitTestCase
             'STRING_VALUE' => 'foo',
         ];
 
-        self::assertEquals($expected, Enumeration\CompleteEnumeration::getConstants());
+        self::assertEquals($expected, CompleteEnumeration::getConstants());
     }
 
     /**
@@ -163,7 +166,7 @@ class EnumerationTest extends UnitTestCase
             '__default' => 1,
         ];
 
-        self::assertEquals($expected, Enumeration\CompleteEnumeration::getConstants(true));
+        self::assertEquals($expected, CompleteEnumeration::getConstants(true));
     }
 
     /**
@@ -171,7 +174,7 @@ class EnumerationTest extends UnitTestCase
      */
     public function getConstantsCanBeCalledOnInstances(): void
     {
-        $enumeration = new Enumeration\CompleteEnumeration();
+        $enumeration = new CompleteEnumeration();
         $expected = [
             'INTEGER_VALUE' => 1,
             'STRING_INTEGER_VALUE' => '2',
@@ -204,7 +207,7 @@ class EnumerationTest extends UnitTestCase
      */
     public function castReturnsObjectOfCalledEnumerationTypeIfCalledWithValueOfDifferentType(): void
     {
-        $initialEnumeration = new Enumeration\MissingDefaultEnumeration(1);
+        $initialEnumeration = new MissingDefaultEnumeration(1);
         $enumeration = CompleteEnumeration::cast($initialEnumeration);
         self::assertInstanceOf(CompleteEnumeration::class, $enumeration);
     }

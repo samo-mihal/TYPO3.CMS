@@ -1,4 +1,5 @@
 <?php
+
 return [
     'ctrl' => [
         'title' => 'LLL:EXT:core/Resources/Private/Language/locallang_tca.xlf:sys_collection',
@@ -30,9 +31,6 @@ return [
             'fe_group' => 'fe_group'
         ],
     ],
-    'interface' => [
-        'showRecordFieldList' => 'title, description, table_name, items'
-    ],
     'columns' => [
         'sys_language_uid' => [
             'exclude' => true,
@@ -55,7 +53,6 @@ return [
         ],
         'l10n_parent' => [
             'displayCond' => 'FIELD:sys_language_uid:>:0',
-            'exclude' => true,
             'label' => 'LLL:EXT:core/Resources/Private/Language/locallang_general.xlf:LGL.l18n_parent',
             'config' => [
                 'type' => 'select',

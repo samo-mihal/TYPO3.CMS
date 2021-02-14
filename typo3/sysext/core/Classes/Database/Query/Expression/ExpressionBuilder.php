@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Database\Query\Expression;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Database\Query\Expression;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Database\Query\Expression;
 
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use TYPO3\CMS\Core\Database\Connection;
@@ -62,7 +64,7 @@ class ExpressionBuilder
     /**
      * Creates a conjunction of the given boolean expressions
      *
-     * @param mixed $expressions Optional clause. Requires at least one defined when converting to string.
+     * @param string ...$expressions Optional clause. Requires at least one defined when converting to string.
      *
      * @return CompositeExpression
      */
@@ -74,7 +76,7 @@ class ExpressionBuilder
     /**
      * Creates a disjunction of the given boolean expressions.
      *
-     * @param mixed $expressions Optional clause. Requires at least one defined when converting to string.
+     * @param string ...$expressions Optional clause. Requires at least one defined when converting to string.
      *
      * @return CompositeExpression
      */

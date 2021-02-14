@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Utility;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,13 +13,17 @@ namespace TYPO3\CMS\Core\Utility;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Utility;
+
 use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\FetchMode;
+use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\HiddenRestriction;
+use TYPO3\CMS\Core\Database\RelationHandler;
 use TYPO3\CMS\Core\Domain\Repository\PageRepository;
 use TYPO3\CMS\Core\Exception\Page\BrokenRootLineException;
 use TYPO3\CMS\Core\Exception\Page\CircularRootLineException;
@@ -153,7 +156,7 @@ class RootlineUtility
         );
 
         if (self::$cache === null) {
-            self::$cache = GeneralUtility::makeInstance(\TYPO3\CMS\Core\Cache\CacheManager::class)->getCache('rootline');
+            self::$cache = GeneralUtility::makeInstance(CacheManager::class)->getCache('rootline');
         }
         self::$rootlineFields = array_merge(self::$rootlineFields, GeneralUtility::trimExplode(',', $GLOBALS['TYPO3_CONF_VARS']['FE']['addRootLineFields'], true));
         self::$rootlineFields = array_unique(self::$rootlineFields);
@@ -164,7 +167,7 @@ class RootlineUtility
     /**
      * Purges all rootline caches.
      *
-     * Note: This function is intended to be used in unit tests only.
+     * @internal only used in EXT:core, no public API
      */
     public static function purgeCaches()
     {
@@ -194,7 +197,7 @@ class RootlineUtility
     }
 
     /**
-     * Returns the actual rootline
+     * Returns the actual rootline without the tree root (uid=0), including the page with $this->pageUid
      *
      * @return array
      */
@@ -289,7 +292,7 @@ class RootlineUtility
                 $configuration = $configuration['config'];
                 if ($configuration['MM']) {
                     /** @var \TYPO3\CMS\Core\Database\RelationHandler $loadDBGroup */
-                    $loadDBGroup = GeneralUtility::makeInstance(\TYPO3\CMS\Core\Database\RelationHandler::class);
+                    $loadDBGroup = GeneralUtility::makeInstance(RelationHandler::class);
                     $loadDBGroup->start(
                         $pageRecord[$column],
                         // @todo That depends on the type (group, select, inline)
@@ -471,7 +474,7 @@ class RootlineUtility
     {
         $mountPoints = GeneralUtility::trimExplode(',', $this->mountPointParameter);
         foreach ($mountPoints as $mP) {
-            list($mountedPageUid, $mountPageUid) = GeneralUtility::intExplode('-', $mP);
+            [$mountedPageUid, $mountPageUid] = GeneralUtility::intExplode('-', $mP);
             $this->parsedMountPointParameters[$mountedPageUid] = $mountPageUid;
         }
     }

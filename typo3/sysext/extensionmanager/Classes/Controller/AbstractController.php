@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extensionmanager\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,13 +13,16 @@ namespace TYPO3\CMS\Extensionmanager\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extensionmanager\Controller;
+
+use TYPO3\CMS\Extbase\Mvc\Controller\ActionController;
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 
 /**
  * Abstract action controller.
  * @internal This class is a specific controller implementation and is not considered part of the Public TYPO3 API.
  */
-class AbstractController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionController
+class AbstractController extends ActionController
 {
     const TRIGGER_RefreshModuleMenu = 'refreshModuleMenu';
     const TRIGGER_RefreshTopbar = 'refreshTopbar';
@@ -36,13 +38,13 @@ class AbstractController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionControl
     /**
      * Translation shortcut
      *
-     * @param $key
+     * @param string $key
      * @param array|null $arguments
-     * @return string|null
+     * @return string
      */
     protected function translate($key, $arguments = null)
     {
-        return LocalizationUtility::translate($key, 'extensionmanager', $arguments);
+        return LocalizationUtility::translate($key, 'extensionmanager', $arguments) ?? '';
     }
 
     /**

@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Backend\Controller;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Backend\Controller;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Controller;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -48,6 +50,12 @@ class FormInlineAjaxController extends AbstractFormEngineAjaxController
 
         $domObjectId = $ajaxArguments[0];
         $inlineFirstPid = $this->getInlineFirstPidFromDomObjectId($domObjectId);
+        if (!MathUtility::canBeInterpretedAsInteger($inlineFirstPid) && strpos((string)$inlineFirstPid, 'NEW') !== 0) {
+            throw new \RuntimeException(
+                'inlineFirstPid should either be an integer or a "NEW..." string',
+                1521220491
+            );
+        }
         $childChildUid = null;
         if (isset($ajaxArguments[1]) && MathUtility::canBeInterpretedAsInteger($ajaxArguments[1])) {
             $childChildUid = (int)$ajaxArguments[1];
@@ -70,7 +78,7 @@ class FormInlineAjaxController extends AbstractFormEngineAjaxController
             $childVanillaUid = -1 * abs((int)$child['uid']);
         } else {
             // Else inline first Pid is the storage pid of new inline records
-            $childVanillaUid = (int)$inlineFirstPid;
+            $childVanillaUid = $inlineFirstPid;
         }
 
         $childTableName = $parentConfig['foreign_table'];
@@ -118,17 +126,17 @@ class FormInlineAjaxController extends AbstractFormEngineAjaxController
                 $formDataCompilerInput = [
                     'command' => 'new',
                     'tableName' => $childData['processedTca']['columns'][$parentConfig['foreign_selector']]['config']['foreign_table'],
-                    'vanillaUid' => (int)$inlineFirstPid,
+                    'vanillaUid' => $inlineFirstPid,
                     'isInlineChild' => true,
                     'isInlineAjaxOpeningContext' => true,
                     'inlineStructure' => $inlineStackProcessor->getStructure(),
-                    'inlineFirstPid' => (int)$inlineFirstPid,
+                    'inlineFirstPid' => $inlineFirstPid,
                 ];
                 $childData['combinationChild'] = $formDataCompiler->compile($formDataCompilerInput);
             }
         }
 
-        $childData['inlineParentUid'] = (int)$parent['uid'];
+        $childData['inlineParentUid'] = $parent['uid'];
         $childData['renderType'] = 'inlineRecordContainer';
         $nodeFactory = GeneralUtility::makeInstance(NodeFactory::class);
         $childResult = $nodeFactory->create($childData)->render();
@@ -185,6 +193,7 @@ class FormInlineAjaxController extends AbstractFormEngineAjaxController
                     ],
                 ],
             ],
+            'uid' => $parent['uid'],
             'tableName' => $parent['table'],
             'inlineFirstPid' => $inlineFirstPid,
             // Hand over given original return url to compile stack. Needed if inline children compile links to
@@ -455,7 +464,7 @@ class FormInlineAjaxController extends AbstractFormEngineAjaxController
 
             // values of the current parent element
             // it is always a string either an id or new...
-            'inlineParentUid' => $parentData['databaseRow']['uid'],
+            'inlineParentUid' => $parentData['databaseRow']['uid'] ?? $parentData['uid'],
             'inlineParentTableName' => $parentData['tableName'],
             'inlineParentFieldName' => $parentFieldName,
 
@@ -666,7 +675,7 @@ class FormInlineAjaxController extends AbstractFormEngineAjaxController
      * Get inlineFirstPid from a given objectId string
      *
      * @param string $domObjectId The id attribute of an element
-     * @return int|null Pid or null
+     * @return int|string|null Pid or null
      */
     protected function getInlineFirstPidFromDomObjectId($domObjectId)
     {
@@ -697,10 +706,10 @@ class FormInlineAjaxController extends AbstractFormEngineAjaxController
         if (empty($context['config'])) {
             throw new \RuntimeException('Empty context config section given', 1489751362);
         }
-        if (!hash_equals(GeneralUtility::hmac(json_encode($context['config']), 'InlineContext'), $context['hmac'])) {
+        if (!hash_equals(GeneralUtility::hmac((string)$context['config'], 'InlineContext'), (string)$context['hmac'])) {
             throw new \RuntimeException('Hash does not validate', 1489751363);
         }
-        return $context['config'];
+        return json_decode($context['config'], true);
     }
 
     /**

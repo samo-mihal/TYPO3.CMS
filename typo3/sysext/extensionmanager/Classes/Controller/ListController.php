@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extensionmanager\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,15 @@ namespace TYPO3\CMS\Extensionmanager\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extensionmanager\Controller;
+
 use TYPO3\CMS\Backend\Template\Components\ButtonBar;
+use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Backend\View\BackendTemplateView;
+use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Page\PageRenderer;
@@ -57,6 +61,11 @@ class ListController extends AbstractModuleController
      * @var DependencyUtility
      */
     protected $dependencyUtility;
+
+    /**
+     * @var string
+     */
+    protected $backendUserFilter = '';
 
     /**
      * @param ExtensionRepository $extensionRepository
@@ -127,11 +136,11 @@ class ListController extends AbstractModuleController
                 LocalizationUtility::translate(
                     'composerMode.message',
                     'extensionmanager'
-                ),
+                ) ?? '',
                 LocalizationUtility::translate(
                     'composerMode.title',
                     'extensionmanager'
-                ),
+                ) ?? '',
                 FlashMessage::INFO
             );
         }
@@ -142,13 +151,21 @@ class ListController extends AbstractModuleController
      */
     public function indexAction()
     {
+        if ($this->request->hasArgument('filter') && is_string($this->request->getArgument('filter'))) {
+            $this->backendUserFilter = $this->request->getArgument('filter');
+            $this->saveBackendUserFilter();
+        } else {
+            $this->backendUserFilter = $this->getBackendUserFilter();
+        }
+
         $this->addComposerModeNotification();
-        $availableAndInstalledExtensions = $this->listUtility->getAvailableAndInstalledExtensionsWithAdditionalInformation();
+        $availableAndInstalledExtensions = $this->listUtility->getAvailableAndInstalledExtensionsWithAdditionalInformation($this->backendUserFilter);
         ksort($availableAndInstalledExtensions);
         $this->view->assignMultiple(
             [
                 'extensions' => $availableAndInstalledExtensions,
                 'isComposerMode' => Environment::isComposerMode(),
+                'backendUserFilter' => $this->backendUserFilter ?: 'All'
             ]
         );
         $this->handleTriggerArguments();
@@ -292,5 +309,42 @@ class ListController extends AbstractModuleController
             ->setClasses($classes)
             ->setIcon($icon);
         $buttonBar->addButton($button, ButtonBar::BUTTON_POSITION_LEFT);
+    }
+
+    protected function getBackendUserFilter(): string
+    {
+        $backendUser = $this->getBackendUserAuthentication();
+
+        if (!$backendUser instanceof BackendUserAuthentication) {
+            return '';
+        }
+
+        return $backendUser->uc['BackendComponents']['States']['ExtensionManager']['filter'] ?? '';
+    }
+
+    protected function saveBackendUserFilter(): void
+    {
+        $backendUser = $this->getBackendUserAuthentication();
+
+        if (!$backendUser instanceof BackendUserAuthentication) {
+            return;
+        }
+
+        $backendUserId = (int)$backendUser->user['uid'];
+        $backendUserRecord = BackendUtility::getRecord('be_users', $backendUserId);
+
+        if (is_array($backendUserRecord) && isset($backendUserRecord['uc'])) {
+            $uc = unserialize($backendUserRecord['uc'], ['allowed_classes' => [\stdClass::class]]);
+            if (is_array($uc)) {
+                $uc['BackendComponents']['States']['ExtensionManager']['filter'] = $this->backendUserFilter;
+                $connection = GeneralUtility::makeInstance(ConnectionPool::class)->getConnectionForTable('be_users');
+                $connection->update('be_users', ['uc' => serialize($uc)], ['uid' => $backendUserId]);
+            }
+        }
+    }
+
+    protected function getBackendUserAuthentication(): ?BackendUserAuthentication
+    {
+        return $GLOBALS['BE_USER'];
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 return [
     'ctrl' => [
         'label' => 'title',
@@ -20,9 +21,6 @@ return [
         'useColumnsForDefaultValues' => 'path,base',
         'versioningWS_alwaysAllowLiveEdit' => true,
         'searchFields' => 'title,path'
-    ],
-    'interface' => [
-        'showRecordFieldList' => 'title,hidden,path,base,description'
     ],
     'columns' => [
         'title' => [

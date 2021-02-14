@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Authentication;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,8 +13,11 @@ namespace TYPO3\CMS\Core\Authentication;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Authentication;
+
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
+use Symfony\Component\HttpFoundation\Cookie;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Crypto\Random;
 use TYPO3\CMS\Core\Database\Connection;
@@ -28,7 +30,9 @@ use TYPO3\CMS\Core\Database\Query\Restriction\QueryRestrictionContainerInterface
 use TYPO3\CMS\Core\Database\Query\Restriction\RootLevelRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\StartTimeRestriction;
 use TYPO3\CMS\Core\Exception;
+use TYPO3\CMS\Core\Http\CookieHeaderTrait;
 use TYPO3\CMS\Core\Session\Backend\Exception\SessionNotFoundException;
+use TYPO3\CMS\Core\Session\Backend\HashableSessionBackendInterface;
 use TYPO3\CMS\Core\Session\Backend\SessionBackendInterface;
 use TYPO3\CMS\Core\Session\SessionManager;
 use TYPO3\CMS\Core\SysLog\Action\Login as SystemLogLoginAction;
@@ -48,6 +52,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 abstract class AbstractUserAuthentication implements LoggerAwareInterface
 {
     use LoggerAwareTrait;
+    use CookieHeaderTrait;
 
     /**
      * Session/Cookie name
@@ -368,8 +373,8 @@ abstract class AbstractUserAuthentication implements LoggerAwareInterface
         // Load user session, check to see if anyone has submitted login-information and if so authenticate
         // the user with the session. $this->user[uid] may be used to write log...
         $this->checkAuthentication();
-        // Setting cookies
-        if (!$this->dontSetCookie) {
+        // Set cookie if generally enabled or if the current session is a non-session cookie (FE permalogin)
+        if (!$this->dontSetCookie || $this->isRefreshTimeBasedCookie()) {
             $this->setSessionCookie();
         }
         // Hook for alternative ways of filling the $this->user array (is used by the "timtaw" extension)
@@ -380,7 +385,7 @@ abstract class AbstractUserAuthentication implements LoggerAwareInterface
             GeneralUtility::callUserFunction($funcName, $_params, $this);
         }
         // If we're lucky we'll get to clean up old sessions
-        if (rand() % 100 <= $this->gc_probability) {
+        if (random_int(0, mt_getrandmax()) % 100 <= $this->gc_probability) {
             $this->gc();
         }
     }
@@ -418,7 +423,7 @@ abstract class AbstractUserAuthentication implements LoggerAwareInterface
         $cacheControlHeader = 'no-cache, must-revalidate';
         $pragmaHeader = 'no-cache';
         // Prevent error message in IE when using a https connection
-        // see http://forge.typo3.org/issues/24125
+        // see https://forge.typo3.org/issues/24125
         if (strpos(GeneralUtility::getIndpEnv('HTTP_USER_AGENT'), 'MSIE') !== false
             && GeneralUtility::getIndpEnv('TYPO3_SSL')) {
             // Some IEs can not handle no-cache
@@ -451,9 +456,28 @@ abstract class AbstractUserAuthentication implements LoggerAwareInterface
             $cookieExpire = $isRefreshTimeBasedCookie ? $GLOBALS['EXEC_TIME'] + $this->lifetime : 0;
             // Use the secure option when the current request is served by a secure connection:
             $cookieSecure = (bool)$settings['cookieSecure'] && GeneralUtility::getIndpEnv('TYPO3_SSL');
+            // Valid options are "strict", "lax" or "none", whereas "none" only works in HTTPS requests (default & fallback is "strict")
+            $cookieSameSite = $this->sanitizeSameSiteCookieValue(
+                strtolower($GLOBALS['TYPO3_CONF_VARS'][$this->loginType]['cookieSameSite'] ?? Cookie::SAMESITE_STRICT)
+            );
+            // SameSite "none" needs the secure option (only allowed on HTTPS)
+            if ($cookieSameSite === Cookie::SAMESITE_NONE) {
+                $cookieSecure = true;
+            }
             // Do not set cookie if cookieSecure is set to "1" (force HTTPS) and no secure channel is used:
             if ((int)$settings['cookieSecure'] !== 1 || GeneralUtility::getIndpEnv('TYPO3_SSL')) {
-                setcookie($this->name, $this->id, $cookieExpire, $cookiePath, $cookieDomain, $cookieSecure, true);
+                $cookie = new Cookie(
+                    $this->name,
+                    $this->id,
+                    $cookieExpire,
+                    $cookiePath,
+                    $cookieDomain,
+                    $cookieSecure,
+                    true,
+                    false,
+                    $cookieSameSite
+                );
+                header('Set-Cookie: ' . $cookie->__toString(), false);
                 $this->cookieWasSetOnCurrentRequest = true;
             } else {
                 throw new Exception('Cookie was not set since HTTPS was forced in $TYPO3_CONF_VARS[SYS][cookieSecure].', 1254325546);
@@ -720,6 +744,17 @@ abstract class AbstractUserAuthentication implements LoggerAwareInterface
                     ]);
                 }
             } elseif ($haveSession) {
+                // Validate the session ID and promote it
+                // This check can be removed in TYPO3 v11
+                if ($this->getSessionBackend() instanceof HashableSessionBackendInterface && !empty($authInfo['userSession']['ses_id'] ?? '')) {
+                    // The session is stored in plaintext, promote it
+                    if ($authInfo['userSession']['ses_id'] === $this->id) {
+                        $authInfo['userSession'] = $this->getSessionBackend()->update(
+                            $this->id,
+                            ['ses_data' => $authInfo['userSession']['ses_data']]
+                        );
+                    }
+                }
                 // if we come here the current session is for sure not anonymous as this is a pre-condition for $authenticated = true
                 $this->user = $authInfo['userSession'];
             }
@@ -1010,6 +1045,9 @@ abstract class AbstractUserAuthentication implements LoggerAwareInterface
         }
         $this->sessionData = [];
         $this->user = null;
+        if ($this->isCookieSet()) {
+            $this->removeCookie($this->name);
+        }
     }
 
     /**
@@ -1022,7 +1060,7 @@ abstract class AbstractUserAuthentication implements LoggerAwareInterface
         $cookieDomain = $this->getCookieDomain();
         // If no cookie domain is set, use the base path
         $cookiePath = $cookieDomain ? '/' : GeneralUtility::getIndpEnv('TYPO3_SITE_PATH');
-        setcookie($cookieName, null, -1, $cookiePath, $cookieDomain);
+        setcookie($cookieName, '', -1, $cookiePath, $cookieDomain);
     }
 
     /**
@@ -1138,7 +1176,7 @@ abstract class AbstractUserAuthentication implements LoggerAwareInterface
     public function unpack_uc($theUC = '')
     {
         if (!$theUC && isset($this->user['uc'])) {
-            $theUC = unserialize($this->user['uc']);
+            $theUC = unserialize($this->user['uc'], ['allowed_classes' => false]);
         }
         if (is_array($theUC)) {
             $this->uc = $theUC;
@@ -1246,7 +1284,6 @@ abstract class AbstractUserAuthentication implements LoggerAwareInterface
         if ($loginData['status'] === LoginType::LOGIN) {
             $loginData = $this->processLoginData($loginData);
         }
-        $loginData = array_map('trim', $loginData);
         return $loginData;
     }
 
@@ -1317,7 +1354,7 @@ abstract class AbstractUserAuthentication implements LoggerAwareInterface
             $authInfo['db_user']['checkPidList'] = $this->checkPid_value;
             $authInfo['db_user']['check_pid_clause'] = $expressionBuilder->in(
                 'pid',
-                GeneralUtility::intExplode(',', $this->checkPid_value)
+                GeneralUtility::intExplode(',', (string)$this->checkPid_value)
             );
         } else {
             $authInfo['db_user']['checkPidList'] = '';

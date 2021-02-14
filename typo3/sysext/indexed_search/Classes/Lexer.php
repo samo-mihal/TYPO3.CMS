@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\IndexedSearch;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\IndexedSearch;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\IndexedSearch;
 
 use TYPO3\CMS\Core\Charset\CharsetConverter;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -56,7 +57,7 @@ class Lexer
      * Splitting string into words.
      * Used for indexing, can also be used to find words in query.
      *
-     * @param string String with UTF-8 content to process.
+     * @param string $wordString String with UTF-8 content to process.
      * @return array Array of words in utf-8
      */
     public function split2Words($wordString)
@@ -72,7 +73,7 @@ class Lexer
         $words = [];
         $this->debugString = '';
         while (1) {
-            list($start, $len) = $this->get_word($wordString, $pos);
+            [$start, $len] = $this->get_word($wordString, $pos);
             if ($len) {
                 $this->addWords($words, $wordString, $start, $len);
                 if ($this->debug) {
@@ -111,7 +112,7 @@ class Lexer
         // Get next chars unicode number and find type:
         $bc = 0;
         $cp = $this->utf8_ord($theWord, $bc);
-        list($cType) = $this->charType($cp);
+        [$cType] = $this->charType($cp);
         // If string is a CJK sequence we follow this algorithm:
         /*
         DESCRIPTION OF (CJK) ALGORITHMContinuous letters and numbers make up words. Spaces and symbols
@@ -233,7 +234,7 @@ class Lexer
             $pos += $bc;
             // Determine the type:
             $cType_prev = $cType;
-            list($cType) = $this->charType($cp);
+            [$cType] = $this->charType($cp);
             if ($cType) {
                 continue;
             }
@@ -267,6 +268,8 @@ class Lexer
         if ($cp >= 12352 && $cp <= 12543 || $cp >= 12592 && $cp <= 12687 || $cp >= 13312 && $cp <= 19903 || $cp >= 19968 && $cp <= 40879 || $cp >= 44032 && $cp <= 55215 || $cp >= 131072 && $cp <= 195103) {
             return ['cjk'];
         }
+
+        return [];
     }
 
     /**

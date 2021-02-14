@@ -1,5 +1,4 @@
 <?php
-namespace ExtbaseTeam\BlogExample\Domain\Repository;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,9 +13,13 @@ namespace ExtbaseTeam\BlogExample\Domain\Repository;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace ExtbaseTeam\BlogExample\Domain\Repository;
+
+use TYPO3\CMS\Extbase\Domain\Repository\FrontendUserRepository;
+
 /**
  * A repository for administrators
  */
-class AdministratorRepository extends \TYPO3\CMS\Extbase\Domain\Repository\FrontendUserRepository
+class AdministratorRepository extends FrontendUserRepository
 {
 }

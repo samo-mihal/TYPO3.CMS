@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Frontend\ContentObject;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Frontend\ContentObject;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Frontend\ContentObject;
 
 use TYPO3\CMS\Core\Database\RelationHandler;
 use TYPO3\CMS\Core\Domain\Repository\PageRepository;
@@ -103,7 +104,8 @@ class RecordsContentObject extends AbstractContentObject
                     if (is_array($row)) {
                         $dontCheckPid = isset($conf['dontCheckPid.']) ? $this->cObj->stdWrap($conf['dontCheckPid'], $conf['dontCheckPid.']) : $conf['dontCheckPid'];
                         if (!$dontCheckPid) {
-                            $row = $this->cObj->checkPid($row['pid']) ? $row : '';
+                            $validPageId = $this->getPageRepository()->filterAccessiblePageIds([$row['pid']]);
+                            $row = !empty($validPageId) ? $row : '';
                         }
                         if ($row && !$GLOBALS['TSFE']->recordRegister[$val['table'] . ':' . $val['id']]) {
                             $renderObjName = $conf['conf.'][$val['table']] ?: '<' . $val['table'];

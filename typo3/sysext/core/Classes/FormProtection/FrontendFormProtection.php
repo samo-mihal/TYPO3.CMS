@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\FormProtection;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,9 @@ namespace TYPO3\CMS\Core\FormProtection;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\FormProtection;
+
+use TYPO3\CMS\Core\Error\Exception;
 use TYPO3\CMS\Frontend\Authentication\FrontendUserAuthentication;
 
 /**
@@ -89,7 +91,7 @@ class FrontendFormProtection extends AbstractFormProtection
         $this->frontendUser = $frontendUser;
         $this->validationFailedCallback = $validationFailedCallback;
         if (!$this->isAuthorizedFrontendSession()) {
-            throw new \TYPO3\CMS\Core\Error\Exception('A front-end form protection may only be instantiated if there is an active front-end session.', 1460975777);
+            throw new Exception('A front-end form protection may only be instantiated if there is an active front-end session.', 1460975777);
         }
     }
 

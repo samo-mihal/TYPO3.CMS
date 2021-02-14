@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Redirects\Service;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Redirects\Service;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Redirects\Service;
 
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Http\Uri;
@@ -55,7 +57,7 @@ class IntegrityService
      * @param string|null $siteIdentifier
      * @return \Generator
      */
-    public function findConflictingRedirects(string $siteIdentifier = null): \Generator
+    public function findConflictingRedirects(?string $siteIdentifier = null): \Generator
     {
         foreach ($this->getSites($siteIdentifier) as $site) {
             $entryPoints = $this->getAllEntryPointsForSite($site);

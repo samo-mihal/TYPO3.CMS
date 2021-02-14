@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Resource;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,12 +12,17 @@ namespace TYPO3\CMS\Core\Resource;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Resource;
+
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\FrontendRestrictionContainer;
 use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
+use TYPO3\CMS\Extbase\Persistence\Generic\QuerySettingsInterface;
 use TYPO3\CMS\Extbase\Persistence\RepositoryInterface;
+use TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController;
 
 /**
  * Abstract repository implementing the basic repository methods
@@ -106,6 +110,7 @@ abstract class AbstractRepository implements RepositoryInterface, SingletonInter
      */
     public function getAddedObjects()
     {
+        return [];
     }
 
     /**
@@ -117,6 +122,7 @@ abstract class AbstractRepository implements RepositoryInterface, SingletonInter
      */
     public function getRemovedObjects()
     {
+        return [];
     }
 
     /**
@@ -168,6 +174,7 @@ abstract class AbstractRepository implements RepositoryInterface, SingletonInter
      */
     public function countAll()
     {
+        return 0;
     }
 
     /**
@@ -234,7 +241,7 @@ abstract class AbstractRepository implements RepositoryInterface, SingletonInter
      *
      * @throws \BadMethodCallException
      */
-    public function setDefaultQuerySettings(\TYPO3\CMS\Extbase\Persistence\Generic\QuerySettingsInterface $defaultQuerySettings)
+    public function setDefaultQuerySettings(QuerySettingsInterface $defaultQuerySettings)
     {
         throw new \BadMethodCallException('Repository does not support the setDefaultQuerySettings() method.', 1313185907);
     }
@@ -286,13 +293,13 @@ abstract class AbstractRepository implements RepositoryInterface, SingletonInter
     }
 
     /**
-     * Function to return the current TYPO3_MODE.
+     * Function to return the current TYPO3_MODE based on $GLOBALS['TSFE'].
      * This function can be mocked in unit tests to be able to test frontend behaviour.
      *
      * @return string
      */
     protected function getEnvironmentMode()
     {
-        return TYPO3_MODE;
+        return ($GLOBALS['TSFE'] ?? null) instanceof TypoScriptFrontendController ? 'FE' : 'BE';
     }
 }

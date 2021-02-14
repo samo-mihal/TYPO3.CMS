@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Install\UpgradeAnalysis;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Install\UpgradeAnalysis;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Install\UpgradeAnalysis;
 
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Finder\SplFileInfo;
@@ -59,7 +60,7 @@ class DocumentationFile
         if ($this->registry === null) {
             $this->registry = new Registry();
         }
-        $this->changelogPath = $changelogDir !== '' ? $changelogDir : realpath(ExtensionManagementUtility::extPath('core') . 'Documentation/Changelog');
+        $this->changelogPath = $changelogDir !== '' ? $changelogDir : (string)realpath(ExtensionManagementUtility::extPath('core') . 'Documentation/Changelog');
         $this->changelogPath = str_replace('\\', '/', $this->changelogPath);
     }
 
@@ -88,7 +89,7 @@ class DocumentationFile
 
         $directories = [];
         foreach ($finder->directories() as $directory) {
-            /** @var $directory SplFileInfo */
+            /** @var SplFileInfo $directory */
             $directories[] = $directory->getBasename();
         }
 
@@ -123,14 +124,17 @@ class DocumentationFile
      */
     public function getListEntry(string $file): array
     {
+        $entry = [];
         if (strcasecmp($file, $this->changelogPath) < 0 || strpos($file, $this->changelogPath) === false) {
             throw new \InvalidArgumentException('the given file does not belong to the changelog dir. Aborting', 1485425531);
         }
         $lines = file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        $lines = is_array($lines) ? $lines : [];
         $headline = $this->extractHeadline($lines);
         $entry['version'] = PathUtility::basename(PathUtility::dirname($file));
         $entry['headline'] = $headline;
         $entry['filepath'] = $file;
+        $entry['filename'] = pathinfo($file)['filename'];
         $entry['tags'] = $this->extractTags($lines);
         $entry['class'] = 'default';
         foreach ($entry['tags'] as $key => $tag) {
@@ -141,9 +145,20 @@ class DocumentationFile
             }
         }
         $entry['tagList'] = implode(',', $entry['tags']);
-        $entry['content'] = file_get_contents($file);
+        $entry['content'] = (string)file_get_contents($file);
         $entry['parsedContent'] = $this->parseContent($entry['content']);
         $entry['file_hash'] = md5($entry['content']);
+        if ($entry['version'] !== '') {
+            $entry['url']['documentation'] = sprintf(
+                'https://docs.typo3.org/c/typo3/cms-core/master/en-us/Changelog/%s/%s.html',
+                $entry['version'],
+                $entry['filename']
+            );
+        }
+        $issueId = $this->parseIssueId($entry['filename']);
+        if ($issueId) {
+            $entry['url']['issue'] = sprintf('https://forge.typo3.org/issues/%s', $issueId);
+        }
 
         return [md5($file) => $entry];
     }
@@ -259,7 +274,7 @@ class DocumentationFile
         $finder = $this->getDocumentFinder()->in($absolutePath);
 
         foreach ($finder->files() as $file) {
-            /** @var $file SplFileInfo */
+            /** @var SplFileInfo $file */
             $documentationFiles[] = $this->getListEntry($file->getPathname());
         }
 
@@ -269,7 +284,7 @@ class DocumentationFile
     /**
      * Merge tag list
      *
-     * @param $documentationFiles
+     * @param iterable $documentationFiles
      * @return array
      */
     protected function collectTagTotal($documentationFiles): array
@@ -324,12 +339,22 @@ class DocumentationFile
     protected function parseContent(string $rstContent): string
     {
         $content = htmlspecialchars($rstContent);
-        $content = preg_replace('/:issue:`([\d]*)`/', '<a href="https://forge.typo3.org/issues/\\1" target="_blank" rel="noreferrer">\\1</a>', $content);
-        $content = preg_replace('/#([\d]*)/', '#<a href="https://forge.typo3.org/issues/\\1" target="_blank" rel="noreferrer">\\1</a>', $content);
-        $content = preg_replace('/(\n([=]*)\n(.*)\n([=]*)\n)/', '', $content, 1);
-        $content = preg_replace('/.. index::(.*)/', '', $content);
-        $content = preg_replace('/.. include::(.*)/', '', $content);
+        $content = (string)preg_replace('/:issue:`([\d]*)`/', '<a href="https://forge.typo3.org/issues/\\1" target="_blank" rel="noreferrer">\\1</a>', $content);
+        $content = (string)preg_replace('/#([\d]*)/', '#<a href="https://forge.typo3.org/issues/\\1" target="_blank" rel="noreferrer">\\1</a>', $content);
+        $content = (string)preg_replace('/(\n([=]*)\n(.*)\n([=]*)\n)/', '', $content, 1);
+        $content = (string)preg_replace('/.. index::(.*)/', '', $content);
+        $content = (string)preg_replace('/.. include::(.*)/', '', $content);
         return trim($content);
+    }
+
+    /**
+     * @param string $filename
+     *
+     * @return string|null
+     */
+    protected function parseIssueId(string $filename): ?string
+    {
+        return GeneralUtility::trimExplode('-', $filename)[1] ?? null;
     }
 
     /**
@@ -340,6 +365,7 @@ class DocumentationFile
         $finder = new Finder();
         $finder
             ->depth(0)
+            ->sortByName()
             ->name('/^(Feature|Breaking|Deprecation|Important)\-\d+.+\.rst$/i');
 
         return $finder;

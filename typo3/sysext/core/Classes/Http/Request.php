@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Http;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Http;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Http;
 
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\StreamInterface;
@@ -65,7 +66,11 @@ class Request extends Message implements RequestInterface
         'MOVE',
         'PROPFIND',
         'PROPPATCH',
-        'UNLOCK'
+        'REPORT',
+        'UNLOCK',
+        // Custom methods
+        'PURGE',
+        'BAN'
     ];
 
     /**
@@ -108,7 +113,7 @@ class Request extends Message implements RequestInterface
         $this->method = $method;
         $this->uri    = $uri;
         $this->body   = $body;
-        list($this->lowercasedHeaderNames, $headers) = $this->filterHeaders($headers);
+        [$this->lowercasedHeaderNames, $headers] = $this->filterHeaders($headers);
         $this->assertHeaders($headers);
         $this->headers = $headers;
     }
@@ -229,7 +234,7 @@ class Request extends Message implements RequestInterface
      * immutability of the message, and MUST return an instance that has the
      * changed request target.
      *
-     * @link http://tools.ietf.org/html/rfc7230#section-2.7 (for the various
+     * @link https://tools.ietf.org/html/rfc7230#section-2.7 (for the various
      *     request-target forms allowed in request messages)
      *
      * @param mixed $requestTarget
@@ -282,7 +287,7 @@ class Request extends Message implements RequestInterface
      *
      * This method MUST return a UriInterface instance.
      *
-     * @link http://tools.ietf.org/html/rfc3986#section-4.3
+     * @link https://tools.ietf.org/html/rfc3986#section-4.3
      * @return \Psr\Http\Message\UriInterface Returns a UriInterface instance
      *     representing the URI of the request.
      */
@@ -316,7 +321,7 @@ class Request extends Message implements RequestInterface
      * immutability of the message, and MUST return an instance that has the
      * new UriInterface instance.
      *
-     * @link http://tools.ietf.org/html/rfc3986#section-4.3
+     * @link https://tools.ietf.org/html/rfc3986#section-4.3
      *
      * @param \Psr\Http\Message\UriInterface $uri New request URI to use.
      * @param bool $preserveHost Preserve the original state of the Host header.

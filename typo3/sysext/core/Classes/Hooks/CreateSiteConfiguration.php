@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Hooks;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Hooks;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Hooks;
 
 use TYPO3\CMS\Core\Configuration\SiteConfiguration;
 use TYPO3\CMS\Core\Core\Environment;
@@ -31,6 +33,9 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  */
 class CreateSiteConfiguration
 {
+    /**
+     * @var int[]
+     */
     protected $allowedPageTypes = [
         PageRepository::DOKTYPE_DEFAULT,
         PageRepository::DOKTYPE_LINK,
@@ -46,6 +51,7 @@ class CreateSiteConfiguration
          *   - live workspace
          *   - resolved uids
          *   - pages on root level
+         *   - pages in default language
          *   - non-versioned records
          *   - allowed doktypes
          *   - not bulk importing things via CLI
@@ -55,6 +61,7 @@ class CreateSiteConfiguration
             || $dataHandler->BE_USER->workspace > 0
             || !isset($dataHandler->substNEWwithIDs[$id])
             || (int)$fieldValues['pid'] !== 0
+            || (int)$fieldValues['l10n_parent'] !== 0
             || (isset($fieldValues['t3ver_oid']) && (int)$fieldValues['t3ver_oid'] > 0)
             || !in_array((int)$fieldValues['doktype'], $this->allowedPageTypes, true)
             || $dataHandler->isImporting
@@ -72,10 +79,7 @@ class CreateSiteConfiguration
         $siteIdentifier = $entryPoint . '-' . GeneralUtility::shortMD5((string)$pageId);
 
         if (!$this->siteExistsByRootPageId($pageId)) {
-            $siteConfiguration = GeneralUtility::makeInstance(
-                SiteConfiguration::class,
-                Environment::getConfigPath() . '/sites'
-            );
+            $siteConfiguration = GeneralUtility::makeInstance(SiteConfiguration::class);
             $normalizedParams = $this->getNormalizedParams();
             $basePrefix = Environment::isCli() ? $normalizedParams->getSitePath() : $normalizedParams->getSiteUrl();
             $siteConfiguration->createNewBasicSite(

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Recordlist\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,11 @@ namespace TYPO3\CMS\Recordlist\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Recordlist\Controller;
+
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
-use TYPO3\CMS\Backend\Template\DocumentTemplate;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Http\HtmlResponse;
 use TYPO3\CMS\Core\Http\RedirectResponse;
@@ -45,23 +45,11 @@ class ElementBrowserController
     protected $mode;
 
     /**
-     * Document template object
-     *
-     * @var DocumentTemplate
-     */
-    public $doc;
-
-    /**
      * Constructor
      */
     public function __construct()
     {
         $GLOBALS['SOBE'] = $this;
-
-        // Creating backend template object:
-        // this might not be needed but some classes refer to $GLOBALS['SOBE']->doc, so ...
-        $this->doc = GeneralUtility::makeInstance(DocumentTemplate::class);
-
         $this->init();
     }
 
@@ -120,7 +108,7 @@ class ElementBrowserController
 
             $backendUser = $this->getBackendUser();
             $modData = $backendUser->getModuleData('browse_links.php', 'ses');
-            list($modData) = $browser->processSessionData($modData);
+            [$modData] = $browser->processSessionData($modData);
             $backendUser->pushModuleData('browse_links.php', $modData);
 
             $content = $browser->render();

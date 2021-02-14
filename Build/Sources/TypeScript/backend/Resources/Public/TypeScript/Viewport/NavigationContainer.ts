@@ -15,7 +15,7 @@ import {NavigationComponentInterface} from './NavigationComponentInterface';
 import {ScaffoldIdentifierEnum} from '../Enum/Viewport/ScaffoldIdentifier';
 import {TopbarIdentifiersEnum} from '../Enum/Viewport/TopbarIdentifiers';
 import {AbstractContainer} from './AbstractContainer';
-import * as $ from 'jquery';
+import $ from 'jquery';
 import PageTree = require('./PageTree');
 import Icons = require('./../Icons');
 import TriggerRequest = require('../Event/TriggerRequest');
@@ -53,7 +53,7 @@ class NavigationContainer extends AbstractContainer {
       'overlay-readonly',
       null,
       Icons.markupIdentifiers.inline,
-    ).done((icon: string): void => {
+    ).then((icon: string): void => {
       $(TopbarIdentifiersEnum.buttonNavigationComponent).html(icon);
     });
     $(ScaffoldIdentifierEnum.scaffold).removeClass('scaffold-content-navigation-expanded');
@@ -62,7 +62,7 @@ class NavigationContainer extends AbstractContainer {
 
   public show(component: string): void {
     $(TopbarIdentifiersEnum.buttonNavigationComponent).prop('disabled', false);
-    Icons.getIcon('actions-pagetree', Icons.sizes.small, null, null, Icons.markupIdentifiers.inline).done((icon: string): void => {
+    Icons.getIcon('actions-pagetree', Icons.sizes.small, null, null, Icons.markupIdentifiers.inline).then((icon: string): void => {
       $(TopbarIdentifiersEnum.buttonNavigationComponent).html(icon);
     });
 

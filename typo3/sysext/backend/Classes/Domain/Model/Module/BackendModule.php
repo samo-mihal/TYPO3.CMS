@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Domain\Model\Module;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Domain\Model\Module;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Domain\Model\Module;
 
 /**
  * Model for menu entries
@@ -73,6 +74,13 @@ class BackendModule
      * @var bool
      */
     protected $collapsed = false;
+
+    /**
+     * Standalone modules are top-level modules without a group
+     *
+     * @var bool
+     */
+    protected $standalone = false;
 
     /**
      * construct
@@ -292,5 +300,21 @@ class BackendModule
     public function getCollapsed(): bool
     {
         return $this->collapsed;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isStandalone(): bool
+    {
+        return $this->standalone;
+    }
+
+    /**
+     * @param bool $standalone
+     */
+    public function setStandalone(bool $standalone): void
+    {
+        $this->standalone = $standalone;
     }
 }

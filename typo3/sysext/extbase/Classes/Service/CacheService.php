@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Extbase\Service;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,11 +15,16 @@ namespace TYPO3\CMS\Extbase\Service;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Service;
+
+use TYPO3\CMS\Core\Cache\CacheManager;
+use TYPO3\CMS\Core\SingletonInterface;
+
 /**
  * Cache clearing helper functions
  * @internal only to be used within Extbase, not part of TYPO3 Core API.
  */
-class CacheService implements \TYPO3\CMS\Core\SingletonInterface
+class CacheService implements SingletonInterface
 {
     /**
      * @var \SplStack
@@ -35,7 +39,7 @@ class CacheService implements \TYPO3\CMS\Core\SingletonInterface
     /**
      * @param \TYPO3\CMS\Core\Cache\CacheManager $cacheManager
      */
-    public function injectCacheManager(\TYPO3\CMS\Core\Cache\CacheManager $cacheManager): void
+    public function injectCacheManager(CacheManager $cacheManager): void
     {
         $this->cacheManager = $cacheManager;
     }
@@ -45,7 +49,7 @@ class CacheService implements \TYPO3\CMS\Core\SingletonInterface
      */
     public function __construct()
     {
-        $this->pageIdStack = new \SplStack;
+        $this->pageIdStack = new \SplStack();
     }
 
     /**

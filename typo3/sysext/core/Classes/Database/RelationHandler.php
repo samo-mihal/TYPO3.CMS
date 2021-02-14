@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Database;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,12 +13,15 @@ namespace TYPO3\CMS\Core\Database;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Database;
+
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Database\Platform\PlatformInformation;
 use TYPO3\CMS\Core\Database\Query\QueryHelper;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 use TYPO3\CMS\Core\DataHandling\PlainDataResolver;
+use TYPO3\CMS\Core\DataHandling\ReferenceIndexUpdater;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
 use TYPO3\CMS\Core\Versioning\VersionState;
@@ -56,7 +58,7 @@ class RelationHandler
     /**
      * Contains items in a numeric array (table/id for each). Tablenames here might be "_NO_TABLE"
      *
-     * @var array
+     * @var array<int, array<string, mixed>>
      */
     public $itemArray = [];
 
@@ -78,11 +80,6 @@ class RelationHandler
      * @var bool
      */
     public $checkIfDeleted = true;
-
-    /**
-     * @var array
-     */
-    public $dbPaths = [];
 
     /**
      * Will contain the first table name in the $tablelist (for positive ids)
@@ -123,9 +120,9 @@ class RelationHandler
     /**
      * Only set if MM_is_foreign is set
      *
-     * @var string
+     * @var array
      */
-    public $MM_oppositeFieldConf = '';
+    public $MM_oppositeFieldConf = [];
 
     /**
      * Is empty by default; if MM_is_foreign is set and there is more than one table
@@ -186,9 +183,16 @@ class RelationHandler
     protected $MM_oppositeUsage;
 
     /**
+     * If false, reference index is not updated.
+     *
      * @var bool
      */
     protected $updateReferenceIndex = true;
+
+    /**
+     * @var ReferenceIndexUpdater|null
+     */
+    protected $referenceIndexUpdater;
 
     /**
      * @var bool
@@ -201,7 +205,7 @@ class RelationHandler
     protected $useLiveReferenceIds = true;
 
     /**
-     * @var int
+     * @var int|null
      */
     protected $workspaceId;
 
@@ -222,7 +226,7 @@ class RelationHandler
      *
      * @return int
      */
-    public function getWorkspaceId()
+    public function getWorkspaceId(): int
     {
         if (!isset($this->workspaceId)) {
             $this->workspaceId = (int)$GLOBALS['BE_USER']->workspace;
@@ -235,9 +239,20 @@ class RelationHandler
      *
      * @param int $workspaceId
      */
-    public function setWorkspaceId($workspaceId)
+    public function setWorkspaceId($workspaceId): void
     {
         $this->workspaceId = (int)$workspaceId;
+    }
+
+    /**
+     * Setter to carry the 'deferred' reference index updater registry around.
+     *
+     * @param ReferenceIndexUpdater $updater
+     * @internal Used internally within DataHandler only
+     */
+    public function setReferenceIndexUpdater(ReferenceIndexUpdater $updater): void
+    {
+        $this->referenceIndexUpdater = $updater;
     }
 
     /**
@@ -275,13 +290,11 @@ class RelationHandler
             $this->MM_oppositeUsage = $conf['MM_oppositeUsage'];
         }
         if ($this->MM_is_foreign) {
-            $tmp = $conf['type'] === 'group' ? $conf['allowed'] : $conf['foreign_table'];
+            $allowedTableList = $conf['type'] === 'group' ? $conf['allowed'] : $conf['foreign_table'];
             // Normally, $conf['allowed'] can contain a list of tables,
             // but as we are looking at a MM relation from the foreign side,
             // it only makes sense to allow one one table in $conf['allowed']
-            $tmp = GeneralUtility::trimExplode(',', $tmp);
-            $this->MM_oppositeTable = $tmp[0];
-            unset($tmp);
+            [$this->MM_oppositeTable] = GeneralUtility::trimExplode(',', $allowedTableList);
             // Only add the current table name if there is more than one allowed field
             // We must be sure this has been done at least once before accessing the "columns" part of TCA for a table.
             $this->MM_oppositeFieldConf = $GLOBALS['TCA'][$this->MM_oppositeTable]['columns'][$this->MM_oppositeField]['config'];
@@ -359,6 +372,7 @@ class RelationHandler
      * Sets whether the reference index shall be updated.
      *
      * @param bool $updateReferenceIndex Whether the reference index shall be updated
+     * @todo: Unused in core, should be removed, use ReferenceIndexUpdater instead
      */
     public function setUpdateReferenceIndex($updateReferenceIndex)
     {
@@ -394,9 +408,9 @@ class RelationHandler
             // Changed to trimExplode 31/3 04; HMENU special type "list" didn't work
             // if there were spaces in the list... I suppose this is better overall...
             foreach ($tempItemArray as $key => $val) {
-                // Will be set to "1" if the entry was a real table/id:
-                $isSet = 0;
-                // Extract table name and id. This is un the formular [tablename]_[id]
+                // Will be set to "true" if the entry was a real table/id
+                $isSet = false;
+                // Extract table name and id. This is in the formula [tablename]_[id]
                 // where table name MIGHT contain "_", hence the reversion of the string!
                 $val = strrev($val);
                 $parts = explode('_', $val, 2);
@@ -421,8 +435,8 @@ class RelationHandler
                         $this->itemArray[$key]['id'] = $theID;
                         $this->itemArray[$key]['table'] = $theTable;
                         $this->tableArray[$theTable][] = $theID;
-                        // Set update-flag:
-                        $isSet = 1;
+                        // Set update-flag
+                        $isSet = true;
                     }
                 }
                 // If it turns out that the value from the list was NOT a valid reference to a table-record,
@@ -480,7 +494,7 @@ class RelationHandler
             );
         } elseif (count($this->tableArray) === 1) {
             reset($this->tableArray);
-            $table = key($this->tableArray);
+            $table = (string)key($this->tableArray);
             $connection = $this->getConnectionForTableName($table);
             $maxBindParameters = PlatformInformation::getMaxBindParameters($connection->getDatabasePlatform());
 
@@ -501,7 +515,7 @@ class RelationHandler
                         )
                     );
                 foreach (QueryHelper::parseOrderBy((string)$sortby) as $orderPair) {
-                    list($fieldName, $order) = $orderPair;
+                    [$fieldName, $order] = $orderPair;
                     $queryBuilder->addOrderBy($fieldName, $order);
                 }
                 $statement = $queryBuilder->execute();
@@ -564,7 +578,7 @@ class RelationHandler
         }
         if ($this->MM_table_where) {
             $queryBuilder->andWhere(
-                QueryHelper::stripLogicalOperatorPrefix(str_replace('###THIS_UID###', (int)$uid, $this->MM_table_where))
+                QueryHelper::stripLogicalOperatorPrefix(str_replace('###THIS_UID###', (string)$uid, $this->MM_table_where))
             );
         }
         foreach ($this->MM_match_fields as $field => $value) {
@@ -579,6 +593,7 @@ class RelationHandler
             )
         );
         $queryBuilder->orderBy($sorting_field);
+        $queryBuilder->addOrderBy($uidForeign_field);
         $statement = $queryBuilder->execute();
         while ($row = $statement->fetch()) {
             // Default
@@ -640,7 +655,7 @@ class RelationHandler
             if ($this->MM_table_where) {
                 $additionalWhere->add(
                     QueryHelper::stripLogicalOperatorPrefix(
-                        str_replace('###THIS_UID###', (int)$uid, $this->MM_table_where)
+                        str_replace('###THIS_UID###', (string)$uid, $this->MM_table_where)
                     )
                 );
             }
@@ -882,7 +897,7 @@ class RelationHandler
             // Add WHERE clause if configured
             if ($this->MM_table_where) {
                 $queryBuilder->andWhere(
-                    QueryHelper::stripLogicalOperatorPrefix(str_replace('###THIS_UID###', (int)$uid, $this->MM_table_where))
+                    QueryHelper::stripLogicalOperatorPrefix(str_replace('###THIS_UID###', (string)$uid, $this->MM_table_where))
                 );
             }
             // Select, update or delete only those relations that match the configured fields
@@ -1007,7 +1022,7 @@ class RelationHandler
 
         if (!empty($sortby)) {
             foreach (QueryHelper::parseOrderBy($sortby) as $orderPair) {
-                list($fieldName, $sorting) = $orderPair;
+                [$fieldName, $sorting] = $orderPair;
                 $queryBuilder->addOrderBy($fieldName, $sorting);
             }
         }
@@ -1016,7 +1031,7 @@ class RelationHandler
         $rows = [];
         $result = $queryBuilder->execute();
         while ($row = $result->fetch()) {
-            $rows[$row['uid']] = $row;
+            $rows[(int)$row['uid']] = $row;
         }
         if (!empty($rows)) {
             // Retrieve the parsed and prepared ORDER BY configuration for the resolver
@@ -1084,7 +1099,7 @@ class RelationHandler
                 }
                 $isOnSymmetricSide = false;
                 if ($symmetric_field) {
-                    $isOnSymmetricSide = self::isOnSymmetricSide($parentUid, $conf, $row);
+                    $isOnSymmetricSide = self::isOnSymmetricSide((string)$parentUid, $conf, $row);
                 }
                 $updateValues = $foreign_match_fields;
                 // No update to the uid is requested, so this is the normal behaviour
@@ -1118,7 +1133,7 @@ class RelationHandler
                         } else {
                             $tempSortBy = [];
                             foreach (QueryHelper::parseOrderBy($sortby) as $orderPair) {
-                                list($fieldName, $order) = $orderPair;
+                                [$fieldName, $order] = $orderPair;
                                 if ($order !== null) {
                                     $tempSortBy[] = implode(' ', $orderPair);
                                 } else {
@@ -1292,25 +1307,32 @@ class RelationHandler
     }
 
     /**
-     * Update Reference Index (sys_refindex) for a record
+     * Update Reference Index (sys_refindex) for a record.
      * Should be called any almost any update to a record which could affect references inside the record.
-     * (copied from DataHandler)
+     * If used from within DataHandler, only registers a row for update for later processing.
      *
      * @param string $table Table name
-     * @param int $id Record UID
-     * @return array Information concerning modifications delivered by \TYPO3\CMS\Core\Database\ReferenceIndex::updateRefIndexTable()
+     * @param int $uid Record uid
+     * @return array Result from ReferenceIndex->updateRefIndexTable() updated directly, else empty array
+     * @internal Should be protected
      */
-    public function updateRefIndex($table, $id)
+    public function updateRefIndex($table, $uid): array
     {
-        $statisticsArray = [];
-        if ($this->updateReferenceIndex) {
-            /** @var \TYPO3\CMS\Core\Database\ReferenceIndex $refIndexObj */
-            $refIndexObj = GeneralUtility::makeInstance(\TYPO3\CMS\Core\Database\ReferenceIndex::class);
+        if (!$this->updateReferenceIndex) {
+            return [];
+        }
+        if ($this->referenceIndexUpdater) {
+            // Add to update registry if given
+            $this->referenceIndexUpdater->registerForUpdate((string)$table, (int)$uid, $this->getWorkspaceId());
+            $statisticsArray = [];
+        } else {
+            // Update reference index directly if enabled
+            $referenceIndex = GeneralUtility::makeInstance(ReferenceIndex::class);
             if (BackendUtility::isTableWorkspaceEnabled($table)) {
-                $refIndexObj->setWorkspaceId($this->getWorkspaceId());
+                $referenceIndex->setWorkspaceId($this->getWorkspaceId());
             }
-            $refIndexObj->enableRuntimeCache();
-            $statisticsArray = $refIndexObj->updateRefIndexTable($table, $id);
+            $referenceIndex->enableRuntimeCache();
+            $statisticsArray = $referenceIndex->updateRefIndexTable($table, $uid);
         }
         return $statisticsArray;
     }
@@ -1326,14 +1348,13 @@ class RelationHandler
      */
     public function convertItemArray()
     {
-        $hasBeenConverted = false;
-
         // conversion is only required in a workspace context
         // (the case that version ids are submitted in a live context are rare)
         if ($this->getWorkspaceId() === 0) {
-            return $hasBeenConverted;
+            return false;
         }
 
+        $hasBeenConverted = false;
         foreach ($this->tableArray as $tableName => $ids) {
             if (empty($ids) || !BackendUtility::isTableWorkspaceEnabled($tableName)) {
                 continue;
@@ -1410,7 +1431,7 @@ class RelationHandler
     /**
      * Handles a purge callback on $this->itemArray
      *
-     * @param callable $purgeCallback
+     * @param string $purgeCallback
      * @return bool Whether items have been purged
      */
     protected function purgeItemArrayHandler($purgeCallback)
@@ -1422,7 +1443,12 @@ class RelationHandler
                 continue;
             }
 
-            $purgedItemIds = call_user_func([$this, $purgeCallback], $itemTableName, $itemIds);
+            $purgedItemIds = [];
+            $callable =[$this, $purgeCallback];
+            if (is_callable($callable)) {
+                $purgedItemIds = call_user_func($callable, $itemTableName, $itemIds);
+            }
+
             $removedItemIds = array_diff($itemIds, $purgedItemIds);
             foreach ($removedItemIds as $removedItemId) {
                 $this->removeFromItemArray($itemTableName, $removedItemId);
@@ -1446,7 +1472,7 @@ class RelationHandler
     protected function purgeVersionedIds($tableName, array $ids)
     {
         $ids = $this->sanitizeIds($ids);
-        $ids = array_combine($ids, $ids);
+        $ids = (array)array_combine($ids, $ids);
         $connection = $this->getConnectionForTableName($tableName);
         $maxBindParameters = PlatformInformation::getMaxBindParameters($connection->getDatabasePlatform());
 
@@ -1489,7 +1515,7 @@ class RelationHandler
     protected function purgeLiveVersionedIds($tableName, array $ids)
     {
         $ids = $this->sanitizeIds($ids);
-        $ids = array_combine($ids, $ids);
+        $ids = (array)array_combine($ids, $ids);
         $connection = $this->getConnectionForTableName($tableName);
         $maxBindParameters = PlatformInformation::getMaxBindParameters($connection->getDatabasePlatform());
 
@@ -1533,7 +1559,7 @@ class RelationHandler
     protected function purgeDeletePlaceholder($tableName, array $ids)
     {
         $ids = $this->sanitizeIds($ids);
-        $ids = array_combine($ids, $ids);
+        $ids = array_combine($ids, $ids) ?: [];
         $connection = $this->getConnectionForTableName($tableName);
         $maxBindParameters = PlatformInformation::getMaxBindParameters($connection->getDatabasePlatform());
 

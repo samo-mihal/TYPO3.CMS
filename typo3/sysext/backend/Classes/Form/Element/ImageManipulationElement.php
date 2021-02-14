@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Backend\Form\Element;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Backend\Form\Element;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Form\Element;
 
 use TYPO3\CMS\Backend\Form\NodeFactory;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
@@ -103,8 +105,8 @@ class ImageManipulationElement extends AbstractFormElement
         'localizationStateSelector' => [
             'renderType' => 'localizationStateSelector',
         ],
-        'otherLanguageContent' => [
-            'renderType' => 'otherLanguageContent',
+        'otherLanguageThumbnails' => [
+            'renderType' => 'otherLanguageThumbnails',
             'after' => [
                 'localizationStateSelector'
             ],
@@ -112,7 +114,7 @@ class ImageManipulationElement extends AbstractFormElement
         'defaultLanguageDifferences' => [
             'renderType' => 'defaultLanguageDifferences',
             'after' => [
-                'otherLanguageContent',
+                'otherLanguageThumbnails',
             ],
         ],
     ];
@@ -224,9 +226,8 @@ class ImageManipulationElement extends AbstractFormElement
         }
         if (MathUtility::canBeInterpretedAsInteger($fileUid)) {
             try {
-                $file = ResourceFactory::getInstance()->getFileObject($fileUid);
-            } catch (FileDoesNotExistException $e) {
-            } catch (\InvalidArgumentException $e) {
+                $file = GeneralUtility::makeInstance(ResourceFactory::class)->getFileObject($fileUid);
+            } catch (FileDoesNotExistException|\InvalidArgumentException $e) {
             }
         }
         return $file;
@@ -328,12 +329,13 @@ class ImageManipulationElement extends AbstractFormElement
      */
     protected function getWizardPayload(array $cropVariants, File $image): array
     {
+        $uriArguments = [];
         $arguments = [
             'cropVariants' => $cropVariants,
             'image' => $image->getUid(),
         ];
         $uriArguments['arguments'] = json_encode($arguments);
-        $uriArguments['signature'] = GeneralUtility::hmac($uriArguments['arguments'], $this->wizardRouteName);
+        $uriArguments['signature'] = GeneralUtility::hmac((string)($uriArguments['arguments'] ?? ''), $this->wizardRouteName);
 
         return $uriArguments;
     }

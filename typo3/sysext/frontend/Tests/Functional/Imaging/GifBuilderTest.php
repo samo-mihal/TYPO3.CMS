@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Frontend\Tests\Functional\ContentObject;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,14 +15,17 @@ namespace TYPO3\CMS\Frontend\Tests\Functional\ContentObject;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Frontend\Tests\Functional\Imaging;
+
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Resource\StorageRepository;
 use TYPO3\CMS\Frontend\Imaging\GifBuilder;
+use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
 /**
  * Testcase for TYPO3\CMS\Frontend\Imaging\GifBuilder
  */
-class GifBuilderTest extends \TYPO3\TestingFramework\Core\Functional\FunctionalTestCase
+class GifBuilderTest extends FunctionalTestCase
 {
     /**
      * Check hashes of Images overlayed with other images are idempotent

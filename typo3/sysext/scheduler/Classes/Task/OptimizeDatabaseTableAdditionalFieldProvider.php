@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Scheduler\Task;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Scheduler\Task;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Scheduler\Task;
 
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
@@ -38,7 +39,7 @@ class OptimizeDatabaseTableAdditionalFieldProvider extends AbstractAdditionalFie
      * Add a multi select box with all available database tables.
      *
      * @param array $taskInfo Reference to the array containing the info used in the add/edit form
-     * @param AbstractTask|null $task When editing, reference to the current task. NULL when adding.
+     * @param OptimizeDatabaseTableTask|null $task When editing, reference to the current task. NULL when adding.
      * @param SchedulerModuleController $schedulerModule Reference to the calling object (Scheduler's BE module)
      * @return array Array containing all the information pertaining to the additional fields
      */
@@ -65,6 +66,7 @@ class OptimizeDatabaseTableAdditionalFieldProvider extends AbstractAdditionalFie
             . '" class="from-control" size="10" multiple="multiple">'
             . $fieldOptions
             . '</select>';
+        $additionalFields = [];
         $additionalFields[$fieldId] = [
             'code' => $fieldHtml,
             'label' => $this->languageFile . ':label.optimizeDatabaseTables.selectTables',
@@ -113,7 +115,7 @@ class OptimizeDatabaseTableAdditionalFieldProvider extends AbstractAdditionalFie
      * Save selected backends in task object
      *
      * @param array $submittedData Contains data submitted by the user
-     * @param AbstractTask $task Reference to the current task object
+     * @param OptimizeDatabaseTableTask $task Reference to the current task object
      */
     public function saveAdditionalFields(array $submittedData, AbstractTask $task)
     {

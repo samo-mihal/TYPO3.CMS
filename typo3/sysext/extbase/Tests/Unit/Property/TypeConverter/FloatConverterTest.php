@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Tests\Unit\Property\TypeConverter;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,11 @@ namespace TYPO3\CMS\Extbase\Tests\Unit\Property\TypeConverter;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Tests\Unit\Property\TypeConverter;
+
+use TYPO3\CMS\Extbase\Error\Error;
+use TYPO3\CMS\Extbase\Property\PropertyMappingConfigurationInterface;
+use TYPO3\CMS\Extbase\Property\TypeConverter\FloatConverter;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -29,7 +33,7 @@ class FloatConverterTest extends UnitTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->converter = new \TYPO3\CMS\Extbase\Property\TypeConverter\FloatConverter();
+        $this->converter = new FloatConverter();
     }
 
     /**
@@ -71,17 +75,15 @@ class FloatConverterTest extends UnitTestCase
      */
     public function convertFromShouldRespectConfiguration()
     {
-        $mockMappingConfiguration = $this->createMock(\TYPO3\CMS\Extbase\Property\PropertyMappingConfigurationInterface::class);
+        $mockMappingConfiguration = $this->createMock(PropertyMappingConfigurationInterface::class);
         $mockMappingConfiguration
-            ->expects(self::at(0))
+            ->expects(self::exactly(2))
             ->method('getConfigurationValue')
-            ->with(\TYPO3\CMS\Extbase\Property\TypeConverter\FloatConverter::class, \TYPO3\CMS\Extbase\Property\TypeConverter\FloatConverter::CONFIGURATION_THOUSANDS_SEPARATOR)
-            ->willReturn('.');
-        $mockMappingConfiguration
-            ->expects(self::at(1))
-            ->method('getConfigurationValue')
-            ->with(\TYPO3\CMS\Extbase\Property\TypeConverter\FloatConverter::class, \TYPO3\CMS\Extbase\Property\TypeConverter\FloatConverter::CONFIGURATION_DECIMAL_POINT)
-            ->willReturn(',');
+            ->withConsecutive(
+                [FloatConverter::class, FloatConverter::CONFIGURATION_THOUSANDS_SEPARATOR],
+                [FloatConverter::class, FloatConverter::CONFIGURATION_DECIMAL_POINT]
+            )
+            ->willReturnOnConsecutiveCalls('.', ',');
         self::assertSame(1024.42, $this->converter->convertFrom('1.024,42', 'float', [], $mockMappingConfiguration));
     }
 
@@ -90,7 +92,7 @@ class FloatConverterTest extends UnitTestCase
      */
     public function convertFromReturnsAnErrorIfSpecifiedStringIsNotNumeric()
     {
-        self::assertInstanceOf(\TYPO3\CMS\Extbase\Error\Error::class, $this->converter->convertFrom('not numeric', 'float'));
+        self::assertInstanceOf(Error::class, $this->converter->convertFrom('not numeric', 'float'));
     }
 
     /**

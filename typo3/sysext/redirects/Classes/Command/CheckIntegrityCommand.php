@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Redirects\Command;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Redirects\Command;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Redirects\Command;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -35,7 +37,8 @@ class CheckIntegrityCommand extends Command
             ->addArgument(
                 'site',
                 InputArgument::OPTIONAL,
-                'If set, then only pages of a specific site are checked'
+                'If set, then only pages of a specific site are checked',
+                ''
             );
     }
 
@@ -44,15 +47,17 @@ class CheckIntegrityCommand extends Command
      *
      * @param InputInterface $input
      * @param OutputInterface $output
+     * @return int
      */
-    protected function execute(InputInterface $input, OutputInterface $output): void
+    protected function execute(InputInterface $input, OutputInterface $output)
     {
         $registry = GeneralUtility::makeInstance(Registry::class);
         $registry->remove(static::REGISTRY_NAMESPACE, static::REGISTRY_KEY);
 
         $integrityService = GeneralUtility::makeInstance(IntegrityService::class);
         $list = [];
-        foreach ($integrityService->findConflictingRedirects($input->getArgument('site')) as $conflict) {
+        $site = $input->getArgument('site') ?: null;
+        foreach ($integrityService->findConflictingRedirects($site) as $conflict) {
             $list[] = $conflict;
             $output->writeln(sprintf(
                 'Redirect (Host: %s, Path: %s) conflicts with %s',
@@ -62,5 +67,6 @@ class CheckIntegrityCommand extends Command
             ));
         }
         $registry->set(static::REGISTRY_NAMESPACE, static::REGISTRY_KEY, $list);
+        return 0;
     }
 }

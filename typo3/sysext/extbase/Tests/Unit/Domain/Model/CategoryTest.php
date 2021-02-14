@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Tests\Unit\Domain\Model;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,9 @@ namespace TYPO3\CMS\Extbase\Tests\Unit\Domain\Model;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Tests\Unit\Domain\Model;
+
+use TYPO3\CMS\Extbase\Domain\Model\Category;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -29,7 +31,7 @@ class CategoryTest extends UnitTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->fixture = new \TYPO3\CMS\Extbase\Domain\Model\Category();
+        $this->fixture = new Category();
     }
 
     /**
@@ -79,7 +81,7 @@ class CategoryTest extends UnitTestCase
      */
     public function setParentSetsParent()
     {
-        $parent = new \TYPO3\CMS\Extbase\Domain\Model\Category();
+        $parent = new Category();
         $this->fixture->setParent($parent);
         self::assertSame($parent, $this->fixture->getParent());
     }

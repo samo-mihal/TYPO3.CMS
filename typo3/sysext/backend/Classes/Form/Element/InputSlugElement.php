@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Backend\Form\Element;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,16 +15,17 @@ namespace TYPO3\CMS\Backend\Form\Element;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Form\Element;
+
 use TYPO3\CMS\Backend\Controller\FormSlugAjaxController;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Localization\LanguageService;
-use TYPO3\CMS\Core\Site\Entity\SiteInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
 use TYPO3\CMS\Core\Utility\StringUtility;
 
 /**
- * General type=input element with some additional value.
+ * General type=input element for TCA Type=Slug with some additional value.
  */
 class InputSlugElement extends AbstractFormElement
 {
@@ -80,13 +81,13 @@ class InputSlugElement extends AbstractFormElement
             $languageField = $GLOBALS['TCA'][$table]['ctrl']['languageField'];
             $languageId = (int)((is_array($row[$languageField]) ? $row[$languageField][0] : $row[$languageField]) ?? 0);
         }
-        $baseUrl = $this->getPrefix($this->data['site'], $languageId);
 
         $itemValue = $parameterArray['itemFormElValue'];
         $config = $parameterArray['fieldConf']['config'];
         $evalList = GeneralUtility::trimExplode(',', $config['eval'], true);
         $size = MathUtility::forceIntegerInRange($config['size'] ?? $this->defaultInputWidth, $this->minimumInputWidth, $this->maxInputWidth);
         $width = (int)$this->formMaxWidth($size);
+        $baseUrl = $this->data['customData'][$this->data['fieldName']]['slugPrefix'] ?? '';
 
         // Convert UTF-8 characters back (that is important, see Slug class when sanitizing)
         $itemValue = rawurldecode($itemValue);
@@ -104,6 +105,9 @@ class InputSlugElement extends AbstractFormElement
         $resultArray = $this->mergeChildReturnIntoExistingResult($resultArray, $fieldWizardResult, false);
         $toggleButtonTitle = $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:buttons.toggleSlugExplanation');
         $recreateButtonTitle = $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:buttons.recreateSlugExplanation');
+
+        $successMessage = sprintf($this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:slugCreation.success.' . ($table === 'pages' ? 'page' : 'record')), $baseUrl);
+        $errorMessage = sprintf($this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:slugCreation.error'), $baseUrl);
 
         $thisSlugId = 't3js-form-field-slug-id' . StringUtility::getUniqueId();
         $mainFieldHtml = [];
@@ -128,7 +132,7 @@ class InputSlugElement extends AbstractFormElement
         $mainFieldHtml[] =                      ' class="form-control t3js-form-field-slug-input hidden"';
         $mainFieldHtml[] =                      ' placeholder="' . htmlspecialchars($row['slug'] ?? '/') . '"';
         $mainFieldHtml[] =                      ' data-formengine-validation-rules="' . htmlspecialchars($this->getValidationDataAsJsonString($config)) . '"';
-        $mainFieldHtml[] =                      ' data-formengine-input-params="' . htmlspecialchars(json_encode(['field' => $parameterArray['itemFormElName'], 'evalList' => implode(',', $evalList)])) . '"';
+        $mainFieldHtml[] =                      ' data-formengine-input-params="' . htmlspecialchars((string)json_encode(['field' => $parameterArray['itemFormElName'], 'evalList' => implode(',', $evalList)])) . '"';
         $mainFieldHtml[] =                      ' data-formengine-input-name="' . htmlspecialchars($parameterArray['itemFormElName']) . '"';
         $mainFieldHtml[] =                  ' />';
         $mainFieldHtml[] =                  '<span class="input-group-btn">';
@@ -154,8 +158,8 @@ class InputSlugElement extends AbstractFormElement
             $mainFieldHtml[] =      '</div>';
         }
         $mainFieldHtml[] =          '<div class="form-wizards-items-bottom">';
-        $mainFieldHtml[] =              '<span class="t3js-form-proposal-accepted hidden label label-success">Congrats, this page will look like ' . htmlspecialchars($baseUrl) . '<span>/abc/</span></span>';
-        $mainFieldHtml[] =              '<span class="t3js-form-proposal-different hidden label label-warning">Hmm, that is taken, how about ' . htmlspecialchars($baseUrl) . '<span>/abc/</span></span>';
+        $mainFieldHtml[] =              '<span class="t3js-form-proposal-accepted hidden label label-success">' . htmlspecialchars($successMessage) . '<span>/abc/</span></span>';
+        $mainFieldHtml[] =              '<span class="t3js-form-proposal-different hidden label label-warning">' . htmlspecialchars($errorMessage) . '<span>/abc/</span></span>';
         $mainFieldHtml[] =              $fieldWizardHtml;
         $mainFieldHtml[] =          '</div>';
         $mainFieldHtml[] =      '</div>';
@@ -215,30 +219,6 @@ class InputSlugElement extends AbstractFormElement
             }'
         ];
         return $resultArray;
-    }
-
-    /**
-     * Render the prefix for the input field.
-     *
-     * @param SiteInterface $site
-     * @param int $requestLanguageId
-     * @return string
-     */
-    protected function getPrefix(SiteInterface $site, int $requestLanguageId = 0): string
-    {
-        try {
-            $language = ($requestLanguageId < 0) ? $site->getDefaultLanguage() : $site->getLanguageById($requestLanguageId);
-            $base = $language->getBase();
-            $baseUrl = (string)$base;
-            $baseUrl = rtrim($baseUrl, '/');
-            if (!empty($baseUrl) && empty($base->getScheme()) && $base->getHost() !== '') {
-                $baseUrl = 'http:' . $baseUrl;
-            }
-        } catch (\InvalidArgumentException $e) {
-            // No site found
-            $baseUrl = '';
-        }
-        return $baseUrl;
     }
 
     /**

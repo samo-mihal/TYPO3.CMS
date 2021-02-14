@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Routing\Enhancer;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Core\Routing\Enhancer;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Routing\Enhancer;
 
 use TYPO3\CMS\Core\Routing\Aspect\StaticMappableAspectInterface;
 use TYPO3\CMS\Core\Routing\PageArguments;
@@ -72,6 +73,10 @@ class SimpleEnhancer extends AbstractEnhancer implements RoutingEnhancerInterfac
 
         $page = $route->getOption('_page');
         $pageId = (int)($page['l10n_parent'] > 0 ? $page['l10n_parent'] : $page['uid']);
+        // See PageSlugCandidateProvider where this is added.
+        if ($page['MPvar'] ?? '') {
+            $routeArguments['MP'] = $page['MPvar'];
+        }
         $type = $this->resolveType($route, $remainingQueryParameters);
         return new PageArguments($pageId, $type, $routeArguments, $staticArguments, $remainingQueryParameters);
     }
@@ -99,14 +104,17 @@ class SimpleEnhancer extends AbstractEnhancer implements RoutingEnhancerInterfac
         $arguments = $configuration['_arguments'] ?? [];
         unset($configuration['_arguments']);
 
+        $variableProcessor = $this->getVariableProcessor();
         $routePath = $this->modifyRoutePath($configuration['routePath']);
-        $routePath = $this->getVariableProcessor()->deflateRoutePath($routePath, null, $arguments);
+        $routePath = $variableProcessor->deflateRoutePath($routePath, null, $arguments);
         $variant = clone $defaultPageRoute;
         $variant->setPath(rtrim($variant->getPath(), '/') . '/' . ltrim($routePath, '/'));
-        $variant->setDefaults($configuration['defaults'] ?? []);
-        $variant->setRequirements($configuration['requirements'] ?? []);
         $variant->addOptions(['_enhancer' => $this, '_arguments' => $arguments]);
+        $defaults = $variableProcessor->deflateKeys($this->configuration['defaults'] ?? [], null, $arguments);
+        // only keep `defaults` that are actually used in `routePath`
+        $variant->setDefaults($this->filterValuesByPathVariables($variant, $defaults));
         $this->applyRouteAspects($variant, $this->aspects ?? []);
+        $this->applyRequirements($variant, $this->configuration['requirements'] ?? []);
         return $variant;
     }
 
@@ -119,11 +127,12 @@ class SimpleEnhancer extends AbstractEnhancer implements RoutingEnhancerInterfac
         $defaultPageRoute = $collection->get('default');
         $variant = $this->getVariant($defaultPageRoute, $this->configuration);
         $compiledRoute = $variant->compile();
+        // contains all given parameters, even if not used as variables in route
         $deflatedParameters = $this->getVariableProcessor()->deflateParameters($parameters, $variant->getArguments());
         $variables = array_flip($compiledRoute->getPathVariables());
         $mergedParams = array_replace($variant->getDefaults(), $deflatedParameters);
         // all params must be given, otherwise we exclude this variant
-        if ($diff = array_diff_key($variables, $mergedParams)) {
+        if ($variables === [] || array_diff_key($variables, $mergedParams) !== []) {
             return;
         }
         $variant->addOptions(['deflatedParameters' => $deflatedParameters]);

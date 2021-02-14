@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Form\Wizard;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,18 +13,19 @@ namespace TYPO3\CMS\Backend\Form\Wizard;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Form\Wizard;
+
+use TYPO3\CMS\Backend\Tree\View\PageTreeView;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Database\Query\QueryHelper;
-use TYPO3\CMS\Core\Database\Query\Restriction\BackendWorkspaceRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
+use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
-use TYPO3\CMS\Core\Utility\ArrayUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
 
@@ -103,19 +103,18 @@ class SuggestWizardDefaultReceiver
             ->add(GeneralUtility::makeInstance(DeletedRestriction::class))
             // if table is versionized, only get the records from the Live Workspace
             // the overlay itself of WS-records is done below
-            ->add(GeneralUtility::makeInstance(BackendWorkspaceRestriction::class, 0));
+            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, 0));
         $this->table = $table;
         $this->config = $config;
         // get a list of all the pages that should be looked on
         if (isset($config['pidList'])) {
-            $allowedPages = ($pageIds = GeneralUtility::trimExplode(',', $config['pidList']));
-            $depth = (int)$config['pidDepth'];
+            $pageIds = GeneralUtility::intExplode(',', $config['pidList'], true);
+            $depth = (int)($config['pidDepth'] ?? 0);
+            $availablePageIds = [];
             foreach ($pageIds as $pageId) {
-                if ($pageId > 0) {
-                    ArrayUtility::mergeRecursiveWithOverrule($allowedPages, $this->getAllSubpagesOfPage($pageId, $depth));
-                }
+                $availablePageIds[] = $this->getAvailablePageIds($pageId, $depth);
             }
-            $this->allowedPages = array_unique($allowedPages);
+            $this->allowedPages = array_unique(array_merge($this->allowedPages, ...$availablePageIds));
         }
         if (isset($config['maxItemsInResultList'])) {
             $this->maxItems = $config['maxItemsInResultList'];
@@ -286,43 +285,24 @@ class SuggestWizardDefaultReceiver
     }
 
     /**
-     * Selects all subpages of one page, optionally only up to a certain level
+     * Get array of page ids from given page id and depth
      *
-     * @param int $uid The uid of the page
-     * @param int $depth The depth to select up to. Defaults to 99
-     * @return array of page IDs
+     * @param int $id Page id.
+     * @param int $depth Depth to go down.
+     * @return array of all page ids
      */
-    protected function getAllSubpagesOfPage($uid, $depth = 99)
+    protected function getAvailablePageIds(int $id, int $depth = 0): array
     {
-        $pageIds = [$uid];
-        $level = 0;
-        $pages = [$uid];
-        $queryBuilder = $this->getQueryBuilderForTable('pages');
-        $queryBuilder->select('uid')
-            ->from('pages');
-        // fetch all
-        while ($depth - $level > 0 && !empty($pageIds)) {
-            ++$level;
-            $rows = $queryBuilder
-                ->where(
-                    $queryBuilder->expr()->in(
-                        'pid',
-                        $queryBuilder->createNamedParameter($pageIds, Connection::PARAM_INT_ARRAY)
-                    ),
-                    $queryBuilder->expr()->eq('sys_language_uid', 0)
-                )
-                ->execute()
-                ->fetchAll();
-
-            $rows = array_column(($rows ?: []), 'uid', 'uid');
-            if (!count($rows)) {
-                break;
-            }
-
-            $pageIds = array_keys($rows);
-            $pages = array_merge($pages, $pageIds);
+        if ($depth === 0) {
+            return [$id];
         }
-        return $pages;
+        $tree = GeneralUtility::makeInstance(PageTreeView::class);
+        $tree->init();
+        $tree->getTree($id, $depth);
+        $tree->makeHTML = 0;
+        $tree->fieldArray = ['uid'];
+        $tree->ids[] = $id;
+        return $tree->ids;
     }
 
     /**
@@ -335,7 +315,7 @@ class SuggestWizardDefaultReceiver
             $this->queryBuilder->addOrderBy($GLOBALS['TCA'][$this->table]['ctrl']['label']);
         } else {
             foreach (QueryHelper::parseOrderBy($this->config['orderBy']) as $orderPair) {
-                list($fieldName, $order) = $orderPair;
+                [$fieldName, $order] = $orderPair;
                 $this->queryBuilder->addOrderBy($fieldName, $order);
             }
         }
@@ -405,7 +385,7 @@ class SuggestWizardDefaultReceiver
             $path = BackendUtility::getRecordPath($uid, '', $titleLimit);
             // For pages we only want the first (n-1) parts of the path,
             // because the n-th part is the page itself
-            $path = substr($path, 0, strrpos($path, '/', -2)) . '/';
+            $path = substr($path, 0, (int)strrpos($path, '/', -2)) . '/';
         } else {
             $path = BackendUtility::getRecordPath($row['pid'], '', $titleLimit);
         }

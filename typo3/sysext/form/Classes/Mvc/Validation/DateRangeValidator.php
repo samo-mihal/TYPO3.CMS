@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\Mvc\Validation;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Form\Mvc\Validation;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Form\Mvc\Validation;
 
 use TYPO3\CMS\Extbase\Validation\Validator\AbstractValidator;
 use TYPO3\CMS\Form\Mvc\Validation\Exception\InvalidValidationOptionsException;
@@ -47,7 +49,7 @@ class DateRangeValidator extends AbstractValidator
                     'validation.error.1521293685',
                     'form',
                     [gettype($value)]
-                ),
+                ) ?? '',
                 1521293685
             );
 
@@ -68,7 +70,7 @@ class DateRangeValidator extends AbstractValidator
                     'validation.error.1521293686',
                     'form',
                     [$minimum->format($format)]
-                ),
+                ) ?? '',
                 1521293686,
                 [$minimum->format($format)]
             );
@@ -83,7 +85,7 @@ class DateRangeValidator extends AbstractValidator
                     'validation.error.1521293687',
                     'form',
                     [$maximum->format($format)]
-                ),
+                ) ?? '',
                 1521293687,
                 [$maximum->format($format)]
             );

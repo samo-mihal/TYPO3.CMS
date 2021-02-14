@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Tests\Unit\Site\Entity;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,8 +15,9 @@ namespace TYPO3\CMS\Core\Tests\Unit\Site\Entity;
  * The TYPO3 project - inspiring people to share!
  */
 
-use TYPO3\CMS\Core\Http\Uri;
-use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
+namespace TYPO3\CMS\Core\Tests\Unit\Site\Entity;
+
+use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 class SiteLanguageTest extends UnitTestCase
@@ -66,9 +66,11 @@ class SiteLanguageTest extends UnitTestCase
     public function languageFallbackIdConversion($input, array $expected)
     {
         $configuration = [
-            'fallbacks' => $input
+            'fallbacks' => $input,
+            'locale' => 'fr',
         ];
-        $subject = new SiteLanguage(1, 'fr', new Uri('/'), $configuration);
+        $site = $this->createSiteWithLanguage($configuration);
+        $subject = $site->getLanguageById(1);
         self::assertSame($expected, $subject->getFallbackLanguageIds());
     }
 
@@ -81,14 +83,16 @@ class SiteLanguageTest extends UnitTestCase
             'navigationTitle' => 'NavTitle',
             'customValue' => 'a custom value',
             'fallbacks' => '1,2',
+            'locale' => 'de',
         ];
-        $subject = new SiteLanguage(1, 'de', new Uri('/'), $configuration);
+        $site = $this->createSiteWithLanguage($configuration);
+        $subject = $site->getLanguageById(1);
         $expected = [
             'navigationTitle' => 'NavTitle',
             'customValue' => 'a custom value',
             'fallbacks' => '1,2',
-            'languageId' => 1,
             'locale' => 'de',
+            'languageId' => 1,
             'base' => '/',
             'title' => 'Default',
             'websiteTitle' => '',
@@ -105,5 +109,23 @@ class SiteLanguageTest extends UnitTestCase
             ],
         ];
         self::assertSame($expected, $subject->toArray());
+    }
+
+    private function createSiteWithLanguage(array $languageConfiguration): Site
+    {
+        return new Site('test', 1, [
+            'identifier' => 'test',
+            'rootPageId' => 1,
+            'base' => '/',
+            'languages' => [
+                array_merge(
+                    $languageConfiguration,
+                    [
+                        'languageId' => 1,
+                        'base' => '/',
+                    ]
+                )
+            ]
+        ]);
     }
 }

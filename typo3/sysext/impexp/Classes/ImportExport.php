@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Impexp;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Impexp;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Impexp;
+
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Core\Environment;
@@ -22,6 +23,7 @@ use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Resource\Exception\InsufficientFolderAccessPermissionsException;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
+use TYPO3\CMS\Core\Resource\Security\FileNameValidator;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Utility\DebugUtility;
 use TYPO3\CMS\Core\Utility\DiffUtility;
@@ -363,6 +365,7 @@ abstract class ImportExport
             // Subrecords:
             if (is_array($this->dat['header']['pid_lookup'][$k])) {
                 foreach ($this->dat['header']['pid_lookup'][$k] as $t => $recUidArr) {
+                    $t = (string)$t;
                     if ($t !== 'pages') {
                         foreach ($recUidArr as $ruid => $value) {
                             $this->singleRecordLines($t, $ruid, $lines, $preCode . '&nbsp;&nbsp;&nbsp;&nbsp;');
@@ -427,19 +430,19 @@ abstract class ImportExport
     /**
      * Go through remaining pages (not in tree)
      *
-     * @param array $pT Page tree array with uid/subrow (from ->dat[header][pagetree]
+     * @param array<int, array> $pT Page tree array with uid/subrow (from ->dat[header][pagetree]
      * @param array $lines Output lines array (is passed by reference and modified)
      */
     public function traversePageRecords($pT, &$lines)
     {
         foreach ($pT as $k => $rHeader) {
-            $this->singleRecordLines('pages', $k, $lines, '', 1);
+            $this->singleRecordLines('pages', (int)$k, $lines, '', true);
             // Subrecords:
             if (is_array($this->dat['header']['pid_lookup'][$k])) {
                 foreach ($this->dat['header']['pid_lookup'][$k] as $t => $recUidArr) {
                     if ($t !== 'pages') {
                         foreach ($recUidArr as $ruid => $value) {
-                            $this->singleRecordLines($t, $ruid, $lines, '&nbsp;&nbsp;&nbsp;&nbsp;');
+                            $this->singleRecordLines((string)$t, (int)$ruid, $lines, '&nbsp;&nbsp;&nbsp;&nbsp;');
                         }
                     }
                 }
@@ -461,7 +464,7 @@ abstract class ImportExport
             if ($t !== 'pages') {
                 $preCode = '';
                 foreach ($recUidArr as $ruid => $value) {
-                    $this->singleRecordLines($t, $ruid, $lines, $preCode, 1);
+                    $this->singleRecordLines((string)$t, (int)$ruid, $lines, $preCode, true);
                 }
             }
         }
@@ -635,7 +638,7 @@ abstract class ImportExport
                 $lines[] = $pInfo;
                 // Add relations:
                 if ($info['subst']['type'] === 'db') {
-                    list($tempTable, $tempUid) = explode(':', $info['subst']['recordRef']);
+                    [$tempTable, $tempUid] = explode(':', $info['subst']['recordRef']);
                     $this->addRelations([['table' => $tempTable, 'id' => $tempUid, 'tokenID' => $info['subst']['tokenID']]], $lines, $preCode_B, [], '');
                 }
                 // Add files:
@@ -764,7 +767,7 @@ abstract class ImportExport
                 $fileProcObj = $this->getFileProcObj();
                 if ($fileProcObj->actionPerms['addFile']) {
                     $testFI = GeneralUtility::split_fileref(Environment::getPublicPath() . '/' . $fI['relFileName']);
-                    if (!$fileProcObj->checkIfAllowed($testFI['fileext'], $testFI['path'], $testFI['file'])) {
+                    if (!GeneralUtility::makeInstance(FileNameValidator::class)->isValid($testFI['file'])) {
                         $pInfo['msg'] .= 'File extension was not allowed!';
                     }
                 } else {
@@ -921,7 +924,7 @@ abstract class ImportExport
     {
         // Check the absolute path for public web path, if the user has access - no problem
         try {
-            ResourceFactory::getInstance()->getFolderObjectFromCombinedIdentifier($dirPrefix);
+            GeneralUtility::makeInstance(ResourceFactory::class)->getFolderObjectFromCombinedIdentifier($dirPrefix);
             return $dirPrefix;
         } catch (InsufficientFolderAccessPermissionsException $e) {
             // Check all storages available for the user as alternative
@@ -950,7 +953,7 @@ abstract class ImportExport
     {
         $temporaryPath = Environment::getVarPath() . '/transient/';
         do {
-            $temporaryFolderName = $temporaryPath . 'export_temp_files_' . mt_rand(1, PHP_INT_MAX);
+            $temporaryFolderName = $temporaryPath . 'export_temp_files_' . random_int(1, PHP_INT_MAX);
         } while (is_dir($temporaryFolderName));
         GeneralUtility::mkdir($temporaryFolderName);
         return $temporaryFolderName;
@@ -1113,7 +1116,7 @@ abstract class ImportExport
      * Will return HTML code to show any differences between them!
      *
      * @param array $databaseRecord Database record, all fields (new values)
-     * @param array $importRecord Import memorys record for the same table/uid, all fields (old values)
+     * @param array|null $importRecord Import memory records for the same table/uid, all fields (old values)
      * @param string $table The table name of the record
      * @param bool $inverseDiff Inverse the diff view (switch red/green, needed for pre-update difference view)
      * @return string HTML
@@ -1131,7 +1134,7 @@ abstract class ImportExport
                     if (isset($importRecord[$fN])) {
                         if (trim($databaseRecord[$fN]) !== trim($importRecord[$fN])) {
                             // Create diff-result:
-                            $output[$fN] = $diffUtility->makeDiffDisplay(BackendUtility::getProcessedValue($table, $fN, !$inverseDiff ? $importRecord[$fN] : $databaseRecord[$fN], 0, 1, 1), BackendUtility::getProcessedValue($table, $fN, !$inverseDiff ? $databaseRecord[$fN] : $importRecord[$fN], 0, 1, 1));
+                            $output[$fN] = $diffUtility->makeDiffDisplay(BackendUtility::getProcessedValue($table, $fN, !$inverseDiff ? $importRecord[$fN] : $databaseRecord[$fN], 0, true, true), BackendUtility::getProcessedValue($table, $fN, !$inverseDiff ? $databaseRecord[$fN] : $importRecord[$fN], 0, true, true));
                         }
                         unset($importRecord[$fN]);
                     }
@@ -1149,7 +1152,7 @@ abstract class ImportExport
                 foreach ($output as $fN => $state) {
                     $tRows[] = '
 						<tr>
-							<td>' . htmlspecialchars($this->getLanguageService()->sL($GLOBALS['TCA'][$table]['columns'][$fN]['label'])) . ' (' . htmlspecialchars($fN) . ')</td>
+							<td>' . htmlspecialchars($this->getLanguageService()->sL($GLOBALS['TCA'][$table]['columns'][$fN]['label'])) . ' (' . htmlspecialchars((string)$fN) . ')</td>
 							<td>' . $state . '</td>
 						</tr>
 					';

@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Opendocs\Service;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Opendocs\Service;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Opendocs\Service;
 
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 
@@ -85,13 +87,25 @@ class OpenDocumentService
     }
 
     /**
+     * Closes all open documents
+     */
+    public function closeAllDocuments(): void
+    {
+        $openDocuments = $this->getOpenDocuments();
+        $this->storeOpenDocuments([]);
+        foreach ($openDocuments as $identifier => $document) {
+            $this->addToRecentDocuments($identifier, $document);
+        }
+    }
+
+    /**
      * Store a list of open documents
      *
      * @param array $openDocuments
      */
     protected function storeOpenDocuments(array $openDocuments): void
     {
-        list(, $lastOpenDocumentIdentifier) = $this->backendUser->getModuleData('FormEngine', 'ses');
+        [, $lastOpenDocumentIdentifier] = $this->backendUser->getModuleData('FormEngine', 'ses');
         $this->backendUser->pushModuleData('FormEngine', [$openDocuments, $lastOpenDocumentIdentifier]);
     }
 

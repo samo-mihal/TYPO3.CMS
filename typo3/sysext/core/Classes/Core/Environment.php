@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Core;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Core;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Core;
 
 /**
  * This class is initialized once in the SystemEnvironmentBuilder, and can then
@@ -36,14 +38,61 @@ namespace TYPO3\CMS\Core\Core;
  */
 class Environment
 {
+    /**
+     * A list of supported CGI server APIs
+     * @var array
+     */
+    protected static $supportedCgiServerApis = [
+        'fpm-fcgi',
+        'cgi',
+        'isapi',
+        'cgi-fcgi',
+        'srv', // HHVM with fastcgi
+    ];
+
+    /**
+     * @var bool
+     */
     protected static $cli;
+
+    /**
+     * @var bool
+     */
     protected static $composerMode;
+
+    /**
+     * @var ApplicationContext
+     */
     protected static $context;
+
+    /**
+     * @var string
+     */
     protected static $projectPath;
+
+    /**
+     * @var string
+     */
     protected static $publicPath;
+
+    /**
+     * @var string
+     */
     protected static $currentScript;
+
+    /**
+     * @var string
+     */
     protected static $os;
+
+    /**
+     * @var string
+     */
     protected static $varPath;
+
+    /**
+     * @var string
+     */
     protected static $configPath;
 
     /**
@@ -263,5 +312,34 @@ class Environment
     public static function isUnix(): bool
     {
         return self::$os === 'UNIX';
+    }
+
+    /**
+     * Returns true if the server is running on a list of supported CGI server APIs.
+     *
+     * @return bool
+     */
+    public static function isRunningOnCgiServer(): bool
+    {
+        return in_array(PHP_SAPI, self::$supportedCgiServerApis, true);
+    }
+
+    /**
+     * Returns the currently configured Environment information as array.
+     *
+     * @return array
+     */
+    public static function toArray(): array
+    {
+        return [
+            'context' => (string)self::getContext(),
+            'cli' => self::isCli(),
+            'projectPath' => self::getProjectPath(),
+            'publicPath' => self::getPublicPath(),
+            'varPath' => self::getVarPath(),
+            'configPath' => self::getConfigPath(),
+            'currentScript' => self::getCurrentScript(),
+            'os' => self::isWindows() ? 'WINDOWS' : 'UNIX'
+        ];
     }
 }

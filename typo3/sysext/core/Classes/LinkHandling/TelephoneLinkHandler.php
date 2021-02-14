@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\LinkHandling;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,8 @@ namespace TYPO3\CMS\Core\LinkHandling;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\LinkHandling;
+
 /**
  * Resolves telephone numbers
  */
@@ -25,7 +27,7 @@ class TelephoneLinkHandler implements LinkHandlingInterface
      * Returns the link to a telephone number as a string
      *
      * @param array $parameters
-     * @return mixed
+     * @return string
      */
     public function asString(array $parameters): string
     {

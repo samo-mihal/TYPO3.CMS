@@ -11,12 +11,13 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import * as $  from 'jquery';
+import $ from 'jquery';
 import ContentContainer = require('./Viewport/ContentContainer');
 import ConsumerScope = require('./Event/ConsumerScope');
 import Loader = require('./Viewport/Loader');
 import NavigationContainer = require('./Viewport/NavigationContainer');
 import Topbar = require('./Viewport/Topbar');
+import ThrottleEvent = require('TYPO3/CMS/Core/Event/ThrottleEvent');
 
 class Viewport {
   // The attributes are uppercase for compatibility reasons
@@ -41,9 +42,9 @@ class Viewport {
 
   private initialize(): void {
     this.doLayout();
-    $(window).on('resize', () => {
+    new ThrottleEvent('resize', () => {
       this.doLayout();
-    });
+    }, 100).bindTo(window);
   }
 }
 

@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Backend\Controller\Wizard;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Backend\Controller\Wizard;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Controller\Wizard;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -63,7 +65,7 @@ class ImageManipulationController
             $image = null;
             if (MathUtility::canBeInterpretedAsInteger($fileUid)) {
                 try {
-                    $image = ResourceFactory::getInstance()->getFileObject($fileUid);
+                    $image = GeneralUtility::makeInstance(ResourceFactory::class)->getFileObject($fileUid);
                 } catch (FileDoesNotExistException $e) {
                 }
             }

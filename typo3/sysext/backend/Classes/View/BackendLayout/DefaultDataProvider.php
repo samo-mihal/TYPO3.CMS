@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\View\BackendLayout;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,7 +13,10 @@ namespace TYPO3\CMS\Backend\View\BackendLayout;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\View\BackendLayout;
+
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Backend\View\BackendLayoutView;
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Expression\ExpressionBuilder;
@@ -61,7 +63,7 @@ class DefaultDataProvider implements DataProviderInterface
     /**
      * Gets a backend layout by (regular) identifier.
      *
-     * @param string $identifier
+     * @param string|int $identifier
      * @param int $pageId
      * @return BackendLayout|null
      */
@@ -73,7 +75,7 @@ class DefaultDataProvider implements DataProviderInterface
             return $this->createDefaultBackendLayout();
         }
 
-        $data = BackendUtility::getRecordWSOL($this->tableName, $identifier);
+        $data = BackendUtility::getRecordWSOL($this->tableName, (int)$identifier);
 
         if (is_array($data)) {
             $backendLayout = $this->createBackendLayout($data);
@@ -92,7 +94,7 @@ class DefaultDataProvider implements DataProviderInterface
         return BackendLayout::create(
             'default',
             'LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:pages.backend_layout.default',
-            \TYPO3\CMS\Backend\View\BackendLayoutView::getDefaultColumnLayout()
+            BackendLayoutView::getDefaultColumnLayout()
         );
     }
 

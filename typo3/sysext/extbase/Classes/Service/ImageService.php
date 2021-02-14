@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Extbase\Service;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,19 +15,23 @@ namespace TYPO3\CMS\Extbase\Service;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Service;
+
 use TYPO3\CMS\Core\LinkHandling\LinkService;
+use TYPO3\CMS\Core\Page\AssetCollector;
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\FileInterface;
 use TYPO3\CMS\Core\Resource\FileReference;
 use TYPO3\CMS\Core\Resource\ProcessedFile;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
+use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
 
 /**
  * Service for processing images
  */
-class ImageService implements \TYPO3\CMS\Core\SingletonInterface
+class ImageService implements SingletonInterface
 {
     /**
      * @var ResourceFactory
@@ -49,7 +52,7 @@ class ImageService implements \TYPO3\CMS\Core\SingletonInterface
     public function __construct(EnvironmentService $environmentService = null, ResourceFactory $resourceFactory = null)
     {
         $this->environmentService = $environmentService ?? GeneralUtility::makeInstance(EnvironmentService::class);
-        $this->resourceFactory = $resourceFactory ?? ResourceFactory::getInstance();
+        $this->resourceFactory = $resourceFactory ?? GeneralUtility::makeInstance(ResourceFactory::class);
     }
 
     /**
@@ -87,6 +90,11 @@ class ImageService implements \TYPO3\CMS\Core\SingletonInterface
     public function getImageUri(FileInterface $image, bool $absolute = false): string
     {
         $imageUrl = $image->getPublicUrl();
+        if ($imageUrl === null) {
+            // Image is missing probably, return an empty string instead of parsing
+            return '';
+        }
+
         $parsedUrl = parse_url($imageUrl);
         // no prefix in case of an already fully qualified URL
         if (isset($parsedUrl['host'])) {
@@ -118,7 +126,7 @@ class ImageService implements \TYPO3\CMS\Core\SingletonInterface
      * @param string $src
      * @param FileInterface|\TYPO3\CMS\Extbase\Domain\Model\FileReference|null $image
      * @param bool $treatIdAsReference
-     * @return FileInterface
+     * @return FileInterface|File|FileReference
      * @throws \UnexpectedValueException
      * @internal
      */
@@ -176,10 +184,27 @@ class ImageService implements \TYPO3\CMS\Core\SingletonInterface
      */
     protected function setCompatibilityValues(ProcessedFile $processedImage): void
     {
-        if ($this->environmentService->isEnvironmentInFrontendMode()) {
-            $GLOBALS['TSFE']->lastImageInfo = $this->getCompatibilityImageResourceValues($processedImage);
-            $GLOBALS['TSFE']->imagesOnPage[] = $processedImage->getPublicUrl();
+        $publicUrl = $processedImage->getPublicUrl();
+        if ($publicUrl === null) {
+            return;
         }
+        $imageInfoValues = $this->getCompatibilityImageResourceValues($processedImage);
+        if (
+            $this->environmentService->isEnvironmentInFrontendMode()
+            && is_object($GLOBALS['TSFE'])
+        ) {
+            // This is needed by \TYPO3\CMS\Frontend\Imaging\GifBuilder,
+            // but was never needed to be set in lastImageInfo.
+            // We set it for BC here anyway, as this TSFE property is deprecated anyway.
+            $imageInfoValues['originalFile'] = $processedImage->getOriginalFile();
+            $imageInfoValues['processedFile'] = $processedImage;
+            $GLOBALS['TSFE']->lastImageInfo = $imageInfoValues;
+            $GLOBALS['TSFE']->imagesOnPage[] = $publicUrl;
+        }
+        GeneralUtility::makeInstance(AssetCollector::class)->addMedia(
+            $publicUrl,
+            $imageInfoValues
+        );
     }
 
     /**
@@ -192,17 +217,14 @@ class ImageService implements \TYPO3\CMS\Core\SingletonInterface
      */
     protected function getCompatibilityImageResourceValues(ProcessedFile $processedImage): array
     {
+        $originalFile = $processedImage->getOriginalFile();
         return [
             0 => $processedImage->getProperty('width'),
             1 => $processedImage->getProperty('height'),
             2 => $processedImage->getExtension(),
             3 => $processedImage->getPublicUrl(),
-            'origFile' => $processedImage->getOriginalFile()->getPublicUrl(),
-            'origFile_mtime' => $processedImage->getOriginalFile()->getModificationTime(),
-            // This is needed by \TYPO3\CMS\Frontend\Imaging\GifBuilder,
-            // in order for the setup-array to create a unique filename hash.
-            'originalFile' => $processedImage->getOriginalFile(),
-            'processedFile' => $processedImage
+            'origFile' => $originalFile->getPublicUrl(),
+            'origFile_mtime' => $originalFile->getModificationTime(),
         ];
     }
 }

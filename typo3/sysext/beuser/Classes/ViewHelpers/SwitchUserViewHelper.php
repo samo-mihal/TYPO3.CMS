@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Beuser\ViewHelpers;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Beuser\ViewHelpers;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Beuser\ViewHelpers;
 
 use TYPO3\CMS\Beuser\Domain\Model\BackendUser;
 use TYPO3\CMS\Core\Imaging\Icon;
@@ -62,7 +63,7 @@ class SwitchUserViewHelper extends AbstractViewHelper
         if ($backendUser->getUid() == $GLOBALS['BE_USER']->user['uid'] || !$backendUser->isActive() || $GLOBALS['BE_USER']->user['ses_backuserid']) {
             return '<span class="btn btn-default disabled">' . $iconFactory->getIcon('empty-empty', Icon::SIZE_SMALL)->render() . '</span>';
         }
-        $title = LocalizationUtility::translate('switchBackMode', 'beuser');
+        $title = LocalizationUtility::translate('switchBackMode', 'beuser') ?? '';
         return '<a class="btn btn-default" href="' .
             htmlspecialchars(GeneralUtility::linkThisScript(['SwitchUser' => $backendUser->getUid()])) .
             '" target="_top" title="' . htmlspecialchars($title) . '">' .

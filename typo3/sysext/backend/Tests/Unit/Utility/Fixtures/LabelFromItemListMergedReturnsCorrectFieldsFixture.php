@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Tests\Unit\Utility\Fixtures;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,14 @@ namespace TYPO3\CMS\Backend\Tests\Unit\Utility\Fixtures;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Tests\Unit\Utility\Fixtures;
+
+use TYPO3\CMS\Backend\Utility\BackendUtility;
+
 /**
  * Disable getRecordWSOL and getRecordTitle dependency by returning stable results
  */
-class LabelFromItemListMergedReturnsCorrectFieldsFixture extends \TYPO3\CMS\Backend\Utility\BackendUtility
+class LabelFromItemListMergedReturnsCorrectFieldsFixture extends BackendUtility
 {
     /**
      * @return array

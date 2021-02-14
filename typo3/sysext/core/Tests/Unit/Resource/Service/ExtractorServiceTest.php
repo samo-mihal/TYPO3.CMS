@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Tests\Unit\Resource\Service;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,21 +15,24 @@ namespace TYPO3\CMS\Core\Tests\Unit\Resource\Service;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\Resource\Service;
+
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\Index\ExtractorInterface;
 use TYPO3\CMS\Core\Resource\Index\ExtractorRegistry;
 use TYPO3\CMS\Core\Resource\ResourceStorage;
 use TYPO3\CMS\Core\Resource\Service\ExtractorService;
+use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
  * Class ExtractorServiceTest
  */
-class ExtractorServiceTest extends \TYPO3\TestingFramework\Core\Unit\UnitTestCase
+class ExtractorServiceTest extends UnitTestCase
 {
     /**
      * @test
      */
-    public function isFileTypeSupportedByExtractorReturnsFalesForFileTypeTextAndExtractorLimitedToFileTypeImage(): void
+    public function isFileTypeSupportedByExtractorReturnsFalseForFileTypeTextAndExtractorLimitedToFileTypeImage(): void
     {
         $fileMock = $this->createMock(File::class);
         $fileMock->expects(self::any())->method('getType')->willReturn(File::FILETYPE_TEXT);

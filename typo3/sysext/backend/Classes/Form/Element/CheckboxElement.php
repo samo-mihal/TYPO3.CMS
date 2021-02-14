@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Backend\Form\Element;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,10 +15,13 @@ namespace TYPO3\CMS\Backend\Form\Element;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Form\Element;
+
 use TYPO3\CMS\Backend\Form\NodeFactory;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconRegistry;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\StringUtility;
 
 /**
  * Generation of TCEform elements of the type "check"
@@ -181,7 +184,8 @@ class CheckboxElement extends AbstractFormElement
             $numberOfItems,
             implode('', $additionalInformation['fieldChangeFunc'])
         );
-        $checkboxId = $additionalInformation['itemFormElID'] . '_' . $itemCounter;
+        $uniqueId = StringUtility::getUniqueId('_');
+        $checkboxId = $additionalInformation['itemFormElID'] . '_' . $itemCounter . $uniqueId;
 
         $iconIdentifierChecked = !empty($config['items'][$itemCounter]['iconIdentifierChecked']) ? $config['items'][$itemCounter]['iconIdentifierChecked'] : 'actions-check';
         if (!$this->iconRegistry->isRegistered($iconIdentifierChecked)) {

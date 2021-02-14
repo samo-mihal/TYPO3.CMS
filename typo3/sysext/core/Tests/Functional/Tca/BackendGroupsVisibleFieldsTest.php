@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Functional\Tca;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Tests\Functional\Tca;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Functional\Tca;
 
 use TYPO3\CMS\Backend\Tests\Functional\Form\FormTestService;
 use TYPO3\CMS\Core\Localization\LanguageService;
@@ -33,7 +34,6 @@ class BackendGroupsVisibleFieldsTest extends FunctionalTestCase
         'non_exclude_fields',
         'explicit_allowdeny',
         'allowed_languages',
-        'workspace_perms',
         'db_mountpoints',
         'file_mountpoints',
         'file_permissions',

@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Extbase\Tests\Functional\Mvc\Controller\Fixture\Controller;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,8 @@ namespace TYPO3\CMS\Extbase\Tests\Functional\Mvc\Controller\Fixture\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Tests\Functional\Mvc\Controller\Fixture\Controller;
+
 use TYPO3\CMS\Extbase\Annotation as Extbase;
 use TYPO3\CMS\Extbase\Mvc\Controller\ActionController;
 use TYPO3\CMS\Extbase\Mvc\Controller\MvcPropertyMappingConfiguration;
@@ -28,10 +30,10 @@ class TestController extends ActionController
 {
     public function initializeFooAction()
     {
-        /** @var MvcPropertyMappingConfiguration $propertMappingConfiguration */
-        $propertMappingConfiguration = $this->arguments['fooParam']->getPropertyMappingConfiguration();
-        $propertMappingConfiguration->allowAllProperties();
-        $propertMappingConfiguration->setTypeConverterOption(
+        /** @var MvcPropertyMappingConfiguration $propertyMappingConfiguration */
+        $propertyMappingConfiguration = $this->arguments['fooParam']->getPropertyMappingConfiguration();
+        $propertyMappingConfiguration->allowAllProperties();
+        $propertyMappingConfiguration->setTypeConverterOption(
             PersistentObjectConverter::class,
             PersistentObjectConverter::CONFIGURATION_CREATION_ALLOWED,
             true
@@ -67,6 +69,11 @@ class TestController extends ActionController
     public function bazAction(array $bazParam)
     {
         // return string so we don't need to mock a view
+        return '';
+    }
+
+    public function quxAction()
+    {
         return '';
     }
 }

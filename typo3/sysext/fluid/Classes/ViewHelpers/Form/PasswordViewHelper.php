@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\ViewHelpers\Form;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Fluid\ViewHelpers\Form;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Fluid\ViewHelpers\Form;
 
 /**
  * ViewHelper which creates a simple Password Text Box :html:`<input type="password">`.
@@ -28,7 +29,7 @@ namespace TYPO3\CMS\Fluid\ViewHelpers\Form;
  *
  *    <input type="password" name="myPassword" value="default value" />
  */
-class PasswordViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormFieldViewHelper
+class PasswordViewHelper extends AbstractFormFieldViewHelper
 {
     /**
      * @var string

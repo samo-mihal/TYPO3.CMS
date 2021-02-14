@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Unit\Log\Writer;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,8 +13,11 @@ namespace TYPO3\CMS\Core\Tests\Unit\Log\Writer;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\Log\Writer;
+
 use PHPUnit\Framework\MockObject\MockObject;
 use TYPO3\CMS\Core\Log\Writer\DatabaseWriter;
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -28,7 +30,7 @@ class DatabaseWriterTest extends UnitTestCase
      */
     public function getTableReturnsPreviouslySetTable()
     {
-        $logTable = $this->getUniqueId('logtable_');
+        $logTable = StringUtility::getUniqueId('logtable_');
         /** @var DatabaseWriter|MockObject $subject */
         $subject = $this->getMockBuilder(DatabaseWriter::class)
             ->setMethods(['dummy'])

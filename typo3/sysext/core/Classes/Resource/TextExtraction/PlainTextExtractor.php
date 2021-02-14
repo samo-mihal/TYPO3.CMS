@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Resource\TextExtraction;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Resource\TextExtraction;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Resource\TextExtraction;
 
 use TYPO3\CMS\Core\Resource\FileInterface;
 use TYPO3\CMS\Core\Utility\PathUtility;
@@ -50,7 +51,7 @@ class PlainTextExtractor implements TextExtractorInterface
         $localTempFile = $file->getForLocalProcessing(false);
 
         // extract text
-        $content = file_get_contents($localTempFile);
+        $content = (string)file_get_contents($localTempFile);
 
         // In case of remote storage, the temporary copy of the
         // original file in typo3temp must be removed

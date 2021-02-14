@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Form\Element;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Form\Element;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Form\Element;
 
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -65,6 +66,7 @@ class InputColorPickerElement extends AbstractFormElement
      */
     public function render()
     {
+        $evalData = '';
         $languageService = $this->getLanguageService();
 
         $table = $this->data['tableName'];
@@ -115,6 +117,7 @@ class InputColorPickerElement extends AbstractFormElement
                         $itemValue = $evalObj->deevaluateFieldValue($_params);
                     }
                     if (method_exists($evalObj, 'returnFieldJS')) {
+                        // @todo: variable $evalData must be replaced with $func
                         $resultArray['additionalJavaScriptPost'][] = 'TBE_EDITOR.customEvalFunctions[' . GeneralUtility::quoteJSvalue($evalData) . '] = function(value) {' . $evalObj->returnFieldJS() . '};';
                     }
                 }
@@ -137,7 +140,7 @@ class InputColorPickerElement extends AbstractFormElement
                 'formengine-colorpickerelement',
             ]),
             'data-formengine-validation-rules' => $this->getValidationDataAsJsonString($config),
-            'data-formengine-input-params' => json_encode([
+            'data-formengine-input-params' => (string)json_encode([
                 'field' => $parameterArray['itemFormElName'],
                 'evalList' => implode(',', $evalList),
                 'is_in' => trim($config['is_in']),
@@ -146,7 +149,7 @@ class InputColorPickerElement extends AbstractFormElement
         ];
 
         if (isset($config['max']) && (int)$config['max'] > 0) {
-            $attributes['maxlength'] = (int)$config['max'];
+            $attributes['maxlength'] = (string)(int)$config['max'];
         }
         if (!empty($config['placeholder'])) {
             $attributes['placeholder'] = trim($config['placeholder']);
@@ -177,7 +180,7 @@ class InputColorPickerElement extends AbstractFormElement
         $mainFieldHtml[] = '<div class="form-control-wrap" style="max-width: ' . $width . 'px">';
         $mainFieldHtml[] =  '<div class="form-wizards-wrap">';
         $mainFieldHtml[] =      '<div class="form-wizards-element">';
-        $mainFieldHtml[] =          '<input type="text"' . GeneralUtility::implodeAttributes($attributes, true) . ' />';
+        $mainFieldHtml[] =          '<input type="text" ' . GeneralUtility::implodeAttributes($attributes, true) . ' />';
         $mainFieldHtml[] =          '<input type="hidden" name="' . $parameterArray['itemFormElName'] . '" value="' . htmlspecialchars($itemValue) . '" />';
         $mainFieldHtml[] =      '</div>';
         $mainFieldHtml[] =      '<div class="form-wizards-items-aside">';
@@ -242,7 +245,7 @@ class InputColorPickerElement extends AbstractFormElement
             $fullElement[] = '</div>';
             $fullElement[] = '<div class="t3js-formengine-placeholder-placeholder">';
             $fullElement[] =    '<div class="form-control-wrap" style="max-width:' . $width . 'px">';
-            $fullElement[] =        '<input type="text" class="form-control" disabled="disabled" value="' . $shortenedPlaceholder . '" />';
+            $fullElement[] =        '<input type="text" class="form-control" disabled="disabled" value="' . htmlspecialchars($shortenedPlaceholder) . '" />';
             $fullElement[] =    '</div>';
             $fullElement[] = '</div>';
             $fullElement[] = '<div class="t3js-formengine-placeholder-formfield">';

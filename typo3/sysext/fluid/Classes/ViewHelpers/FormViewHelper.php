@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\ViewHelpers;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,7 +13,15 @@ namespace TYPO3\CMS\Fluid\ViewHelpers;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Fluid\ViewHelpers;
+
+use TYPO3\CMS\Extbase\Mvc\Controller\MvcPropertyMappingConfigurationService;
+use TYPO3\CMS\Extbase\Mvc\RequestInterface;
 use TYPO3\CMS\Extbase\Mvc\Web\Routing\UriBuilder;
+use TYPO3\CMS\Extbase\Security\Cryptography\HashService;
+use TYPO3\CMS\Extbase\Service\ExtensionService;
+use TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormViewHelper;
+use TYPO3\CMS\Fluid\ViewHelpers\Form\CheckboxViewHelper;
 
 /**
  * Form ViewHelper. Generates a :html:`<form>` Tag.
@@ -50,7 +57,7 @@ use TYPO3\CMS\Extbase\Mvc\Web\Routing\UriBuilder;
  * This automatically inserts the value of ``{customer.name}`` inside the
  * textbox and adjusts the name of the textbox accordingly.
  */
-class FormViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormViewHelper
+class FormViewHelper extends AbstractFormViewHelper
 {
     /**
      * @var string
@@ -83,7 +90,7 @@ class FormViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormViewH
     /**
      * @param \TYPO3\CMS\Extbase\Security\Cryptography\HashService $hashService
      */
-    public function injectHashService(\TYPO3\CMS\Extbase\Security\Cryptography\HashService $hashService)
+    public function injectHashService(HashService $hashService)
     {
         $this->hashService = $hashService;
     }
@@ -91,7 +98,7 @@ class FormViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormViewH
     /**
      * @param \TYPO3\CMS\Extbase\Mvc\Controller\MvcPropertyMappingConfigurationService $mvcPropertyMappingConfigurationService
      */
-    public function injectMvcPropertyMappingConfigurationService(\TYPO3\CMS\Extbase\Mvc\Controller\MvcPropertyMappingConfigurationService $mvcPropertyMappingConfigurationService)
+    public function injectMvcPropertyMappingConfigurationService(MvcPropertyMappingConfigurationService $mvcPropertyMappingConfigurationService)
     {
         $this->mvcPropertyMappingConfigurationService = $mvcPropertyMappingConfigurationService;
     }
@@ -99,7 +106,7 @@ class FormViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormViewH
     /**
      * @param \TYPO3\CMS\Extbase\Service\ExtensionService $extensionService
      */
-    public function injectExtensionService(\TYPO3\CMS\Extbase\Service\ExtensionService $extensionService)
+    public function injectExtensionService(ExtensionService $extensionService)
     {
         $this->extensionService = $extensionService;
     }
@@ -245,8 +252,9 @@ class FormViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormViewH
      */
     protected function renderAdditionalIdentityFields()
     {
-        if ($this->viewHelperVariableContainer->exists(\TYPO3\CMS\Fluid\ViewHelpers\FormViewHelper::class, 'additionalIdentityProperties')) {
-            $additionalIdentityProperties = $this->viewHelperVariableContainer->get(\TYPO3\CMS\Fluid\ViewHelpers\FormViewHelper::class, 'additionalIdentityProperties');
+        $viewHelperVariableContainer = $this->renderingContext->getViewHelperVariableContainer();
+        if ($viewHelperVariableContainer->exists(\TYPO3\CMS\Fluid\ViewHelpers\FormViewHelper::class, 'additionalIdentityProperties')) {
+            $additionalIdentityProperties = $viewHelperVariableContainer->get(\TYPO3\CMS\Fluid\ViewHelpers\FormViewHelper::class, 'additionalIdentityProperties');
             $output = '';
             foreach ($additionalIdentityProperties as $identity) {
                 $output .= LF . $identity;
@@ -265,6 +273,7 @@ class FormViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormViewH
      */
     protected function renderHiddenReferrerFields()
     {
+        /** @var RequestInterface $request */
         $request = $this->renderingContext->getControllerContext()->getRequest();
         $extensionName = $request->getControllerExtensionName();
         $controllerName = $request->getControllerName();
@@ -276,10 +285,11 @@ class FormViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormViewH
         ];
 
         $result = LF;
-        $result .= '<input type="hidden" name="' . $this->prefixFieldName('__referrer[@extension]') . '" value="' . $extensionName . '" />' . LF;
-        $result .= '<input type="hidden" name="' . $this->prefixFieldName('__referrer[@controller]') . '" value="' . $controllerName . '" />' . LF;
-        $result .= '<input type="hidden" name="' . $this->prefixFieldName('__referrer[@action]') . '" value="' . $actionName . '" />' . LF;
-        $result .= '<input type="hidden" name="' . $this->prefixFieldName('__referrer[@request]') . '" value="' . htmlspecialchars($this->hashService->appendHmac(json_encode($actionRequest))) . '" />' . LF;
+        $result .= '<input type="hidden" name="' . htmlspecialchars($this->prefixFieldName('__referrer[@extension]')) . '" value="' . htmlspecialchars($extensionName) . '" />' . LF;
+        $result .= '<input type="hidden" name="' . htmlspecialchars($this->prefixFieldName('__referrer[@controller]')) . '" value="' . htmlspecialchars($controllerName) . '" />' . LF;
+        $result .= '<input type="hidden" name="' . htmlspecialchars($this->prefixFieldName('__referrer[@action]')) . '" value="' . htmlspecialchars($actionName) . '" />' . LF;
+        $result .= '<input type="hidden" name="' . htmlspecialchars($this->prefixFieldName('__referrer[arguments]')) . '" value="' . htmlspecialchars($this->hashService->appendHmac(base64_encode(serialize($request->getArguments())))) . '" />' . LF;
+        $result .= '<input type="hidden" name="' . htmlspecialchars($this->prefixFieldName('__referrer[@request]')) . '" value="' . htmlspecialchars($this->hashService->appendHmac(json_encode($actionRequest))) . '" />' . LF;
 
         return $result;
     }
@@ -291,7 +301,7 @@ class FormViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormViewH
     {
         $formObjectName = $this->getFormObjectName();
         if ($formObjectName !== null) {
-            $this->viewHelperVariableContainer->add(\TYPO3\CMS\Fluid\ViewHelpers\FormViewHelper::class, 'formObjectName', $formObjectName);
+            $this->renderingContext->getViewHelperVariableContainer()->add(\TYPO3\CMS\Fluid\ViewHelpers\FormViewHelper::class, 'formObjectName', $formObjectName);
         }
     }
 
@@ -302,7 +312,7 @@ class FormViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormViewH
     {
         $formObjectName = $this->getFormObjectName();
         if ($formObjectName !== null) {
-            $this->viewHelperVariableContainer->remove(\TYPO3\CMS\Fluid\ViewHelpers\FormViewHelper::class, 'formObjectName');
+            $this->renderingContext->getViewHelperVariableContainer()->remove(\TYPO3\CMS\Fluid\ViewHelpers\FormViewHelper::class, 'formObjectName');
         }
     }
 
@@ -330,8 +340,9 @@ class FormViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormViewH
     protected function addFormObjectToViewHelperVariableContainer()
     {
         if ($this->hasArgument('object')) {
-            $this->viewHelperVariableContainer->add(\TYPO3\CMS\Fluid\ViewHelpers\FormViewHelper::class, 'formObject', $this->arguments['object']);
-            $this->viewHelperVariableContainer->add(\TYPO3\CMS\Fluid\ViewHelpers\FormViewHelper::class, 'additionalIdentityProperties', []);
+            $viewHelperVariableContainer = $this->renderingContext->getViewHelperVariableContainer();
+            $viewHelperVariableContainer->add(\TYPO3\CMS\Fluid\ViewHelpers\FormViewHelper::class, 'formObject', $this->arguments['object']);
+            $viewHelperVariableContainer->add(\TYPO3\CMS\Fluid\ViewHelpers\FormViewHelper::class, 'additionalIdentityProperties', []);
         }
     }
 
@@ -341,8 +352,9 @@ class FormViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormViewH
     protected function removeFormObjectFromViewHelperVariableContainer()
     {
         if ($this->hasArgument('object')) {
-            $this->viewHelperVariableContainer->remove(\TYPO3\CMS\Fluid\ViewHelpers\FormViewHelper::class, 'formObject');
-            $this->viewHelperVariableContainer->remove(\TYPO3\CMS\Fluid\ViewHelpers\FormViewHelper::class, 'additionalIdentityProperties');
+            $viewHelperVariableContainer = $this->renderingContext->getViewHelperVariableContainer();
+            $viewHelperVariableContainer->remove(\TYPO3\CMS\Fluid\ViewHelpers\FormViewHelper::class, 'formObject');
+            $viewHelperVariableContainer->remove(\TYPO3\CMS\Fluid\ViewHelpers\FormViewHelper::class, 'additionalIdentityProperties');
         }
     }
 
@@ -352,7 +364,7 @@ class FormViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormViewH
     protected function addFieldNamePrefixToViewHelperVariableContainer()
     {
         $fieldNamePrefix = $this->getFieldNamePrefix();
-        $this->viewHelperVariableContainer->add(\TYPO3\CMS\Fluid\ViewHelpers\FormViewHelper::class, 'fieldNamePrefix', $fieldNamePrefix);
+        $this->renderingContext->getViewHelperVariableContainer()->add(\TYPO3\CMS\Fluid\ViewHelpers\FormViewHelper::class, 'fieldNamePrefix', $fieldNamePrefix);
     }
 
     /**
@@ -373,7 +385,7 @@ class FormViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormViewH
      */
     protected function removeFieldNamePrefixFromViewHelperVariableContainer()
     {
-        $this->viewHelperVariableContainer->remove(\TYPO3\CMS\Fluid\ViewHelpers\FormViewHelper::class, 'fieldNamePrefix');
+        $this->renderingContext->getViewHelperVariableContainer()->remove(\TYPO3\CMS\Fluid\ViewHelpers\FormViewHelper::class, 'fieldNamePrefix');
     }
 
     /**
@@ -381,7 +393,7 @@ class FormViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormViewH
      */
     protected function addFormFieldNamesToViewHelperVariableContainer()
     {
-        $this->viewHelperVariableContainer->add(\TYPO3\CMS\Fluid\ViewHelpers\FormViewHelper::class, 'formFieldNames', []);
+        $this->renderingContext->getViewHelperVariableContainer()->add(\TYPO3\CMS\Fluid\ViewHelpers\FormViewHelper::class, 'formFieldNames', []);
     }
 
     /**
@@ -389,23 +401,11 @@ class FormViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormViewH
      */
     protected function removeFormFieldNamesFromViewHelperVariableContainer()
     {
-        $this->viewHelperVariableContainer->remove(\TYPO3\CMS\Fluid\ViewHelpers\FormViewHelper::class, 'formFieldNames');
-        if ($this->viewHelperVariableContainer->exists(\TYPO3\CMS\Fluid\ViewHelpers\FormViewHelper::class, 'renderedHiddenFields')) {
-            $this->viewHelperVariableContainer->remove(\TYPO3\CMS\Fluid\ViewHelpers\FormViewHelper::class, 'renderedHiddenFields');
+        $viewHelperVariableContainer = $this->renderingContext->getViewHelperVariableContainer();
+        $viewHelperVariableContainer->remove(\TYPO3\CMS\Fluid\ViewHelpers\FormViewHelper::class, 'formFieldNames');
+        if ($viewHelperVariableContainer->exists(\TYPO3\CMS\Fluid\ViewHelpers\FormViewHelper::class, 'renderedHiddenFields')) {
+            $viewHelperVariableContainer->remove(\TYPO3\CMS\Fluid\ViewHelpers\FormViewHelper::class, 'renderedHiddenFields');
         }
-    }
-
-    /**
-     * Render the request hash field
-     *
-     * @return string the hmac field
-     */
-    protected function renderRequestHashField()
-    {
-        $formFieldNames = $this->viewHelperVariableContainer->get(\TYPO3\CMS\Fluid\ViewHelpers\FormViewHelper::class, 'formFieldNames');
-        $this->postProcessUriArgumentsForRequestHash($this->formActionUriArguments, $formFieldNames);
-        $requestHash = $this->requestHashService->generateRequestHash($formFieldNames, $this->getFieldNamePrefix());
-        return '<input type="hidden" name="' . $this->prefixFieldName('__hmac') . '" value="' . htmlspecialchars($requestHash) . '" />';
     }
 
     /**
@@ -419,6 +419,7 @@ class FormViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormViewH
     {
         if (count($arguments)) {
             foreach ($arguments as $argumentName => $argumentValue) {
+                $argumentName = (string)$argumentName;
                 if (is_array($argumentValue)) {
                     $prefix = $level == 0 ? $argumentName : $currentPrefix . '[' . $argumentName . ']';
                     $this->postProcessUriArgumentsForRequestHash($argumentValue, $results, $prefix, $level + 1);
@@ -458,8 +459,9 @@ class FormViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormViewH
      */
     protected function removeCheckboxFieldNamesFromViewHelperVariableContainer()
     {
-        if ($this->viewHelperVariableContainer->exists(\TYPO3\CMS\Fluid\ViewHelpers\Form\CheckboxViewHelper::class, 'checkboxFieldNames')) {
-            $this->viewHelperVariableContainer->remove(\TYPO3\CMS\Fluid\ViewHelpers\Form\CheckboxViewHelper::class, 'checkboxFieldNames');
+        $viewHelperVariableContainer = $this->renderingContext->getViewHelperVariableContainer();
+        if ($viewHelperVariableContainer->exists(CheckboxViewHelper::class, 'checkboxFieldNames')) {
+            $viewHelperVariableContainer->remove(CheckboxViewHelper::class, 'checkboxFieldNames');
         }
     }
 
@@ -470,8 +472,8 @@ class FormViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormViewH
      */
     protected function renderTrustedPropertiesField()
     {
-        $formFieldNames = $this->viewHelperVariableContainer->get(\TYPO3\CMS\Fluid\ViewHelpers\FormViewHelper::class, 'formFieldNames');
+        $formFieldNames = $this->renderingContext->getViewHelperVariableContainer()->get(\TYPO3\CMS\Fluid\ViewHelpers\FormViewHelper::class, 'formFieldNames');
         $requestHash = $this->mvcPropertyMappingConfigurationService->generateTrustedPropertiesToken($formFieldNames, $this->getFieldNamePrefix());
-        return '<input type="hidden" name="' . $this->prefixFieldName('__trustedProperties') . '" value="' . htmlspecialchars($requestHash) . '" />';
+        return '<input type="hidden" name="' . htmlspecialchars($this->prefixFieldName('__trustedProperties')) . '" value="' . htmlspecialchars($requestHash) . '" />';
     }
 }

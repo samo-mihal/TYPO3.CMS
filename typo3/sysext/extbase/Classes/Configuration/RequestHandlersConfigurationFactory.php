@@ -1,5 +1,6 @@
 <?php
-declare(strict_types = 1);
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +14,7 @@ declare(strict_types = 1);
  *
  * The TYPO3 project - inspiring people to share!
  */
+
 namespace TYPO3\CMS\Extbase\Configuration;
 
 use TYPO3\CMS\Core\Cache\CacheManager;
@@ -20,6 +22,7 @@ use TYPO3\CMS\Core\Cache\Exception\NoSuchCacheException;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
 use TYPO3\CMS\Core\Cache\Frontend\NullFrontend;
 use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\Information\Typo3Version;
 use TYPO3\CMS\Core\Package\PackageManager;
 use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -61,10 +64,11 @@ final class RequestHandlersConfigurationFactory implements SingletonInterface
      */
     public function createRequestHandlersConfiguration(): RequestHandlersConfiguration
     {
-        $cacheEntryIdentifier = 'RequestHandlers_' . sha1(TYPO3_version . Environment::getProjectPath());
+        $cacheEntryIdentifier = 'RequestHandlers_' . sha1((string)(new Typo3Version()) . Environment::getProjectPath());
 
-        if ($this->cacheFrontend->has($cacheEntryIdentifier)) {
-            return new RequestHandlersConfiguration($this->cacheFrontend->get($cacheEntryIdentifier));
+        $requestHandlersCache = $this->cacheFrontend->get($cacheEntryIdentifier);
+        if ($requestHandlersCache) {
+            return new RequestHandlersConfiguration($requestHandlersCache);
         }
 
         $classes = [];

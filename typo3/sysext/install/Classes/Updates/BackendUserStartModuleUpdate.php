@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Install\Updates;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Install\Updates;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Install\Updates;
 
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -118,9 +119,7 @@ class BackendUserStartModuleUpdate implements UpgradeWizardInterface
                                 $queryBuilder->createNamedParameter($backendUser['uid'], \PDO::PARAM_INT)
                             )
                         )
-                        // Manual quoting and false as third parameter to have the final
-                        // value in $databaseQueries and not a statement placeholder
-                        ->set('uc', serialize($userConfig))
+                        ->set('uc', $queryBuilder->createNamedParameter(serialize($userConfig), \PDO::PARAM_LOB))
                         ->execute();
                 }
             }

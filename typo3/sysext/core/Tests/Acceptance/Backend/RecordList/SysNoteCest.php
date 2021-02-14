@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Acceptance\Backend\RecordList;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Acceptance\Backend\RecordList;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Acceptance\Backend\RecordList;
 
 use Codeception\Util\Locator;
 use TYPO3\CMS\Core\Tests\Acceptance\Support\BackendTester;
@@ -64,7 +66,7 @@ class SysNoteCest
         $I->click('a.t3js-toggle-recordlist[data-table="pages"]');
         $I->canSee('Internal notes', 'h2');
         $I->canSee('new sys_note');
-        $I->click('div.typo3-dblist-sysnotes > div > div.panel-heading.clearfix > div > a:nth-child(1)');
+        $I->click('.note-list > .note > .note-header > .note-header-bar > .note-actions a:nth-child(1)');
         $I->wait(0.2);
         $I->canSee('Edit Internal note "new sys_note"');
     }

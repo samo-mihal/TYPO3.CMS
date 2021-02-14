@@ -1,4 +1,5 @@
 <?php
+
 $EM_CONF[$_EXTKEY] = [
     'title' => 'TYPO3 Admin Panel',
     'description' => 'The TYPO3 admin panel provides a panel with additional functionality in the frontend (Debugging, Caching, Preview...)',
@@ -8,10 +9,10 @@ $EM_CONF[$_EXTKEY] = [
     'author' => 'TYPO3 Core Team',
     'author_email' => 'typo3cms@typo3.org',
     'author_company' => '',
-    'version' => '10.2.3',
+    'version' => '10.4.13',
     'constraints' => [
         'depends' => [
-            'typo3' => '10.2.3',
+            'typo3' => '10.4.13',
         ],
         'conflicts' => [],
         'suggests' => [],

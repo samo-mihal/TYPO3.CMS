@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\DependencyInjection;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,8 @@ namespace TYPO3\CMS\Core\DependencyInjection;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\DependencyInjection;
+
 use Symfony\Component\DependencyInjection\EnvVarProcessorInterface;
 use TYPO3\CMS\Core\Core\Environment;
 
@@ -28,7 +30,7 @@ class EnvVarProcessor implements EnvVarProcessorInterface
      * @param string $name The name of the variable within the namespace
      * @param \Closure $getEnv A closure that allows fetching more env vars
      * @return mixed
-     * @throws RuntimeException on error
+     * @throws \RuntimeException on error
      */
     public function getEnv($prefix, $name, \Closure $getEnv)
     {

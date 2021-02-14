@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extensionmanager\Utility\Parser;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,10 @@ namespace TYPO3\CMS\Extensionmanager\Utility\Parser;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Extensionmanager\Utility\Parser;
+
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Factory for XML parsers.
@@ -63,8 +66,8 @@ class XmlParserFactory
             // reset instance
             self::$instance[$parserType] = ($objParser = null);
             foreach (self::$parsers[$parserType] as $className => $file) {
-                if (!\TYPO3\CMS\Core\Utility\GeneralUtility::inList($excludeClassNames, $className)) {
-                    $objParser = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance($className);
+                if (!GeneralUtility::inList($excludeClassNames, $className)) {
+                    $objParser = GeneralUtility::makeInstance($className);
                     if ($objParser->isAvailable()) {
                         self::$instance[$parserType] = &$objParser;
                         break;

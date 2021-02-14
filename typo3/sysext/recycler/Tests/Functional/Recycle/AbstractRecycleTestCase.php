@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Recycler\Tests\Functional\Recycle;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,12 +13,17 @@ namespace TYPO3\CMS\Recycler\Tests\Functional\Recycle;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Recycler\Tests\Functional\Recycle;
+
+use TYPO3\CMS\Core\Core\Bootstrap;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Recycler\Domain\Model\DeletedRecords;
+use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
 /**
  * Functional test for the Export
  */
-abstract class AbstractRecycleTestCase extends \TYPO3\TestingFramework\Core\Functional\FunctionalTestCase
+abstract class AbstractRecycleTestCase extends FunctionalTestCase
 {
     /**
      * @var array
@@ -41,7 +45,7 @@ abstract class AbstractRecycleTestCase extends \TYPO3\TestingFramework\Core\Func
     {
         parent::setUp();
         $this->importDataSet(__DIR__ . '/../Fixtures/Database/be_groups.xml');
-        \TYPO3\CMS\Core\Core\Bootstrap::initializeLanguageObject();
+        Bootstrap::initializeLanguageObject();
     }
 
     /**
@@ -54,7 +58,7 @@ abstract class AbstractRecycleTestCase extends \TYPO3\TestingFramework\Core\Func
     protected function getDeletedPages($pageUid, $depth = 0)
     {
         /** @var $deletedRecords \TYPO3\CMS\Recycler\Domain\Model\DeletedRecords */
-        $deletedRecords = GeneralUtility::makeInstance(\TYPO3\CMS\Recycler\Domain\Model\DeletedRecords::class);
+        $deletedRecords = GeneralUtility::makeInstance(DeletedRecords::class);
         $deletedRecords->loadData($pageUid, 'pages', $depth);
         return $deletedRecords->getDeletedRows();
     }
@@ -68,7 +72,7 @@ abstract class AbstractRecycleTestCase extends \TYPO3\TestingFramework\Core\Func
     protected function getDeletedContent($contentUid)
     {
         /** @var $deletedRecords \TYPO3\CMS\Recycler\Domain\Model\DeletedRecords */
-        $deletedRecords = GeneralUtility::makeInstance(\TYPO3\CMS\Recycler\Domain\Model\DeletedRecords::class);
+        $deletedRecords = GeneralUtility::makeInstance(DeletedRecords::class);
         $deletedRecords->loadData($contentUid, 'tt_content', 0);
         return $deletedRecords->getDeletedRows();
     }
@@ -92,9 +96,13 @@ abstract class AbstractRecycleTestCase extends \TYPO3\TestingFramework\Core\Func
         $data = [];
         $fileContent = file_get_contents($path);
         // Disables the functionality to allow external entities to be loaded when parsing the XML, must be kept
-        $previousValueOfEntityLoader = libxml_disable_entity_loader(true);
+        if (PHP_MAJOR_VERSION < 8) {
+            $previousValueOfEntityLoader = libxml_disable_entity_loader(true);
+        }
         $xml = simplexml_load_string($fileContent);
-        libxml_disable_entity_loader($previousValueOfEntityLoader);
+        if (PHP_MAJOR_VERSION < 8) {
+            libxml_disable_entity_loader($previousValueOfEntityLoader);
+        }
 
         /** @var $table \SimpleXMLElement */
         foreach ($xml->children() as $table) {

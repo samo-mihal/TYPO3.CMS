@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Database\Driver\PDOSqlsrv;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Core\Database\Driver\PDOSqlsrv;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Database\Driver\PDOSqlsrv;
 
 /**
  * This is a full "clone" of the class of package doctrine/dbal. Scope is to use the PDOConnection of TYPO3.

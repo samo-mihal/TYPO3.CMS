@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Backend\Form\FieldInformation;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Backend\Form\FieldInformation;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Form\FieldInformation;
 
 use TYPO3\CMS\Backend\Form\AbstractNode;
 use TYPO3\CMS\Core\Localization\LanguageService;
@@ -37,7 +38,7 @@ class TcaDescription extends AbstractNode
         if (!empty($this->data['parameterArray']['fieldConf']['description'])) {
             $fieldInformationText = $this->getLanguageService()->sL($this->data['parameterArray']['fieldConf']['description']);
             if (trim($fieldInformationText) !== '') {
-                $resultArray['html'] = '<span class="formengine-field-item-description text-muted">' . htmlspecialchars($fieldInformationText) . '</span>';
+                $resultArray['html'] = '<span class="formengine-field-item-description text-muted">' . nl2br(htmlspecialchars($fieldInformationText)) . '</span>';
             }
         }
         return $resultArray;

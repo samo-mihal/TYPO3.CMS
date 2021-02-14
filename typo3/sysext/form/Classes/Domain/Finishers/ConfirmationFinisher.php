@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\Domain\Finishers;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Form\Domain\Finishers;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Form\Domain\Finishers;
 
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
@@ -67,9 +69,14 @@ class ConfirmationFinisher extends AbstractFinisher
     protected $configurationManager;
 
     /**
+     * @var ContentObjectRenderer
+     */
+    protected $contentObjectRenderer;
+
+    /**
      * @param \TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface $configurationManager
      */
-    public function injectConfigurationManager(\TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface $configurationManager)
+    public function injectConfigurationManager(ConfigurationManagerInterface $configurationManager)
     {
         $this->configurationManager = $configurationManager;
         $this->typoScriptSetup = $this->configurationManager->getConfiguration(ConfigurationManagerInterface::CONFIGURATION_TYPE_FULL_TYPOSCRIPT);
@@ -95,6 +102,7 @@ class ConfirmationFinisher extends AbstractFinisher
     {
         $contentElementUid = $this->parseOption('contentElementUid');
         $typoscriptObjectPath = $this->parseOption('typoscriptObjectPath');
+        $typoscriptObjectPath = is_string($typoscriptObjectPath) ? $typoscriptObjectPath : '';
         if (!empty($contentElementUid)) {
             $pathSegments = GeneralUtility::trimExplode('.', $typoscriptObjectPath);
             $lastSegment = array_pop($pathSegments);
@@ -110,7 +118,7 @@ class ConfirmationFinisher extends AbstractFinisher
             }
             $this->contentObjectRenderer->start([$contentElementUid], '');
             $this->contentObjectRenderer->setCurrentVal((string)$contentElementUid);
-            $message = $this->contentObjectRenderer->cObjGetSingle($setup[$lastSegment], $setup[$lastSegment . '.']);
+            $message = $this->contentObjectRenderer->cObjGetSingle($setup[$lastSegment], $setup[$lastSegment . '.'], $lastSegment);
         } else {
             $message = $this->parseOption('message');
         }

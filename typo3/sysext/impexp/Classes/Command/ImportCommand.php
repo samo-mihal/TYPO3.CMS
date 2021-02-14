@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Impexp\Command;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Impexp\Command;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Impexp\Command;
+
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -22,6 +23,10 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use TYPO3\CMS\Core\Core\Bootstrap;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Impexp\Command\Exception\ImportFailedException;
+use TYPO3\CMS\Impexp\Command\Exception\InvalidFileException;
+use TYPO3\CMS\Impexp\Command\Exception\LoadingFileFailedException;
+use TYPO3\CMS\Impexp\Command\Exception\PrerequisitesNotMetException;
 use TYPO3\CMS\Impexp\Import;
 
 /**
@@ -73,13 +78,14 @@ class ImportCommand extends Command
      *
      * @param InputInterface $input
      * @param OutputInterface $output
+     * @return int
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $fileName = $input->getArgument('file');
+        $fileName = (string)$input->getArgument('file');
         $fileName = GeneralUtility::getFileAbsFileName($fileName);
-        if (empty($fileName) || !file_exists($fileName)) {
-            throw new Exception\InvalidFileException('The given filename "' . ($fileName ?? $input->getArgument('file')) . '" could not be found', 1484483040);
+        if ($fileName === '' || !file_exists($fileName)) {
+            throw new InvalidFileException('The given filename "' . $fileName . '" could not be found', 1484483040);
         }
 
         $io = new SymfonyStyle($input, $output);
@@ -101,21 +107,22 @@ class ImportCommand extends Command
 
         if (!$import->loadFile($fileName, true)) {
             $io->error($import->errorLog);
-            throw new Exception\LoadingFileFailedException('Loading of the import file failed.', 1484484619);
+            throw new LoadingFileFailedException('Loading of the import file failed.', 1484484619);
         }
 
         $messages = $import->checkImportPrerequisites();
         if (!empty($messages)) {
             $io->error($messages);
-            throw new Exception\PrerequisitesNotMetException('Prerequisites for file import are not met.', 1484484612);
+            throw new PrerequisitesNotMetException('Prerequisites for file import are not met.', 1484484612);
         }
 
         $import->importData($pageId);
         if (!empty($import->errorLog)) {
             $io->error($import->errorLog);
-            throw new Exception\ImportFailedException('The import has failed.', 1484484613);
+            throw new ImportFailedException('The import has failed.', 1484484613);
         }
 
         $io->success('Imported ' . $input->getArgument('file') . ' to page ' . $pageId . ' successfully');
+        return 0;
     }
 }

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\IndexedSearch\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,9 @@ namespace TYPO3\CMS\IndexedSearch\Controller;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\IndexedSearch\Controller;
+
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Backend\View\BackendTemplateView;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
@@ -23,8 +25,10 @@ use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Mvc\Controller\ActionController;
+use TYPO3\CMS\Extbase\Mvc\Request;
+use TYPO3\CMS\Extbase\Mvc\RequestInterface;
+use TYPO3\CMS\Extbase\Mvc\ResponseInterface;
 use TYPO3\CMS\Extbase\Mvc\View\ViewInterface;
-use TYPO3\CMS\Extbase\Mvc\Web\Request as WebRequest;
 use TYPO3\CMS\Extbase\Mvc\Web\Routing\UriBuilder;
 use TYPO3\CMS\IndexedSearch\Domain\Repository\AdministrationRepository;
 use TYPO3\CMS\IndexedSearch\Indexer;
@@ -70,7 +74,7 @@ class AdministrationController extends ActionController
     /**
      * Backend Template Container
      *
-     * @var BackendTemplateView
+     * @var string
      */
     protected $defaultViewObjectName = BackendTemplateView::class;
 
@@ -167,7 +171,7 @@ class AdministrationController extends ActionController
      * @param \TYPO3\CMS\Extbase\Mvc\ResponseInterface $response
      * @throws \TYPO3\CMS\Extbase\Mvc\Exception\UnsupportedRequestTypeException
      */
-    public function processRequest(\TYPO3\CMS\Extbase\Mvc\RequestInterface $request, \TYPO3\CMS\Extbase\Mvc\ResponseInterface $response)
+    public function processRequest(RequestInterface $request, ResponseInterface $response)
     {
         $vars = GeneralUtility::_GET('tx_indexedsearch_web_indexedsearchisearch');
 
@@ -188,7 +192,7 @@ class AdministrationController extends ActionController
             $beUser->uc['indexed_search']['arguments'] = $request->getArguments();
             $beUser->writeUC();
         } elseif (isset($beUser->uc['indexed_search']['action'])) {
-            if ($request instanceof WebRequest) {
+            if ($request instanceof Request) {
                 $request->setControllerActionName($beUser->uc['indexed_search']['action']);
             }
             if (isset($beUser->uc['indexed_search']['arguments'])) {

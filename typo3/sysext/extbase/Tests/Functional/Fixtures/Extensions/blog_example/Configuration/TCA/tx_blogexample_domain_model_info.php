@@ -17,9 +17,6 @@ return [
         ],
         'iconfile' => 'EXT:blog_example/Resources/Public/Icons/icon_tx_blogexample_domain_model_tag.gif'
     ],
-    'interface' => [
-        'showRecordFieldList' => 'hidden, name'
-    ],
     'columns' => [
         'sys_language_uid' => [
             'exclude' => true,
@@ -39,7 +36,6 @@ return [
             ]
         ],
         'l18n_parent' => [
-            'exclude' => true,
             'displayCond' => 'FIELD:sys_language_uid:>:0',
             'label' => 'LLL:EXT:core/Resources/Private/Language/locallang_general.xlf:LGL.l18n_parent',
             'config' => [

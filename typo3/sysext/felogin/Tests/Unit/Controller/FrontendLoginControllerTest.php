@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Felogin\Tests\Unit\Controller;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,9 +15,11 @@ namespace TYPO3\CMS\Felogin\Tests\Unit\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Felogin\Tests\Unit\Controller;
+
 use Prophecy\Argument;
 use TYPO3\CMS\Core\Authentication\LoginType;
-use TYPO3\CMS\Core\Http\Uri;
+use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
 use TYPO3\CMS\Felogin\Controller\FrontendLoginController;
 use TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
@@ -38,7 +40,20 @@ class FrontendLoginControllerTest extends UnitTestCase
 
     public function setUp(): void
     {
-        $this->language = new SiteLanguage(0, 'en_US', new Uri('/'), ['typo3Language' => 'en']);
+        $site = new Site('test', 1, [
+            'identifier' => 'test',
+            'rootPageId' => 1,
+            'base' => '/',
+            'languages' => [
+                [
+                    'languageId' => 0,
+                    'locale' => 'en_US',
+                    'typo3Language' => 'en',
+                    'base' => '/',
+                ],
+            ]
+        ]);
+        $this->language = $site->getLanguageById(0);
         parent::setUp();
     }
 

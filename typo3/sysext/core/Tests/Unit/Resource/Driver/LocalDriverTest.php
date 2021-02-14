@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Tests\Unit\Resource\Driver;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,18 +15,20 @@ namespace TYPO3\CMS\Core\Tests\Unit\Resource\Driver;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\Resource\Driver;
+
 use org\bovigo\vfs\vfsStream;
-use org\bovigo\vfs\vfsStreamContent;
-use org\bovigo\vfs\vfsStreamWrapper;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Resource\Driver\LocalDriver;
 use TYPO3\CMS\Core\Resource\Exception\ExistingTargetFileNameException;
 use TYPO3\CMS\Core\Resource\Exception\FileOperationErrorException;
 use TYPO3\CMS\Core\Resource\Exception\InvalidFileNameException;
 use TYPO3\CMS\Core\Resource\ResourceStorage;
+use TYPO3\CMS\Core\Resource\ResourceStorageInterface;
 use TYPO3\CMS\Core\Tests\Unit\Resource\BaseTestCase;
 use TYPO3\CMS\Core\Tests\Unit\Resource\Driver\Fixtures\LocalDriverFilenameFilter;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\StringUtility;
 
 /**
  * Test case
@@ -38,6 +39,11 @@ class LocalDriverTest extends BaseTestCase
      * @var bool Reset singletons created by subject
      */
     protected $resetSingletonInstances = true;
+
+    /**
+     * @var bool Reset changed Environment
+     */
+    protected $backupEnvironment = true;
 
     /**
      * @var LocalDriver
@@ -86,7 +92,7 @@ class LocalDriverTest extends BaseTestCase
      */
     protected function createRealTestdir(): string
     {
-        $basedir = Environment::getVarPath() . '/tests/' . $this->getUniqueId('fal-test-');
+        $basedir = Environment::getVarPath() . '/tests/' . StringUtility::getUniqueId('fal-test-');
         mkdir($basedir);
         $this->testDirs[] = $basedir;
         return $basedir;
@@ -177,6 +183,103 @@ class LocalDriverTest extends BaseTestCase
         $basePath = $subject->_call('calculateBasePath', $relativeDriverConfiguration);
 
         self::assertStringNotContainsString('/../', $basePath);
+    }
+
+    public function publicUrlIsCalculatedCorrectlyWithDifferentBasePathsAndBasUrisDataProvider(): array
+    {
+        return [
+            'no base uri, within public' => [
+                '/files/',
+                '',
+                '/foo.txt',
+                true,
+                'files/foo.txt',
+            ],
+            'no base uri, within project' => [
+                '/../files/',
+                '',
+                '/foo.txt',
+                false,
+                null,
+            ],
+            'base uri with host, within public' => [
+                '/files/',
+                'https://host.tld/',
+                '/foo.txt',
+                true,
+                'https://host.tld/foo.txt',
+            ],
+            'base uri with host, within project' => [
+                '/../files/',
+                'https://host.tld/',
+                '/foo.txt',
+                true,
+                'https://host.tld/foo.txt',
+            ],
+            'base uri with path only, within public' => [
+                '/files/',
+                'assets/',
+                '/foo.txt',
+                true,
+                'assets/foo.txt',
+            ],
+            'base uri with path only, within project' => [
+                '/../files/',
+                'assets/',
+                '/foo.txt',
+                true,
+                'assets/foo.txt',
+            ],
+            'base uri with path only, within other public dir' => [
+                '/../public/assets/',
+                'assets/',
+                '/foo.txt',
+                true,
+                'assets/foo.txt',
+            ],
+        ];
+    }
+
+    /**
+     * @param string $basePath
+     * @param string $baseUri
+     * @param string $fileName
+     * @param bool $expectedIsPublic
+     * @param string|null $expectedPublicUrl
+     * @test
+     * @dataProvider publicUrlIsCalculatedCorrectlyWithDifferentBasePathsAndBasUrisDataProvider
+     */
+    public function publicUrlIsCalculatedCorrectlyWithDifferentBasePathsAndBasUris(string $basePath, string $baseUri, string $fileName, bool $expectedIsPublic, ?string $expectedPublicUrl): void
+    {
+        $testDir = $this->createRealTestdir();
+        $projectPath = $testDir . '/app';
+        $publicPath = $projectPath . '/public';
+        $absoluteBaseDir = $publicPath . $basePath;
+        mkdir($projectPath);
+        mkdir($publicPath);
+        mkdir($absoluteBaseDir, 0777, true);
+        Environment::initialize(
+            Environment::getContext(),
+            true,
+            false,
+            $projectPath,
+            $publicPath,
+            Environment::getVarPath(),
+            Environment::getConfigPath(),
+            Environment::getCurrentScript(),
+            Environment::isUnix() ? 'UNIX' : 'WINDOWS'
+        );
+        $driverConfiguration = [
+            'pathType' => 'relative',
+            'basePath' => $basePath,
+            'baseUri' => $baseUri,
+        ];
+
+        $subject = $this->createDriver($driverConfiguration);
+
+        self::assertSame($expectedIsPublic, $subject->hasCapability(ResourceStorageInterface::CAPABILITY_PUBLIC));
+        self::assertSame($fileName, $subject->createFile($fileName, '/'));
+        self::assertSame($expectedPublicUrl, $subject->getPublicUrl($fileName));
     }
 
     /**
@@ -534,7 +637,7 @@ class LocalDriverTest extends BaseTestCase
      */
     public function getPublicUrlReturnsCorrectUriForConfiguredBaseUri(): void
     {
-        $baseUri = 'http://example.org/foobar/' . $this->getUniqueId();
+        $baseUri = 'http://example.org/foobar/' . StringUtility::getUniqueId('uri_');
         $this->addToMount([
             'file.ext' => 'asdf',
             'subfolder' => [
@@ -570,7 +673,7 @@ class LocalDriverTest extends BaseTestCase
      */
     public function getPublicUrlReturnsValidUrlContainingSpecialCharacters(string $fileIdentifier): void
     {
-        $baseUri = 'http://example.org/foobar/' . $this->getUniqueId();
+        $baseUri = 'http://example.org/foobar/' . StringUtility::getUniqueId('uri_');
         $subject = $this->createDriver([
             'baseUri' => $baseUri
         ]);
@@ -936,7 +1039,7 @@ class LocalDriverTest extends BaseTestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionCode(1304964032);
         $subject = $this->createDriver();
-        $subject->hash('/hashFile', $this->getUniqueId());
+        $subject->hash('/hashFile', StringUtility::getUniqueId('uri_'));
     }
 
     /**
@@ -1056,79 +1159,6 @@ class LocalDriverTest extends BaseTestCase
     }
 
     /**
-     * Dataprovider for getFilePermissionsReturnsCorrectPermissionsForFilesNotOwnedByCurrentUser test
-     *
-     * @return array group, filemode and expected result
-     */
-    public function getFilePermissionsReturnsCorrectPermissionsForFilesNotOwnedByCurrentUser_dataProvider(): array
-    {
-        $data = [];
-        // On some OS, the posix_* functions do not exist
-        if (function_exists('posix_getgid')) {
-            $data = [
-                'current group, readable/writable' => [
-                    posix_getgid(),
-                    48,
-                    ['r' => true, 'w' => true]
-                ],
-                'current group, readable/not writable' => [
-                    posix_getgid(),
-                    32,
-                    ['r' => true, 'w' => false]
-                ],
-                'current group, not readable/not writable' => [
-                    posix_getgid(),
-                    0,
-                    ['r' => false, 'w' => false]
-                ]
-            ];
-        }
-        $data = array_merge_recursive($data, [
-            'arbitrary group, readable/writable' => [
-                vfsStream::GROUP_USER_1,
-                6,
-                ['r' => true, 'w' => true]
-            ],
-            'arbitrary group, readable/not writable' => [
-                vfsStream::GROUP_USER_1,
-                436,
-                ['r' => true, 'w' => false]
-            ],
-            'arbitrary group, not readable/not writable' => [
-                vfsStream::GROUP_USER_1,
-                432,
-                ['r' => false, 'w' => false]
-            ]
-        ]);
-        return $data;
-    }
-
-    /**
-     * @test
-     * @dataProvider getFilePermissionsReturnsCorrectPermissionsForFilesNotOwnedByCurrentUser_dataProvider
-     * @param int $group
-     * @param int $permissions
-     * @param array $expectedResult
-     */
-    public function getFilePermissionsReturnsCorrectPermissionsForFilesNotOwnedByCurrentUser(int $group, int $permissions, array $expectedResult): void
-    {
-        if (Environment::isWindows()) {
-            self::markTestSkipped('Test skipped if run on Windows system');
-        }
-        $this->addToMount([
-            'testfile' => 'asdfg'
-        ]);
-        $subject = $this->createDriver();
-        /** @var $fileObject vfsStreamContent */
-        $fileObject = vfsStreamWrapper::getRoot()->getChild($this->mountDir)->getChild('testfile');
-        // just use an "arbitrary" user here - it is only important that
-        $fileObject->chown(vfsStream::OWNER_USER_1);
-        $fileObject->chgrp($group);
-        $fileObject->chmod($permissions);
-        self::assertEquals($expectedResult, $subject->getPermissions('/testfile'));
-    }
-
-    /**
      * @test
      */
     public function isWithinRecognizesFilesWithinFolderAndInOtherFolders(): void
@@ -1158,7 +1188,7 @@ class LocalDriverTest extends BaseTestCase
      */
     public function filesCanBeCopiedWithinStorage(): void
     {
-        $fileContents = $this->getUniqueId();
+        $fileContents = StringUtility::getUniqueId('content_');
         $this->addToMount([
             'someFile' => $fileContents,
             'targetFolder' => []
@@ -1176,7 +1206,7 @@ class LocalDriverTest extends BaseTestCase
      */
     public function filesCanBeMovedWithinStorage(): void
     {
-        $fileContents = $this->getUniqueId();
+        $fileContents = StringUtility::getUniqueId('content_');
         $this->addToMount([
             'targetFolder' => [],
             'someFile' => $fileContents
@@ -1184,7 +1214,14 @@ class LocalDriverTest extends BaseTestCase
         $subject = $this->createDriver();
         $newIdentifier = $subject->moveFileWithinStorage('/someFile', '/targetFolder/', 'file');
         self::assertEquals($fileContents, file_get_contents($this->getUrlInMount('/targetFolder/file')));
-        self::assertFileNotExists($this->getUrlInMount('/someFile'));
+
+        // @todo remove condition and else branch as soon as phpunit v8 goes out of support
+        if (method_exists($this, 'assertFileDoesNotExist')) {
+            self::assertFileDoesNotExist($this->getUrlInMount('/someFile'));
+        } else {
+            self::assertFileNotExists($this->getUrlInMount('/someFile'));
+        }
+
         self::assertEquals('/targetFolder/file', $newIdentifier);
     }
 
@@ -1193,7 +1230,7 @@ class LocalDriverTest extends BaseTestCase
      */
     public function fileMetadataIsChangedAfterMovingFile(): void
     {
-        $fileContents = $this->getUniqueId();
+        $fileContents = StringUtility::getUniqueId('content_');
         $this->addToMount([
             'targetFolder' => [],
             'someFile' => $fileContents
@@ -1406,7 +1443,7 @@ class LocalDriverTest extends BaseTestCase
      */
     public function foldersCanBeMovedWithinStorage(): void
     {
-        $fileContents = $this->getUniqueId();
+        $fileContents = StringUtility::getUniqueId('content_');
         $this->addToMount([
             'sourceFolder' => [
                 'file' => $fileContents,
@@ -1418,7 +1455,12 @@ class LocalDriverTest extends BaseTestCase
         $subject->moveFolderWithinStorage('/sourceFolder/', '/targetFolder/', 'someFolder');
         self::assertTrue(file_exists($this->getUrlInMount('/targetFolder/someFolder/')));
         self::assertEquals($fileContents, file_get_contents($this->getUrlInMount('/targetFolder/someFolder/file')));
-        self::assertFileNotExists($this->getUrlInMount('/sourceFolder'));
+        // @todo remove condition and else branch as soon as phpunit v8 goes out of support
+        if (method_exists($this, 'assertFileDoesNotExist')) {
+            self::assertFileDoesNotExist($this->getUrlInMount('/sourceFolder'));
+        } else {
+            self::assertFileNotExists($this->getUrlInMount('/sourceFolder'));
+        }
     }
 
     /**
@@ -1451,7 +1493,7 @@ class LocalDriverTest extends BaseTestCase
     {
         $this->addToMount([
             'sourceFolder' => [
-                'file' => $this->getUniqueId(),
+                'file' => StringUtility::getUniqueId('content_'),
             ],
             'targetFolder' => [],
         ]);
@@ -1467,7 +1509,7 @@ class LocalDriverTest extends BaseTestCase
     {
         $this->addToMount([
             'sourceFolder' => [
-                'file' => $this->getUniqueId(),
+                'file' => StringUtility::getUniqueId('name_'),
             ],
             'targetFolder' => [],
         ]);
@@ -1497,7 +1539,7 @@ class LocalDriverTest extends BaseTestCase
         [$basePath, $subject] = $this->prepareRealTestEnvironment();
         GeneralUtility::mkdir_deep($basePath . '/sourceFolder/subFolder');
         GeneralUtility::mkdir_deep($basePath . '/targetFolder');
-        file_put_contents($basePath . '/sourceFolder/subFolder/file', $this->getUniqueId());
+        file_put_contents($basePath . '/sourceFolder/subFolder/file', StringUtility::getUniqueId('content_'));
         GeneralUtility::fixPermissions($basePath . '/sourceFolder/subFolder/file');
 
         $subject->copyFolderWithinStorage('/sourceFolder/', '/targetFolder/', 'newFolderName');

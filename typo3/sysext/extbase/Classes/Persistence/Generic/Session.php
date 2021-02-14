@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Persistence\Generic;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,13 +13,17 @@ namespace TYPO3\CMS\Extbase\Persistence\Generic;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Persistence\Generic;
+
+use TYPO3\CMS\Core\SingletonInterface;
+use TYPO3\CMS\Extbase\Object\Container\Container;
 use TYPO3\CMS\Extbase\Persistence\ObjectStorage;
 
 /**
  * The persistence session - acts as a Unit of Work for Extbase persistence framework.
  * @internal only to be used within Extbase, not part of TYPO3 Core API.
  */
-class Session implements \TYPO3\CMS\Core\SingletonInterface
+class Session implements SingletonInterface
 {
     /**
      * @var \TYPO3\CMS\Extbase\Object\Container\Container
@@ -47,7 +50,7 @@ class Session implements \TYPO3\CMS\Core\SingletonInterface
     /**
      * Constructs a new Session
      */
-    public function __construct(\TYPO3\CMS\Extbase\Object\Container\Container $container)
+    public function __construct(Container $container)
     {
         $this->objectContainer = $container;
         $this->reconstitutedEntities = new ObjectStorage();

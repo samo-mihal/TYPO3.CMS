@@ -1,5 +1,4 @@
 <?php
-namespace OliverHader\IrreTutorial\Service;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,14 @@ namespace OliverHader\IrreTutorial\Service;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace OliverHader\IrreTutorial\Service;
+
+use TYPO3\CMS\Core\SingletonInterface;
+
 /**
  * ContentController
  */
-class QueueService implements \TYPO3\CMS\Core\SingletonInterface
+class QueueService implements SingletonInterface
 {
     /**
      * @var array

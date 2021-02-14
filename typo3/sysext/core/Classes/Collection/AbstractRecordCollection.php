@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Collection;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,8 +12,12 @@ namespace TYPO3\CMS\Core\Collection;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Collection;
+
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
+use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -92,7 +95,7 @@ abstract class AbstractRecordCollection implements RecordCollectionInterface, Pe
      * (PHP 5 >= 5.1.0)
      * Return the current element
      *
-     * @link http://php.net/manual/en/iterator.current.php
+     * @link https://php.net/manual/en/iterator.current.php
      * @return mixed Can return any type.
      */
     public function current()
@@ -104,7 +107,7 @@ abstract class AbstractRecordCollection implements RecordCollectionInterface, Pe
      * (PHP 5 >= 5.1.0)
      * Move forward to next element
      *
-     * @link http://php.net/manual/en/iterator.next.php
+     * @link https://php.net/manual/en/iterator.next.php
      */
     public function next()
     {
@@ -115,7 +118,7 @@ abstract class AbstractRecordCollection implements RecordCollectionInterface, Pe
      * (PHP 5 >= 5.1.0)
      * Return the key of the current element
      *
-     * @link http://php.net/manual/en/iterator.key.php
+     * @link https://php.net/manual/en/iterator.key.php
      * @return int 0 on failure.
      */
     public function key()
@@ -128,7 +131,7 @@ abstract class AbstractRecordCollection implements RecordCollectionInterface, Pe
      * (PHP 5 >= 5.1.0)
      * Checks if current position is valid
      *
-     * @link http://php.net/manual/en/iterator.valid.php
+     * @link https://php.net/manual/en/iterator.valid.php
      * @return bool The return value will be casted to boolean and then evaluated.
      */
     public function valid()
@@ -140,7 +143,7 @@ abstract class AbstractRecordCollection implements RecordCollectionInterface, Pe
      * (PHP 5 >= 5.1.0)
      * Rewind the Iterator to the first element
      *
-     * @link http://php.net/manual/en/iterator.rewind.php
+     * @link https://php.net/manual/en/iterator.rewind.php
      */
     public function rewind()
     {
@@ -151,7 +154,7 @@ abstract class AbstractRecordCollection implements RecordCollectionInterface, Pe
      * (PHP 5 >= 5.1.0)
      * String representation of object
      *
-     * @link http://php.net/manual/en/serializable.serialize.php
+     * @link https://php.net/manual/en/serializable.serialize.php
      * @return string the string representation of the object or &null;
      */
     public function serialize()
@@ -166,7 +169,7 @@ abstract class AbstractRecordCollection implements RecordCollectionInterface, Pe
      * (PHP 5 >= 5.1.0)
      * Constructs the object
      *
-     * @link http://php.net/manual/en/serializable.unserialize.php
+     * @link https://php.net/manual/en/serializable.unserialize.php
      * @param string $serialized The string representation of the object
      * @return mixed the original value unserialized.
      */
@@ -180,7 +183,7 @@ abstract class AbstractRecordCollection implements RecordCollectionInterface, Pe
      * (PHP 5 >= 5.1.0)
      * Count elements of an object
      *
-     * @link http://php.net/manual/en/countable.count.php
+     * @link https://php.net/manual/en/countable.count.php
      * @return int The custom count as an integer.
      */
     public function count()
@@ -264,7 +267,7 @@ abstract class AbstractRecordCollection implements RecordCollectionInterface, Pe
      * The comparison function given as must return an integer less than, equal to, or greater than
      * zero if the first argument is considered to be respectively less than, equal to, or greater than the second.
      *
-     * @param $callbackFunction
+     * @param callable $callbackFunction
      * @see http://www.php.net/manual/en/function.usort.php
      */
     public function usort($callbackFunction)
@@ -341,6 +344,8 @@ abstract class AbstractRecordCollection implements RecordCollectionInterface, Pe
      */
     public static function create(array $collectionRecord, $fillItems = false)
     {
+        // [phpstan] Unsafe usage of new static()
+        // todo: Either mark this class or its constructor final or use new self instead.
         $collection = new static();
         $collection->fromArray($collectionRecord);
         if ($fillItems) {
@@ -354,7 +359,7 @@ abstract class AbstractRecordCollection implements RecordCollectionInterface, Pe
      */
     public function persist()
     {
-        $uid = $this->getIdentifier() == 0 ? 'NEW' . rand(100000, 999999) : $this->getIdentifier();
+        $uid = $this->getIdentifier() == 0 ? 'NEW' . random_int(100000, 999999) : $this->getIdentifier();
         $data = [
             trim(static::$storageTableName) => [
                 $uid => $this->getPersistableDataArray()
@@ -365,7 +370,7 @@ abstract class AbstractRecordCollection implements RecordCollectionInterface, Pe
             $data[trim(static::$storageTableName)][$uid]['pid'] = 0;
         }
         /** @var \TYPO3\CMS\Core\DataHandling\DataHandler $tce */
-        $tce = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Core\DataHandling\DataHandler::class);
+        $tce = GeneralUtility::makeInstance(DataHandler::class);
         $tce->start($data, []);
         $tce->process_datamap();
     }
@@ -429,5 +434,13 @@ abstract class AbstractRecordCollection implements RecordCollectionInterface, Pe
         $this->title = $array['title'];
         $this->description = $array['description'];
         $this->itemTableName = $array['table_name'];
+    }
+
+    protected static function getCollectionDatabaseTable(): string
+    {
+        if (!empty(static::$storageTableName)) {
+            return static::$storageTableName;
+        }
+        throw new \RuntimeException('No storage table name was defined the class "' . static::class . '".', 1592207959);
     }
 }

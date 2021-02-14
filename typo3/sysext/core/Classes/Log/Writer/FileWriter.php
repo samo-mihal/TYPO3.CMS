@@ -1,7 +1,5 @@
 <?php
 
-namespace TYPO3\CMS\Core\Log\Writer;
-
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -14,6 +12,8 @@ namespace TYPO3\CMS\Core\Log\Writer;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Log\Writer;
 
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Log\Exception\InvalidLogWriterConfigurationException;
@@ -216,13 +216,19 @@ class FileWriter extends AbstractWriter
         if (file_exists($this->logFile)) {
             return;
         }
-        $logFileDirectory = PathUtility::dirname($this->logFile);
-        if (!@is_dir($logFileDirectory)) {
-            GeneralUtility::mkdir_deep($logFileDirectory);
-            // create .htaccess file if log file is within the site path
-            if (PathUtility::getCommonPrefix([Environment::getPublicPath() . '/', $logFileDirectory]) === (Environment::getPublicPath() . '/')) {
-                // only create .htaccess, if we created the directory on our own
-                $this->createHtaccessFile($logFileDirectory . '/.htaccess');
+
+        // skip mkdir if logFile refers to any scheme but vfs://, file:// or empty
+        $scheme = parse_url($this->logFile, PHP_URL_SCHEME);
+        if ($scheme === null || $scheme === 'file' || $scheme === 'vfs' || GeneralUtility::isAbsPath($this->logFile)) {
+            // remove file:/ before creating the directory
+            $logFileDirectory = PathUtility::dirname((string)preg_replace('#^file:/#', '', $this->logFile));
+            if (!@is_dir($logFileDirectory)) {
+                GeneralUtility::mkdir_deep($logFileDirectory);
+                // create .htaccess file if log file is within the site path
+                if (PathUtility::getCommonPrefix([Environment::getPublicPath() . '/', $logFileDirectory]) === (Environment::getPublicPath() . '/')) {
+                    // only create .htaccess, if we created the directory on our own
+                    $this->createHtaccessFile($logFileDirectory . '/.htaccess');
+                }
             }
         }
         // create the log file

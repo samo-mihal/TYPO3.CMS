@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Unit\Imaging\IconProvider;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\Imaging\IconProvider;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\Imaging\IconProvider;
 
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconProvider\SvgIconProvider;
@@ -40,7 +41,7 @@ class SvgIconProviderTest extends UnitTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->subject = new \TYPO3\CMS\Core\Imaging\IconProvider\SvgIconProvider();
+        $this->subject = new SvgIconProvider();
         $this->icon = GeneralUtility::makeInstance(Icon::class);
         $this->icon->setIdentifier('foo');
         $this->icon->setSize(Icon::SIZE_SMALL);
@@ -78,11 +79,11 @@ class SvgIconProviderTest extends UnitTestCase
      */
     public function getIconWithInlineOptionReturnsCleanSvgMarkup()
     {
-        $testFile = GeneralUtility::tempnam(uniqid('svg_') . '.svg');
+        $testFile = GeneralUtility::tempnam('svg_', '.svg');
         $this->testFilesToDelete[] = $testFile;
         $svgTestFileContent = '<?xml version="1.0" encoding="ISO-8859-1" standalone="no" ?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 20010904//EN" "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill="#CD201F" d="M11 12l3-2v6H2v-6l3 2 3-2 3 2z"></path><script><![CDATA[ function alertMe() {} ]]></script></svg>';
         file_put_contents($testFile, $svgTestFileContent);
-        $this->testFilesToDelete[] = GeneralUtility::tempnam(uniqid('svg_') . '.svg');
+        $this->testFilesToDelete[] = GeneralUtility::tempnam('svg_', '.svg');
         $this->subject->prepareIconMarkup($this->icon, ['source' => $testFile]);
         self::assertEquals('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill="#CD201F" d="M11 12l3-2v6H2v-6l3 2 3-2 3 2z"/></svg>', $this->icon->getMarkup(SvgIconProvider::MARKUP_IDENTIFIER_INLINE));
     }

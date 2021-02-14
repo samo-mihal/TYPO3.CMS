@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Frontend\DataProcessing;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Frontend\DataProcessing;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Frontend\DataProcessing;
 
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
@@ -58,16 +59,25 @@ class FilesProcessor implements DataProcessorInterface
         $fileCollector = GeneralUtility::makeInstance(FileCollector::class);
 
         // references / relations
-        if (!empty($processorConfiguration['references.'])) {
-            $referenceConfiguration = $processorConfiguration['references.'];
-            $relationField = $cObj->stdWrapValue('fieldName', $referenceConfiguration);
+        if (
+            (isset($processorConfiguration['references']) && $processorConfiguration['references'])
+            || (isset($processorConfiguration['references.']) && $processorConfiguration['references.'])
+        ) {
+            $referencesUidList = $cObj->stdWrapValue('references', $processorConfiguration);
+            $referencesUids = GeneralUtility::intExplode(',', $referencesUidList, true);
+            $fileCollector->addFileReferences($referencesUids);
 
-            // If no reference fieldName is set, there's nothing to do
-            if (!empty($relationField)) {
-                // Fetch the references of the default element
-                $relationTable = $cObj->stdWrapValue('table', $referenceConfiguration, $cObj->getCurrentTable());
-                if (!empty($relationTable)) {
-                    $fileCollector->addFilesFromRelation($relationTable, $relationField, $cObj->data);
+            if (!empty($processorConfiguration['references.'])) {
+                $referenceConfiguration = $processorConfiguration['references.'];
+                $relationField = $cObj->stdWrapValue('fieldName', $referenceConfiguration);
+
+                // If no reference fieldName is set, there's nothing to do
+                if (!empty($relationField)) {
+                    // Fetch the references of the default element
+                    $relationTable = $cObj->stdWrapValue('table', $referenceConfiguration, $cObj->getCurrentTable());
+                    if (!empty($relationTable)) {
+                        $fileCollector->addFilesFromRelation($relationTable, $relationField, $cObj->data);
+                    }
                 }
             }
         }
@@ -75,21 +85,21 @@ class FilesProcessor implements DataProcessorInterface
         // files
         $files = $cObj->stdWrapValue('files', $processorConfiguration);
         if ($files) {
-            $files = GeneralUtility::intExplode(',', $files, true);
+            $files = GeneralUtility::intExplode(',', (string)$files, true);
             $fileCollector->addFiles($files);
         }
 
         // collections
         $collections = $cObj->stdWrapValue('collections', $processorConfiguration);
         if (!empty($collections)) {
-            $collections = GeneralUtility::trimExplode(',', $collections, true);
+            $collections = GeneralUtility::trimExplode(',', (string)$collections, true);
             $fileCollector->addFilesFromFileCollections($collections);
         }
 
         // folders
         $folders = $cObj->stdWrapValue('folders', $processorConfiguration);
         if (!empty($folders)) {
-            $folders = GeneralUtility::trimExplode(',', $folders, true);
+            $folders = GeneralUtility::trimExplode(',', (string)$folders, true);
             $fileCollector->addFilesFromFolders($folders, !empty($processorConfiguration['folders.']['recursive']));
         }
 

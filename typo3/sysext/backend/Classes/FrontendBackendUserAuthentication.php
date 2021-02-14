@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend;
 
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
@@ -90,7 +91,6 @@ class FrontendBackendUserAuthentication extends BackendUserAuthentication
     /**
      * Edit Access
      */
-
     /**
      * Checks whether the user has access to edit the language for the
      * requested record.
@@ -135,18 +135,22 @@ class FrontendBackendUserAuthentication extends BackendUserAuthentication
             $editAccessInternals = true;
         }
         if ($editAccessInternals) {
-            if ($table === 'pages') {
-                if ($this->isAdmin() || $this->doesUserHaveAccess($dataArray, Permission::PAGE_EDIT)) {
+            $restrictEditingToRecordsOfCurrentPid = !empty($conf['onlyCurrentPid'] ?? false);
+            if ($this->isAdmin()) {
+                $mayEdit = true;
+            } elseif ($table === 'pages') {
+                if ($this->doesUserHaveAccess($dataArray, Permission::PAGE_EDIT)) {
                     $mayEdit = true;
                 }
             } else {
-                if ($this->isAdmin() || $this->doesUserHaveAccess(BackendUtility::getRecord('pages', $dataArray['pid']), Permission::CONTENT_EDIT)) {
+                $pageOfEditableRecord = BackendUtility::getRecord('pages', $dataArray['pid']);
+                if (is_array($pageOfEditableRecord) && $this->doesUserHaveAccess($pageOfEditableRecord, Permission::CONTENT_EDIT) && !$restrictEditingToRecordsOfCurrentPid) {
                     $mayEdit = true;
                 }
             }
-            if (!$conf['onlyCurrentPid'] || $dataArray['pid'] == $GLOBALS['TSFE']->id) {
-                // Permissions:
-                $perms = $this->calcPerms($GLOBALS['TSFE']->page);
+            // Check the permission of the "pid" that should be accessed, if not disabled.
+            if (!$restrictEditingToRecordsOfCurrentPid || $dataArray['pid'] == $GLOBALS['TSFE']->id) {
+                // Permissions
                 if ($table === 'pages') {
                     $allow = $this->getAllowedEditActions($table, $conf, $dataArray['pid']);
                     // Can only display editbox if there are options in the menu
@@ -154,6 +158,7 @@ class FrontendBackendUserAuthentication extends BackendUserAuthentication
                         $mayEdit = true;
                     }
                 } else {
+                    $perms = $this->calcPerms($GLOBALS['TSFE']->page);
                     $types = GeneralUtility::trimExplode(',', strtolower($conf['allow']), true);
                     $allow = array_flip($types);
                     $mayEdit = !empty($allow) && $perms & Permission::CONTENT_EDIT;

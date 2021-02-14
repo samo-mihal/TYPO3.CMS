@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Tree\View;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,13 +13,15 @@ namespace TYPO3\CMS\Backend\Tree\View;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Tree\View;
+
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryHelper;
-use TYPO3\CMS\Core\Database\Query\Restriction\BackendWorkspaceRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
+use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Localization\LanguageService;
@@ -92,7 +93,7 @@ abstract class AbstractTreeView
      * Needs to be initialized with $GLOBALS['BE_USER']
      * Done by default in init()
      *
-     * @var \TYPO3\CMS\Core\Authentication\BackendUserAuthentication
+     * @var \TYPO3\CMS\Core\Authentication\BackendUserAuthentication|string
      */
     public $BE_USER = '';
 
@@ -153,7 +154,7 @@ abstract class AbstractTreeView
      * List of other fields which are ALLOWED to set (here, based on the "pages" table!)
      *
      * @see addField()
-     * @var array
+     * @var string
      */
     public $defaultList = 'uid,pid,tstamp,sorting,deleted,perms_userid,perms_groupid,perms_user,perms_group,perms_everybody,crdate,cruser_id';
 
@@ -648,6 +649,9 @@ abstract class AbstractTreeView
     {
         if (is_int($row)) {
             $row = BackendUtility::getRecord($this->table, $row);
+            if ($row === null) {
+                return '';
+            }
         }
         $title = $this->showDefaultTitleAttribute ? htmlspecialchars('UID: ' . $row['uid']) : $this->getTitleAttrib($row);
         $iconFactory = GeneralUtility::makeInstance(IconFactory::class);
@@ -728,12 +732,12 @@ abstract class AbstractTreeView
         $a = 0;
         $res = $this->getDataInit($uid);
         $c = $this->getDataCount($res);
-        $crazyRecursionLimiter = 999;
+        $crazyRecursionLimiter = 9999;
         $idH = [];
         // Traverse the records:
         while ($crazyRecursionLimiter > 0 && ($row = $this->getDataNext($res))) {
-            $pageUid = ($this->table === 'pages') ? $row['uid'] : $row['pid'];
-            if (!$this->getBackendUser()->isInWebMount($pageUid)) {
+            /** @var array $row */
+            if (!$this->getBackendUser()->isInWebMount($this->table === 'pages' ? $row : $row['pid'])) {
                 // Current record is not within web mount => skip it
                 continue;
             }
@@ -742,7 +746,7 @@ abstract class AbstractTreeView
             $crazyRecursionLimiter--;
             $newID = $row['uid'];
             if ($newID == 0) {
-                throw new \RuntimeException('Endless recursion detected: TYPO3 has detected an error in the database. Please fix it manually (e.g. using phpMyAdmin) and change the UID of ' . $this->table . ':0 to a new value. See http://forge.typo3.org/issues/16150 to get more information about a possible cause.', 1294586383);
+                throw new \RuntimeException('Endless recursion detected: TYPO3 has detected an error in the database. Please fix it manually (e.g. using phpMyAdmin) and change the UID of ' . $this->table . ':0 to a new value. See https://forge.typo3.org/issues/16150 to get more information about a possible cause.', 1294586383);
             }
             // Reserve space.
             $this->tree[] = [];
@@ -767,11 +771,11 @@ abstract class AbstractTreeView
                     $idH[$row['uid']]['subrow'] = $this->buffer_idH;
                 }
                 // Set "did expand" flag
-                $isOpen = 1;
+                $isOpen = true;
             } else {
                 $nextCount = $this->getCount($newID);
                 // Clear "did expand" flag
-                $isOpen = 0;
+                $isOpen = false;
             }
             // Set HTML-icons, if any:
             if ($this->makeHTML) {
@@ -814,7 +818,7 @@ abstract class AbstractTreeView
         $queryBuilder->getRestrictions()
                 ->removeAll()
                 ->add(GeneralUtility::makeInstance(DeletedRestriction::class))
-                ->add(GeneralUtility::makeInstance(BackendWorkspaceRestriction::class));
+                ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, (int)$this->BE_USER->workspace));
         $count = $queryBuilder
                 ->count('uid')
                 ->from($this->table)
@@ -870,7 +874,7 @@ abstract class AbstractTreeView
         $queryBuilder->getRestrictions()
                 ->removeAll()
                 ->add(GeneralUtility::makeInstance(DeletedRestriction::class))
-                ->add(GeneralUtility::makeInstance(BackendWorkspaceRestriction::class));
+                ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, (int)$this->BE_USER->workspace));
         $queryBuilder
                 ->select(...$this->fieldArray)
                 ->from($this->table)
@@ -883,7 +887,7 @@ abstract class AbstractTreeView
                 );
 
         foreach (QueryHelper::parseOrderBy($this->orderByFields) as $orderPair) {
-            list($fieldName, $order) = $orderPair;
+            [$fieldName, $order] = $orderPair;
             $queryBuilder->addOrderBy($fieldName, $order);
         }
 

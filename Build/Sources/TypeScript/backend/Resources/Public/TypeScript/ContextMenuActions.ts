@@ -11,14 +11,16 @@
  * The TYPO3 project - inspiring people to share!
  */
 
+import {AjaxResponse} from 'TYPO3/CMS/Core/Ajax/AjaxResponse';
 import {SeverityEnum} from './Enum/Severity';
-import * as $ from 'jquery';
+import $ from 'jquery';
 import AjaxDataHandler = require('./AjaxDataHandler');
+import AjaxRequest = require('TYPO3/CMS/Core/Ajax/AjaxRequest');
 import InfoWindow = require('./InfoWindow');
 import Modal = require('./Modal');
 import ModuleMenu = require('./ModuleMenu');
-import Viewport = require('./Viewport');
 import Notification = require('TYPO3/CMS/Backend/Notification');
+import Viewport = require('./Viewport');
 
 /**
  * @exports TYPO3/CMS/Backend/ContextMenuActions
@@ -151,9 +153,10 @@ class ContextMenuActions {
    * @param {number} uid
    */
   public static disableRecord(table: string, uid: number): void {
+    const disableFieldName = $(this).data('disable-field') || 'hidden';
     Viewport.ContentContainer.setUrl(
       top.TYPO3.settings.RecordCommit.moduleUrl
-      + '&data[' + table + '][' + uid + '][hidden]=1'
+      + '&data[' + table + '][' + uid + '][' + disableFieldName + ']=1'
       + '&redirect=' + ContextMenuActions.getReturnUrl(),
     ).done((): void => {
       Viewport.NavigationContainer.PageTree.refreshTree();
@@ -165,9 +168,10 @@ class ContextMenuActions {
    * @param {number} uid
    */
   public static enableRecord(table: string, uid: number): void {
+    const disableFieldName = $(this).data('disable-field') || 'hidden';
     Viewport.ContentContainer.setUrl(
       top.TYPO3.settings.RecordCommit.moduleUrl
-      + '&data[' + table + '][' + uid + '][hidden]=0'
+      + '&data[' + table + '][' + uid + '][' + disableFieldName + ']=0'
       + '&redirect=' + ContextMenuActions.getReturnUrl(),
     ).done((): void => {
       Viewport.NavigationContainer.PageTree.refreshTree();
@@ -227,8 +231,8 @@ class ContextMenuActions {
 
     $modal.on('button.clicked', (e: JQueryEventObject): void => {
       if (e.target.getAttribute('name') === 'delete') {
-        const xhr = AjaxDataHandler.process('cmd[' + table + '][' + uid + '][delete]=1');
-        xhr.done((): void => {
+        const eventData = {component: 'contextmenu', action: 'delete', table, uid};
+        AjaxDataHandler.process('cmd[' + table + '][' + uid + '][delete]=1', eventData).then((): void => {
           if (table === 'pages' && Viewport.NavigationContainer.PageTree) {
             if (uid === top.fsMod.recentIds.web) {
               let node = Viewport.NavigationContainer.PageTree.getFirstNode();
@@ -252,7 +256,7 @@ class ContextMenuActions {
       + '&CB[el][' + table + '%7C' + uid + ']=1'
       + '&CB[setCopyMode]=1';
 
-    $.ajax(url).always((): void => {
+    (new AjaxRequest(url)).get().finally((): void => {
       ContextMenuActions.triggerRefresh(Viewport.ContentContainer.get().location.href);
     });
   }
@@ -265,7 +269,7 @@ class ContextMenuActions {
     const url = TYPO3.settings.ajaxUrls.contextmenu_clipboard
       + '&CB[el][' + table + '%7C' + uid + ']=0';
 
-    $.ajax(url).always((): void => {
+    (new AjaxRequest(url)).get().finally((): void => {
       ContextMenuActions.triggerRefresh(Viewport.ContentContainer.get().location.href);
     });
   }
@@ -279,7 +283,7 @@ class ContextMenuActions {
       + '&CB[el][' + table + '%7C' + uid + ']=1'
       + '&CB[setCopyMode]=0';
 
-    $.ajax(url).always((): void => {
+    (new AjaxRequest(url)).get().finally((): void => {
       ContextMenuActions.triggerRefresh(Viewport.ContentContainer.get().location.href);
     });
   }
@@ -300,30 +304,28 @@ class ContextMenuActions {
    * @param {number} uid uid of the page
    */
   public static clearCache(table: string, uid: number): void {
-    $.ajax({
-      url: TYPO3.settings.ajaxUrls.web_list_clearpagecache + '&id=' + uid,
-      cache: false,
-      dataType: 'json',
-      success: (data: any): void => {
+    (new AjaxRequest(TYPO3.settings.ajaxUrls.web_list_clearpagecache)).withQueryArguments({id: uid}).get({cache: 'no-cache'}).then(
+      async (response: AjaxResponse): Promise<any> => {
+        const data = await response.resolve();
         if (data.success === true) {
           Notification.success(data.title, data.message, 1);
         } else {
           Notification.error(data.title, data.message, 1);
         }
       },
-      error: (): void => {
+      (): void => {
         Notification.error(
           'Clearing page caches went wrong on the server side.',
         );
-      },
-    });
+      }
+    );
   }
 
   /**
    * Paste db record after another
    *
    * @param {string} table any db table except sys_file
-   * @param {number} uid uid of the record after which record from the cliboard will be pasted
+   * @param {number} uid uid of the record after which record from the clipboard will be pasted
    */
   public static pasteAfter(table: string, uid: number): void {
     ContextMenuActions.pasteInto.bind($(this))(table, -uid);
@@ -333,7 +335,7 @@ class ContextMenuActions {
    * Paste page into another page
    *
    * @param {string} table any db table except sys_file
-   * @param {number} uid uid of the record after which record from the cliboard will be pasted
+   * @param {number} uid uid of the record after which record from the clipboard will be pasted
    */
   public static pasteInto(table: string, uid: number): void {
     const $anchorElement = $(this);

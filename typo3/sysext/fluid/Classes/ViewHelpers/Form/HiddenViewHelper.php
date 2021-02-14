@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\ViewHelpers\Form;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Fluid\ViewHelpers\Form;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Fluid\ViewHelpers\Form;
 
 /**
  * Renders an :html:`<input type="hidden" ...>` tag.
@@ -31,7 +32,7 @@ namespace TYPO3\CMS\Fluid\ViewHelpers\Form;
  * You can also use the "property" attribute if you have bound an object to the form.
  * See :ref:`<f:form> <typo3-fluid-form>` for more documentation.
  */
-class HiddenViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormFieldViewHelper
+class HiddenViewHelper extends AbstractFormFieldViewHelper
 {
     /**
      * @var string
@@ -61,6 +62,8 @@ class HiddenViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormFie
         $this->tag->addAttribute('type', 'hidden');
         $this->tag->addAttribute('name', $name);
         $this->tag->addAttribute('value', $this->getValueAttribute());
+
+        $this->addAdditionalIdentityPropertiesIfNeeded();
 
         return $this->tag->render();
     }

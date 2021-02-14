@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Backend\Backend\Shortcut;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Backend\Backend\Shortcut;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Backend\Shortcut;
 
 use TYPO3\CMS\Backend\Module\ModuleLoader;
 use TYPO3\CMS\Backend\Routing\Exception\ResourceNotFoundException;
@@ -212,7 +214,7 @@ class ShortcutRepository
         $pageId = 0;
 
         if (is_array($queryParameters['edit'])) {
-            $table = key($queryParameters['edit']);
+            $table = (string)key($queryParameters['edit']);
             $recordId = (int)key($queryParameters['edit'][$table]);
             $pageId = (int)BackendUtility::getRecord($table, $recordId)['pid'];
             $languageFile = 'LLL:EXT:core/Resources/Private/Language/locallang_misc.xlf';
@@ -233,7 +235,7 @@ class ShortcutRepository
         // Check if given id is a combined identifier
         if (!empty($queryParameters['id']) && preg_match('/^[\d]+:/', $queryParameters['id'])) {
             try {
-                $resourceFactory = ResourceFactory::getInstance();
+                $resourceFactory = GeneralUtility::makeInstance(ResourceFactory::class);
                 $resource = $resourceFactory->getObjectFromCombinedIdentifier($queryParameters['id']);
                 $title = trim(sprintf(
                     '%s (%s)',
@@ -484,7 +486,7 @@ class ShortcutRepository
         while ($row = $result->fetch()) {
             $shortcut = ['raw' => $row];
 
-            list($row['module_name'], $row['M_module_name']) = explode('|', $row['module_name']);
+            [$row['module_name'], $row['M_module_name']] = explode('|', $row['module_name']);
 
             $queryParts = parse_url($row['url']);
             // Explode GET vars recursively
@@ -512,7 +514,8 @@ class ShortcutRepository
             $moduleName = $row['M_module_name'] ?: $row['module_name'];
 
             // Check if the user has access to this module
-            if (!is_array($this->moduleLoader->checkMod($moduleName))) {
+            // @todo Hack for EditDocumentController / FormEngine, see issues #91368 and #91210
+            if (!is_array($this->moduleLoader->checkMod($moduleName)) && $moduleName !== 'xMOD_alt_doc.php') {
                 continue;
             }
 
@@ -601,6 +604,7 @@ class ShortcutRepository
      */
     protected function getShortcutIcon(array $row, array $shortcut): string
     {
+        $selectFields = [];
         switch ($row['module_name']) {
             case 'xMOD_alt_doc.php':
                 $table = $shortcut['table'];
@@ -661,7 +665,7 @@ class ShortcutRepository
                 $moduleName = $row['module_name'];
 
                 if (strpos($moduleName, '_') !== false) {
-                    list($mainModule, $subModule) = explode('_', $moduleName, 2);
+                    [$mainModule, $subModule] = explode('_', $moduleName, 2);
                     $iconIdentifier = $this->moduleLoader->modules[$mainModule]['sub'][$subModule]['iconIdentifier'];
                 } elseif (!empty($moduleName)) {
                     $iconIdentifier = $this->moduleLoader->modules[$moduleName]['iconIdentifier'];
@@ -692,7 +696,7 @@ class ShortcutRepository
         if (strpos($moduleName, 'xMOD_') === 0) {
             $title = substr($moduleName, 5);
         } else {
-            list($mainModule, $subModule) = explode('_', $moduleName);
+            [$mainModule, $subModule] = explode('_', $moduleName);
             $mainModuleLabels = $this->moduleLoader->getLabelsForModule($mainModule);
             $title = $languageService->sL($mainModuleLabels['title']);
 

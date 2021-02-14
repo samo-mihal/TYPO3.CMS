@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Frontend\Authentication;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Frontend\Authentication;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Frontend\Authentication;
 
 use TYPO3\CMS\Core\Authentication\AbstractUserAuthentication;
 use TYPO3\CMS\Core\Authentication\AuthenticationService;
@@ -480,6 +481,7 @@ class FrontendUserAuthentication extends AbstractUserAuthentication
      */
     protected function performLogoff()
     {
+        $oldSession = [];
         $sessionData = [];
         try {
             // Session might not be loaded at this point, so fetch it
@@ -498,9 +500,6 @@ class FrontendUserAuthentication extends AbstractUserAuthentication
             $this->user = null;
         } else {
             parent::performLogoff();
-            if ($this->isCookieSet()) {
-                $this->removeCookie($this->name);
-            }
         }
     }
 

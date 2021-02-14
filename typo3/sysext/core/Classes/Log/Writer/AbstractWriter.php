@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Log\Writer;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,13 +13,18 @@ namespace TYPO3\CMS\Core\Log\Writer;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Log\Writer;
+
 use TYPO3\CMS\Core\Log\Exception\InvalidLogWriterConfigurationException;
+use TYPO3\CMS\Core\Security\BlockSerializationTrait;
 
 /**
  * Abstract implementation of a log writer
  */
 abstract class AbstractWriter implements WriterInterface
 {
+    use BlockSerializationTrait;
+
     /**
      * Constructs this log writer
      *

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Validation\Validator;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Extbase\Validation\Validator;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Extbase\Validation\Validator;
 
 /**
  * Validator for not empty values.
@@ -39,7 +40,7 @@ class NotEmptyValidator extends AbstractValidator
                 $this->translateErrorMessage(
                     'validator.notempty.null',
                     'extbase'
-                ),
+                ) ?? '',
                 1221560910
             );
         }
@@ -48,7 +49,7 @@ class NotEmptyValidator extends AbstractValidator
                 $this->translateErrorMessage(
                     'validator.notempty.empty',
                     'extbase'
-                ),
+                ) ?? '',
                 1221560718
             );
         }
@@ -57,7 +58,7 @@ class NotEmptyValidator extends AbstractValidator
                 $this->translateErrorMessage(
                     'validator.notempty.empty',
                     'extbase'
-                ),
+                ) ?? '',
                 1347992400
             );
         }
@@ -66,7 +67,7 @@ class NotEmptyValidator extends AbstractValidator
                 $this->translateErrorMessage(
                     'validator.notempty.empty',
                     'extbase'
-                ),
+                ) ?? '',
                 1347992453
             );
         }

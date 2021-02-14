@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Frontend\Hooks;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,13 +13,16 @@ namespace TYPO3\CMS\Frontend\Hooks;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Frontend\Hooks;
+
+use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Adds extra fields into 'media' flexform
  * @internal this is a concrete TYPO3 hook implementation and solely used for EXT:frontend and not part of TYPO3's Core API.
  */
-class MediaItemHooks implements \TYPO3\CMS\Core\SingletonInterface
+class MediaItemHooks implements SingletonInterface
 {
     /**
      * Load extra render types if they exist

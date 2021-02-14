@@ -1,7 +1,8 @@
 <?php
+
 return [
     'ctrl' => [
-        'title' => 'DataHander Test Element',
+        'title' => 'DataHandler Test Element',
         'label' => 'title',
         'tstamp' => 'tstamp',
         'crdate' => 'crdate',
@@ -17,9 +18,6 @@ return [
         ],
         'versioningWS' => true,
         'origUid' => 't3_origuid',
-    ],
-    'interface' => [
-        'showRecordFieldList' => 'sys_language_uid,l10n_parent,l10n_diffsource,hidden,title'
     ],
     'columns' => [
         'sys_language_uid' => [

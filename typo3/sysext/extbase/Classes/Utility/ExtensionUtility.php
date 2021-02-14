@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Utility;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,15 @@ namespace TYPO3\CMS\Extbase\Utility;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Extbase\Utility;
+
+use TYPO3\CMS\Core\Utility\ArrayUtility;
+use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\StringUtility;
+use TYPO3\CMS\Extbase\Core\Bootstrap;
+use TYPO3\CMS\Extbase\Mvc\Exception\NoSuchControllerException;
 
 /**
  * Utilities to manage plugins and  modules of an extension. Also useful to auto-generate the autoloader registry
@@ -49,11 +57,11 @@ class ExtensionUtility
         $vendorName = null;
         $delimiterPosition = strrpos($extensionName, '.');
         if ($delimiterPosition !== false) {
+            $vendorName = str_replace('.', '\\', substr($extensionName, 0, $delimiterPosition));
             trigger_error(
-                'Calling method ' . __METHOD__ . 'with argument $extensionName containing the vendor name is deprecated and will stop working in TYPO3 11.0.',
+                'Calling method ' . __METHOD__ . ' with argument $extensionName ("' . $extensionName . '") containing the vendor name ("' . $vendorName . '") is deprecated and will stop working in TYPO3 11.0.',
                 E_USER_DEPRECATED
             );
-            $vendorName = str_replace('.', '\\', substr($extensionName, 0, $delimiterPosition));
             $extensionName = substr($extensionName, $delimiterPosition + 1);
 
             if (!empty($vendorName)) {
@@ -75,7 +83,7 @@ class ExtensionUtility
                 }
             } else {
                 trigger_error(
-                    'Calling ' . __METHOD__ . ' with controller aliases in argument $controllerActions is deprecated and will stop working in TYPO3 11.0.',
+                    'Calling ' . __METHOD__ . ' for extension ("' . $extensionName . '") and plugin ("' . $pluginName . '") with controller aliases in argument $controllerActions is deprecated and will stop working in TYPO3 11.0.',
                     E_USER_DEPRECATED
                 );
                 $controllerAlias = $controllerClassName;
@@ -85,22 +93,22 @@ class ExtensionUtility
             $GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['extbase']['extensions'][$extensionName]['plugins'][$pluginName]['controllers'][$controllerClassName] = [
                 'className' => $controllerClassName,
                 'alias' => $controllerAlias,
-                'actions' => \TYPO3\CMS\Core\Utility\GeneralUtility::trimExplode(',', $actionsList)
+                'actions' => GeneralUtility::trimExplode(',', $actionsList)
             ];
 
             if (isset($nonCacheableControllerActions[$controllerAlias]) && !empty($nonCacheableControllerActions[$controllerAlias])) {
                 trigger_error(
-                    'Calling ' . __METHOD__ . ' with controller aliases in argument $nonCacheableControllerActions is deprecated and will stop working in TYPO3 11.0.',
+                    'Calling ' . __METHOD__ . ' for extension ("' . $extensionName . '") and plugin ("' . $pluginName . '") with controller aliases in argument $nonCacheableControllerActions is deprecated and will stop working in TYPO3 11.0.',
                     E_USER_DEPRECATED
                 );
-                $GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['extbase']['extensions'][$extensionName]['plugins'][$pluginName]['controllers'][$controllerClassName]['nonCacheableActions'] = \TYPO3\CMS\Core\Utility\GeneralUtility::trimExplode(
+                $GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['extbase']['extensions'][$extensionName]['plugins'][$pluginName]['controllers'][$controllerClassName]['nonCacheableActions'] = GeneralUtility::trimExplode(
                     ',',
                     $nonCacheableControllerActions[$controllerAlias]
                 );
             }
 
             if (isset($nonCacheableControllerActions[$controllerClassName]) && !empty($nonCacheableControllerActions[$controllerClassName])) {
-                $GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['extbase']['extensions'][$extensionName]['plugins'][$pluginName]['controllers'][$controllerClassName]['nonCacheableActions'] = \TYPO3\CMS\Core\Utility\GeneralUtility::trimExplode(
+                $GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['extbase']['extensions'][$extensionName]['plugins'][$pluginName]['controllers'][$controllerClassName]['nonCacheableActions'] = GeneralUtility::trimExplode(
                     ',',
                     $nonCacheableControllerActions[$controllerClassName]
                 );
@@ -131,10 +139,10 @@ tt_content.' . $pluginSignature . ' {
 }');
                 break;
             default:
-                throw new \InvalidArgumentException('The pluginType "' . $pluginType . '" is not suported', 1289858856);
+                throw new \InvalidArgumentException('The pluginType "' . $pluginType . '" is not supported', 1289858856);
         }
         $GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['extbase']['extensions'][$extensionName]['plugins'][$pluginName]['pluginType'] = $pluginType;
-        \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addTypoScript($extensionName, 'setup', '
+        ExtensionManagementUtility::addTypoScript($extensionName, 'setup', '
 # Setting ' . $extensionName . ' plugin TypoScript
 ' . $pluginContent, 'defaultContentRendering');
     }
@@ -147,17 +155,19 @@ tt_content.' . $pluginSignature . ' {
      * @param string $pluginName must be a unique id for your plugin in UpperCamelCase (the string length of the extension key added to the length of the plugin name should be less than 32!)
      * @param string $pluginTitle is a speaking title of the plugin that will be displayed in the drop down menu in the backend
      * @param string $pluginIcon is an icon identifier or file path prepended with "EXT:", that will be displayed in the drop down menu in the backend (optional)
+     * @param string $group add this plugin to a plugin group, should be something like "news" or the like, "default" as regular
      * @throws \InvalidArgumentException
      */
-    public static function registerPlugin($extensionName, $pluginName, $pluginTitle, $pluginIcon = null)
+    public static function registerPlugin($extensionName, $pluginName, $pluginTitle, $pluginIcon = null, $group = 'default')
     {
         self::checkPluginNameFormat($pluginName);
         self::checkExtensionNameFormat($extensionName);
 
         $delimiterPosition = strrpos($extensionName, '.');
         if ($delimiterPosition !== false) {
+            $vendorName = str_replace('.', '\\', substr($extensionName, 0, $delimiterPosition));
             trigger_error(
-                'Calling method ' . __METHOD__ . ' with argument $extensionName containing the vendor name is deprecated and will stop working in TYPO3 11.0.',
+                'Calling method ' . __METHOD__ . ' with argument $extensionName ("' . $extensionName . '") containing the vendor name ("' . $vendorName . '") is deprecated and will stop working in TYPO3 11.0.',
                 E_USER_DEPRECATED
             );
             $extensionName = substr($extensionName, $delimiterPosition + 1);
@@ -167,13 +177,17 @@ tt_content.' . $pluginSignature . ' {
 
         // At this point $extensionName is normalized, no matter which format the method was fed with.
         // Calculate the original extensionKey from this again.
-        $extensionKey = \TYPO3\CMS\Core\Utility\GeneralUtility::camelCaseToLowerCaseUnderscored($extensionName);
+        $extensionKey = GeneralUtility::camelCaseToLowerCaseUnderscored($extensionName);
 
         // pluginType is usually defined by configurePlugin() in the global array. Use this or fall back to default "list_type".
         $pluginType = $GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['extbase']['extensions'][$extensionName]['plugins'][$pluginName]['pluginType'] ?? 'list_type';
 
-        \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addPlugin(
-            [$pluginTitle, $pluginSignature, $pluginIcon],
+        $itemArray = [$pluginTitle, $pluginSignature, $pluginIcon];
+        if ($group) {
+            $itemArray[3] = $group;
+        }
+        ExtensionManagementUtility::addPlugin(
+            $itemArray,
             $pluginType,
             $extensionKey
         );
@@ -196,10 +210,10 @@ tt_content.' . $pluginSignature . ' {
         self::checkExtensionNameFormat($extensionName);
 
         // Check if vendor name is prepended to extensionName in the format {vendorName}.{extensionName}
-        $vendorName = null;
+        $vendorName = '';
         if (false !== $delimiterPosition = strrpos($extensionName, '.')) {
             trigger_error(
-                'Calling method ' . __METHOD__ . 'with argument $extensionName containing the vendor name is deprecated and will stop working in TYPO3 11.0.',
+                'Calling method ' . __METHOD__ . ' with argument $extensionName containing the vendor name is deprecated and will stop working in TYPO3 11.0.',
                 E_USER_DEPRECATED
             );
             $vendorName = str_replace('.', '\\', substr($extensionName, 0, $delimiterPosition));
@@ -217,7 +231,7 @@ tt_content.' . $pluginSignature . ' {
             'labels' => ''
         ];
         if ($mainModuleName !== '' && !array_key_exists($mainModuleName, $GLOBALS['TBE_MODULES'])) {
-            $mainModuleName = $extensionName . \TYPO3\CMS\Core\Utility\GeneralUtility::underscoredToUpperCamelCase($mainModuleName);
+            $mainModuleName = $extensionName . GeneralUtility::underscoredToUpperCamelCase($mainModuleName);
         } else {
             $mainModuleName = $mainModuleName !== '' ? $mainModuleName : 'web';
         }
@@ -225,16 +239,16 @@ tt_content.' . $pluginSignature . ' {
         if ($mainModuleName === 'web') {
             $defaultModuleConfiguration['navigationComponentId'] = 'TYPO3/CMS/Backend/PageTree/PageTreeElement';
         }
-        \TYPO3\CMS\Core\Utility\ArrayUtility::mergeRecursiveWithOverrule($defaultModuleConfiguration, $moduleConfiguration);
+        ArrayUtility::mergeRecursiveWithOverrule($defaultModuleConfiguration, $moduleConfiguration);
         $moduleConfiguration = $defaultModuleConfiguration;
         $moduleSignature = $mainModuleName;
         if ($subModuleName !== '') {
-            $subModuleName = $extensionName . \TYPO3\CMS\Core\Utility\GeneralUtility::underscoredToUpperCamelCase($subModuleName);
+            $subModuleName = $extensionName . GeneralUtility::underscoredToUpperCamelCase($subModuleName);
             $moduleSignature .= '_' . $subModuleName;
         }
         $moduleConfiguration['name'] = $moduleSignature;
         $moduleConfiguration['extensionName'] = $extensionName;
-        $moduleConfiguration['routeTarget'] = \TYPO3\CMS\Extbase\Core\Bootstrap::class . '::handleBackendRequest';
+        $moduleConfiguration['routeTarget'] = Bootstrap::class . '::handleBackendRequest';
         if (!is_array($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['extbase']['extensions'][$extensionName]['modules'][$moduleSignature] ?? false)) {
             $GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['extbase']['extensions'][$extensionName]['modules'][$moduleSignature] = [];
         }
@@ -257,10 +271,10 @@ tt_content.' . $pluginSignature . ' {
             $GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['extbase']['extensions'][$extensionName]['modules'][$moduleSignature]['controllers'][$controllerClassName] = [
                 'className' => $controllerClassName,
                 'alias' => $controllerAlias,
-                'actions' => \TYPO3\CMS\Core\Utility\GeneralUtility::trimExplode(',', $actionsList)
+                'actions' => GeneralUtility::trimExplode(',', $actionsList)
             ];
         }
-        \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addModule($mainModuleName, $subModuleName, $position, null, $moduleConfiguration);
+        ExtensionManagementUtility::addModule($mainModuleName, $subModuleName, $position, null, $moduleConfiguration);
     }
 
     /**
@@ -299,7 +313,7 @@ tt_content.' . $pluginSignature . ' {
         );
 
         if ($objectName === false) {
-            throw new \TYPO3\CMS\Extbase\Mvc\Exception\NoSuchControllerException('The controller object "' . $objectName . '" does not exist.', 1220884009);
+            throw new NoSuchControllerException('The controller object "' . $objectName . '" does not exist.', 1220884009);
         }
         return trim($objectName, '\\');
     }
@@ -310,15 +324,43 @@ tt_content.' . $pluginSignature . ' {
      */
     public static function resolveControllerAliasFromControllerClassName(string $controllerClassName): string
     {
-        if (strrpos($controllerClassName, 'Controller') === false) {
+        // This method has been adjusted for TYPO3 10.3 to mitigate the issue that controller aliases
+        // could not longer be calculated from controller classes when calling
+        // \TYPO3\CMS\Extbase\Utility\ExtensionUtility::configurePlugin().
+        //
+        // The idea for version 11 is to let the user choose a controller alias and to check for its
+        // uniqueness per plugin. That way, the core does no longer rely on the namespace of
+        // controller classes to be in a specific format.
+        //
+        // todo: Change the way plugins are registered and enforce a controller alias to be set by
+        //       the user to also free the core from guessing a simple alias by looking at the
+        //       class name. This makes it possible to choose controller class names without a
+        //       controller suffix.
+
+        $strLen = strlen('Controller');
+
+        if (!StringUtility::endsWith($controllerClassName, 'Controller')) {
             return '';
         }
 
-        return trim(substr(
-            $controllerClassName,
-            (int)strrpos($controllerClassName, '\\'),
-            -strlen('Controller')
-        ), '\\');
+        $controllerClassNameWithoutControllerSuffix = substr($controllerClassName, 0, -$strLen);
+
+        if (strrpos($controllerClassNameWithoutControllerSuffix, 'Controller\\') === false) {
+            $positionOfLastSlash = (int)strrpos($controllerClassNameWithoutControllerSuffix, '\\');
+            $positionOfLastSlash += $positionOfLastSlash === 0 ? 0 : 1;
+
+            return substr($controllerClassNameWithoutControllerSuffix, $positionOfLastSlash);
+        }
+
+        $positionOfControllerNamespacePart = (int)strrpos(
+            $controllerClassNameWithoutControllerSuffix,
+            'Controller\\'
+        );
+
+        return substr(
+            $controllerClassNameWithoutControllerSuffix,
+            $positionOfControllerNamespacePart + $strLen + 1
+        );
     }
 
     /**

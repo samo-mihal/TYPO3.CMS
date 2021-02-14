@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Install\Tests\Unit\ExtensionScanner\Php;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Install\Tests\Unit\ExtensionScanner\Php;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Install\Tests\Unit\ExtensionScanner\Php;
 
 use TYPO3\CMS\Install\ExtensionScanner\Php\MatcherFactory;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
@@ -42,7 +44,7 @@ class MatcherFactoryTest extends UnitTestCase
     /**
      * @test
      */
-    public function createAllThrowsWithMissingConfiration()
+    public function createAllThrowsWithMissingConfiguration()
     {
         $subject = new MatcherFactory();
         $this->expectException(\RuntimeException::class);

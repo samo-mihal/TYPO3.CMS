@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Unit\Resource;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,10 +15,13 @@ namespace TYPO3\CMS\Core\Tests\Unit\Resource;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\Resource;
+
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\Folder;
 use TYPO3\CMS\Core\Resource\ProcessedFile;
 use TYPO3\CMS\Core\Resource\ResourceStorage;
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -63,7 +66,7 @@ class ProcessedFileTest extends UnitTestCase
         $this->databaseRow = [
             'uid' => '1234567',
             'identifier' => 'dummy.txt',
-            'name' => $this->getUniqueId('dummy_'),
+            'name' => StringUtility::getUniqueId('dummy_'),
             'storage' => $this->storageMock->getUid(),
             'configuration' => null,
             'originalfilesha1' => null,

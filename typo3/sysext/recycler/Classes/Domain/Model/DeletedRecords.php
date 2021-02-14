@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Recycler\Domain\Model;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Recycler\Domain\Model;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Recycler\Domain\Model;
+
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
@@ -22,7 +23,7 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Platform\PlatformInformation;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Database\Query\QueryHelper;
-use TYPO3\CMS\Core\Database\Query\Restriction\BackendWorkspaceRestriction;
+use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -162,7 +163,6 @@ class DeletedRecords
         if (!empty($this->limit)) {
             // count the number of deleted records for this pid
             $queryBuilder = $this->getFilteredQueryBuilder($table, $id, $depth, $filter);
-            $queryBuilder->getRestrictions()->removeAll();
 
             $deletedCount = (int)$queryBuilder
                 ->count('*')
@@ -177,7 +177,7 @@ class DeletedRecords
                 ->fetchColumn(0);
 
             // split the limit
-            list($offset, $rowCount) = GeneralUtility::intExplode(',', $this->limit, true);
+            [$offset, $rowCount] = GeneralUtility::intExplode(',', $this->limit, true);
             // subtract the number of deleted records from the limit's offset
             $result = $offset - $deletedCount;
             // if the result is >= 0
@@ -263,15 +263,15 @@ class DeletedRecords
     {
         $pidList = $this->getTreeList($pid, $depth);
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($table);
-        $queryBuilder->getRestrictions()
-            ->removeAll()
-            ->add(GeneralUtility::makeInstance(BackendWorkspaceRestriction::class));
+        $queryBuilder->getRestrictions()->removeAll()
+            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, $this->getBackendUser()->workspace));
 
         // create the filter WHERE-clause
         $filterConstraint = null;
         if (trim($filter) !== '') {
-            $filterConstraint = $queryBuilder->expr()->like(
-                $GLOBALS['TCA'][$table]['ctrl']['label'],
+            $filterConstraint = $queryBuilder->expr()->comparison(
+                $queryBuilder->castFieldToTextType($GLOBALS['TCA'][$table]['ctrl']['label']),
+                'LIKE',
                 $queryBuilder->createNamedParameter(
                     '%' . $queryBuilder->escapeLikeWildcards($filter) . '%',
                     \PDO::PARAM_STR
@@ -346,7 +346,7 @@ class DeletedRecords
     /**
      * Delete element from any table
      *
-     * @param array $recordsArray Representation of the records
+     * @param array|null $recordsArray Representation of the records
      * @return bool
      */
     public function deleteData($recordsArray)
@@ -357,7 +357,7 @@ class DeletedRecords
             $tce->start([], []);
             $tce->disableDeleteClause();
             foreach ($recordsArray as $record) {
-                list($table, $uid) = explode(':', $record);
+                [$table, $uid] = explode(':', $record);
                 $tce->deleteEl($table, (int)$uid, true, true);
             }
             return true;
@@ -385,7 +385,8 @@ class DeletedRecords
             $this->deletedRows = [];
             $cmd = [];
             foreach ($recordsArray as $record) {
-                list($table, $uid) = explode(':', $record);
+                [$table, $uid] = explode(':', $record);
+                $uid = (int)$uid;
                 // get all parent pages and cover them
                 $pid = RecyclerUtility::getPidOfUid($uid, $table);
                 if ($pid > 0) {
@@ -435,7 +436,8 @@ class DeletedRecords
     protected function getDeletedParentPages($uid, &$pages = [])
     {
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('pages');
-        $queryBuilder->getRestrictions()->removeAll();
+        $queryBuilder->getRestrictions()->removeAll()
+            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, $this->getBackendUser()->workspace));
         $record = $queryBuilder
             ->select('uid', 'pid')
             ->from('pages')
@@ -514,7 +516,7 @@ class DeletedRecords
     }
 
     /**
-     * @param $id
+     * @param int $id
      * @param int $depth
      * @param int $begin
      * @param string $permsClause
@@ -531,7 +533,8 @@ class DeletedRecords
         }
         if ($depth > 0) {
             $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('pages');
-            $queryBuilder->getRestrictions()->removeAll()->add(GeneralUtility::makeInstance(BackendWorkspaceRestriction::class));
+            $queryBuilder->getRestrictions()->removeAll()
+                ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, $this->getBackendUser()->workspace));
             $statement = $queryBuilder->select('uid')
                 ->from('pages')
                 ->where(

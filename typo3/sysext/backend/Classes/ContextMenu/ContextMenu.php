@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Backend\ContextMenu;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,10 @@ namespace TYPO3\CMS\Backend\ContextMenu;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\ContextMenu;
+
+use TYPO3\CMS\Backend\ContextMenu\ItemProviders\PageProvider;
+use TYPO3\CMS\Backend\ContextMenu\ItemProviders\RecordProvider;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -29,8 +33,8 @@ class ContextMenu
      * @var array
      */
     protected $itemProviders = [
-        ItemProviders\PageProvider::class,
-        ItemProviders\RecordProvider::class
+        PageProvider::class,
+        RecordProvider::class
     ];
 
     /**

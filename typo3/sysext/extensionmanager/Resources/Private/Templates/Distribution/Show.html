@@ -1,13 +1,10 @@
 {namespace em=TYPO3\CMS\Extensionmanager\ViewHelpers}
 <f:layout name="main" />
-
-<f:section name="headline">
-</f:section>
-
 <f:section name="content">
+
     <div class="distribution-detail">
         <div class="distribution-detail-previewpane">
-            <em:distributionImage extensionkey="{extension.extensionKey}" alt="{extension.title}" height="225" width="300" />
+            <em:distributionImage extensionkey="{extension.extensionKey}" alt="" height="225" width="300" />
         </div>
         <div class="distribution-detail-body">
             <div class="distribution-detail-header">
@@ -80,4 +77,5 @@
 
         </div>
     </div>
+
 </f:section>

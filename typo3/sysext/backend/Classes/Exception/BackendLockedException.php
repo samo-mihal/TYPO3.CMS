@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Backend\Exception;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,8 +15,10 @@ namespace TYPO3\CMS\Backend\Exception;
  * The TYPO3 project - inspiring people to share!
  */
 
-use TYPO3\CMS\Backend\Exception;
+namespace TYPO3\CMS\Backend\Exception;
 
-class BackendLockedException extends Exception
+use TYPO3\CMS\Core\Error\Http\AbstractClientErrorException;
+
+class BackendLockedException extends AbstractClientErrorException
 {
 }

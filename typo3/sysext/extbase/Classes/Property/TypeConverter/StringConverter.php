@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Extbase\Property\TypeConverter;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,10 +15,14 @@ namespace TYPO3\CMS\Extbase\Property\TypeConverter;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Property\TypeConverter;
+
+use TYPO3\CMS\Extbase\Property\PropertyMappingConfigurationInterface;
+
 /**
  * Converter which transforms simple types to a string.
  */
-class StringConverter extends \TYPO3\CMS\Extbase\Property\TypeConverter\AbstractTypeConverter
+class StringConverter extends AbstractTypeConverter
 {
     /**
      * @var string[]
@@ -46,7 +49,7 @@ class StringConverter extends \TYPO3\CMS\Extbase\Property\TypeConverter\Abstract
      * @param \TYPO3\CMS\Extbase\Property\PropertyMappingConfigurationInterface $configuration
      * @return string
      */
-    public function convertFrom($source, string $targetType, array $convertedChildProperties = [], \TYPO3\CMS\Extbase\Property\PropertyMappingConfigurationInterface $configuration = null): string
+    public function convertFrom($source, string $targetType, array $convertedChildProperties = [], PropertyMappingConfigurationInterface $configuration = null): string
     {
         return (string)$source;
     }

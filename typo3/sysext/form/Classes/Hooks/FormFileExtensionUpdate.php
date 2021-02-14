@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\Hooks;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Form\Hooks;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Form\Hooks;
 
 use Symfony\Component\Console\Output\OutputInterface;
 use TYPO3\CMS\Core\Configuration\FlexForm\FlexFormTools;
@@ -278,6 +280,7 @@ class FormFileExtensionUpdate implements ChattyInterface, UpgradeWizardInterface
                     $newPossiblePersistenceIdentifier,
                     PATHINFO_BASENAME
                 );
+                $newFileName = is_string($newFileName) ? $newFileName : '';
 
                 try {
                     $file->rename($newFileName, DuplicationBehavior::RENAME);
@@ -403,6 +406,7 @@ class FormFileExtensionUpdate implements ChattyInterface, UpgradeWizardInterface
 
         foreach ($this->persistenceManager->retrieveYamlFilesFromExtensionFolders() as $persistenceIdentifier => $_) {
             try {
+                /** @var File $file */
                 $file = $this->resourceFactory->retrieveFileOrFolderObject($persistenceIdentifier);
             } catch (\Exception $exception) {
                 continue;
@@ -428,17 +432,17 @@ class FormFileExtensionUpdate implements ChattyInterface, UpgradeWizardInterface
      * @param string $persistenceIdentifier
      * @param array $formDefinition
      * @param File $file
-     * @param string $localtion
+     * @param string $location
      * @return array
      */
     protected function setFormDefinitionInformationData(
         string $persistenceIdentifier,
         array $formDefinition,
         File $file,
-        string $localtion
+        string $location
     ): array {
         return [
-            'location' => $localtion,
+            'location' => $location,
             'persistenceIdentifier' => $persistenceIdentifier,
             'prototypeName' => $formDefinition['prototypeName'],
             'formIdentifier' => $formDefinition['identifier'],
@@ -464,6 +468,13 @@ class FormFileExtensionUpdate implements ChattyInterface, UpgradeWizardInterface
                 continue;
             }
             $flexform = GeneralUtility::xml2array($pluginData['pi_flexform']);
+            if (!is_array($flexform)) {
+                // * There is no data other than a base XML-structure in pi_flexform:
+                //   xml2array returns empty string or newline-character (string)
+                // * pi_flexform is invalid XML:
+                //   xml2array returns an error message (string)
+                continue;
+            }
             $referencedPersistenceIdentifier = $this->getPersistenceIdentifierFromFlexform($flexform);
             $referenceHasNewFileExtension = $this->hasNewFileExtension($referencedPersistenceIdentifier);
             $possibleOldReferencedPersistenceIdentifier = $this->getOldPersistenceIdentifier($referencedPersistenceIdentifier);
@@ -580,7 +591,7 @@ class FormFileExtensionUpdate implements ChattyInterface, UpgradeWizardInterface
         $sheetIdentifiers = [];
         foreach ($this->getFinisherSheetsFromFlexform($flexform) as $sheetIdentifier => $sheetData) {
             $itemOptionPath = array_keys($sheetData['lDEF']);
-            $firstSheetItemOptionPath = array_shift($itemOptionPath);
+            $firstSheetItemOptionPath = (string)array_shift($itemOptionPath);
             preg_match('#^settings\.finishers\.(.*)\..+$#', $firstSheetItemOptionPath, $matches);
             if (!isset($matches[1])) {
                 continue;

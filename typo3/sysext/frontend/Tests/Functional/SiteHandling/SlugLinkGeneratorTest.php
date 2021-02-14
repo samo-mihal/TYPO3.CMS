@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Frontend\Tests\Functional\SiteHandling;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Frontend\Tests\Functional\SiteHandling;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Frontend\Tests\Functional\SiteHandling;
 
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Core\Bootstrap;
@@ -301,11 +303,11 @@ class SlugLinkGeneratorTest extends AbstractTestCase
             ['https://acme.us/', 1100, 1411, 0, 'https://acme.fr/acme-dans-votre-region/groupes'],
             ['https://acme.us/', 1100, 1412, 0, 'https://acme.ca/acme-dans-votre-quebec/groupes'],
             // acme.com -> archive (outside site)
-            ['https://acme.us/', 1100, 3100, 0, 'https://archive.acme.com/archive/statistics'],
-            ['https://acme.us/', 1100, 3100, 1, 'https://archive.acme.com/fr/archive/statistics'],
-            ['https://acme.us/', 1100, 3100, 2, 'https://archive.acme.com/ca/archive/statistics'],
-            ['https://acme.us/', 1100, 3101, 0, 'https://archive.acme.com/fr/archive/statistics'],
-            ['https://acme.us/', 1100, 3102, 0, 'https://archive.acme.com/ca/archive/statistics'],
+            ['https://acme.us/', 1100, 3100, 0, 'https://archive.acme.com/statistics'],
+            ['https://acme.us/', 1100, 3100, 1, 'https://archive.acme.com/fr/statistics'],
+            ['https://acme.us/', 1100, 3100, 2, 'https://archive.acme.com/ca/statistics'],
+            ['https://acme.us/', 1100, 3101, 0, 'https://archive.acme.com/fr/statistics'],
+            ['https://acme.us/', 1100, 3102, 0, 'https://archive.acme.com/ca/statistics'],
             // blog.acme.com -> acme.com (different site)
             ['https://blog.acme.com/', 2100, 1100, 0, 'https://acme.us/welcome'],
             ['https://blog.acme.com/', 2100, 1100, 1, 'https://acme.fr/bienvenue'],
@@ -313,11 +315,11 @@ class SlugLinkGeneratorTest extends AbstractTestCase
             ['https://blog.acme.com/', 2100, 1101, 0, 'https://acme.fr/bienvenue'],
             ['https://blog.acme.com/', 2100, 1102, 0, 'https://acme.ca/bienvenue'],
             // blog.acme.com -> archive (outside site)
-            ['https://blog.acme.com/', 2100, 3100, 0, 'https://archive.acme.com/archive/statistics'],
-            ['https://blog.acme.com/', 2100, 3100, 1, 'https://archive.acme.com/fr/archive/statistics'],
-            ['https://blog.acme.com/', 2100, 3100, 2, 'https://archive.acme.com/ca/archive/statistics'],
-            ['https://blog.acme.com/', 2100, 3101, 0, 'https://archive.acme.com/fr/archive/statistics'],
-            ['https://blog.acme.com/', 2100, 3102, 0, 'https://archive.acme.com/ca/archive/statistics'],
+            ['https://blog.acme.com/', 2100, 3100, 0, 'https://archive.acme.com/statistics'],
+            ['https://blog.acme.com/', 2100, 3100, 1, 'https://archive.acme.com/fr/statistics'],
+            ['https://blog.acme.com/', 2100, 3100, 2, 'https://archive.acme.com/ca/statistics'],
+            ['https://blog.acme.com/', 2100, 3101, 0, 'https://archive.acme.com/fr/statistics'],
+            ['https://blog.acme.com/', 2100, 3102, 0, 'https://archive.acme.com/ca/statistics'],
             // blog.acme.com -> products.acme.com (different sub-site)
             ['https://blog.acme.com/', 2100, 1300, 0, 'https://products.acme.com/products'],
             ['https://blog.acme.com/', 2100, 1310, 0, 'https://products.acme.com/products/planets'],
@@ -567,6 +569,64 @@ class SlugLinkGeneratorTest extends AbstractTestCase
     /**
      * @return array
      */
+    public function linkIsGeneratedForRestrictedPageForGuestsUsingTypolinkLinkAccessRestrictedPagesDataProvider(): array
+    {
+        $instructions = [
+            // default language (0)
+            ['https://acme.us/', 1100, 1510, 0, '/my-acme/whitepapers'],
+            ['https://acme.us/', 1100, 1512, 0, '/my-acme/whitepapers/solutions'],
+            ['https://acme.us/', 1100, 1515, 0, '/my-acme/whitepapers/research'],
+            // french language (1)
+            ['https://acme.fr/', 1100, 1510, 1, '/my-acme/papiersblanc'],
+            ['https://acme.fr/', 1100, 1512, 1, '/my-acme/papiersblanc/la-solutions'],
+            ['https://acme.fr/', 1100, 1515, 1, '/my-acme/papiersblanc/recherche'],
+            // canadian french language (2)
+            ['https://acme.ca/', 1100, 1510, 2, '/my-acme-ca/papiersblanc'],
+            ['https://acme.ca/', 1100, 1512, 2, '/my-acme-ca/papiersblanc/la-solutions'],
+            ['https://acme.ca/', 1100, 1515, 2, '/my-acme-ca/papiersblanc/recherche'],
+        ];
+
+        return $this->keysFromTemplate(
+            $instructions,
+            '%2$d->%3$d (language: %4$d)'
+        );
+    }
+
+    /**
+     * @param string $hostPrefix
+     * @param int $sourcePageId
+     * @param int $targetPageId
+     * @param int $languageId
+     * @param string $expectation
+     *
+     * @test
+     * @dataProvider linkIsGeneratedForRestrictedPageForGuestsUsingTypolinkLinkAccessRestrictedPagesDataProvider
+     */
+    public function linkIsGeneratedForRestrictedPageForGuestsUsingTypolinkLinkAccessRestrictedPages(string $hostPrefix, int $sourcePageId, int $targetPageId, int $languageId, string $expectation)
+    {
+        $response = $this->executeFrontendRequest(
+            (new InternalRequest($hostPrefix))
+                ->withPageId($sourcePageId)
+                ->withInstructions([
+                    (new TypoScriptInstruction(TemplateService::class))
+                        ->withTypoScript([
+                            'config.' => [
+                                'typolinkLinkAccessRestrictedPages' => 'NONE',
+                            ],
+                        ]),
+                    $this->createTypoLinkUrlInstruction([
+                        'parameter' => $targetPageId,
+                    ])
+                ]),
+            $this->internalRequestContext
+        );
+
+        self::assertSame($expectation, (string)$response->getBody());
+    }
+
+    /**
+     * @return array
+     */
     public function linkIsGeneratedForPageVersionDataProvider(): array
     {
         $instructions = [
@@ -691,15 +751,15 @@ class SlugLinkGeneratorTest extends AbstractTestCase
                         'children' => [
                             [
                                 'title' => 'Markets',
-                                'link' => 'https://common.acme.com/common/markets?MP=7100-1700',
+                                'link' => '/news/common/markets',
                             ],
                             [
                                 'title' => 'Products',
-                                'link' => 'https://common.acme.com/common/products?MP=7100-1700',
+                                'link' => '/news/common/products',
                             ],
                             [
                                 'title' => 'Partners',
-                                'link' => 'https://common.acme.com/common/partners?MP=7100-1700',
+                                'link' => '/news/common/partners',
                             ],
                         ],
                     ],
@@ -732,15 +792,15 @@ class SlugLinkGeneratorTest extends AbstractTestCase
                             'children' => [
                                 [
                                     'title' => 'Markets',
-                                    'link' => 'https://common.acme.com/common/markets?MP=7100-2700',
+                                    'link' => '/news/common/markets',
                                 ],
                                 [
                                     'title' => 'Products',
-                                    'link' => 'https://common.acme.com/common/products?MP=7100-2700',
+                                    'link' => '/news/common/products',
                                 ],
                                 [
                                     'title' => 'Partners',
-                                    'link' => 'https://common.acme.com/common/partners?MP=7100-2700',
+                                    'link' => '/news/common/partners',
                                 ],
                             ],
                         ],

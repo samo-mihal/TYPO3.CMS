@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Tests\Fixture;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,14 @@ namespace TYPO3\CMS\Extbase\Tests\Fixture;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Tests\Fixture;
+
+use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
+
 /**
  * An entity
  */
-class Entity extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity
+class Entity extends AbstractEntity
 {
     /**
      * The entity's name

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Domain\Model;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,15 @@ namespace TYPO3\CMS\Extbase\Domain\Model;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Domain\Model;
+
+use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
+use TYPO3\CMS\Extbase\Persistence\ObjectStorage;
+
 /**
  * A Frontend User
  */
-class FrontendUser extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity
+class FrontendUser extends AbstractEntity
 {
     /**
      * @var string
@@ -129,8 +133,17 @@ class FrontendUser extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity
     {
         $this->username = $username;
         $this->password = $password;
-        $this->usergroup = new \TYPO3\CMS\Extbase\Persistence\ObjectStorage();
-        $this->image = new \TYPO3\CMS\Extbase\Persistence\ObjectStorage();
+        $this->usergroup = new ObjectStorage();
+        $this->image = new ObjectStorage();
+    }
+
+    /**
+     * Called again with initialize object, as fetching an entity from the DB does not use the constructor
+     */
+    public function initializeObject()
+    {
+        $this->usergroup = $this->usergroup ?? new ObjectStorage();
+        $this->image = $this->image ?? new ObjectStorage();
     }
 
     /**
@@ -177,9 +190,9 @@ class FrontendUser extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity
      * Sets the usergroups. Keep in mind that the property is called "usergroup"
      * although it can hold several usergroups.
      *
-     * @param \TYPO3\CMS\Extbase\Persistence\ObjectStorage $usergroup
+     * @param ObjectStorage $usergroup
      */
-    public function setUsergroup(\TYPO3\CMS\Extbase\Persistence\ObjectStorage $usergroup)
+    public function setUsergroup(ObjectStorage $usergroup)
     {
         $this->usergroup = $usergroup;
     }
@@ -187,9 +200,9 @@ class FrontendUser extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity
     /**
      * Adds a usergroup to the frontend user
      *
-     * @param \TYPO3\CMS\Extbase\Domain\Model\FrontendUserGroup $usergroup
+     * @param FrontendUserGroup $usergroup
      */
-    public function addUsergroup(\TYPO3\CMS\Extbase\Domain\Model\FrontendUserGroup $usergroup)
+    public function addUsergroup(FrontendUserGroup $usergroup)
     {
         $this->usergroup->attach($usergroup);
     }
@@ -197,9 +210,9 @@ class FrontendUser extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity
     /**
      * Removes a usergroup from the frontend user
      *
-     * @param \TYPO3\CMS\Extbase\Domain\Model\FrontendUserGroup $usergroup
+     * @param FrontendUserGroup $usergroup
      */
-    public function removeUsergroup(\TYPO3\CMS\Extbase\Domain\Model\FrontendUserGroup $usergroup)
+    public function removeUsergroup(FrontendUserGroup $usergroup)
     {
         $this->usergroup->detach($usergroup);
     }
@@ -208,7 +221,7 @@ class FrontendUser extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity
      * Returns the usergroups. Keep in mind that the property is called "usergroup"
      * although it can hold several usergroups.
      *
-     * @return \TYPO3\CMS\Extbase\Persistence\ObjectStorage An object storage containing the usergroup
+     * @return ObjectStorage An object storage containing the usergroup
      */
     public function getUsergroup()
     {
@@ -518,9 +531,9 @@ class FrontendUser extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity
     /**
      * Sets the image value
      *
-     * @param \TYPO3\CMS\Extbase\Persistence\ObjectStorage $image
+     * @param ObjectStorage $image
      */
-    public function setImage(\TYPO3\CMS\Extbase\Persistence\ObjectStorage $image)
+    public function setImage(ObjectStorage $image)
     {
         $this->image = $image;
     }
@@ -528,7 +541,7 @@ class FrontendUser extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity
     /**
      * Gets the image value
      *
-     * @return \TYPO3\CMS\Extbase\Persistence\ObjectStorage
+     * @return ObjectStorage
      */
     public function getImage()
     {

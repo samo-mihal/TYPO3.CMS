@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\ViewHelpers;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\ViewHelpers;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\ViewHelpers;
 
 use TYPO3\CMS\Backend\Backend\Avatar\Avatar;
 use TYPO3\CMS\Core\Database\ConnectionPool;
@@ -38,7 +39,7 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
  *
  *    <span class="avatar">
  *        <span class="avatar-image">
- *            <img src="/typo3/sysext/core/Resources/Public/Icons/T3Icons/avatar/avatar-default.svg" width="32" height="32" />
+ *            <img src="/typo3/sysext/core/Resources/Public/Icons/T3Icons/avatar/svgs/avatar-default.svg" width="32" height="32" />
  *        </span>
  *    </span>
  *

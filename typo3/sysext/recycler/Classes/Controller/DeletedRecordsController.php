@@ -1,7 +1,5 @@
 <?php
 
-namespace TYPO3\CMS\Recycler\Controller;
-
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -14,6 +12,8 @@ namespace TYPO3\CMS\Recycler\Controller;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Recycler\Controller;
 
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Cache\CacheManager;
@@ -51,7 +51,7 @@ class DeletedRecordsController
     /**
      * Transforms the rows for the deleted records
      *
-     * @param array $deletedRowsArray Array with table as key and array with all deleted rows
+     * @param array<string, array> $deletedRowsArray Array with table as key and array with all deleted rows
      * @return array JSON array
      */
     public function transform($deletedRowsArray)
@@ -102,9 +102,8 @@ class DeletedRecordsController
     protected function getPageTitle($pageId)
     {
         $cacheId = 'recycler-pagetitle-' . $pageId;
-        if ($this->runtimeCache->has($cacheId)) {
-            $pageTitle = $this->runtimeCache->get($cacheId);
-        } else {
+        $pageTitle = $this->runtimeCache->get($cacheId);
+        if ($pageTitle === false) {
             if ($pageId === 0) {
                 $pageTitle = $GLOBALS['TYPO3_CONF_VARS']['SYS']['sitename'];
             } else {
@@ -128,9 +127,8 @@ class DeletedRecordsController
             return '';
         }
         $cacheId = 'recycler-user-' . $userId;
-        if ($this->runtimeCache->has($cacheId)) {
-            $username = $this->runtimeCache->get($cacheId);
-        } else {
+        $username = $this->runtimeCache->get($cacheId);
+        if ($username === false) {
             $backendUser = BackendUtility::getRecord('be_users', $userId, 'username', '', false);
             if ($backendUser === null) {
                 $username = sprintf(

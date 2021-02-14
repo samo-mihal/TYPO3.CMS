@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Frontend\Tests\Unit\Middleware;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,14 +15,18 @@ namespace TYPO3\CMS\Frontend\Tests\Unit\Middleware;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Frontend\Tests\Unit\Middleware;
+
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Psr\Log\NullLogger;
 use TYPO3\CMS\Core\Http\Response;
 use TYPO3\CMS\Core\Http\ServerRequest;
+use TYPO3\CMS\Core\Information\Typo3Information;
 use TYPO3\CMS\Core\Routing\PageArguments;
 use TYPO3\CMS\Core\TimeTracker\TimeTracker;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Frontend\Middleware\PageArgumentValidator;
 use TYPO3\CMS\Frontend\Middleware\PageResolver;
 use TYPO3\CMS\Frontend\Page\CacheHashCalculator;
@@ -32,8 +35,10 @@ use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 class PageArgumentValidatorTest extends UnitTestCase
 {
+    protected $resetSingletonInstances = true;
+
     /**
-     * @var CacheHashCaluclator
+     * @var CacheHashCalculator
      */
     protected $cacheHashCalculator;
 
@@ -56,10 +61,10 @@ class PageArgumentValidatorTest extends UnitTestCase
     {
         parent::setUp();
         $this->timeTrackerStub = new TimeTracker(false);
-        $this->cacheHashCalculator = new CacheHashCalculator;
+        $this->cacheHashCalculator = new CacheHashCalculator();
 
         // A request handler which only runs through
-        $this->responseOutputHandler = new class implements RequestHandlerInterface {
+        $this->responseOutputHandler = new class() implements RequestHandlerInterface {
             public function handle(ServerRequestInterface $request): ResponseInterface
             {
                 return new Response();
@@ -101,6 +106,10 @@ class PageArgumentValidatorTest extends UnitTestCase
         $request = $request->withAttribute('routing', $pageArguments);
 
         $subject = new PageArgumentValidator($this->cacheHashCalculator, $this->timeTrackerStub);
+        $typo3InformationProphecy = $this->prophesize(Typo3Information::class);
+        $typo3InformationProphecy->getCopyrightYear()->willReturn('1999-20XX');
+        GeneralUtility::addInstance(Typo3Information::class, $typo3InformationProphecy->reveal());
+
         $response = $subject->process($request, $this->responseOutputHandler);
         self::assertEquals(404, $response->getStatusCode());
     }
@@ -114,6 +123,9 @@ class PageArgumentValidatorTest extends UnitTestCase
         $request = new ServerRequest($incomingUrl, 'GET');
 
         $subject = new PageArgumentValidator($this->cacheHashCalculator, $this->timeTrackerStub);
+        $typo3InformationProphecy = $this->prophesize(Typo3Information::class);
+        $typo3InformationProphecy->getCopyrightYear()->willReturn('1999-20XX');
+        GeneralUtility::addInstance(Typo3Information::class, $typo3InformationProphecy->reveal());
         $response = $subject->process($request, $this->responseOutputHandler);
         self::assertEquals(404, $response->getStatusCode());
     }
@@ -148,6 +160,9 @@ class PageArgumentValidatorTest extends UnitTestCase
         $request = $request->withAttribute('routing', $pageArguments);
 
         $subject = new PageArgumentValidator($this->cacheHashCalculator, $this->timeTrackerStub);
+        $typo3InformationProphecy = $this->prophesize(Typo3Information::class);
+        $typo3InformationProphecy->getCopyrightYear()->willReturn('1999-20XX');
+        GeneralUtility::addInstance(Typo3Information::class, $typo3InformationProphecy->reveal());
         $response = $subject->process($request, $this->responseOutputHandler);
         self::assertEquals(404, $response->getStatusCode());
     }

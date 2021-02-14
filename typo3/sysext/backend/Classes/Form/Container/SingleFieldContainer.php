@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Form\Container;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Form\Container;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Form\Container;
 
 use TYPO3\CMS\Backend\Form\InlineStackProcessor;
 use TYPO3\CMS\Backend\Form\Utility\FormEngineUtility;
@@ -110,6 +111,32 @@ class SingleFieldContainer extends AbstractContainer
             $parameterArray['itemFormElValue'] = $this->data['defaultLanguageRow'][$fieldName];
         }
 
+        if (strpos($this->data['processedTca']['ctrl']['type'], ':') === false) {
+            $typeField = $this->data['processedTca']['ctrl']['type'];
+        } else {
+            $typeField = substr($this->data['processedTca']['ctrl']['type'], 0, strpos($this->data['processedTca']['ctrl']['type'], ':'));
+        }
+        // Create a JavaScript code line which will ask the user to save/update the form due to changing the element.
+        // This is used for eg. "type" fields and others configured with "onChange"
+        if (!empty($this->data['processedTca']['ctrl']['type']) && $fieldName === $typeField
+            || isset($parameterArray['fieldConf']['onChange']) && $parameterArray['fieldConf']['onChange'] === 'reload'
+        ) {
+            if ($backendUser->jsConfirmation(JsConfirmation::TYPE_CHANGE)) {
+                $alertMsgOnChange = 'Modal.confirm('
+                    . 'TYPO3.lang["FormEngine.refreshRequiredTitle"],'
+                    . ' TYPO3.lang["FormEngine.refreshRequiredContent"]'
+                    . ')'
+                    . '.on('
+                    . '"button.clicked",'
+                    . ' function(e) { if (e.target.name == "ok") { FormEngine.saveDocument(); } Modal.dismiss(); }'
+                    . ');';
+            } else {
+                $alertMsgOnChange = 'FormEngine.saveDocument();';
+            }
+        } else {
+            $alertMsgOnChange = '';
+        }
+
         // JavaScript code for event handlers:
         $parameterArray['fieldChangeFunc'] = [];
         $parameterArray['fieldChangeFunc']['TBE_EDITOR_fieldChanged'] = 'TBE_EDITOR.fieldChanged('
@@ -118,6 +145,9 @@ class SingleFieldContainer extends AbstractContainer
             . GeneralUtility::quoteJSvalue($fieldName) . ','
             . GeneralUtility::quoteJSvalue($parameterArray['itemFormElName'])
             . ');';
+        if ($alertMsgOnChange) {
+            $parameterArray['fieldChangeFunc']['alert'] = 'require([\'TYPO3/CMS/Backend/FormEngine\', \'TYPO3/CMS/Backend/Modal\'], function (FormEngine, Modal) {' . $alertMsgOnChange . '});';
+        }
 
         // Based on the type of the item, call a render function on a child element
         $options = $this->data;
@@ -130,25 +160,6 @@ class SingleFieldContainer extends AbstractContainer
             $options['renderType'] = $parameterArray['fieldConf']['config']['type'];
         }
         $resultArray = $this->nodeFactory->create($options)->render();
-
-        if (strpos($this->data['processedTca']['ctrl']['type'], ':') === false) {
-            $typeField = $this->data['processedTca']['ctrl']['type'];
-        } else {
-            $typeField = substr($this->data['processedTca']['ctrl']['type'], 0, strpos($this->data['processedTca']['ctrl']['type'], ':'));
-        }
-
-        // Create a JavaScript code line which will ask the user to save/update the form due to changing the element.
-        // This is used for eg. "type" fields and others configured with "onChange"
-        if ((!empty($this->data['processedTca']['ctrl']['type']) && $fieldName === $typeField)
-            || (isset($parameterArray['fieldConf']['onChange']) && $parameterArray['fieldConf']['onChange'] === 'reload')
-        ) {
-            $showConfirmation = $backendUser->jsConfirmation(JsConfirmation::TYPE_CHANGE) ? 'true' : 'false';
-
-            $resultArray['requireJsModules'][] = ['TYPO3/CMS/Backend/FormEngine' => 'function (FormEngine) {'
-                . 'FormEngine.requestConfirmationOnFieldChange(' . GeneralUtility::quoteJSvalue($parameterArray['itemFormElName']) . ', ' . $showConfirmation . ');'
-                . '}'];
-        }
-
         return $resultArray;
     }
 
@@ -272,7 +283,7 @@ class SingleFieldContainer extends AbstractContainer
             // If no type was passed, try to determine
             if (!$type) {
                 reset($searchArray);
-                $type = key($searchArray);
+                $type = (string)key($searchArray);
                 $searchArray = current($searchArray);
             }
             // We use '%AND' and '%OR' in uppercase

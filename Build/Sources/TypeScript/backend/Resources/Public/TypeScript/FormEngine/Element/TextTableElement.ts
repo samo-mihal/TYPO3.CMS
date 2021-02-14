@@ -13,14 +13,14 @@
 
 import {Resizable} from './Modifier/Resizable';
 import {Tabbable} from './Modifier/Tabbable';
-import * as $ from 'jquery';
+import $ from 'jquery';
 
 class TextTableElement {
   private element: HTMLTextAreaElement = null;
 
   constructor(elementId: string) {
     $((): void => {
-      this.element = <HTMLTextAreaElement>document.querySelector('#' + elementId);
+      this.element = <HTMLTextAreaElement>document.getElementById(elementId);
 
       Resizable.enable(this.element);
       Tabbable.enable(this.element);

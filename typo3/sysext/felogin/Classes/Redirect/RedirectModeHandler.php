@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\FrontendLogin\Redirect;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\FrontendLogin\Redirect;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\FrontendLogin\Redirect;
 
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -71,8 +72,7 @@ class RedirectModeHandler
         $this->uriBuilder = $uriBuilder;
         $this->redirectUrlValidator = GeneralUtility::makeInstance(
             RedirectUrlValidator::class,
-            GeneralUtility::makeInstance(SiteFinder::class),
-            (int)$GLOBALS['TSFE']->id
+            GeneralUtility::makeInstance(SiteFinder::class)
         );
         $this->serverRequestHandler = $serverRequestHandler;
         $this->userService = $userService;
@@ -96,15 +96,14 @@ class RedirectModeHandler
         }
 
         // take the first group with a redirect page
-        $redirectPageId = $this->frontendUserGroupRepository->findRedirectPageIdByGroupId(
-            array_shift($groupUids)
-        );
-
-        if ($redirectPageId === null) {
-            return '';
+        foreach ($groupUids as $groupUid) {
+            $redirectPageId = (int)$this->frontendUserGroupRepository
+                ->findRedirectPageIdByGroupId($groupUid);
+            if ($redirectPageId > 0) {
+                return $this->buildUriForPageUid($redirectPageId);
+            }
         }
-
-        return $this->buildUriForPageUid($redirectPageId);
+        return '';
     }
 
     /**
@@ -133,11 +132,12 @@ class RedirectModeHandler
      */
     public function redirectModeLogin(int $redirectPageLogin): string
     {
+        $redirectUrl = '';
         if ($redirectPageLogin !== 0) {
             $redirectUrl = $this->buildUriForPageUid($redirectPageLogin);
         }
 
-        return $redirectUrl ?? '';
+        return $redirectUrl;
     }
 
     /**
@@ -148,6 +148,7 @@ class RedirectModeHandler
      */
     public function redirectModeReferrer(string $redirectReferrer): string
     {
+        $redirectUrl = '';
         if ($redirectReferrer !== 'off') {
             // Avoid forced logout, when trying to login immediately after a logout
             $redirectUrl = preg_replace('/[&?]logintype=[a-z]+/', '', $this->getRefererRequestParam());
@@ -165,6 +166,7 @@ class RedirectModeHandler
      */
     public function redirectModeRefererDomains(string $domains, string $redirectReferrer): string
     {
+        $redirectUrl = '';
         if ($redirectReferrer !== '') {
             return '';
         }
@@ -208,11 +210,12 @@ class RedirectModeHandler
      */
     public function redirectModeLoginError(int $redirectPageLoginError = 0): string
     {
+        $redirectUrl = '';
         if ($redirectPageLoginError > 0) {
             $redirectUrl = $this->buildUriForPageUid($redirectPageLoginError);
         }
 
-        return $redirectUrl ?? '';
+        return $redirectUrl;
     }
 
     /**
@@ -223,11 +226,12 @@ class RedirectModeHandler
      */
     public function redirectModeLogout(int $redirectPageLogout): string
     {
+        $redirectUrl = '';
         if ($redirectPageLogout > 0) {
             $redirectUrl = $this->buildUriForPageUid($redirectPageLogout);
         }
 
-        return $redirectUrl ?? '';
+        return $redirectUrl;
     }
 
     protected function buildUriForPageUid(int $pageUid): string
@@ -240,11 +244,12 @@ class RedirectModeHandler
 
     protected function getRefererRequestParam(): string
     {
+        $referer = '';
         $requestReferer = (string)$this->serverRequestHandler->getPropertyFromGetAndPost('referer');
         if ($this->redirectUrlValidator->isValid($requestReferer)) {
             $referer = $requestReferer;
         }
 
-        return $referer ?? '';
+        return $referer;
     }
 }

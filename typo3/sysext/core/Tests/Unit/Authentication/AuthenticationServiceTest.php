@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Unit\Authentication;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\Authentication;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\Authentication;
 
 use TYPO3\CMS\Core\Authentication\AbstractUserAuthentication;
 use TYPO3\CMS\Core\Authentication\AuthenticationService;
@@ -64,6 +66,20 @@ class AuthenticationServiceTest extends UnitTestCase
                     'uname' => 'admin',
                     'uident' => 'password',
                     'uident_text' => 'password',
+                ]
+            ],
+            'Frontend login with securityLevel "normal" and spaced passwords removes spaces' => [
+                'normal',
+                [
+                    'status' => 'login',
+                    'uname' => 'admin ',
+                    'uident' => ' my password ',
+                ],
+                [
+                    'status' => 'login',
+                    'uname' => 'admin',
+                    'uident' => 'my password',
+                    'uident_text' => 'my password',
                 ]
             ],
         ];
@@ -120,6 +136,7 @@ class AuthenticationServiceTest extends UnitTestCase
     {
         $subject = new AuthenticationService();
         $pObjProphecy = $this->prophesize(AbstractUserAuthentication::class);
+        $pObjProphecy->loginType = 'BE';
         $loggerProphecy = $this->prophesize(Logger::class);
         $subject->setLogger($loggerProphecy->reveal());
         $subject->initAuth(
@@ -148,6 +165,7 @@ class AuthenticationServiceTest extends UnitTestCase
     {
         $subject = new AuthenticationService();
         $pObjProphecy = $this->prophesize(AbstractUserAuthentication::class);
+        $pObjProphecy->loginType = 'BE';
         $loggerProphecy = $this->prophesize(Logger::class);
         $subject->setLogger($loggerProphecy->reveal());
         $subject->initAuth(
@@ -177,6 +195,7 @@ class AuthenticationServiceTest extends UnitTestCase
     {
         $subject = new AuthenticationService();
         $pObjProphecy = $this->prophesize(AbstractUserAuthentication::class);
+        $pObjProphecy->loginType = 'BE';
         $loggerProphecy = $this->prophesize(Logger::class);
         $subject->setLogger($loggerProphecy->reveal());
         $subject->initAuth(
@@ -193,7 +212,7 @@ class AuthenticationServiceTest extends UnitTestCase
         );
         $dbUser = [
             // an argon2i hash of 'myPassword'
-            'password' => '$argon2i$v=19$m=65536,t=16,p=2$LnUzc3ZISWJwQWlSbmpkYw$qD1sRsJFzkUmjcEaKzDeg6LtflwdTpo49VbH3tMeMXU',
+            'password' => '$argon2i$v=19$m=65536,t=16,p=1$eGpyelFZbkpRdXN3QVhsUA$rd4abz2fcuksGu3b3fipglQZtHbIy+M3XoIS+sNVSl4',
             'lockToDomain' => ''
         ];
         self::assertSame(200, $subject->authUser($dbUser));
@@ -206,6 +225,7 @@ class AuthenticationServiceTest extends UnitTestCase
     {
         $subject = new AuthenticationService();
         $pObjProphecy = $this->prophesize(AbstractUserAuthentication::class);
+        $pObjProphecy->loginType = 'BE';
         $loggerProphecy = $this->prophesize(Logger::class);
         $subject->setLogger($loggerProphecy->reveal());
         $subject->initAuth(

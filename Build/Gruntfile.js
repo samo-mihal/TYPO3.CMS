@@ -54,6 +54,7 @@ module.exports = function (grunt) {
       typescript: '<%= paths.sources %>/TypeScript/',
       sysext: '<%= paths.root %>typo3/sysext/',
       form: '<%= paths.sysext %>form/Resources/',
+      dashboard: '<%= paths.sysext %>dashboard/Resources/',
       frontend: '<%= paths.sysext %>frontend/Resources/',
       adminpanel: '<%= paths.sysext %>adminpanel/Resources/',
       install: '<%= paths.sysext %>install/Resources/',
@@ -107,6 +108,16 @@ module.exports = function (grunt) {
       form: {
         files: {
           "<%= paths.form %>Public/Css/form.css": "<%= paths.sass %>form.scss"
+        }
+      },
+      dashboard: {
+        files: {
+          "<%= paths.dashboard %>Public/Css/dashboard.css": "<%= paths.sass %>dashboard.scss"
+        }
+      },
+      dashboard_modal: {
+        files: {
+          "<%= paths.dashboard %>Public/Css/Modal/style.css": "<%= paths.sass %>dashboard_modal.scss"
         }
       },
       adminpanel: {
@@ -168,6 +179,12 @@ module.exports = function (grunt) {
       core: {
         src: '<%= paths.core %>Public/Css/*.css'
       },
+      dashboard: {
+        src: '<%= paths.dashboard %>Public/Css/*.css'
+      },
+      dashboard_modal: {
+        src: '<%= paths.dashboard %>Public/Css/Modal/*.css'
+      },
       form: {
         src: '<%= paths.form %>Public/Css/*.css'
       },
@@ -187,6 +204,8 @@ module.exports = function (grunt) {
     },
     eslint: {
       options: {
+        cache: true,
+        cacheLocation: './.cache/eslintcache/',
         configFile: 'eslintrc.js'
       },
       files: {
@@ -245,19 +264,17 @@ module.exports = function (grunt) {
         files: [{
           expand: true,
           cwd: '<%= paths.t3icons %>',
-          src: ['**/*.svg', '!install/*', '!module/*'],
-          dest: '<%= paths.sysext %>core/Resources/Public/Icons/T3Icons/',
-          ext: '.svg'
+          src: ['**/*.svg', 'icons.json', '!install/*', '!module/*'],
+          dest: '<%= paths.sysext %>core/Resources/Public/Icons/T3Icons/'
         }]
       },
       install_icons: {
         files: [
           {
             expand: true,
-            cwd: '<%= paths.t3icons %>install/',
+            cwd: '<%= paths.t3icons %>svgs/install/',
             src: ['**/*.svg'],
-            dest: '<%= paths.sysext %>install/Resources/Public/Icons/modules/',
-            ext: '.svg'
+            dest: '<%= paths.sysext %>install/Resources/Public/Icons/modules/'
           }
         ]
       },
@@ -265,95 +282,127 @@ module.exports = function (grunt) {
         files: [
           {
             dest: '<%= paths.sysext %>about/Resources/Public/Icons/module-about.svg',
-            src: '<%= paths.t3icons %>module/module-about.svg'
+            src: '<%= paths.t3icons %>svgs/module/module-about.svg'
           },
           {
             dest: '<%= paths.sysext %>adminpanel/Resources/Public/Icons/module-adminpanel.svg',
-            src: '<%= paths.t3icons %>module/module-adminpanel.svg'
+            src: '<%= paths.t3icons %>svgs/module/module-adminpanel.svg'
           },
           {
             dest: '<%= paths.sysext %>belog/Resources/Public/Icons/module-belog.svg',
-            src: '<%= paths.t3icons %>module/module-belog.svg'
+            src: '<%= paths.t3icons %>svgs/module/module-belog.svg'
           },
           {
             dest: '<%= paths.sysext %>beuser/Resources/Public/Icons/module-beuser.svg',
-            src: '<%= paths.t3icons %>module/module-beuser.svg'
-          },
-          {
-            dest: '<%= paths.sysext %>lowlevel/Resources/Public/Icons/module-config.svg',
-            src: '<%= paths.t3icons %>module/module-config.svg'
+            src: '<%= paths.t3icons %>svgs/module/module-beuser.svg'
           },
           {
             dest: '<%= paths.sysext %>backend/Resources/Public/Icons/module-cshmanual.svg',
-            src: '<%= paths.t3icons %>module/module-cshmanual.svg'
-          },
-          {
-            dest: '<%= paths.sysext %>lowlevel/Resources/Public/Icons/module-dbint.svg',
-            src: '<%= paths.t3icons %>module/module-dbint.svg'
-          },
-          {
-            dest: '<%= paths.sysext %>extensionmanager/Resources/Public/Icons/module-extensionmanager.svg',
-            src: '<%= paths.t3icons %>module/module-extensionmanager.svg'
-          },
-          {
-            dest: '<%= paths.sysext %>filelist/Resources/Public/Icons/module-filelist.svg',
-            src: '<%= paths.t3icons %>module/module-filelist.svg'
-          },
-          {
-            dest: '<%= paths.sysext %>form/Resources/Public/Icons/module-form.svg',
-            src: '<%= paths.t3icons %>module/module-form.svg'
-          },
-          {
-            dest: '<%= paths.sysext %>indexed_search/Resources/Public/Icons/module-indexed_search.svg',
-            src: '<%= paths.t3icons %>module/module-indexed_search.svg'
-          },
-          {
-            dest: '<%= paths.sysext %>info/Resources/Public/Icons/module-info.svg',
-            src: '<%= paths.t3icons %>module/module-info.svg'
-          },
-          {
-            dest: '<%= paths.sysext %>install/Resources/Public/Icons/module-install.svg',
-            src: '<%= paths.t3icons %>module/module-install.svg'
-          },
-          {
-            dest: '<%= paths.sysext %>recordlist/Resources/Public/Icons/module-list.svg',
-            src: '<%= paths.t3icons %>module/module-list.svg'
+            src: '<%= paths.t3icons %>svgs/module/module-cshmanual.svg'
           },
           {
             dest: '<%= paths.sysext %>backend/Resources/Public/Icons/module-page.svg',
-            src: '<%= paths.t3icons %>module/module-page.svg'
+            src: '<%= paths.t3icons %>svgs/module/module-page.svg'
+          },
+          {
+            dest: '<%= paths.sysext %>backend/Resources/Public/Icons/module-sites.svg',
+            src: '<%= paths.t3icons %>svgs/module/module-sites.svg'
+          },
+          {
+            dest: '<%= paths.sysext %>backend/Resources/Public/Icons/module-templates.svg',
+            src: '<%= paths.t3icons %>svgs/module/module-templates.svg'
+          },
+          {
+            dest: '<%= paths.sysext %>backend/Resources/Public/Icons/module-urls.svg',
+            src: '<%= paths.t3icons %>svgs/module/module-urls.svg'
+          },
+          {
+            dest: '<%= paths.sysext %>backend/Resources/Public/Icons/module-contentelements.svg',
+            src: '<%= paths.t3icons %>svgs/module/module-contentelements.svg'
+          },
+          {
+            dest: '<%= paths.sysext %>lowlevel/Resources/Public/Icons/module-config.svg',
+            src: '<%= paths.t3icons %>svgs/module/module-config.svg'
+          },
+          {
+            dest: '<%= paths.sysext %>lowlevel/Resources/Public/Icons/module-dbint.svg',
+            src: '<%= paths.t3icons %>svgs/module/module-dbint.svg'
+          },
+          {
+            dest: '<%= paths.sysext %>extensionmanager/Resources/Public/Icons/module-extensionmanager.svg',
+            src: '<%= paths.t3icons %>svgs/module/module-extensionmanager.svg'
+          },
+          {
+            dest: '<%= paths.sysext %>filelist/Resources/Public/Icons/module-filelist.svg',
+            src: '<%= paths.t3icons %>svgs/module/module-filelist.svg'
+          },
+          {
+            dest: '<%= paths.sysext %>form/Resources/Public/Icons/module-form.svg',
+            src: '<%= paths.t3icons %>svgs/module/module-form.svg'
+          },
+          {
+            dest: '<%= paths.sysext %>indexed_search/Resources/Public/Icons/module-indexed_search.svg',
+            src: '<%= paths.t3icons %>svgs/module/module-indexed_search.svg'
+          },
+          {
+            dest: '<%= paths.sysext %>info/Resources/Public/Icons/module-info.svg',
+            src: '<%= paths.t3icons %>svgs/module/module-info.svg'
+          },
+          {
+            dest: '<%= paths.sysext %>install/Resources/Public/Icons/module-install.svg',
+            src: '<%= paths.t3icons %>svgs/module/module-install.svg'
+          },
+          {
+            dest: '<%= paths.sysext %>install/Resources/Public/Icons/module-install-environment.svg',
+            src: '<%= paths.t3icons %>svgs/module/module-install-environment.svg'
+          },
+          {
+            dest: '<%= paths.sysext %>install/Resources/Public/Icons/module-install-maintenance.svg',
+            src: '<%= paths.t3icons %>svgs/module/module-install-maintenance.svg'
+          },
+          {
+            dest: '<%= paths.sysext %>install/Resources/Public/Icons/module-install-settings.svg',
+            src: '<%= paths.t3icons %>svgs/module/module-install-settings.svg'
+          },
+          {
+            dest: '<%= paths.sysext %>install/Resources/Public/Icons/module-install-upgrade.svg',
+            src: '<%= paths.t3icons %>svgs/module/module-install-upgrade.svg'
+          },
+          {
+            dest: '<%= paths.sysext %>recordlist/Resources/Public/Icons/module-list.svg',
+            src: '<%= paths.t3icons %>svgs/module/module-list.svg'
           },
           {
             dest: '<%= paths.sysext %>beuser/Resources/Public/Icons/module-permission.svg',
-            src: '<%= paths.t3icons %>module/module-permission.svg'
+            src: '<%= paths.t3icons %>svgs/module/module-permission.svg'
           },
           {
             dest: '<%= paths.sysext %>recycler/Resources/Public/Icons/module-recycler.svg',
-            src: '<%= paths.t3icons %>module/module-recycler.svg'
+            src: '<%= paths.t3icons %>svgs/module/module-recycler.svg'
           },
           {
             dest: '<%= paths.sysext %>reports/Resources/Public/Icons/module-reports.svg',
-            src: '<%= paths.t3icons %>module/module-reports.svg'
+            src: '<%= paths.t3icons %>svgs/module/module-reports.svg'
           },
           {
             dest: '<%= paths.sysext %>scheduler/Resources/Public/Icons/module-scheduler.svg',
-            src: '<%= paths.t3icons %>module/module-scheduler.svg'
+            src: '<%= paths.t3icons %>svgs/module/module-scheduler.svg'
           },
           {
             dest: '<%= paths.sysext %>setup/Resources/Public/Icons/module-setup.svg',
-            src: '<%= paths.t3icons %>module/module-setup.svg'
+            src: '<%= paths.t3icons %>svgs/module/module-setup.svg'
           },
           {
             dest: '<%= paths.sysext %>tstemplate/Resources/Public/Icons/module-tstemplate.svg',
-            src: '<%= paths.t3icons %>module/module-tstemplate.svg'
+            src: '<%= paths.t3icons %>svgs/module/module-tstemplate.svg'
           },
           {
             dest: '<%= paths.sysext %>viewpage/Resources/Public/Icons/module-viewpage.svg',
-            src: '<%= paths.t3icons %>module/module-viewpage.svg'
+            src: '<%= paths.t3icons %>svgs/module/module-viewpage.svg'
           },
           {
             dest: '<%= paths.sysext %>workspaces/Resources/Public/Icons/module-workspaces.svg',
-            src: '<%= paths.t3icons %>module/module-workspaces.svg'
+            src: '<%= paths.t3icons %>svgs/module/module-workspaces.svg'
           }
         ]
       },
@@ -361,11 +410,11 @@ module.exports = function (grunt) {
         files: [
           {
             dest: '<%= paths.sysext %>form/Resources/Public/Icons/Extension.svg',
-            src: '<%= paths.t3icons %>module/module-form.svg'
+            src: '<%= paths.t3icons %>svgs/module/module-form.svg'
           },
           {
             dest: '<%= paths.sysext %>rte_ckeditor/Resources/Public/Icons/Extension.svg',
-            src: '<%= paths.t3icons %>module/module-rte-ckeditor.svg'
+            src: '<%= paths.t3icons %>svgs/module/module-rte-ckeditor.svg'
           }
         ]
       },
@@ -373,8 +422,8 @@ module.exports = function (grunt) {
         files: [
           {
             expand: true,
-            cwd: '<%= paths.node_modules %>npm-font-source-sans-pro/fonts',
-            src: ['**/*'],
+            cwd: '<%= paths.node_modules %>source-sans-pro',
+            src: ['WOFF/OTF/**', 'WOFF2/TTF/**'],
             dest: '<%= paths.sysext %>backend/Resources/Public/Fonts/SourceSansPro'
           },
           {
@@ -396,6 +445,11 @@ module.exports = function (grunt) {
         ]
       }
     },
+    newer: {
+      options: {
+        cache: './.cache/grunt-newer/'
+      }
+    },
     npmcopy: {
       options: {
         clean: false,
@@ -404,6 +458,12 @@ module.exports = function (grunt) {
       },
       ckeditor: {
         options: {
+          copyOptions: {
+            // Using null encoding to allow passthrough of binary files in `process`
+            encoding: null,
+            // Convert CRLF to LF in plain text files to mimic git's autocrlf behaviour
+            process: (content, srcpath) => srcpath.match(/\.(css|js|txt|html|md)$/) ? content.toString('utf8').replace(/\r\n/g, '\n') : content
+          },
           destPrefix: "<%= paths.ckeditor %>Public/JavaScript/Contrib"
         },
         files: {
@@ -415,6 +475,12 @@ module.exports = function (grunt) {
       },
       ckeditor_externalplugins: {
         options: {
+          copyOptions: {
+            // Using null encoding to allow passthrough of binary files in `process`
+            encoding: null,
+            // Convert CRLF to LF in plain text files to mimic git's autocrlf behaviour
+            process: (content, srcpath) => srcpath.match(/\.(css|js|txt|html|md)$/) ? content.toString('utf8').replace(/\r\n/g, '\n') : content
+          },
           destPrefix: "<%= paths.ckeditor %>Public/JavaScript/Contrib/plugins"
         },
         files: {
@@ -423,13 +489,24 @@ module.exports = function (grunt) {
           'wordcount/css/': 'ckeditor-wordcount-plugin/wordcount/css/',
         }
       },
+      dashboard: {
+        options: {
+          destPrefix: "<%= paths.dashboard %>Public"
+        },
+        files: {
+          'JavaScript/Contrib/muuri.js': 'muuri/dist/muuri.min.js',
+          'JavaScript/Contrib/chartjs.js': 'chart.js/dist/Chart.min.js',
+          'Css/Contrib/chart.css': 'chart.js/dist/Chart.min.css'
+        }
+      },
       all: {
         options: {
           destPrefix: "<%= paths.core %>Public/JavaScript/Contrib"
         },
         files: {
           'nprogress.js': 'nprogress/nprogress.js',
-          'jquery.dataTables.js': 'datatables/media/js/jquery.dataTables.min.js',
+          'tablesort.js': 'tablesort/dist/tablesort.min.js',
+          'tablesort.dotsep.js': 'tablesort/dist/sorts/tablesort.dotsep.min.js',
           'require.js': 'requirejs/require.js',
           'moment.js': 'moment/min/moment-with-locales.min.js',
           'moment-timezone.js': 'moment-timezone/builds/moment-timezone-with-data.min.js',
@@ -441,13 +518,9 @@ module.exports = function (grunt) {
           'taboverride.min.js': 'taboverride/build/output/taboverride.min.js',
           */
           'broadcastchannel-polyfill.js': 'broadcastchannel-polyfill/index.js',
-          'bootstrap-slider.min.js': 'bootstrap-slider/dist/bootstrap-slider.min.js',
-          /* disabled until events are not bound to document only
-                       see https://github.com/claviska/jquery-minicolors/issues/192
-                       see https://github.com/claviska/jquery-minicolors/issues/206
-                       'jquery.minicolors.js': '../node_modules/@claviska/jquery-minicolors/jquery.minicolors.min.js',
-                       '../../Images/colorpicker/jquery.minicolors.png': '../node_modules/@claviska/jquery-minicolors/jquery.minicolors.png'
-                     */
+          'document-register-element-polyfill.js': 'document-register-element/build/document-register-element.js',
+          'jquery.minicolors.js': '../node_modules/@claviska/jquery-minicolors/jquery.minicolors.min.js',
+          '../../Images/colorpicker/jquery.minicolors.png': '../node_modules/@claviska/jquery-minicolors/jquery.minicolors.png',
           /* disabled until autocomplete formatGroup is fixed to pass on the index too
                        'jquery.autocomplete.js': '../node_modules/devbridge-autocomplete/dist/jquery.autocomplete.min.js',
                      */
@@ -478,14 +551,14 @@ module.exports = function (grunt) {
           // the jquery ui stuff should be replaced by modern libs asap
           // 'jquery-ui/sortable.js': 'jquery-ui/ui/sortable.js',
           'jquery-ui/widget.js': 'jquery-ui/ui/widget.js',
-          'Sortable.min.js': 'sortablejs/Sortable.min.js'
+          'Sortable.min.js': 'sortablejs/dist/sortable.umd.js'
         }
       }
     },
     terser: {
       options: {
         output: {
-          ecma: 6
+          ecma: 8
         }
       },
       thirdparty: {
@@ -580,6 +653,7 @@ module.exports = function (grunt) {
   grunt.loadNpmTasks('grunt-stylelint');
   grunt.loadNpmTasks('grunt-lintspaces');
   grunt.loadNpmTasks('grunt-contrib-imagemin');
+  grunt.loadNpmTasks('grunt-newer');
 
   /**
    * grunt default task
@@ -623,7 +697,7 @@ module.exports = function (grunt) {
    * - sass
    * - postcss
    */
-  grunt.registerTask('css', ['formatsass', 'sass', 'postcss']);
+  grunt.registerTask('css', ['formatsass', 'newer:sass', 'newer:postcss']);
 
   /**
    * grunt update task
@@ -637,27 +711,39 @@ module.exports = function (grunt) {
   grunt.registerTask('update', ['exec:yarn-install', 'npmcopy']);
 
   /**
+   * grunt compile-typescript task
+   *
+   * call "$ grunt compile-typescript"
+   *
+   * This task does the following things:
+   * - 1) Check all TypeScript files (*.ts) with ESLint which are located in sysext/<EXTKEY>/Resources/Private/TypeScript/*.ts
+   * - 2) Compiles all TypeScript files (*.ts) which are located in sysext/<EXTKEY>/Resources/Private/TypeScript/*.ts
+   */
+  grunt.registerTask('compile-typescript', ['tsconfig', 'eslint', 'exec:ts']);
+
+  /**
    * grunt scripts task
    *
    * call "$ grunt scripts"
    *
    * this task does the following things:
-   * - 1) Check all TypeScript files (*.ts) with ESLint which are located in sysext/<EXTKEY>/Resources/Private/TypeScript/*.ts
-   * - 2) Compiles all TypeScript files (*.ts) which are located in sysext/<EXTKEY>/Resources/Private/TypeScript/*.ts
-   * - 3) Copy all generated JavaScript and Map files to public folders
+   * - 1) Compiles TypeScript (see compile-typescript)
+   * - 2) Copy all generated JavaScript files to public folders
+   * - 3) Minify build
    */
-  grunt.registerTask('scripts', ['tsconfig', 'eslint', 'tsclean', 'exec:ts', 'copy:ts_files', 'terser:typescript']);
+  grunt.registerTask('scripts', ['compile-typescript', 'newer:copy:ts_files', 'newer:terser:typescript']);
 
   /**
-   * grunt tsclean task
+   * grunt clear-build task
    *
-   * call "$ grunt tsclean"
+   * call "$ grunt clear-build"
    *
-   * Clean the JavaScript output folder before building
+   * Removes all build-related assets, e.g. cache and built files
    */
-  grunt.task.registerTask('tsclean', function () {
+  grunt.registerTask('clear-build', function () {
     grunt.option('force');
-    grunt.file.delete("JavaScript");
+    grunt.file.delete('.cache');
+    grunt.file.delete('JavaScript');
   });
 
   /**
@@ -697,5 +783,5 @@ module.exports = function (grunt) {
    * - minifies svg files
    * - compiles TypeScript files
    */
-  grunt.registerTask('build', ['update', 'scripts', 'copy', 'format', 'css', 'terser', 'imagemin']);
+  grunt.registerTask('build', ['clear-build', 'update', 'compile-typescript', 'copy', 'format', 'css', 'terser', 'imagemin']);
 };

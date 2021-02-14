@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Beuser\Domain\Model;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,13 +13,16 @@ namespace TYPO3\CMS\Beuser\Domain\Model;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Beuser\Domain\Model;
+
 use TYPO3\CMS\Extbase\Annotation as Extbase;
+use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 
 /**
  * Model for backend user group
  * @internal This class is a TYPO3 Backend implementation and is not considered part of the Public TYPO3 API.
  */
-class BackendUserGroup extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity
+class BackendUserGroup extends AbstractEntity
 {
     /**
      * @var string

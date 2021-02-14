@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Install\Configuration\Image;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,13 +13,16 @@ namespace TYPO3\CMS\Install\Configuration\Image;
  * The TYPO3 project - inspiring people to share!
  */
 
-use TYPO3\CMS\Install\Configuration;
+namespace TYPO3\CMS\Install\Configuration\Image;
+
+use TYPO3\CMS\Install\Configuration\AbstractFeature;
+use TYPO3\CMS\Install\Configuration\FeatureInterface;
 
 /**
  * Image feature detects imagemagick / graphicsmagick versions
  * @internal only to be used within EXT:install
  */
-class ImageFeature extends Configuration\AbstractFeature implements Configuration\FeatureInterface
+class ImageFeature extends AbstractFeature implements FeatureInterface
 {
     /**
      * @var string Name of feature
@@ -31,9 +33,9 @@ class ImageFeature extends Configuration\AbstractFeature implements Configuratio
      * @var array List of preset classes
      */
     protected $presetRegistry = [
-        \TYPO3\CMS\Install\Configuration\Image\GraphicsMagickPreset::class,
-        \TYPO3\CMS\Install\Configuration\Image\ImageMagick6Preset::class,
-        \TYPO3\CMS\Install\Configuration\Image\CustomPreset::class,
+        GraphicsMagickPreset::class,
+        ImageMagick6Preset::class,
+        CustomPreset::class,
     ];
 
     /**

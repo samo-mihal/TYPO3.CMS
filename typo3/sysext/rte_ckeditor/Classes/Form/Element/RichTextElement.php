@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\RteCKEditor\Form\Element;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,12 +15,20 @@ namespace TYPO3\CMS\RteCKEditor\Form\Element;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\RteCKEditor\Form\Element;
+
+use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Backend\Form\Element\AbstractFormElement;
+use TYPO3\CMS\Backend\Form\NodeFactory;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Localization\Locales;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\PathUtility;
+use TYPO3\CMS\RteCKEditor\Form\Element\Event\AfterGetExternalPluginsEvent;
+use TYPO3\CMS\RteCKEditor\Form\Element\Event\AfterPrepareConfigurationForEditorEvent;
+use TYPO3\CMS\RteCKEditor\Form\Element\Event\BeforeGetExternalPluginsEvent;
+use TYPO3\CMS\RteCKEditor\Form\Element\Event\BeforePrepareConfigurationForEditorEvent;
 
 /**
  * Render rich text editor in FormEngine
@@ -69,6 +77,24 @@ class RichTextElement extends AbstractFormElement
      * @var array
      */
     protected $rteConfiguration = [];
+
+    /**
+     * @var EventDispatcherInterface
+     */
+    protected $eventDispatcher;
+
+    /**
+     * Container objects give $nodeFactory down to other containers.
+     *
+     * @param NodeFactory $nodeFactory
+     * @param array $data
+     * @param EventDispatcherInterface|null $eventDispatcher
+     */
+    public function __construct(NodeFactory $nodeFactory, array $data, EventDispatcherInterface $eventDispatcher = null)
+    {
+        parent::__construct($nodeFactory, $data);
+        $this->eventDispatcher = $eventDispatcher ?? GeneralUtility::getContainer()->get(EventDispatcherInterface::class);
+    }
 
     /**
      * Renders the ckeditor element
@@ -155,17 +181,18 @@ class RichTextElement extends AbstractFormElement
         }
         $contentLanguageUid = (int)max($currentLanguageUid, 0);
         if ($contentLanguageUid) {
-            $contentLanguage = $this->data['systemLanguageRows'][$currentLanguageUid]['iso'];
+            // the language rows might not be fully inialized, so we fallback to en_US in this case
+            $contentLanguage = $this->data['systemLanguageRows'][$currentLanguageUid]['iso'] ?? 'en_US';
         } else {
             $contentLanguage = $this->rteConfiguration['config']['defaultContentLanguage'] ?? 'en_US';
-            $languageCodeParts = explode('_', $contentLanguage);
-            $contentLanguage = strtolower($languageCodeParts[0]) . ($languageCodeParts[1] ? '_' . strtoupper($languageCodeParts[1]) : '');
-            // Find the configured language in the list of localization locales
-            $locales = GeneralUtility::makeInstance(Locales::class);
-            // If not found, default to 'en'
-            if (!in_array($contentLanguage, $locales->getLocales(), true)) {
-                $contentLanguage = 'en';
-            }
+        }
+        $languageCodeParts = explode('_', $contentLanguage);
+        $contentLanguage = strtolower($languageCodeParts[0]) . ($languageCodeParts[1] ? '_' . strtoupper($languageCodeParts[1]) : '');
+        // Find the configured language in the list of localization locales
+        $locales = GeneralUtility::makeInstance(Locales::class);
+        // If not found, default to 'en'
+        if (!in_array($contentLanguage, $locales->getLocales(), true)) {
+            $contentLanguage = 'en';
         }
         return $contentLanguage;
     }
@@ -182,20 +209,24 @@ class RichTextElement extends AbstractFormElement
         $configuration = $this->prepareConfigurationForEditor();
 
         $externalPlugins = '';
-        foreach ($this->getExtraPlugins() as $pluginName => $config) {
-            if (!empty($config['config']) && !empty($configuration[$pluginName])) {
-                $config['config'] = array_replace_recursive($config['config'], $configuration[$pluginName]);
+        foreach ($this->getExtraPlugins() as $extraPluginName => $extraPluginConfig) {
+            $configName = $extraPluginConfig['configName'] ?? $extraPluginName;
+            if (!empty($extraPluginConfig['config']) && is_array($extraPluginConfig['config'])) {
+                if (empty($configuration[$configName])) {
+                    $configuration[$configName] = $extraPluginConfig['config'];
+                } elseif (is_array($configuration[$configName])) {
+                    $configuration[$configName] = array_replace_recursive($extraPluginConfig['config'], $configuration[$configName]);
+                }
             }
-            $configuration[$pluginName] = $config['config'];
-            $configuration['extraPlugins'] .= ',' . $pluginName;
+            $configuration['extraPlugins'] .= ',' . $extraPluginName;
 
             $externalPlugins .= 'CKEDITOR.plugins.addExternal(';
-            $externalPlugins .= GeneralUtility::quoteJSvalue($pluginName) . ',';
-            $externalPlugins .= GeneralUtility::quoteJSvalue($config['resource']) . ',';
+            $externalPlugins .= GeneralUtility::quoteJSvalue($extraPluginName) . ',';
+            $externalPlugins .= GeneralUtility::quoteJSvalue($extraPluginConfig['resource']) . ',';
             $externalPlugins .= '\'\');';
         }
 
-        $jsonConfiguration = json_encode($configuration);
+        $jsonConfiguration = (string)json_encode($configuration);
 
         // Make a hash of the configuration and append it to CKEDITOR.timestamp
         // This will mitigate browser caching issue when plugins are updated
@@ -206,11 +237,30 @@ class RichTextElement extends AbstractFormElement
                 ' . $externalPlugins . '
                 require([\'jquery\', \'TYPO3/CMS/Backend/FormEngine\'], function($, FormEngine) {
                     $(function(){
+                        var escapedFieldSelector = \'#\' + $.escapeSelector(\'' . $fieldId . '\');
                         CKEDITOR.replace("' . $fieldId . '", ' . $jsonConfiguration . ');
-                        CKEDITOR.instances["' . $fieldId . '"].on(\'change\', function() {
+                        CKEDITOR.instances["' . $fieldId . '"].on(\'change\', function(e) {
+                            var commands = e.sender.commands;
                             CKEDITOR.instances["' . $fieldId . '"].updateElement();
-                            FormEngine.Validation.validate();
-                            FormEngine.Validation.markFieldAsChanged($(\'#' . $fieldId . '\'));
+                            FormEngine.Validation.validateField($(escapedFieldSelector));
+                            FormEngine.Validation.markFieldAsChanged($(escapedFieldSelector));
+
+                            // remember changes done in maximized state and mark field as changed, once minimized again
+                            if (typeof commands.maximize !== \'undefined\' && commands.maximize.state === 1) {
+                                CKEDITOR.instances["' . $fieldId . '"].on(\'maximize\', function(e) {
+                                    $(this).off(\'maximize\');
+                                    FormEngine.Validation.markFieldAsChanged($(escapedFieldSelector));
+                                });
+                            }
+                        });
+                        CKEDITOR.instances["' . $fieldId . '"].on(\'mode\', function() {
+                            // detect field changes in source mode
+                            if (this.mode === \'source\') {
+                                var sourceArea = CKEDITOR.instances["' . $fieldId . '"].editable();
+                                sourceArea.attachListener(sourceArea, \'change\', function() {
+                                    FormEngine.Validation.markFieldAsChanged($(escapedFieldSelector));
+                                });
+                            }
                         });
                         $(document).on(\'inline:sorting-changed\', function() {
                             CKEDITOR.instances["' . $fieldId . '"].destroy();
@@ -232,6 +282,11 @@ class RichTextElement extends AbstractFormElement
      */
     protected function getExtraPlugins(): array
     {
+        $externalPlugins = $this->rteConfiguration['externalPlugins'] ?? [];
+        $externalPlugins = $this->eventDispatcher
+            ->dispatch(new BeforeGetExternalPluginsEvent($externalPlugins, $this->data))
+            ->getConfiguration();
+
         $urlParameters = [
             'P' => [
                 'table'      => $this->data['tableName'],
@@ -244,21 +299,25 @@ class RichTextElement extends AbstractFormElement
         ];
 
         $pluginConfiguration = [];
-        if (isset($this->rteConfiguration['externalPlugins']) && is_array($this->rteConfiguration['externalPlugins'])) {
-            $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
-            foreach ($this->rteConfiguration['externalPlugins'] as $pluginName => $configuration) {
-                $pluginConfiguration[$pluginName] = [
-                    'resource' => $this->resolveUrlPath($configuration['resource'])
-                ];
-                unset($configuration['resource']);
+        $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
+        foreach ($externalPlugins as $pluginName => $configuration) {
+            $pluginConfiguration[$pluginName] = [
+                'configName' => $configuration['configName'] ?? $pluginName,
+                'resource' => $this->resolveUrlPath($configuration['resource'])
+            ];
+            unset($configuration['configName']);
+            unset($configuration['resource']);
 
-                if ($configuration['route']) {
-                    $configuration['routeUrl'] = (string)$uriBuilder->buildUriFromRoute($configuration['route'], $urlParameters);
-                }
-
-                $pluginConfiguration[$pluginName]['config'] = $configuration;
+            if ($configuration['route']) {
+                $configuration['routeUrl'] = (string)$uriBuilder->buildUriFromRoute($configuration['route'], $urlParameters);
             }
+
+            $pluginConfiguration[$pluginName]['config'] = $configuration;
         }
+
+        $pluginConfiguration = $this->eventDispatcher
+            ->dispatch(new AfterGetExternalPluginsEvent($pluginConfiguration, $this->data))
+            ->getConfiguration();
         return $pluginConfiguration;
     }
 
@@ -327,6 +386,11 @@ class RichTextElement extends AbstractFormElement
         if (is_array($this->rteConfiguration['config'])) {
             $configuration = array_replace_recursive($configuration, $this->rteConfiguration['config']);
         }
+
+        $configuration = $this->eventDispatcher
+            ->dispatch(new BeforePrepareConfigurationForEditorEvent($configuration, $this->data))
+            ->getConfiguration();
+
         // Set the UI language of the editor if not hard-coded by the existing configuration
         if (empty($configuration['language'])) {
             $configuration['language'] = $this->getBackendUser()->uc['lang'] ?: ($this->getBackendUser()->user['lang'] ?: 'en');
@@ -349,6 +413,10 @@ class RichTextElement extends AbstractFormElement
             $configuration['removeButtons'] = implode(',', $configuration['removeButtons']);
         }
 
+        $configuration = $this->eventDispatcher
+            ->dispatch(new AfterPrepareConfigurationForEditorEvent($configuration, $this->data))
+            ->getConfiguration();
+
         return $configuration;
     }
 
@@ -358,8 +426,8 @@ class RichTextElement extends AbstractFormElement
      */
     protected function sanitizeFieldId(string $itemFormElementName): string
     {
-        $fieldId = preg_replace('/[^a-zA-Z0-9_:.-]/', '_', $itemFormElementName);
-        return htmlspecialchars(preg_replace('/^[^a-zA-Z]/', 'x', $fieldId));
+        $fieldId = (string)preg_replace('/[^a-zA-Z0-9_:.-]/', '_', $itemFormElementName);
+        return htmlspecialchars((string)preg_replace('/^[^a-zA-Z]/', 'x', $fieldId));
     }
 
     /**

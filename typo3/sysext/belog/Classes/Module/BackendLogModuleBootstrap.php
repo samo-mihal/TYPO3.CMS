@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Belog\Module;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,7 +13,10 @@ namespace TYPO3\CMS\Belog\Module;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Belog\Module;
+
 use Psr\Http\Message\ServerRequestInterface;
+use TYPO3\CMS\Backend\Routing\Route;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Core\Bootstrap;
 
@@ -36,6 +38,7 @@ class BackendLogModuleBootstrap
      */
     public function main()
     {
+        $options = [];
         $_GET['tx_belog_system_beloglog']['pageId'] = GeneralUtility::_GP('id');
         $_GET['tx_belog_system_beloglog']['layout'] = 'Plain';
         $serverRequest = $GLOBALS['TYPO3_REQUEST'] ?? null;
@@ -47,7 +50,7 @@ class BackendLogModuleBootstrap
         ];
         $options['moduleName'] = 'system_BelogLog';
 
-        $route = GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Routing\Route::class, '/system/BelogLog/', $options);
+        $route = GeneralUtility::makeInstance(Route::class, '/system/BelogLog/', $options);
         $serverRequest = $serverRequest->withAttribute('route', $route);
         $extbaseBootstrap = GeneralUtility::makeInstance(Bootstrap::class);
         return $extbaseBootstrap->handleBackendRequest($serverRequest);

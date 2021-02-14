@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Resource;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,32 +13,41 @@ namespace TYPO3\CMS\Core\Resource;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Resource;
+
 use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
+use TYPO3\CMS\Core\Resource\Collection\FileCollectionRegistry;
+use TYPO3\CMS\Core\Resource\Driver\DriverRegistry;
 use TYPO3\CMS\Core\Resource\Event\AfterResourceStorageInitializationEvent;
 use TYPO3\CMS\Core\Resource\Event\BeforeResourceStorageInitializationEvent;
+use TYPO3\CMS\Core\Resource\Exception\FileDoesNotExistException;
+use TYPO3\CMS\Core\Resource\Exception\ResourceDoesNotExistException;
 use TYPO3\CMS\Core\Resource\Index\FileIndexRepository;
+use TYPO3\CMS\Core\Resource\Index\Indexer;
 use TYPO3\CMS\Core\Service\FlexFormService;
+use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
 use TYPO3\CMS\Core\Utility\PathUtility;
 
 /**
  * Factory class for FAL objects
- * @todo implement constructor-level caching
  */
-class ResourceFactory implements ResourceFactoryInterface, \TYPO3\CMS\Core\SingletonInterface
+class ResourceFactory implements ResourceFactoryInterface, SingletonInterface
 {
     /**
      * Gets a singleton instance of this class.
      *
      * @return ResourceFactory
+     * @deprecated use regular DI or - if not possible - GeneralUtility::makeInstance instead, as this Factory does not serve any purpose
      */
     public static function getInstance()
     {
+        trigger_error('ResourceFactory::getInstance() will be removed in TYPO3 v11.0. Use constructor-level Dependency Injection or GeneralUtility::makeInstance(ResourceFactory::class) instead.', E_USER_DEPRECATED);
         return GeneralUtility::makeInstance(__CLASS__);
     }
 
@@ -94,7 +102,7 @@ class ResourceFactory implements ResourceFactoryInterface, \TYPO3\CMS\Core\Singl
     public function getDriverObject($driverIdentificationString, array $driverConfiguration)
     {
         /** @var Driver\DriverRegistry $driverRegistry */
-        $driverRegistry = GeneralUtility::makeInstance(Driver\DriverRegistry::class);
+        $driverRegistry = GeneralUtility::makeInstance(DriverRegistry::class);
         $driverClass = $driverRegistry->getDriverClass($driverIdentificationString);
         $driverObject = GeneralUtility::makeInstance($driverClass, $driverConfiguration);
         return $driverObject;
@@ -127,7 +135,7 @@ class ResourceFactory implements ResourceFactoryInterface, \TYPO3\CMS\Core\Singl
      * Creates an instance of the storage from given UID. The $recordData can
      * be supplied to increase performance.
      *
-     * @param int $uid The uid of the storage to instantiate.
+     * @param int|null $uid The uid of the storage to instantiate.
      * @param array $recordData The record row from database.
      * @param string $fileIdentifier Identifier for a file. Used for auto-detection of a storage, but only if $uid === 0 (Local default storage) is used
      *
@@ -145,7 +153,6 @@ class ResourceFactory implements ResourceFactoryInterface, \TYPO3\CMS\Core\Singl
         }
         if (empty($this->storageInstances[$uid])) {
             $storageConfiguration = null;
-            $storageObject = null;
             /** @var BeforeResourceStorageInitializationEvent $event */
             $event = $this->eventDispatcher->dispatch(new BeforeResourceStorageInitializationEvent($uid, $recordData, $fileIdentifier));
             $recordData = $event->getRecord();
@@ -172,15 +179,12 @@ class ResourceFactory implements ResourceFactoryInterface, \TYPO3\CMS\Core\Singl
                     'basePath' => '/',
                     'pathType' => 'relative'
                 ];
-            } elseif (count($recordData) === 0 || (int)$recordData['uid'] !== $uid) {
+            } elseif ($recordData === [] || (int)$recordData['uid'] !== $uid) {
                 /** @var StorageRepository $storageRepository */
                 $storageRepository = GeneralUtility::makeInstance(StorageRepository::class);
-                /** @var ResourceStorage $storage */
-                $storageObject = $storageRepository->findByUid($uid);
+                $recordData = $storageRepository->fetchRowByUid($uid);
             }
-            if (!$storageObject instanceof ResourceStorage) {
-                $storageObject = $this->createStorageObject($recordData, $storageConfiguration);
-            }
+            $storageObject = $this->createStorageObject($recordData, $storageConfiguration);
             $storageObject = $this->eventDispatcher
                 ->dispatch(new AfterResourceStorageInitializationEvent($storageObject))
                 ->getStorage();
@@ -208,7 +212,7 @@ class ResourceFactory implements ResourceFactoryInterface, \TYPO3\CMS\Core\Singl
         $bestMatchStorageUid = 0;
         $bestMatchLength = 0;
         foreach ($this->localDriverStorageCache as $storageUid => $basePath) {
-            $matchLength = strlen(PathUtility::getCommonPrefix([$basePath, $localPath]));
+            $matchLength = strlen(PathUtility::getCommonPrefix([$basePath, $localPath]) ?? '');
             $basePathLength = strlen($basePath);
 
             if ($matchLength >= $basePathLength && $matchLength > $bestMatchLength) {
@@ -304,7 +308,7 @@ class ResourceFactory implements ResourceFactoryInterface, \TYPO3\CMS\Core\Singl
     public function createCollectionObject(array $collectionData)
     {
         /** @var Collection\FileCollectionRegistry $registry */
-        $registry = GeneralUtility::makeInstance(Collection\FileCollectionRegistry::class);
+        $registry = GeneralUtility::makeInstance(FileCollectionRegistry::class);
 
         /** @var \TYPO3\CMS\Core\Collection\AbstractRecordCollection $class */
         $class = $registry->getFileCollectionClass($collectionData['type']);
@@ -363,7 +367,7 @@ class ResourceFactory implements ResourceFactoryInterface, \TYPO3\CMS\Core\Singl
             if (empty($fileData)) {
                 $fileData = $this->getFileIndexRepository()->findOneByUid($uid);
                 if ($fileData === false) {
-                    throw new Exception\FileDoesNotExistException('No file found for given UID: ' . $uid, 1317178604);
+                    throw new FileDoesNotExistException('No file found for given UID: ' . $uid, 1317178604);
                 }
             }
             $this->fileInstances[$uid] = $this->createFileObject($fileData);
@@ -380,12 +384,12 @@ class ResourceFactory implements ResourceFactoryInterface, \TYPO3\CMS\Core\Singl
      */
     public function getFileObjectFromCombinedIdentifier($identifier)
     {
-        if (!isset($identifier) || !is_string($identifier) || $identifier === '') {
+        if (!is_string($identifier) || $identifier === '') {
             throw new \InvalidArgumentException('Invalid file identifier given. It must be of type string and not empty. "' . gettype($identifier) . '" given.', 1401732564);
         }
         $parts = GeneralUtility::trimExplode(':', $identifier);
         if (count($parts) === 2) {
-            $storageUid = $parts[0];
+            $storageUid = (int)$parts[0];
             $fileIdentifier = $parts[1];
         } else {
             // We only got a path: Go into backwards compatibility mode and
@@ -416,7 +420,7 @@ class ResourceFactory implements ResourceFactoryInterface, \TYPO3\CMS\Core\Singl
             if ($fileData === false) {
                 $fileObject = $this->getIndexer($storage)->createIndexEntry($fileIdentifier);
             } else {
-                $fileObject = $this->getFileObject($fileData['uid'], $fileData);
+                $fileObject = $this->getFileObject($fileData['uid'], (array)$fileData);
             }
         } else {
             $fileObject = $this->getProcessedFileRepository()->findByStorageAndIdentifier($storage, $fileIdentifier);
@@ -456,10 +460,10 @@ class ResourceFactory implements ResourceFactoryInterface, \TYPO3\CMS\Core\Singl
             return $this->retrieveFileOrFolderObject($input);
         }
         if (MathUtility::canBeInterpretedAsInteger($input)) {
-            return $this->getFileObject($input);
+            return $this->getFileObject((int)$input);
         }
         if (strpos($input, ':') > 0) {
-            list($prefix) = explode(':', $input);
+            [$prefix] = explode(':', $input);
             if (MathUtility::canBeInterpretedAsInteger($prefix)) {
                 // path or folder in a valid storageUID
                 return $this->getObjectFromCombinedIdentifier($input);
@@ -497,7 +501,7 @@ class ResourceFactory implements ResourceFactoryInterface, \TYPO3\CMS\Core\Singl
     {
         $parts = GeneralUtility::trimExplode(':', $identifier);
         if (count($parts) === 2) {
-            $storageUid = $parts[0];
+            $storageUid = (int)$parts[0];
             $folderIdentifier = $parts[1];
         } else {
             // We only got a path: Go into backwards compatibility mode and
@@ -524,7 +528,7 @@ class ResourceFactory implements ResourceFactoryInterface, \TYPO3\CMS\Core\Singl
     public function getStorageObjectFromCombinedIdentifier($identifier)
     {
         $parts = GeneralUtility::trimExplode(':', $identifier);
-        $storageUid = count($parts) === 2 ? $parts[0] : null;
+        $storageUid = count($parts) === 2 ? (int)$parts[0] : null;
         return $this->getStorageObject($storageUid);
     }
 
@@ -538,15 +542,15 @@ class ResourceFactory implements ResourceFactoryInterface, \TYPO3\CMS\Core\Singl
      */
     public function getObjectFromCombinedIdentifier($identifier)
     {
-        list($storageId, $objectIdentifier) = GeneralUtility::trimExplode(':', $identifier);
-        $storage = $this->getStorageObject($storageId);
+        [$storageId, $objectIdentifier] = GeneralUtility::trimExplode(':', $identifier);
+        $storage = $this->getStorageObject((int)$storageId);
         if ($storage->hasFile($objectIdentifier)) {
             return $storage->getFile($objectIdentifier);
         }
         if ($storage->hasFolder($objectIdentifier)) {
             return $storage->getFolder($objectIdentifier);
         }
-        throw new Exception\ResourceDoesNotExistException('Object with identifier "' . $identifier . '" does not exist in storage', 1329647780);
+        throw new ResourceDoesNotExistException('Object with identifier "' . $identifier . '" does not exist in storage', 1329647780);
     }
 
     /**
@@ -559,7 +563,6 @@ class ResourceFactory implements ResourceFactoryInterface, \TYPO3\CMS\Core\Singl
      */
     public function createFileObject(array $fileData, ResourceStorage $storage = null)
     {
-        /** @var File $fileObject */
         if (array_key_exists('storage', $fileData) && MathUtility::canBeInterpretedAsInteger($fileData['storage'])) {
             $storageObject = $this->getStorageObject((int)$fileData['storage']);
         } elseif ($storage !== null) {
@@ -568,6 +571,7 @@ class ResourceFactory implements ResourceFactoryInterface, \TYPO3\CMS\Core\Singl
         } else {
             throw new \RuntimeException('A file needs to reside in a Storage', 1381570997);
         }
+        /** @var File $fileObject */
         $fileObject = GeneralUtility::makeInstance(File::class, $fileData, $storageObject);
         return $fileObject;
     }
@@ -596,7 +600,7 @@ class ResourceFactory implements ResourceFactoryInterface, \TYPO3\CMS\Core\Singl
             if (empty($fileReferenceData)) {
                 $fileReferenceData = $this->getFileReferenceData($uid, $raw);
                 if (!is_array($fileReferenceData)) {
-                    throw new Exception\ResourceDoesNotExistException(
+                    throw new ResourceDoesNotExistException(
                         'No file reference (sys_file_reference) was found for given UID: "' . $uid . '"',
                         1317178794
                     );
@@ -680,6 +684,6 @@ class ResourceFactory implements ResourceFactoryInterface, \TYPO3\CMS\Core\Singl
      */
     protected function getIndexer(ResourceStorage $storage)
     {
-        return GeneralUtility::makeInstance(Index\Indexer::class, $storage);
+        return GeneralUtility::makeInstance(Indexer::class, $storage);
     }
 }

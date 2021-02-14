@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Unit\DependencyInjection\Fixtures;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,13 +15,16 @@ namespace TYPO3\CMS\Core\Tests\Unit\DependencyInjection\Fixtures;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\DependencyInjection\Fixtures;
+
 use TYPO3\CMS\Core\DependencyInjection\ServiceProviderInterface;
+use TYPO3\CMS\Core\Package\Package;
 
 class TestStatefulServiceProvider implements ServiceProviderInterface
 {
     public $package;
 
-    public function __construct(\TYPO3\CMS\Core\Package\Package $package)
+    public function __construct(Package $package)
     {
         $this->package = $package;
     }

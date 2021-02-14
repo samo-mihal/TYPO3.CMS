@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Extbase\Tests\Unit\Mvc\Controller;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,8 @@ namespace TYPO3\CMS\Extbase\Tests\Unit\Mvc\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Tests\Unit\Mvc\Controller;
+
 use Prophecy\Argument;
 use TYPO3\CMS\Core\Page\PageRenderer;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -27,6 +29,7 @@ use TYPO3\CMS\Extbase\Mvc\Request;
 use TYPO3\CMS\Extbase\Mvc\RequestInterface;
 use TYPO3\CMS\Extbase\Mvc\View\ViewInterface;
 use TYPO3\CMS\Extbase\Reflection\ClassSchema;
+use TYPO3\CMS\Extbase\Reflection\ClassSchema\Method;
 use TYPO3\CMS\Extbase\Reflection\ReflectionService;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 use TYPO3Fluid\Fluid\View\AbstractTemplateView;
@@ -101,12 +104,15 @@ class ActionControllerTest extends UnitTestCase
         $mockArguments = $this->getMockBuilder(Arguments::class)
             ->setMethods(['addNewArgument', 'removeAll'])
             ->getMock();
-        $mockArguments->expects(self::at(0))->method('addNewArgument')->with('stringArgument', 'string', true);
-        $mockArguments->expects(self::at(1))->method('addNewArgument')->with('integerArgument', 'integer', true);
-        $mockArguments->expects(self::at(2))->method('addNewArgument')->with('objectArgument', 'F3_Foo_Bar', true);
+        $mockArguments->expects(self::exactly(3))->method('addNewArgument')
+            ->withConsecutive(
+                ['stringArgument', 'string', true],
+                ['integerArgument', 'integer', true],
+                ['objectArgument', 'F3_Foo_Bar', true]
+            );
         $mockController = $this->getAccessibleMock(ActionController::class, ['fooAction', 'evaluateDontValidateAnnotations'], [], '', false);
 
-        $classSchemaMethod = new ClassSchema\Method(
+        $classSchemaMethod = new Method(
             'fooAction',
             [
                 'params' => [
@@ -169,12 +175,15 @@ class ActionControllerTest extends UnitTestCase
     {
         $mockRequest = $this->createMock(Request::class);
         $mockArguments = $this->createMock(Arguments::class);
-        $mockArguments->expects(self::at(0))->method('addNewArgument')->with('arg1', 'string', true);
-        $mockArguments->expects(self::at(1))->method('addNewArgument')->with('arg2', 'array', false, [21]);
-        $mockArguments->expects(self::at(2))->method('addNewArgument')->with('arg3', 'string', false, 42);
+        $mockArguments->expects(self::exactly(3))->method('addNewArgument')
+            ->withConsecutive(
+                ['arg1', 'string', true],
+                ['arg2', 'array', false, [21]],
+                ['arg3', 'string', false, 42]
+            );
         $mockController = $this->getAccessibleMock(ActionController::class, ['fooAction', 'evaluateDontValidateAnnotations'], [], '', false);
 
-        $classSchemaMethod = new ClassSchema\Method(
+        $classSchemaMethod = new Method(
             'fooAction',
             [
                 'params' => [
@@ -242,7 +251,7 @@ class ActionControllerTest extends UnitTestCase
         $mockArguments = $this->createMock(Arguments::class);
         $mockController = $this->getAccessibleMock(ActionController::class, ['fooAction'], [], '', false);
 
-        $classSchemaMethod = new ClassSchema\Method(
+        $classSchemaMethod = new Method(
             'fooAction',
             [
                 'params' => [
@@ -549,14 +558,26 @@ class ActionControllerTest extends UnitTestCase
     public function headerAssetDataProvider()
     {
         $viewWithHeaderData = $this->getMockBuilder(FluidTemplateView::class)->setMethods(['renderSection'])->disableOriginalConstructor()->getMock();
-        $viewWithHeaderData->expects(self::at(0))->method('renderSection')->with('HeaderAssets', self::anything(), true)->willReturn('custom-header-data');
-        $viewWithHeaderData->expects(self::at(1))->method('renderSection')->with('FooterAssets', self::anything(), true)->willReturn(null);
+        $viewWithHeaderData->expects(self::exactly(2))->method('renderSection')
+            ->withConsecutive(
+                ['HeaderAssets', self::anything(), true],
+                ['FooterAssets', self::anything(), true]
+            )
+            ->willReturnOnConsecutiveCalls('custom-header-data', null);
         $viewWithFooterData = $this->getMockBuilder(FluidTemplateView::class)->setMethods(['renderSection'])->disableOriginalConstructor()->getMock();
-        $viewWithFooterData->expects(self::at(0))->method('renderSection')->with('HeaderAssets', self::anything(), true)->willReturn(null);
-        $viewWithFooterData->expects(self::at(1))->method('renderSection')->with('FooterAssets', self::anything(), true)->willReturn('custom-footer-data');
+        $viewWithFooterData->expects(self::exactly(2))->method('renderSection')
+            ->withConsecutive(
+                ['HeaderAssets', self::anything(), true],
+                ['FooterAssets', self::anything(), true]
+            )
+            ->willReturnOnConsecutiveCalls(null, 'custom-footer-data');
         $viewWithBothData = $this->getMockBuilder(FluidTemplateView::class)->setMethods(['renderSection'])->disableOriginalConstructor()->getMock();
-        $viewWithBothData->expects(self::at(0))->method('renderSection')->with('HeaderAssets', self::anything(), true)->willReturn('custom-header-data');
-        $viewWithBothData->expects(self::at(1))->method('renderSection')->with('FooterAssets', self::anything(), true)->willReturn('custom-footer-data');
+        $viewWithBothData->expects(self::exactly(2))->method('renderSection')
+            ->withConsecutive(
+                ['HeaderAssets', self::anything(), true],
+                ['FooterAssets', self::anything(), true]
+            )
+            ->willReturnOnConsecutiveCalls('custom-header-data', 'custom-footer-data');
         $invalidView = $this->getMockBuilder(AbstractTemplateView::class)->disableOriginalConstructor()->getMockForAbstractClass();
         return [
             [$viewWithHeaderData, 'custom-header-data', null],

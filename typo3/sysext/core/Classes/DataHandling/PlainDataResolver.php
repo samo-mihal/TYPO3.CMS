@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\DataHandling;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,9 +13,12 @@ namespace TYPO3\CMS\Core\DataHandling;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\DataHandling;
+
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Versioning\VersionState;
@@ -64,11 +66,6 @@ class PlainDataResolver
      * @var bool
      */
     protected $keepMovePlaceholder = true;
-
-    /**
-     * @var int[]
-     */
-    protected $resolvedIds;
 
     /**
      * @param string $tableName
@@ -133,26 +130,22 @@ class PlainDataResolver
      */
     public function get()
     {
-        if (isset($this->resolvedIds)) {
-            return $this->resolvedIds;
+        $resolvedIds = $this->processVersionOverlays($this->liveIds);
+        if ($resolvedIds !== $this->liveIds) {
+            $resolvedIds = $this->reindex($resolvedIds);
         }
 
-        $this->resolvedIds = $this->processVersionOverlays($this->liveIds);
-        if ($this->resolvedIds !== $this->liveIds) {
-            $this->resolvedIds = $this->reindex($this->resolvedIds);
+        $tempIds = $this->processSorting($resolvedIds);
+        if ($tempIds !== $resolvedIds) {
+            $resolvedIds = $this->reindex($tempIds);
         }
 
-        $tempIds = $this->processSorting($this->resolvedIds);
-        if ($tempIds !== $this->resolvedIds) {
-            $this->resolvedIds = $this->reindex($tempIds);
+        $tempIds = $this->applyLiveIds($resolvedIds);
+        if ($tempIds !== $resolvedIds) {
+            $resolvedIds = $this->reindex($tempIds);
         }
 
-        $tempIds = $this->applyLiveIds($this->resolvedIds);
-        if ($tempIds !== $this->resolvedIds) {
-            $this->resolvedIds = $this->reindex($tempIds);
-        }
-
-        return $this->resolvedIds;
+        return $resolvedIds;
     }
 
     /**
@@ -175,7 +168,8 @@ class PlainDataResolver
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
             ->getQueryBuilderForTable($this->tableName);
 
-        $queryBuilder->getRestrictions()->removeAll();
+        $queryBuilder->getRestrictions()->removeAll()
+            ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
 
         $result = $queryBuilder
             ->select('uid', 't3ver_oid', 't3ver_state')
@@ -227,7 +221,8 @@ class PlainDataResolver
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
             ->getQueryBuilderForTable($this->tableName);
 
-        $queryBuilder->getRestrictions()->removeAll();
+        $queryBuilder->getRestrictions()->removeAll()
+            ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
 
         $result = $queryBuilder
             ->select('uid', 't3ver_move_id')
@@ -283,6 +278,11 @@ class PlainDataResolver
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
             ->getQueryBuilderForTable($this->tableName);
 
+        // @todo: DeletedRestriction should be added here, too. This however currently makes test
+        // workspaces/Tests/Functional/DataHandling/FAL/Publish/ActionTest::modifyContentAndDeleteFileReference
+        // fail with postgres. Suspected reason: On publish, there seems to be a missing RefenenceIndex->updateRefIndexTable()
+        // call, so sys_refindex still has relations to workspace records that don't exist anymore after publish. If that
+        // is solved and old sys_refindex relations are correctly dropped, the DeletedRestriction should be added here.
         $queryBuilder->getRestrictions()->removeAll();
 
         $queryBuilder
@@ -326,7 +326,8 @@ class PlainDataResolver
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
             ->getQueryBuilderForTable($this->tableName);
 
-        $queryBuilder->getRestrictions()->removeAll();
+        $queryBuilder->getRestrictions()->removeAll()
+            ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
 
         $result = $queryBuilder
             ->select('uid', 't3ver_oid')

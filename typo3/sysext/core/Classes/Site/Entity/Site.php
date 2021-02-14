@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Site\Entity;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,9 +15,12 @@ namespace TYPO3\CMS\Core\Site\Entity;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Site\Entity;
+
 use Psr\Http\Message\UriInterface;
 use Symfony\Component\ExpressionLanguage\SyntaxError;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
+use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Error\PageErrorHandler\FluidPageErrorHandler;
 use TYPO3\CMS\Core\Error\PageErrorHandler\InvalidPageErrorHandlerException;
 use TYPO3\CMS\Core\Error\PageErrorHandler\PageContentErrorHandler;
@@ -345,7 +347,7 @@ class Site implements SiteInterface
     protected function sanitizeBaseUrl(string $base): string
     {
         // no protocol ("//") and the first part is no "/" (path), means that this is a domain like
-        // "www.domain.com/blabla", and we want to ensure that this one then gets a "no-scheme agnostic" part
+        // "www.domain.com/subpage", and we want to ensure that this one then gets a "no-scheme agnostic" part
         if (!empty($base) && strpos($base, '//') === false && $base[0] !== '/') {
             // either a scheme is added, or no scheme but with domain, or a path which is not absolute
             // make the base prefixed with a slash, so it is recognized as path, not as domain
@@ -363,11 +365,12 @@ class Site implements SiteInterface
     /**
      * Returns the applicable router for this site. This might be configurable in the future.
      *
+     * @param Context|null $context
      * @return RouterInterface
      */
-    public function getRouter(): RouterInterface
+    public function getRouter(Context $context = null): RouterInterface
     {
-        return GeneralUtility::makeInstance(PageRouter::class, $this);
+        return GeneralUtility::makeInstance(PageRouter::class, $this, $context);
     }
 
     /**

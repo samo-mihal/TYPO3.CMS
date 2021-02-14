@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Extbase\Property\TypeConverter;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,10 +15,15 @@ namespace TYPO3\CMS\Extbase\Property\TypeConverter;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Property\TypeConverter;
+
+use TYPO3\CMS\Extbase\Error\Error;
+use TYPO3\CMS\Extbase\Property\PropertyMappingConfigurationInterface;
+
 /**
  * Converter which transforms a simple type to an integer, by simply casting it.
  */
-class IntegerConverter extends \TYPO3\CMS\Extbase\Property\TypeConverter\AbstractTypeConverter
+class IntegerConverter extends AbstractTypeConverter
 {
     /**
      * @var string[]
@@ -45,13 +49,13 @@ class IntegerConverter extends \TYPO3\CMS\Extbase\Property\TypeConverter\Abstrac
      * @param \TYPO3\CMS\Extbase\Property\PropertyMappingConfigurationInterface $configuration
      * @return int|\TYPO3\CMS\Extbase\Error\Error
      */
-    public function convertFrom($source, string $targetType, array $convertedChildProperties = [], \TYPO3\CMS\Extbase\Property\PropertyMappingConfigurationInterface $configuration = null)
+    public function convertFrom($source, string $targetType, array $convertedChildProperties = [], PropertyMappingConfigurationInterface $configuration = null)
     {
         if ($source === null || (string)$source === '') {
             return null;
         }
         if (!is_numeric($source)) {
-            return new \TYPO3\CMS\Extbase\Error\Error('"%s" is no integer.', 1332933658, [$source]);
+            return new Error('"%s" is no integer.', 1332933658, [$source]);
         }
         return (int)$source;
     }

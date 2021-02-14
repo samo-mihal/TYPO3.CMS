@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Log;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Log;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Log;
 
 use Psr\Log\AbstractLogger;
 use TYPO3\CMS\Core\Log\Processor\ProcessorInterface;
@@ -137,7 +138,7 @@ class Logger extends AbstractLogger
      * @param \TYPO3\CMS\Core\Log\Writer\WriterInterface $writer Writer object
      * @return \TYPO3\CMS\Core\Log\Logger $this
      */
-    public function addWriter(string $minimumLevel, Writer\WriterInterface $writer)
+    public function addWriter(string $minimumLevel, WriterInterface $writer)
     {
         $minLevelAsNumber = LogLevel::normalizeLevel($minimumLevel);
         LogLevel::validateLevel($minLevelAsNumber);
@@ -172,7 +173,7 @@ class Logger extends AbstractLogger
      * @param string $minimumLevel
      * @param \TYPO3\CMS\Core\Log\Processor\ProcessorInterface $processor The processor to add.
      */
-    public function addProcessor(string $minimumLevel, Processor\ProcessorInterface $processor)
+    public function addProcessor(string $minimumLevel, ProcessorInterface $processor)
     {
         $minLevelAsNumber = LogLevel::normalizeLevel($minimumLevel);
         LogLevel::validateLevel($minLevelAsNumber);
@@ -216,7 +217,7 @@ class Logger extends AbstractLogger
             return $this;
         }
         /** @var \TYPO3\CMS\Core\Log\LogRecord $record */
-        $record = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(LogRecord::class, $this->name, LogLevel::getInternalName($level), $message, $data, $this->requestId);
+        $record = GeneralUtility::makeInstance(LogRecord::class, $this->name, LogLevel::getInternalName($level), $message, $data, $this->requestId);
         $record = $this->callProcessors($record);
         $this->writeLog($record);
         return $this;

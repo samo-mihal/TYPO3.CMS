@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\DataHandling\Event;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Core\DataHandling\Event;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\DataHandling\Event;
 
 /**
  * Event fired so listeners can intercept add elements when checking links within the SoftRef parser
@@ -46,6 +47,9 @@ final class AppendLinkHandlerElementsEvent
      */
     private $tokenId;
 
+    /**
+     * @var bool
+     */
     private $isResolved = false;
 
     public function __construct(array $linkParts, string $content, array $elements, int $idx, string $tokenID)

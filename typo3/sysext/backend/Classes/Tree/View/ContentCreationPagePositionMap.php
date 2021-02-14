@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Tree\View;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Backend\Tree\View;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Tree\View;
+
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -25,7 +26,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 class ContentCreationPagePositionMap extends PagePositionMap
 {
     /**
-     * @var bool
+     * @var int
      */
     public $dontPrintPageInsertIcons = 1;
 

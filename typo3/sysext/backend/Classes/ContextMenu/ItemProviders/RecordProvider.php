@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Backend\ContextMenu\ItemProviders;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Backend\ContextMenu\ItemProviders;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\ContextMenu\ItemProviders;
 
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
@@ -167,7 +169,7 @@ class RecordProvider extends AbstractProvider
     protected function initialize()
     {
         parent::initialize();
-        $this->record = BackendUtility::getRecordWSOL($this->table, $this->identifier);
+        $this->record = BackendUtility::getRecordWSOL($this->table, (int)$this->identifier);
         $this->initPermissions();
     }
 
@@ -217,8 +219,10 @@ class RecordProvider extends AbstractProvider
                 $canRender = $this->canBeViewed();
                 break;
             case 'edit':
-            case 'new':
                 $canRender = $this->canBeEdited();
+                break;
+            case 'new':
+                $canRender = $this->canBeNew();
                 break;
             case 'newWizard':
                 $canRender = $this->canOpenNewCEWizard();
@@ -293,6 +297,9 @@ class RecordProvider extends AbstractProvider
         if ($itemName === 'view') {
             $attributes += $this->getViewAdditionalAttributes();
         }
+        if ($itemName === 'enable' || $itemName === 'disable') {
+            $attributes += $this->getEnableDisableAdditionalAttributes();
+        }
         if ($itemName === 'newWizard' && $this->table === 'tt_content') {
             $moduleName = BackendUtility::getPagesTSconfig($this->record['pid'])['mod.']['newContentElementWizard.']['override']
                 ?? 'new_content_element_wizard';
@@ -338,6 +345,18 @@ class RecordProvider extends AbstractProvider
             ];
         }
         return $attributes;
+    }
+
+    /**
+     * Additional attributes for the hide & unhide items
+     *
+     * @return array
+     */
+    protected function getEnableDisableAdditionalAttributes(): array
+    {
+        return [
+            'data-disable-field' => $GLOBALS['TCA'][$this->table]['ctrl']['enablecolumns']['disabled'] ?? ''
+        ];
     }
 
     /**
@@ -506,6 +525,16 @@ class RecordProvider extends AbstractProvider
     }
 
     /**
+     * Whether a record can be created
+     *
+     * @return bool
+     */
+    protected function canBeNew(): bool
+    {
+        return $this->canBeEdited() && !$this->isRecordATranslation();
+    }
+
+    /**
      * Checks if disableDelete flag is set in TSConfig for the current table
      *
      * @return bool
@@ -558,7 +587,7 @@ class RecordProvider extends AbstractProvider
     {
         return $this->table === 'tt_content'
             && (bool)(BackendUtility::getPagesTSconfig($this->record['pid'])['mod.']['web_layout.']['disableNewContentElementWizard'] ?? true)
-            && $this->canBeEdited();
+            && $this->canBeEdited() && !$this->isRecordATranslation();
     }
 
     /**
@@ -575,6 +604,7 @@ class RecordProvider extends AbstractProvider
     protected function canBeCopied(): bool
     {
         return !$this->isRecordInClipboard('copy')
+            && $this->canBeEdited()
             && !$this->isRecordATranslation();
     }
 

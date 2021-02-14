@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\History;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\History;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\History;
 
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
@@ -33,11 +34,17 @@ class RecordHistory
     use PublicMethodDeprecationTrait;
     use PublicPropertyDeprecationTrait;
 
+    /**
+     * @var string[]
+     */
     private $deprecatedPublicMethods = [
         'getHistoryEntry' => 'Using RecordHistory::getHistoryEntry() is deprecated and will not be possible anymore in TYPO3 v11.0.',
         'getHistoryData' => 'Using RecordHistory::getHistoryData() is deprecated and will not be possible anymore in TYPO3 v11.0.',
     ];
 
+    /**
+     * @var string[]
+     */
     private $deprecatedPublicProperties = [
         'changeLog' => 'Using changeLog is deprecated and will not be possible anymore in TYPO3 v11.0. Use getChangeLog() instead.',
         'lastHistoryEntry' => 'Using lastHistoryEntry is deprecated and will not be possible anymore in TYPO3 v11.0. Use getLastHistoryEntryNumber() instead.',
@@ -53,9 +60,9 @@ class RecordHistory
     /**
      * On a pages table - show sub elements as well.
      *
-     * @var int
+     * @var bool
      */
-    protected $showSubElements = 1;
+    protected $showSubElements = true;
 
     /**
      * Element reference, syntax [tablename]:[uid]
@@ -167,7 +174,7 @@ class RecordHistory
     {
         if (!empty($this->element)) {
             [$table, $recordUid] = explode(':', $this->element);
-            return $this->getHistoryData($table, $recordUid, $this->showSubElements, $this->lastHistoryEntry);
+            return $this->getHistoryData($table, (int)$recordUid, $this->showSubElements, $this->lastHistoryEntry);
         }
         return [];
     }
@@ -362,7 +369,7 @@ class RecordHistory
         }
 
         $uid = $this->resolveElement($table, $uid);
-        return $this->findEventsForRecord($table, $uid, ($this->maxSteps ?: null), $lastHistoryEntry);
+        return $this->findEventsForRecord($table, $uid, ($this->maxSteps ?: 0), $lastHistoryEntry);
     }
 
     /*******************************
@@ -493,6 +500,7 @@ class RecordHistory
      */
     protected function hasPageAccess($table, $uid): bool
     {
+        $pageRecord = null;
         $uid = (int)$uid;
 
         if ($table === 'pages') {
@@ -506,7 +514,8 @@ class RecordHistory
             $isDeletedPage = false;
             if (isset($GLOBALS['TCA']['pages']['ctrl']['delete'])) {
                 $deletedField = $GLOBALS['TCA']['pages']['ctrl']['delete'];
-                $pageRecord = BackendUtility::getRecord('pages', $pageId, $deletedField, '', false);
+                $fields = 'pid,' . $deletedField;
+                $pageRecord = BackendUtility::getRecord('pages', $pageId, $fields, '', false);
                 $isDeletedPage = (bool)$pageRecord[$deletedField];
             }
             if ($isDeletedPage) {

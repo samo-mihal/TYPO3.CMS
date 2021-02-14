@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Locking\Exception;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,9 +13,13 @@ namespace TYPO3\CMS\Core\Locking\Exception;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Locking\Exception;
+
+use TYPO3\CMS\Core\Locking\Exception;
+
 /**
  * An exception indicating a lock acquisition error
  */
-class LockAcquireException extends \TYPO3\CMS\Core\Locking\Exception
+class LockAcquireException extends Exception
 {
 }

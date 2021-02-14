@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Service\Archive;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,7 +15,10 @@ namespace TYPO3\CMS\Core\Service\Archive;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Service\Archive;
+
 use TYPO3\CMS\Core\Exception\Archive\ExtractException;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Service that handles zip creation and extraction
@@ -47,6 +50,9 @@ class ZipService
 
         $result = $zip->extractTo($directory);
         $zip->close();
+        if ($result) {
+            GeneralUtility::fixPermissions(rtrim($directory, '/'), true);
+        }
         return $result;
     }
 
@@ -67,7 +73,7 @@ class ZipService
         }
 
         for ($i = 0; $i < $zip->numFiles; $i++) {
-            $entryName = $zip->getNameIndex($i);
+            $entryName = (string)$zip->getNameIndex($i);
             if (preg_match('#/(?:\.{2,})+#', $entryName) // Contains any traversal sequence starting with a slash, e.g. /../, /.., /.../
                 || preg_match('#^(?:\.{2,})+/#', $entryName) // Starts with a traversal sequence, e.g. ../, .../
             ) {

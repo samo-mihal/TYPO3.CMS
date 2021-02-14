@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\View;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Backend\View;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\View;
+
 /**
  * Interface for classes which hook into PageLayoutView and do additional
  * tt_content_drawFooter processing.
@@ -27,5 +28,5 @@ interface PageLayoutViewDrawFooterHookInterface
      * @param array $info Processed values
      * @param array $row Record row of tt_content
      */
-    public function preProcess(\TYPO3\CMS\Backend\View\PageLayoutView &$parentObject, &$info, array &$row);
+    public function preProcess(PageLayoutView &$parentObject, &$info, array &$row);
 }

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Reports\Tests\Unit\Report\Status;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,11 @@ namespace TYPO3\CMS\Reports\Tests\Unit\Report\Status;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Reports\Tests\Unit\Report\Status;
+
+use TYPO3\CMS\Core\Localization\LanguageService;
+use TYPO3\CMS\Reports\Report\Status\Typo3Status;
+use TYPO3\CMS\Reports\Status;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -27,7 +31,7 @@ class Typo3StatusTest extends UnitTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $GLOBALS['LANG'] = $this->createMock(\TYPO3\CMS\Core\Localization\LanguageService::class);
+        $GLOBALS['LANG'] = $this->createMock(LanguageService::class);
     }
 
     /**
@@ -36,10 +40,10 @@ class Typo3StatusTest extends UnitTestCase
     public function getStatusReturnsXclassStatusObjectWithSeverityOkIfNoXclassExists()
     {
         $GLOBALS['TYPO3_CONF_VARS']['SYS']['Objects'] = [];
-        $fixture = new \TYPO3\CMS\Reports\Report\Status\Typo3Status;
+        $fixture = new Typo3Status();
         $result = $fixture->getStatus();
         $statusObject = $result['registeredXclass'];
-        self::assertSame(\TYPO3\CMS\Reports\Status::OK, $statusObject->getSeverity());
+        self::assertSame(Status::OK, $statusObject->getSeverity());
     }
 
     /**
@@ -52,9 +56,9 @@ class Typo3StatusTest extends UnitTestCase
                 'className' => 'bar',
             ]
         ];
-        $fixture = new \TYPO3\CMS\Reports\Report\Status\Typo3Status;
+        $fixture = new Typo3Status();
         $result = $fixture->getStatus();
         $statusObject = $result['registeredXclass'];
-        self::assertSame(\TYPO3\CMS\Reports\Status::NOTICE, $statusObject->getSeverity());
+        self::assertSame(Status::NOTICE, $statusObject->getSeverity());
     }
 }

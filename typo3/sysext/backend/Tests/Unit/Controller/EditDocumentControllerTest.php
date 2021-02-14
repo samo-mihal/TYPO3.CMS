@@ -1,7 +1,5 @@
 <?php
 
-namespace TYPO3\CMS\Backend\Tests\Unit\Controller;
-
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -15,9 +13,12 @@ namespace TYPO3\CMS\Backend\Tests\Unit\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Tests\Unit\Controller;
+
 use Prophecy\Argument;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Backend\Controller\EditDocumentController;
+use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -29,9 +30,14 @@ use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 class EditDocumentControllerTest extends UnitTestCase
 {
     /**
+     * @var bool
+     */
+    protected $resetSingletonInstances = true;
+
+    /**
      * @test
      */
-    public function parseAdditionalGetParametersCreatesCorrectParameterArray()
+    public function parseAdditionalGetParametersCreatesCorrectParameterArray(): void
     {
         $typoScript = [
             'tx_myext.' => [
@@ -48,9 +54,11 @@ class EditDocumentControllerTest extends UnitTestCase
             'magic' => 'yes'
         ];
         $result = [];
+        $uriBuilder = $this->prophesize(UriBuilder::class);
         $moduleTemplate = $this->prophesize(ModuleTemplate::class);
         $moduleTemplate->setUiBlock(Argument::any())->willReturn($moduleTemplate->reveal());
         $GLOBALS['LANG'] = $this->prophesize(LanguageService::class)->reveal();
+        GeneralUtility::setSingletonInstance(UriBuilder::class, $uriBuilder->reveal());
         GeneralUtility::addInstance(ModuleTemplate::class, $moduleTemplate->reveal());
 
         $eventDispatcher = $this->prophesize(EventDispatcherInterface::class);
@@ -64,9 +72,9 @@ class EditDocumentControllerTest extends UnitTestCase
 
     /**
      * @test
-     * @dataProvider slugDependendFieldsAreAddedToColumnsOnlyDataProvider
+     * @dataProvider slugDependentFieldsAreAddedToColumnsOnlyDataProvider
      */
-    public function slugDependendFieldsAreAddedToColumnsOnly(string $result, string $selectedFields, string $tableName, array $configuration): void
+    public function slugDependentFieldsAreAddedToColumnsOnly(string $result, string $selectedFields, string $tableName, array $configuration): void
     {
         $GLOBALS['TCA'][$tableName]['columns'] = $configuration;
 
@@ -84,7 +92,7 @@ class EditDocumentControllerTest extends UnitTestCase
         self::assertEquals($result, $editDocumentControllerMock->_get('columnsOnly'));
     }
 
-    public function slugDependendFieldsAreAddedToColumnsOnlyDataProvider(): array
+    public function slugDependentFieldsAreAddedToColumnsOnlyDataProvider(): array
     {
         return [
             'fields in string' => [
@@ -133,5 +141,72 @@ class EditDocumentControllerTest extends UnitTestCase
                 ]
             ],
         ];
+    }
+
+    public function resolvePreviewRecordIdDataProvider(): array
+    {
+        return [
+            'default useDefaultLanguageRecord' => [
+                1,
+                [],
+            ],
+            'explicit useDefaultLanguageRecord' => [
+                1,
+                ['useDefaultLanguageRecord' => '1'],
+            ],
+            'useDefaultLanguageRecord = 0' => [
+                2,
+                ['useDefaultLanguageRecord' => '0'],
+            ]
+        ];
+    }
+
+    /**
+     * @param int $expected
+     * @param array $previewConfiguration
+     * @test
+     * @dataProvider resolvePreviewRecordIdDataProvider
+     */
+    public function resolvePreviewRecordIdReturnsExpectedUid(int $expected, array $previewConfiguration): void
+    {
+        $recordArray = ['uid' => 2, 'l10n_parent' => 1];
+        $table = 'pages';
+        $GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField'] = 'l10n_parent';
+
+        $mock = $this->getAccessibleMock(EditDocumentController::class, ['dummy'], [], '', false);
+        $result = $mock->_call('resolvePreviewRecordId', $table, $recordArray, $previewConfiguration);
+        self::assertSame($expected, $result);
+    }
+
+    public function resolvePreviewRecordIdForNonTranslatableTableDataProvider(): array
+    {
+        return [
+            'default useDefaultLanguageRecord' => [
+                2,
+                [],
+            ],
+            'explicit useDefaultLanguageRecord' => [
+                2,
+                ['useDefaultLanguageRecord' => '1'],
+            ],
+            'useDefaultLanguageRecord = 0' => [
+                2,
+                ['useDefaultLanguageRecord' => '0'],
+            ]
+        ];
+    }
+
+    /**
+     * @test
+     * @dataProvider resolvePreviewRecordIdForNonTranslatableTableDataProvider
+     */
+    public function resolvePreviewRecordIdReturnsExpectedUidForNonTranslatableTable(int $expected, array $previewConfiguration): void
+    {
+        $recordArray = ['uid' => 2];
+        $table = 'dummy_table';
+
+        $mock = $this->getAccessibleMock(EditDocumentController::class, ['dummy'], [], '', false);
+        $result = $mock->_call('resolvePreviewRecordId', $table, $recordArray, $previewConfiguration);
+        self::assertSame($expected, $result);
     }
 }

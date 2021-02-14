@@ -11,16 +11,15 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-/**
- * Module: TYPO3/CMS/Backend/DragUploader
- */
+import $ from 'jquery';
+import {AjaxResponse} from 'TYPO3/CMS/Core/Ajax/AjaxResponse';
 import {SeverityEnum} from './Enum/Severity';
-import * as $ from 'jquery';
-import moment = require('moment');
+import {MessageUtility} from './Utility/MessageUtility';
+import moment from 'moment';
 import NProgress = require('nprogress');
+import AjaxRequest = require('TYPO3/CMS/Core/Ajax/AjaxRequest');
 import Modal = require('./Modal');
 import Notification = require('./Notification');
-import {MessageUtility} from './Utility/MessageUtility';
 
 /**
  * Possible actions for conflicts w/ existing files
@@ -99,7 +98,7 @@ class DragUploaderPlugin {
   private browserCapabilities: { fileReader: boolean; DnD: boolean; Progress: boolean };
   private readonly dropZoneInsertBefore: boolean;
   private queueLength: number;
-  private defaultAction: string;
+  private readonly defaultAction: Action;
 
   constructor(element: HTMLElement) {
     this.$body = $('body');
@@ -155,12 +154,12 @@ class DragUploaderPlugin {
     this.$dropzoneMask.on('drop', (ev: JQueryEventObject) => this.handleDrop(<JQueryTypedEvent<DragEvent>>ev));
 
     this.$dropzone.prepend(
-      '<div class="dropzone-hint">' +
+      '<button type="button" class="dropzone-hint" aria-labelledby="dropzone-title">' +
       '<div class="dropzone-hint-media">' +
       '<div class="dropzone-hint-icon"></div>' +
       '</div>' +
       '<div class="dropzone-hint-body">' +
-      '<h3 class="dropzone-hint-title">' +
+      '<h3 id="dropzone-title" class="dropzone-hint-title">' +
       TYPO3.lang['file_upload.dropzonehint.title'] +
       '</h3>' +
       '<p class="dropzone-hint-message">' +
@@ -171,7 +170,10 @@ class DragUploaderPlugin {
     ).click(() => {
       this.fileInput.click();
     });
-    $('<span />').addClass('dropzone-close').click(this.hideDropzone).appendTo(this.$dropzone);
+    $('<button type="button" />')
+      .addClass('dropzone-close')
+      .attr('aria-label', TYPO3.lang['file_upload.dropzone.close'])
+      .on('click', this.hideDropzone).appendTo(this.$dropzone);
 
     // no filelist then create own progress table
     if (this.$fileList.length === 0) {
@@ -203,7 +205,7 @@ class DragUploaderPlugin {
    *
    * @param {Event} event
    */
-  public hideDropzone(event: Event): void {
+  public hideDropzone = (event: Event): void => {
     event.stopPropagation();
     event.preventDefault();
     this.$dropzone.hide();
@@ -261,32 +263,29 @@ class DragUploaderPlugin {
     this.percentagePerFile = 1 / files.length;
 
     // Check for each file if is already exist before adding it to the queue
-    const ajaxCalls: JQueryXHR[] = [];
-    $.each(files, (i: string, file: InternalFile) => {
-      ajaxCalls[parseInt(i, 10)] = $.ajax({
-        url: TYPO3.settings.ajaxUrls.file_exists,
-        data: {
-          fileName: file.name,
-          fileTarget: this.target,
-        },
-        cache: false,
-        success: (response: any) => {
-          const fileExists = typeof response.uid !== 'undefined';
-          if (fileExists) {
-            this.askForOverride.push({
-              original: response,
-              uploaded: file,
-              action: this.irreObjectUid ? Action.USE_EXISTING : Action.SKIP,
-            });
-            NProgress.inc(this.percentagePerFile);
-          } else {
-            new FileQueueItem(this, file, Action.SKIP);
-          }
-        },
+    const ajaxCalls: Promise<void>[] = [];
+    Array.from(files).forEach((file: InternalFile) => {
+      const request = new AjaxRequest(TYPO3.settings.ajaxUrls.file_exists).withQueryArguments({
+        fileName: file.name,
+        fileTarget: this.target,
+      }).get({cache: 'no-cache'}).then(async (response: AjaxResponse): Promise<void> => {
+        const data = await response.resolve();
+        const fileExists = typeof data.uid !== 'undefined';
+        if (fileExists) {
+          this.askForOverride.push({
+            original: data,
+            uploaded: file,
+            action: this.irreObjectUid ? Action.USE_EXISTING : this.defaultAction,
+          });
+          NProgress.inc(this.percentagePerFile);
+        } else {
+          new FileQueueItem(this, file, Action.SKIP);
+        }
       });
+      ajaxCalls.push(request);
     });
 
-    $.when.apply($, ajaxCalls).done(() => {
+    Promise.all(ajaxCalls).then((): void => {
       this.drawOverrideModal();
       NProgress.done();
     });
@@ -322,14 +321,11 @@ class DragUploaderPlugin {
     if (this.queueLength > 0) {
       this.queueLength--;
       if (this.queueLength === 0) {
-        $.ajax({
-          url: TYPO3.settings.ajaxUrls.flashmessages_render,
-          cache: false,
-          success: (data: any) => {
-            $.each(data, (index: number, flashMessage: { title: string, message: string, severity: number }) => {
-              Notification.showMessage(flashMessage.title, flashMessage.message, flashMessage.severity);
-            });
-          },
+        new AjaxRequest(TYPO3.settings.ajaxUrls.flashmessages_render).get({cache: 'no-cache'}).then(async (response: AjaxResponse): Promise<void> => {
+          const data = await response.resolve();
+          for (let flashMessage of data) {
+            Notification.showMessage(flashMessage.title, flashMessage.message, flashMessage.severity);
+          }
         });
       }
     }
@@ -366,7 +362,7 @@ class DragUploaderPlugin {
         ),
         $('<td />').html(
           this.askForOverride[i].original.name + ' (' + (DragUploader.fileSizeAsString(this.askForOverride[i].original.size)) + ')' +
-          '<br>' + moment.unix(this.askForOverride[i].original.mtime).format('YYYY-MM-DD HH:mm'),
+          '<br>' + moment(this.askForOverride[i].original.mtime).format('YYYY-MM-DD HH:mm'),
         ),
         $('<td />').html(
           this.askForOverride[i].uploaded.name + ' (' + (DragUploader.fileSizeAsString(this.askForOverride[i].uploaded.size)) + ')' +
@@ -384,7 +380,7 @@ class DragUploaderPlugin {
               .val(Action.SKIP).text(TYPO3.lang['file_upload.actions.skip']),
             $('<option />', {'selected': this.defaultAction === Action.RENAME})
               .val(Action.RENAME).text(TYPO3.lang['file_upload.actions.rename']),
-            $('<option />',  {'selected': this.defaultAction === Action.OVERRIDE})
+            $('<option />', {'selected': this.defaultAction === Action.OVERRIDE})
               .val(Action.OVERRIDE).text(TYPO3.lang['file_upload.actions.override']),
           ),
         ),
@@ -472,18 +468,17 @@ class DragUploaderPlugin {
 }
 
 class FileQueueItem {
-  private $row: JQuery;
+  private readonly $row: JQuery;
+  private readonly $progress: JQuery;
+  private readonly $progressContainer: JQuery;
+  private readonly file: InternalFile;
+  private readonly override: Action;
   private $iconCol: JQuery;
   private $fileName: JQuery;
-  private $progress: JQuery;
-  private $progressContainer: JQuery;
   private $progressBar: JQuery;
   private $progressPercentage: JQuery;
   private $progressMessage: JQuery;
   private dragUploader: DragUploaderPlugin;
-  private file: InternalFile;
-  private override: Action;
-  private upload: XMLHttpRequest;
 
   constructor(dragUploader: DragUploaderPlugin, file: InternalFile, override: Action) {
     this.dragUploader = dragUploader;
@@ -538,25 +533,20 @@ class FileQueueItem {
       formData.append('redirect', '');
       formData.append('upload_1', this.file);
 
-      const s = $.extend(true, {}, $.ajaxSettings, {
-        url: TYPO3.settings.ajaxUrls.file_process,
-        contentType: false,
-        processData: false,
-        data: formData,
-        cache: false,
-        type: 'POST',
-        success: (data: { upload?: UploadedFile[] }) => this.uploadSuccess(data),
-        error: (response: XMLHttpRequest) => this.uploadError(response),
-      });
-
-      s.xhr = () => {
-        const xhr = $.ajaxSettings.xhr();
-        xhr.upload.addEventListener('progress', (e: ProgressEvent) => this.updateProgress(e));
-        return xhr;
+      // We use XMLHttpRequest as we need the `progress` event which isn't supported by fetch()
+      const xhr = new XMLHttpRequest();
+      xhr.onreadystatechange = (): void => {
+        if (xhr.readyState === XMLHttpRequest.DONE) {
+          if (xhr.status === 200) {
+            this.uploadSuccess(JSON.parse(xhr.responseText));
+          } else {
+            this.uploadError(xhr);
+          }
+        }
       };
-
-      // start upload
-      this.upload = $.ajax(s);
+      xhr.upload.addEventListener('progress', (e: ProgressEvent) => this.updateProgress(e));
+      xhr.open('POST', TYPO3.settings.ajaxUrls.file_process);
+      xhr.send(formData);
     }
   }
 
@@ -660,7 +650,7 @@ class FileQueueItem {
    */
   public showFileInfo(fileInfo: UploadedFile): void {
     this.removeProgress();
-    // add spacing cells when clibboard and/or extended view is enabled
+    // add spacing cells when clipboard and/or extended view is enabled
     for (let i = 7; i < this.dragUploader.fileListColumnCount; i++) {
       $('<td />').text('').appendTo(this.$row);
     }
@@ -713,6 +703,7 @@ class DragUploader {
    */
   public static addFileToIrre(irre_object: number, file: UploadedFile): void {
     const message = {
+      actionName: 'typo3:foreignRelation:insert',
       objectGroup: irre_object,
       table: 'sys_file',
       uid: file.uid,

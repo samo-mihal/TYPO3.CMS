@@ -1,4 +1,5 @@
 <?php
+
 return [
     'TYPO3\CMS\Core\Charset\CharsetConverter->euc_char_mapping' => [
         'maximumNumberOfArguments' => 2,
@@ -110,12 +111,6 @@ return [
         'maximumNumberOfArguments' => 0,
         'restFiles' => [
             'Breaking-55298-DecoupledHistoryFunctionality.rst',
-        ],
-    ],
-    'TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController->__construct' => [
-        'maximumNumberOfArguments' => 7,
-        'restFiles' => [
-            'Breaking-82572-RDCTFunctionalityRemoved.rst',
         ],
     ],
     'TYPO3\CMS\Core\DataHandling\DataHandler->printLogErrorMessages' => [

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Recordlist\LinkHandler;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Recordlist\LinkHandler;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Recordlist\LinkHandler;
 
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Tree\View\ElementBrowserFolderTreeView;
@@ -151,6 +152,7 @@ class FileLinkHandler extends AbstractLinkHandler implements LinkHandlerInterfac
         $folderIcon = $this->iconFactory->getIconForResource($folder, Icon::SIZE_SMALL)->render();
         $this->view->assign('selectedFolderIcon', $folderIcon);
         $this->view->assign('selectedFolderTitle', GeneralUtility::fixed_lgd_cs($folder->getIdentifier(), (int)$this->getBackendUser()->uc['titleLen']));
+        $this->view->assign('selectedFolderUrl', GeneralUtility::makeInstance(LinkService::class)->asString(['type' => LinkService::TYPE_FOLDER, 'folder' => $folder]));
         if ($this->mode === 'file') {
             $this->view->assign('currentIdentifier', !empty($this->linkParts) ? $this->linkParts['url']['file']->getUid() : '');
         } else {
@@ -200,7 +202,7 @@ class FileLinkHandler extends AbstractLinkHandler implements LinkHandlerInterfac
         }
         // Get size and icon:
         $size = GeneralUtility::formatSize(
-            $fileOrFolderObject->getSize(),
+            (int)$fileOrFolderObject->getSize(),
             $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_common.xlf:byteSizeUnits')
         );
 
@@ -268,7 +270,7 @@ class FileLinkHandler extends AbstractLinkHandler implements LinkHandlerInterfac
         $selectedFolder = false;
         if ($folderIdentifier) {
             try {
-                $fileOrFolderObject = ResourceFactory::getInstance()->retrieveFileOrFolderObject($folderIdentifier);
+                $fileOrFolderObject = GeneralUtility::makeInstance(ResourceFactory::class)->retrieveFileOrFolderObject($folderIdentifier);
                 if ($fileOrFolderObject instanceof Folder) {
                     // It's a folder
                     $selectedFolder = $fileOrFolderObject;

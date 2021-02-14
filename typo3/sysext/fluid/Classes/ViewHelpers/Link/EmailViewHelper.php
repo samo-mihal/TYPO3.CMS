@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\ViewHelpers\Link;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Fluid\ViewHelpers\Link;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Fluid\ViewHelpers\Link;
 
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractTagBasedViewHelper;
 
@@ -80,7 +81,7 @@ class EmailViewHelper extends AbstractTagBasedViewHelper
         $email = $this->arguments['email'];
 
         if ($this->isFrontendAvailable()) {
-            list($linkHref, $linkText) = $GLOBALS['TSFE']->cObj->getMailTo($email, '');
+            [$linkHref, $linkText] = $GLOBALS['TSFE']->cObj->getMailTo($email, '');
             $escapeSpecialCharacters = !isset($GLOBALS['TSFE']->spamProtectEmailAddresses) || $GLOBALS['TSFE']->spamProtectEmailAddresses !== 'ascii';
         } else {
             $linkHref = 'mailto:' . $email;

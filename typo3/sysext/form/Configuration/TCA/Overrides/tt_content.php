@@ -1,4 +1,5 @@
 <?php
+
 defined('TYPO3_MODE') or die();
 
 call_user_func(function () {
@@ -36,6 +37,7 @@ call_user_func(function () {
         'Form',
         'Formframework',
         'Form',
-        'content-form'
+        'content-form',
+        'forms'
     );
 });

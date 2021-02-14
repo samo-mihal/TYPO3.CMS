@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Resource\Event;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,12 +15,14 @@ namespace TYPO3\CMS\Core\Resource\Event;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Resource\Event;
+
 use TYPO3\CMS\Core\Resource\ResourceStorage;
 
 /**
  * This event is fired after a resource object was built/created.
  *
- * Custom handlers can be initialized at this moment for any kind of rource  as well.
+ * Custom handlers can be initialized at this moment for any kind of source  as well.
  */
 final class AfterResourceStorageInitializationEvent
 {

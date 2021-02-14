@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Resource\Collection;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,10 @@ namespace TYPO3\CMS\Core\Resource\Collection;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Resource\Collection;
+
+use TYPO3\CMS\Core\Collection\AbstractRecordCollection;
 use TYPO3\CMS\Core\Collection\CollectionInterface;
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\FileInterface;
@@ -20,7 +23,7 @@ use TYPO3\CMS\Core\Resource\FileInterface;
 /**
  * Abstract collection.
  */
-abstract class AbstractFileCollection extends \TYPO3\CMS\Core\Collection\AbstractRecordCollection
+abstract class AbstractFileCollection extends AbstractRecordCollection
 {
     /**
      * The table name collections are stored to
@@ -196,7 +199,7 @@ abstract class AbstractFileCollection extends \TYPO3\CMS\Core\Collection\Abstrac
     }
 
     /**
-     * Adds all files of another collection to the corrent one.
+     * Adds all files of another collection to the current one.
      *
      * @param CollectionInterface $other
      */

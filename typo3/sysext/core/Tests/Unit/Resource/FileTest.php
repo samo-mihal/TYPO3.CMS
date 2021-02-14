@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Unit\Resource;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,11 +15,16 @@ namespace TYPO3\CMS\Core\Tests\Unit\Resource;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\Resource;
+
 use TYPO3\CMS\Core\Resource\File;
+use TYPO3\CMS\Core\Resource\Folder;
 use TYPO3\CMS\Core\Resource\Index\MetaDataRepository;
 use TYPO3\CMS\Core\Resource\MetaDataAspect;
+use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\Resource\ResourceStorage;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -63,7 +68,7 @@ class FileTest extends UnitTestCase
     public function commonPropertiesAreAvailableWithOwnGetters(): void
     {
         $properties = [
-            'name' => $this->getUniqueId(),
+            'name' => StringUtility::getUniqueId('name_'),
             'storage' => $this->storageMock,
             'size' => 1024
         ];
@@ -89,7 +94,7 @@ class FileTest extends UnitTestCase
      */
     public function updatePropertiesUpdatesFileProperties(): void
     {
-        $identifier = '/' . $this->getUniqueId();
+        $identifier = '/' . StringUtility::getUniqueId('identifier_');
         $fixture = new File(['uid' => 1, 'identifier' => '/test'], $this->storageMock);
         $fixture->updateProperties(['identifier' => $identifier]);
         self::assertEquals($identifier, $fixture->getIdentifier());
@@ -160,13 +165,13 @@ class FileTest extends UnitTestCase
             ->setMethods(['loadStorage'])
             ->setConstructorArgs([$fileProperties, $this->storageMock])
             ->getMock();
-        $mockedNewStorage = $this->createMock(\TYPO3\CMS\Core\Resource\ResourceStorage::class);
-        $mockedResourceFactory = $this->createMock(\TYPO3\CMS\Core\Resource\ResourceFactory::class);
+        $mockedNewStorage = $this->createMock(ResourceStorage::class);
+        $mockedResourceFactory = $this->createMock(ResourceFactory::class);
         $mockedResourceFactory
             ->expects(self::once())
             ->method('getStorageObject')
             ->willReturn($mockedNewStorage);
-        GeneralUtility::setSingletonInstance(\TYPO3\CMS\Core\Resource\ResourceFactory::class, $mockedResourceFactory);
+        GeneralUtility::setSingletonInstance(ResourceFactory::class, $mockedResourceFactory);
 
         $subject->updateProperties(['storage' => 'different']);
         self::assertSame($mockedNewStorage, $subject->getStorage());
@@ -177,8 +182,8 @@ class FileTest extends UnitTestCase
      */
     public function copyToCallsCopyOperationOnTargetFolderStorage(): void
     {
-        $targetStorage = $this->createMock(\TYPO3\CMS\Core\Resource\ResourceStorage::class);
-        $targetFolder = $this->createMock(\TYPO3\CMS\Core\Resource\Folder::class);
+        $targetStorage = $this->createMock(ResourceStorage::class);
+        $targetFolder = $this->createMock(Folder::class);
         $targetFolder->expects(self::any())->method('getStorage')->willReturn($targetStorage);
         $fixture = new File([], $this->storageMock);
         $targetStorage->expects(self::once())->method('copyFile')->with(self::equalTo($fixture), self::equalTo($targetFolder));
@@ -190,8 +195,8 @@ class FileTest extends UnitTestCase
      */
     public function moveToCallsMoveOperationOnTargetFolderStorage(): void
     {
-        $targetStorage = $this->createMock(\TYPO3\CMS\Core\Resource\ResourceStorage::class);
-        $targetFolder = $this->createMock(\TYPO3\CMS\Core\Resource\Folder::class);
+        $targetStorage = $this->createMock(ResourceStorage::class);
+        $targetFolder = $this->createMock(Folder::class);
         $targetFolder->expects(self::any())->method('getStorage')->willReturn($targetStorage);
         $fixture = new File([], $this->storageMock);
         $targetStorage->expects(self::once())->method('moveFile')->with(self::equalTo($fixture), self::equalTo($targetFolder));
@@ -267,5 +272,31 @@ class FileTest extends UnitTestCase
 
         self::assertTrue($fixture->hasProperty('testproperty'));
         self::assertSame('testvalue', $fixture->getProperty('testproperty'));
+    }
+
+    /**
+     * @test
+     */
+    public function getPropertiesContainsUidOfSysFileMetadata(): void
+    {
+        $fileData = [
+            'uid' => 1357,
+            'name' => 'dummy.svg'
+        ];
+        $metaData = [
+            'uid' => 2468,
+            'file' => 1357,
+            'title' => 'Dummy SVG'
+        ];
+        $file = new File($fileData, $this->storageMock, $metaData);
+
+        self::assertSame(
+            1357,
+            $file->getProperties()['uid']
+        );
+        self::assertSame(
+            2468,
+            $file->getProperties()['metadata_uid']
+        );
     }
 }

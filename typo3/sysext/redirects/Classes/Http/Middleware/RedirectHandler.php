@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Redirects\Http\Middleware;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Redirects\Http\Middleware;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Redirects\Http\Middleware;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -66,7 +68,7 @@ class RedirectHandler implements MiddlewareInterface, LoggerAwareInterface
 
         // If the matched redirect is found, resolve it, and check further
         if (is_array($matchedRedirect)) {
-            $url = $this->redirectService->getTargetUrl($matchedRedirect, $request->getQueryParams(), $request->getAttribute('frontend.user'), $request->getAttribute('site'));
+            $url = $this->redirectService->getTargetUrl($matchedRedirect, $request->getQueryParams(), $request->getAttribute('frontend.user'), $request->getUri(), $request->getAttribute('site'));
             if ($url instanceof UriInterface) {
                 $this->logger->debug('Redirecting', ['record' => $matchedRedirect, 'uri' => $url]);
                 $response = $this->buildRedirectResponse($url, $matchedRedirect);

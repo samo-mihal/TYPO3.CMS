@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\FrontendLogin\Updates;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,6 +15,8 @@ namespace TYPO3\CMS\FrontendLogin\Updates;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\FrontendLogin\Updates;
+
 use TYPO3\CMS\Core\Configuration\Features;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
@@ -28,7 +29,7 @@ use TYPO3\CMS\Install\Updates\UpgradeWizardInterface;
 /**
  * @internal this is a concrete TYPO3 implementation and solely used for EXT:felogin and not part of TYPO3's Core API.
  */
-class MigrateFeloginPluginsCtype implements UpgradeWizardInterface, RepeatableInterface
+final class MigrateFeloginPluginsCtype implements UpgradeWizardInterface, RepeatableInterface
 {
     protected const CTYPE_PIBASE = 'login';
     protected const CTYPE_EXTBASE = 'felogin_login';

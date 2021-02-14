@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Resource\Search\QueryRestrictions;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,12 +15,15 @@ namespace TYPO3\CMS\Core\Resource\Search\QueryRestrictions;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Resource\Search\QueryRestrictions;
+
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\Query\Expression\CompositeExpression;
 use TYPO3\CMS\Core\Database\Query\Expression\ExpressionBuilder;
 use TYPO3\CMS\Core\Database\Query\Restriction\AbstractRestrictionContainer;
 use TYPO3\CMS\Core\Resource\Folder;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Restricts the result to available file mounts.
@@ -85,7 +88,7 @@ class FolderMountsRestriction extends AbstractRestrictionContainer
         $this->folderMounts = [];
         $fileMounts = $this->backendUser->getFileMountRecords();
         foreach ($fileMounts as $fileMount) {
-            $this->folderMounts[] = ResourceFactory::getInstance()->getFolderObjectFromCombinedIdentifier($fileMount['base'] . ':' . $fileMount['path']);
+            $this->folderMounts[] = GeneralUtility::makeInstance(ResourceFactory::class)->getFolderObjectFromCombinedIdentifier($fileMount['base'] . ':' . $fileMount['path']);
         }
 
         return $this->folderMounts;

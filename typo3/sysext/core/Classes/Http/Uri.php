@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Http;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,7 +13,10 @@ namespace TYPO3\CMS\Core\Http;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Http;
+
 use Psr\Http\Message\UriInterface;
+use TYPO3\CMS\Core\Utility\MathUtility;
 
 /**
  * Represents a URI based on the PSR-7 Standard.
@@ -238,7 +240,7 @@ class Uri implements UriInterface
      * The value returned MUST be normalized to lowercase, per RFC 3986
      * Section 3.2.2.
      *
-     * @see http://tools.ietf.org/html/rfc3986#section-3.2.2
+     * @see https://tools.ietf.org/html/rfc3986#section-3.2.2
      * @return string The URI host.
      */
     public function getHost()
@@ -435,7 +437,7 @@ class Uri implements UriInterface
     public function withPort($port)
     {
         if ($port !== null) {
-            if (\TYPO3\CMS\Core\Utility\MathUtility::canBeInterpretedAsInteger($port) === false) {
+            if (MathUtility::canBeInterpretedAsInteger($port) === false) {
                 $argumentType = is_object($port) ? get_class($port) : gettype($port);
                 throw new \InvalidArgumentException('Invalid port "' . $argumentType . '" specified, must be an integer.', 1436717324);
             }
@@ -569,7 +571,7 @@ class Uri implements UriInterface
      * - If a query is present, it MUST be prefixed by "?".
      * - If a fragment is present, it MUST be prefixed by "#".
      *
-     * @see http://tools.ietf.org/html/rfc3986#section-4.1
+     * @see https://tools.ietf.org/html/rfc3986#section-4.1
      * @return string
      */
     public function __toString()
@@ -604,7 +606,7 @@ class Uri implements UriInterface
      *
      * @param string $scheme
      * @param string $host
-     * @param int $port
+     * @param int|null $port
      * @return bool
      */
     protected function isNonStandardPort($scheme, $host, $port)
@@ -677,7 +679,7 @@ class Uri implements UriInterface
 
         $parts = explode('&', $query);
         foreach ($parts as $index => $part) {
-            list($key, $value) = $this->splitQueryValue($part);
+            [$key, $value] = $this->splitQueryValue($part);
             if ($value === null) {
                 $parts[$index] = $this->sanitizeQueryOrFragment($key);
                 continue;

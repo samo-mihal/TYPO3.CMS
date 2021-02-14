@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Template;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Backend\Template;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Template;
+
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use TYPO3\CMS\Backend\Backend\Shortcut\ShortcutRepository;
@@ -23,9 +24,12 @@ use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconFactory;
+use TYPO3\CMS\Core\Information\Typo3Information;
 use TYPO3\CMS\Core\Localization\LanguageService;
+use TYPO3\CMS\Core\Messaging\FlashMessageService;
 use TYPO3\CMS\Core\Page\PageRenderer;
 use TYPO3\CMS\Core\Service\MarkerBasedTemplateService;
+use TYPO3\CMS\Core\Utility\ArrayUtility;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\HttpUtility;
@@ -43,6 +47,8 @@ use TYPO3\CMS\Core\Utility\PathUtility;
  * After this file $LANG and $TBE_TEMPLATE are global variables / instances of their respective classes.
  *
  * Please refer to Inside TYPO3 for a discussion of how to use this API.
+ *
+ * @deprecated will be removed in TYPO3 v11.0. Use ModuleTemplate and PageRenderer instead.
  */
 class DocumentTemplate implements LoggerAwareInterface
 {
@@ -225,6 +231,7 @@ function jumpToUrl(URL) {
     public function __construct()
     {
         $this->initPageRenderer();
+        trigger_error(__CLASS__ . ' will be removed in TYPO3 v11. Use ModuleTemplate API instead.', E_USER_DEPRECATED);
 
         $this->iconFactory = GeneralUtility::makeInstance(IconFactory::class);
 
@@ -239,7 +246,7 @@ function jumpToUrl(URL) {
             // Make copy
             $ovr = $GLOBALS['TBE_STYLES']['scriptIDindex'][$this->scriptID];
             // merge styles.
-            \TYPO3\CMS\Core\Utility\ArrayUtility::mergeRecursiveWithOverrule($GLOBALS['TBE_STYLES'], $ovr);
+            ArrayUtility::mergeRecursiveWithOverrule($GLOBALS['TBE_STYLES'], $ovr);
             // Have to unset - otherwise the second instantiation will do it again!
             unset($GLOBALS['TBE_STYLES']['scriptIDindex'][$this->scriptID]);
         }
@@ -273,6 +280,8 @@ function jumpToUrl(URL) {
         $this->pageRenderer->enableConcatenateJavascript();
         $this->pageRenderer->enableCompressCss();
         $this->pageRenderer->enableCompressJavascript();
+        $this->pageRenderer->loadRequireJsModule('TYPO3/CMS/Backend/GlobalEventHandler');
+        $this->pageRenderer->loadRequireJsModule('TYPO3/CMS/Backend/ActionDispatcher');
         if ($GLOBALS['TYPO3_CONF_VARS']['BE']['debug']) {
             $this->pageRenderer->enableDebugMode();
         }
@@ -303,7 +312,7 @@ function jumpToUrl(URL) {
         if ((int)$motherModName === 1) {
             $motherModule = 'top.currentModuleLoaded';
         } elseif ($motherModName) {
-            $motherModule = GeneralUtility::quoteJSvalue($motherModName);
+            $motherModule = GeneralUtility::quoteJSvalue((string)$motherModName);
         } else {
             $motherModule = '\'\'';
         }
@@ -609,7 +618,7 @@ function jumpToUrl(URL) {
                 foreach ($skinStylesheetDirs as $stylesheetDir) {
                     // for EXT:myskin/stylesheets/ syntax
                     if (strpos($stylesheetDir, 'EXT:') === 0) {
-                        list($extKey, $path) = explode('/', substr($stylesheetDir, 4), 2);
+                        [$extKey, $path] = explode('/', substr($stylesheetDir, 4), 2);
                         if (!empty($extKey) && ExtensionManagementUtility::isLoaded($extKey) && !empty($path)) {
                             $stylesheetDirectories[] = ExtensionManagementUtility::extPath($extKey) . $path;
                         }
@@ -626,11 +635,11 @@ function jumpToUrl(URL) {
     /**
      * Returns generator meta tag
      *
-     * @return string <meta> tag with name "generator
+     * @return string HTML <meta> tag with name "generator"
      */
     public function generator()
     {
-        return 'TYPO3 CMS, ' . TYPO3_URL_GENERAL . ', &#169; Kasper Sk&#229;rh&#248;j ' . TYPO3_copyright_year . ', extensions are copyright of their respective owners.';
+        return GeneralUtility::makeInstance(Typo3Information::class)->getHtmlGeneratorTagContent();
     }
 
     /*****************************************
@@ -639,7 +648,6 @@ function jumpToUrl(URL) {
      * Tables, buttons, formatting dimmed/red strings
      *
      ******************************************/
-
     /**
      * Function to load a HTML template file with markers.
      * When calling from own extension, use  syntax getHtmlTemplate('EXT:extkey/template.html')
@@ -731,7 +739,7 @@ function jumpToUrl(URL) {
     public function getFlashMessages()
     {
         /** @var \TYPO3\CMS\Core\Messaging\FlashMessageService $flashMessageService */
-        $flashMessageService = GeneralUtility::makeInstance(\TYPO3\CMS\Core\Messaging\FlashMessageService::class);
+        $flashMessageService = GeneralUtility::makeInstance(FlashMessageService::class);
         /** @var \TYPO3\CMS\Core\Messaging\FlashMessageQueue $defaultFlashMessageQueue */
         $defaultFlashMessageQueue = $flashMessageService->getMessageQueueByIdentifier();
         return $defaultFlashMessageQueue->renderFlashMessages();
@@ -803,7 +811,7 @@ function jumpToUrl(URL) {
         // Setting the path of the page
         $pagePath = htmlspecialchars($this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.path')) . ': <span class="typo3-docheader-pagePath">';
         // crop the title to title limit (or 50, if not defined)
-        $cropLength = empty($GLOBALS['BE_USER']->uc['titleLen']) ? 50 : $GLOBALS['BE_USER']->uc['titleLen'];
+        $cropLength = empty($GLOBALS['BE_USER']->uc['titleLen']) ? 50 : (int)$GLOBALS['BE_USER']->uc['titleLen'];
         $croppedTitle = GeneralUtility::fixed_lgd_cs($title, -$cropLength);
         if ($croppedTitle !== $title) {
             $pagePath .= '<abbr title="' . htmlspecialchars($title) . '">' . htmlspecialchars($croppedTitle) . '</abbr>';

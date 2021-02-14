@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Module;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,9 @@ namespace TYPO3\CMS\Backend\Module;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Module;
+
+use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -155,7 +157,7 @@ class ModuleLoader
         // Language processing. This will add module labels and image reference to the internal ->moduleLabels array of the LANG object.
         $this->addLabelsForModule($name, $finalModuleConfiguration['labels'] ?? $setupInformation['labels']);
         /** @var \TYPO3\CMS\Backend\Routing\UriBuilder $uriBuilder */
-        $uriBuilder = GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Routing\UriBuilder::class);
+        $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
         if (isset($setupInformation['configuration']['routeTarget'])) {
             $finalModuleConfiguration['script'] = (string)$uriBuilder->buildUriFromRoute($name);
         } else {
@@ -174,7 +176,7 @@ class ModuleLoader
         // Check if this is a submodule
         $mainModule = '';
         if (strpos($name, '_') !== false) {
-            list($mainModule, ) = explode('_', $name, 2);
+            [$mainModule, ] = explode('_', $name, 2);
         }
 
         // check if there is a navigation component (like the pagetree)
@@ -224,7 +226,7 @@ class ModuleLoader
         }
 
         // Add some default configuration
-        if (!isset($moduleSetupInformation['configuration']['inheritNavigationComponentFromMainModule'])) {
+        if ($moduleSetupInformation['configuration'] !== [] && !isset($moduleSetupInformation['configuration']['inheritNavigationComponentFromMainModule'])) {
             $moduleSetupInformation['configuration']['inheritNavigationComponentFromMainModule'] = true;
         }
 

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extensionmanager\ViewHelpers;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,10 @@ namespace TYPO3\CMS\Extensionmanager\ViewHelpers;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extensionmanager\ViewHelpers;
+
+use Psr\EventDispatcher\EventDispatcherInterface;
+use TYPO3\CMS\Extensionmanager\Event\AvailableActionsForExtensionEvent;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractTagBasedViewHelper;
 
 /**
@@ -23,28 +26,20 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractTagBasedViewHelper;
  */
 class ProcessAvailableActionsViewHelper extends AbstractTagBasedViewHelper
 {
-    const SIGNAL_ProcessActions = 'processActions';
-
     /**
-     * @var \TYPO3\CMS\Extbase\SignalSlot\Dispatcher
+     * @var EventDispatcherInterface
      */
-    protected $signalSlotDispatcher;
+    protected $eventDispatcher;
 
-    /**
-     * @param \TYPO3\CMS\Extbase\SignalSlot\Dispatcher $signalSlotDispatcher
-     */
-    public function injectSignalSlotDispatcher(\TYPO3\CMS\Extbase\SignalSlot\Dispatcher $signalSlotDispatcher)
+    public function injectEventDispatcher(EventDispatcherInterface $eventDispatcher)
     {
-        $this->signalSlotDispatcher = $signalSlotDispatcher;
+        $this->eventDispatcher = $eventDispatcher;
     }
 
-    /**
-     * Initialize arguments
-     */
     public function initializeArguments()
     {
         parent::initializeArguments();
-        $this->registerArgument('extension', 'string', '', true);
+        $this->registerArgument('extension', 'array', '', true);
     }
 
     /**
@@ -54,32 +49,12 @@ class ProcessAvailableActionsViewHelper extends AbstractTagBasedViewHelper
      */
     public function render()
     {
-        $extension = $this->arguments['extension'];
         $html = $this->renderChildren();
         $actions = preg_split('#\\n\\s*#s', trim($html));
+        $actions = is_array($actions) ? $actions : [];
 
-        $actions = $this->emitProcessActionsSignal($extension, $actions);
-
-        return implode(' ', $actions);
-    }
-
-    /**
-     * Emits a signal after the list of actions is processed
-     *
-     * @param string $extension
-     * @param array $actions
-     * @return array Modified action array
-     */
-    protected function emitProcessActionsSignal($extension, array $actions)
-    {
-        $this->signalSlotDispatcher->dispatch(
-            __CLASS__,
-            static::SIGNAL_ProcessActions,
-            [
-                $extension,
-                &$actions,
-            ]
-        );
-        return $actions;
+        $event = new AvailableActionsForExtensionEvent($this->arguments['extension']['key'], $this->arguments['extension'], $actions);
+        $this->eventDispatcher->dispatch($event);
+        return implode(' ', $event->getActions());
     }
 }

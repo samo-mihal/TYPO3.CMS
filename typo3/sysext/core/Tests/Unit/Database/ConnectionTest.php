@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Unit\Database;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,8 +15,15 @@ namespace TYPO3\CMS\Core\Tests\Unit\Database;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\Database;
+
+use Doctrine\DBAL\Configuration;
+use Doctrine\DBAL\Driver\Mysqli\Driver;
 use Doctrine\DBAL\Driver\Mysqli\MysqliConnection;
+use Doctrine\DBAL\Driver\ServerInfoAwareConnection;
+use Doctrine\DBAL\Platforms\MySqlPlatform;
 use Doctrine\DBAL\Statement;
+use Doctrine\DBAL\VersionAwarePlatformDriver;
 use Prophecy\Prophecy\ObjectProphecy;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\Query\Expression\ExpressionBuilder;
@@ -53,18 +60,19 @@ class ConnectionTest extends UnitTestCase
         parent::setUp();
 
         $this->connection = $this->getMockBuilder(Connection::class)
-            ->disableOriginalConstructor()
             ->setMethods(
                 [
                     'connect',
                     'executeQuery',
                     'executeUpdate',
+                    'executeStatement',
                     'getDatabasePlatform',
                     'getDriver',
                     'getExpressionBuilder',
                     'getWrappedConnection',
                 ]
             )
+            ->setConstructorArgs([['platform' => $this->prophesize(MySqlPlatform::class)->reveal()], $this->prophesize(Driver::class)->reveal(), new Configuration(), null])
             ->getMock();
 
         $this->connection->expects(self::any())
@@ -213,10 +221,19 @@ class ConnectionTest extends UnitTestCase
      */
     public function insertQueries(array $args, string $expectedQuery, array $expectedValues, array $expectedTypes)
     {
-        $this->connection->expects(self::once())
-            ->method('executeUpdate')
-            ->with($expectedQuery, $expectedValues, $expectedTypes)
-            ->willReturn(1);
+
+        // @todo drop else branch and condition once doctrine/dbal is requried in version 2.11.0 minimum
+        if (method_exists(Connection::class, 'executeStatement')) {
+            $this->connection->expects(self::once())
+                ->method('executeStatement')
+                ->with($expectedQuery, $expectedValues, $expectedTypes)
+                ->willReturn(1);
+        } else {
+            $this->connection->expects(self::once())
+                ->method('executeUpdate')
+                ->with($expectedQuery, $expectedValues, $expectedTypes)
+                ->willReturn(1);
+        }
 
         $this->connection->insert(...$args);
     }
@@ -277,10 +294,18 @@ class ConnectionTest extends UnitTestCase
      */
     public function updateQueries(array $args, string $expectedQuery, array $expectedValues, array $expectedTypes)
     {
-        $this->connection->expects(self::once())
-            ->method('executeUpdate')
-            ->with($expectedQuery, $expectedValues, $expectedTypes)
-            ->willReturn(1);
+        // @todo drop else branch and condition once doctrine/dbal is requried in version 2.11.0 minimum
+        if (method_exists(Connection::class, 'executeStatement')) {
+            $this->connection->expects(self::once())
+                ->method('executeStatement')
+                ->with($expectedQuery, $expectedValues, $expectedTypes)
+                ->willReturn(1);
+        } else {
+            $this->connection->expects(self::once())
+                ->method('executeUpdate')
+                ->with($expectedQuery, $expectedValues, $expectedTypes)
+                ->willReturn(1);
+        }
 
         $this->connection->update(...$args);
     }
@@ -328,10 +353,18 @@ class ConnectionTest extends UnitTestCase
      */
     public function deleteQueries(array $args, string $expectedQuery, array $expectedValues, array $expectedTypes)
     {
-        $this->connection->expects(self::once())
-            ->method('executeUpdate')
-            ->with($expectedQuery, $expectedValues, $expectedTypes)
-            ->willReturn(1);
+        // @todo drop else branch and condition once doctrine/dbal is requried in version 2.11.0 minimum
+        if (method_exists(Connection::class, 'executeStatement')) {
+            $this->connection->expects(self::once())
+                ->method('executeStatement')
+                ->with($expectedQuery, $expectedValues, $expectedTypes)
+                ->willReturn(1);
+        } else {
+            $this->connection->expects(self::once())
+                ->method('executeUpdate')
+                ->with($expectedQuery, $expectedValues, $expectedTypes)
+                ->willReturn(1);
+        }
 
         $this->connection->delete(...$args);
     }
@@ -494,12 +527,12 @@ class ConnectionTest extends UnitTestCase
     public function getServerVersionReportsPlatformVersion()
     {
         /** @var MysqliConnection|ObjectProphecy $driverProphet */
-        $driverProphet = $this->prophesize(\Doctrine\DBAL\Driver\Mysqli\Driver::class);
-        $driverProphet->willImplement(\Doctrine\DBAL\VersionAwarePlatformDriver::class);
+        $driverProphet = $this->prophesize(Driver::class);
+        $driverProphet->willImplement(VersionAwarePlatformDriver::class);
 
         /** @var MysqliConnection|ObjectProphecy $wrappedConnectionProphet */
-        $wrappedConnectionProphet = $this->prophesize(\Doctrine\DBAL\Driver\Mysqli\MysqliConnection::class);
-        $wrappedConnectionProphet->willImplement(\Doctrine\DBAL\Driver\ServerInfoAwareConnection::class);
+        $wrappedConnectionProphet = $this->prophesize(MysqliConnection::class);
+        $wrappedConnectionProphet->willImplement(ServerInfoAwareConnection::class);
         $wrappedConnectionProphet->requiresQueryForServerVersion()->willReturn(false);
         $wrappedConnectionProphet->getServerVersion()->willReturn('5.7.11');
 

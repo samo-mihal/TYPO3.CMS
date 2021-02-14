@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Http;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Http;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Http;
 
 use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -81,7 +82,7 @@ class Dispatcher implements DispatcherInterface
 
         // Check if the target is a concatenated string of "className::actionMethod"
         if (is_string($target) && strpos($target, '::') !== false) {
-            list($className, $methodName) = explode('::', $target, 2);
+            [$className, $methodName] = explode('::', $target, 2);
             $targetObject = $this->container->has($className) ? $this->container->get($className) : GeneralUtility::makeInstance($className);
             return [$targetObject, $methodName];
         }

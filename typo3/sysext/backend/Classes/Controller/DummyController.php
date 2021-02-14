@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,8 +13,10 @@ namespace TYPO3\CMS\Backend\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Controller;
+
 use Psr\Http\Message\ResponseInterface;
-use TYPO3\CMS\Backend\Template\DocumentTemplate;
+use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Core\Http\HtmlResponse;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -32,8 +33,9 @@ class DummyController
      */
     public function mainAction(): ResponseInterface
     {
-        $documentTemplate = GeneralUtility::makeInstance(DocumentTemplate::class);
-        $content = $documentTemplate->startPage('Dummy document') . $documentTemplate->endPage();
-        return new HtmlResponse($content);
+        $moduleTemplate = GeneralUtility::makeInstance(ModuleTemplate::class);
+        $moduleTemplate->setTitle('Blank');
+        $moduleTemplate->getDocHeaderComponent()->disable();
+        return new HtmlResponse($moduleTemplate->renderContent());
     }
 }

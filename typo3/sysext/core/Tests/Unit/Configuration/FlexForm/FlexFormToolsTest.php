@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Unit\Configuration\FlexForm;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\Configuration\FlexForm;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\Configuration\FlexForm;
 
 use Doctrine\DBAL\Driver\Statement;
 use Prophecy\Argument;
@@ -753,7 +755,7 @@ class FlexFormToolsTest extends UnitTestCase
     /**
      * @test
      */
-    public function getDataStructureIdentifierThrowsExceptionIfResorvedPointerValueIsIntegerButDsFieldNameIsNotConfigured(): void
+    public function getDataStructureIdentifierThrowsExceptionIfReservedPointerValueIsIntegerButDsFieldNameIsNotConfigured(): void
     {
         $fieldTca = [
             'config' => [

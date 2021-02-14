@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Extbase\Tests\Unit\Service;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Extbase\Tests\Unit\Service;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Extbase\Tests\Unit\Service;
 
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\FileReference;
@@ -60,11 +62,13 @@ class ImageScriptServiceTest extends UnitTestCase
      */
     public function fileIsUnwrappedFromReferenceForProcessing(): void
     {
-        $reference = $this->getAccessibleMock(FileReference::class, [], [], '', false);
+        $reference = $this->getMockBuilder(FileReference::class)->disableOriginalConstructor()->getMock();
         $file = $this->createMock(File::class);
-        $file->expects(self::once())->method('process')->willReturn($this->createMock(ProcessedFile::class));
+        $processedFile = $this->createMock(ProcessedFile::class);
+        $file->expects(self::once())->method('process')->willReturn($processedFile);
         $reference->expects(self::once())->method('getOriginalFile')->willReturn($file);
-        $reference->_set('file', $file);
+        $processedFile->expects(self::once())->method('getOriginalFile')->willReturn($file);
+        $processedFile->expects(self::atLeastOnce())->method('getPublicUrl')->willReturn('https://example.com/foo.png');
 
         $this->subject->applyProcessingInstructions($reference, []);
     }

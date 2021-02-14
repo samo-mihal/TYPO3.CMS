@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Database;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Database;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Database;
 
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
@@ -244,6 +245,11 @@ class QueryGenerator
     protected $fieldName;
 
     /**
+     * @var array Settings, usually from the controller, previously known as MOD_SETTINGS
+     */
+    protected $settings = [];
+
+    /**
      * Make a list of fields for current table
      *
      * @return string Separated list of fields
@@ -278,14 +284,16 @@ class QueryGenerator
      * @param string $name The name
      * @param string $table The table name
      * @param string $fieldList The field list
+     * @param array $settings Module settings like checkboxes in the interface
      */
-    public function init($name, $table, $fieldList = '')
+    public function init($name, $table, $fieldList = '', array $settings = [])
     {
         // Analysing the fields in the table.
         if (is_array($GLOBALS['TCA'][$table])) {
             $this->name = $name;
             $this->table = $table;
             $this->fieldList = $fieldList ?: $this->makeFieldList();
+            $this->settings = $settings;
             $fieldArr = GeneralUtility::trimExplode(',', $this->fieldList, true);
             foreach ($fieldArr as $fieldName) {
                 $fC = $GLOBALS['TCA'][$this->table]['columns'][$fieldName];
@@ -710,7 +718,7 @@ class QueryGenerator
                     $lineHTML[] = '</div>';
             }
             if ($fieldType !== 'ignore') {
-                $lineHTML[] = '<div class="btn-group action-button-group">';
+                $lineHTML[] = '<div class="btn-group" style="margin-top: .5em;">';
                 $lineHTML[] = $this->updateIcon();
                 if ($loopCount) {
                     $lineHTML[] = '<button class="btn btn-default" title="Remove condition" name="qG_del' . htmlspecialchars($subscript) . '"><i class="fa fa-trash fa-fw"></i></button>';
@@ -768,6 +776,7 @@ class QueryGenerator
      */
     public function makeOptionList($fieldName, $conf, $table)
     {
+        $from_table_Arr = [];
         $out = [];
         $fieldSetup = $this->fields[$fieldName];
         $languageService = $this->getLanguageService();
@@ -802,10 +811,10 @@ class QueryGenerator
                 } else {
                     $value = $val[0];
                 }
-                if (GeneralUtility::inList($conf['inputValue'], pow(2, $key))) {
-                    $out[] = '<option value="' . pow(2, $key) . '" selected>' . htmlspecialchars($value) . '</option>';
+                if (GeneralUtility::inList($conf['inputValue'], 2 ** $key)) {
+                    $out[] = '<option value="' . 2 ** $key . '" selected>' . htmlspecialchars($value) . '</option>';
                 } else {
-                    $out[] = '<option value="' . pow(2, $key) . '">' . htmlspecialchars($value) . '</option>';
+                    $out[] = '<option value="' . 2 ** $key . '">' . htmlspecialchars($value) . '</option>';
                 }
             }
         }
@@ -863,7 +872,6 @@ class QueryGenerator
             $counter = 0;
             $tablePrefix = '';
             $backendUserAuthentication = $this->getBackendUserAuthentication();
-            $module = $this->getModule();
             $outArray = [];
             $labelFieldSelect = [];
             foreach ($from_table_Arr as $from_table) {
@@ -900,7 +908,7 @@ class QueryGenerator
 
                     if (!$this->tableArray[$from_table]) {
                         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($from_table);
-                        if ($module->MOD_SETTINGS['show_deleted']) {
+                        if (isset($this->settings['show_deleted']) && $this->settings['show_deleted']) {
                             $queryBuilder->getRestrictions()->removeAll();
                         } else {
                             $queryBuilder->getRestrictions()->removeAll()->add(GeneralUtility::makeInstance(DeletedRestriction::class));
@@ -965,7 +973,7 @@ class QueryGenerator
                             $outArray[$tablePrefix . $val['uid']] = htmlspecialchars($val[$altLabelField]);
                         }
                     }
-                    if ($module->MOD_SETTINGS['options_sortlabel'] && is_array($outArray)) {
+                    if (isset($this->settings['options_sortlabel']) && $this->settings['options_sortlabel'] && is_array($outArray)) {
                         natcasesort($outArray);
                     }
                 }
@@ -990,13 +998,10 @@ class QueryGenerator
      */
     public function printCodeArray($codeArr, $recursionLevel = 0)
     {
-        $indent = 'row-group';
-        if ($recursionLevel) {
-            $indent = 'row-group indent indent-' . (int)$recursionLevel;
-        }
         $out = [];
         foreach ($codeArr as $k => $v) {
-            $out[] = '<div class="' . $indent . '">';
+            $out[] = '<div class="card">';
+            $out[] = '<div class="card-content">';
             $out[] = $v['html'];
 
             if ($this->enableQueryParts) {
@@ -1005,11 +1010,11 @@ class QueryGenerator
                 $out[] = '</pre>';
             }
             if (is_array($v['sub'])) {
-                $out[] = '<div class="' . $indent . '">';
+                $out[] = '<div>';
                 $out[] = $this->printCodeArray($v['sub'], $recursionLevel + 1);
                 $out[] = '</div>';
             }
-
+            $out[] = '</div>';
             $out[] = '</div>';
         }
         return implode(LF, $out);
@@ -1028,10 +1033,12 @@ class QueryGenerator
     {
         $out = [];
         if ($draw) {
-            $out[] = '<select class="form-control from-control-operator' . ($submit ? ' t3js-submit-change' : '') . '" name="' . htmlspecialchars($name) . '[operator]">';
+            $out[] = '<div class="form-inline">';
+            $out[] = '<select class="form-control' . ($submit ? ' t3js-submit-change' : '') . '" name="' . htmlspecialchars($name) . '[operator]">';
             $out[] = '	<option value="AND"' . (!$op || $op === 'AND' ? ' selected' : '') . '>' . htmlspecialchars($this->lang['AND']) . '</option>';
             $out[] = '	<option value="OR"' . ($op === 'OR' ? ' selected' : '') . '>' . htmlspecialchars($this->lang['OR']) . '</option>';
             $out[] = '</select>';
+            $out[] = '</div>';
         } else {
             $out[] = '<input type="hidden" value="' . htmlspecialchars($op) . '" name="' . htmlspecialchars($name) . '[operator]">';
         }
@@ -1113,12 +1120,10 @@ class QueryGenerator
     public function mkFieldToInputSelect($name, $fieldName)
     {
         $out = [];
-        $out[] = '<div class="input-group">';
-        $out[] = '	<div class="input-group-addon">';
-        $out[] = '		<span class="input-group-btn">';
+        $out[] = '<div class="input-group" style="margin-bottom: .5em;">';
+        $out[] = '	<span class="input-group-btn">';
         $out[] = $this->updateIcon();
-        $out[] = ' 		</span>';
-        $out[] = ' 	</div>';
+        $out[] = ' 	</span>';
         $out[] = '	<input type="text" class="form-control t3js-clearable" value="' . htmlspecialchars($fieldName) . '" name="' . htmlspecialchars($name) . '">';
         $out[] = '</div>';
 
@@ -1487,13 +1492,12 @@ class QueryGenerator
                 $out[] = '</div>';
             }
             if (in_array('order', $enableArr) && !$userTsConfig['mod.']['dbint.']['disableOrderBy']) {
-                $module = $this->getModule();
                 $orderByArr = explode(',', $this->extFieldLists['queryOrder']);
                 $orderBy = [];
                 $orderBy[] = $this->mkTypeSelect('SET[queryOrder]', $orderByArr[0], '');
                 $orderBy[] = '<div class="checkbox">';
                 $orderBy[] = '	<label for="checkQueryOrderDesc">';
-                $orderBy[] =        BackendUtility::getFuncCheck($module->id, 'SET[queryOrderDesc]', $modSettings['queryOrderDesc'], '', '', 'id="checkQueryOrderDesc"') . ' Descending';
+                $orderBy[] =        BackendUtility::getFuncCheck(0, 'SET[queryOrderDesc]', $modSettings['queryOrderDesc'], '', '', 'id="checkQueryOrderDesc"') . ' Descending';
                 $orderBy[] = '	</label>';
                 $orderBy[] = '</div>';
 
@@ -1501,7 +1505,7 @@ class QueryGenerator
                     $orderBy[] = $this->mkTypeSelect('SET[queryOrder2]', $orderByArr[1], '');
                     $orderBy[] = '<div class="checkbox">';
                     $orderBy[] = '	<label for="checkQueryOrder2Desc">';
-                    $orderBy[] =        BackendUtility::getFuncCheck($module->id, 'SET[queryOrder2Desc]', $modSettings['queryOrder2Desc'], '', '', 'id="checkQueryOrder2Desc"') . ' Descending';
+                    $orderBy[] =        BackendUtility::getFuncCheck(0, 'SET[queryOrder2Desc]', $modSettings['queryOrder2Desc'], '', '', 'id="checkQueryOrder2Desc"') . ' Descending';
                     $orderBy[] = '	</label>';
                     $orderBy[] = '</div>';
                 }
@@ -1513,11 +1517,9 @@ class QueryGenerator
             if (in_array('limit', $enableArr) && !$userTsConfig['mod.']['dbint.']['disableLimit']) {
                 $limit = [];
                 $limit[] = '<div class="input-group">';
-                $limit[] = '	<div class="input-group-addon">';
-                $limit[] = '		<span class="input-group-btn">';
+                $limit[] = '	<span class="input-group-btn">';
                 $limit[] = $this->updateIcon();
-                $limit[] = '		</span>';
-                $limit[] = '	</div>';
+                $limit[] = '	</span>';
                 $limit[] = '	<input type="text" class="form-control" value="' . htmlspecialchars($this->extFieldLists['queryLimit']) . '" name="SET[queryLimit]" id="queryLimit">';
                 $limit[] = '</div>';
 
@@ -1540,21 +1542,19 @@ class QueryGenerator
                     $nextButton = '<input type="button" class="btn btn-default" value="next ' . htmlspecialchars($this->limitLength) . '" data-value="' . htmlspecialchars($nextLimit . ',' . $this->limitLength) . '">';
                 }
 
-                $out[] = '<div class="form-group form-group-with-button-addon">';
+                $out[] = '<div class="form-group">';
                 $out[] = '	<label>Limit:</label>';
                 $out[] = '	<div class="form-inline">';
                 $out[] =        implode(LF, $limit);
-                $out[] = '		<div class="input-group">';
-                $out[] = '			<div class="btn-group t3js-limit-submit">';
-                $out[] =                $prevButton;
-                $out[] =                $nextButton;
-                $out[] = '			</div>';
-                $out[] = '			<div class="btn-group t3js-limit-submit">';
-                $out[] = '				<input type="button" class="btn btn-default" data-value="10" value="10">';
-                $out[] = '				<input type="button" class="btn btn-default" data-value="20" value="20">';
-                $out[] = '				<input type="button" class="btn btn-default" data-value="50" value="50">';
-                $out[] = '				<input type="button" class="btn btn-default" data-value="100" value="100">';
-                $out[] = '			</div>';
+                $out[] = '		<div class="btn-group t3js-limit-submit">';
+                $out[] =            $prevButton;
+                $out[] =            $nextButton;
+                $out[] = '		</div>';
+                $out[] = '		<div class="btn-group t3js-limit-submit">';
+                $out[] = '			<input type="button" class="btn btn-default" data-value="10" value="10">';
+                $out[] = '			<input type="button" class="btn btn-default" data-value="20" value="20">';
+                $out[] = '			<input type="button" class="btn btn-default" data-value="50" value="50">';
+                $out[] = '			<input type="button" class="btn btn-default" data-value="100" value="100">';
                 $out[] = '		</div>';
                 $out[] = '	</div>';
                 $out[] = '</div>';
@@ -1625,7 +1625,7 @@ class QueryGenerator
     {
         $backendUserAuthentication = $this->getBackendUserAuthentication();
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($this->table);
-        if ($this->getModule()->MOD_SETTINGS['show_deleted']) {
+        if (isset($this->settings['show_deleted']) && $this->settings['show_deleted']) {
             $queryBuilder->getRestrictions()->removeAll();
         } else {
             $queryBuilder->getRestrictions()->removeAll()->add(GeneralUtility::makeInstance(DeletedRestriction::class));
@@ -1644,7 +1644,7 @@ class QueryGenerator
         }
         if ($this->extFieldLists['queryOrder']) {
             foreach (QueryHelper::parseOrderBy($this->extFieldLists['queryOrder_SQL']) as $orderPair) {
-                list($fieldName, $order) = $orderPair;
+                [$fieldName, $order] = $orderPair;
                 $queryBuilder->addOrderBy($fieldName, $order);
             }
         }
@@ -1732,14 +1732,6 @@ class QueryGenerator
     protected function getBackendUserAuthentication()
     {
         return $GLOBALS['BE_USER'];
-    }
-
-    /**
-     * @return object
-     */
-    protected function getModule()
-    {
-        return $GLOBALS['SOBE'];
     }
 
     /**

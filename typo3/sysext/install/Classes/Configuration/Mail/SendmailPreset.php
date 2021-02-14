@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Install\Configuration\Mail;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,13 +13,16 @@ namespace TYPO3\CMS\Install\Configuration\Mail;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Install\Configuration\Mail;
+
 use TYPO3\CMS\Install\Configuration;
+use TYPO3\CMS\Install\Configuration\AbstractPreset;
 
 /**
  * Sendmail path handling preset
  * @internal only to be used within EXT:install
  */
-class SendmailPreset extends Configuration\AbstractPreset
+class SendmailPreset extends AbstractPreset
 {
     /**
      * @var string Name of preset

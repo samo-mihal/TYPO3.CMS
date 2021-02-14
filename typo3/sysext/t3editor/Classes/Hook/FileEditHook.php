@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\T3editor\Hook;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\T3editor\Hook;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\T3editor\Hook;
 
 use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -47,7 +49,7 @@ class FileEditHook
             $target = $parameters['target'];
         }
 
-        $fileExtension = ResourceFactory::getInstance()->retrieveFileOrFolderObject($target)->getExtension();
+        $fileExtension = GeneralUtility::makeInstance(ResourceFactory::class)->retrieveFileOrFolderObject($target)->getExtension();
         $modeRegistry = GeneralUtility::makeInstance(ModeRegistry::class);
         try {
             $mode = $modeRegistry->getByFileExtension($fileExtension);

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3Fluid\FluidTest\ViewHelpers;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3Fluid\FluidTest\ViewHelpers;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3Fluid\FluidTest\ViewHelpers;
 
 /**
  * Class EscapeChildrenDisabledAndEscapeOutputEnabledViewHelper

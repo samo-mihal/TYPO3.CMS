@@ -1,4 +1,5 @@
 <?php
+
 return [
     'TYPO3\CMS\Core\Utility\GeneralUtility::getFileAbsFileName' => [
         'maximumNumberOfArguments' => 1,
@@ -63,6 +64,12 @@ return [
         'maximumNumberOfArguments' => 3,
         'restFiles' => [
             'Deprecation-87332-AvoidRuntimeReflectionCallsInObjectAccess.rst',
+        ],
+    ],
+    'TYPO3\CMS\Core\Utility\GeneralUtility::getUrl' => [
+        'maximumNumberOfArguments' => 1,
+        'restFiles' => [
+            'Deprecation-90956-AlternativeFetchMethodsAndReportsForGeneralUtilitygetUrl.rst',
         ],
     ],
 ];

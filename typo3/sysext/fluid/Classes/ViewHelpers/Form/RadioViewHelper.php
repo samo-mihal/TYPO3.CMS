@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\ViewHelpers\Form;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Fluid\ViewHelpers\Form;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Fluid\ViewHelpers\Form;
 
 /**
  * ViewHelper which creates a simple radio button :html:`<input type="radio">`.
@@ -59,7 +60,7 @@ namespace TYPO3\CMS\Fluid\ViewHelpers\Form;
  *
  * Depending on property ``newsletter``.
  */
-class RadioViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormFieldViewHelper
+class RadioViewHelper extends AbstractFormFieldViewHelper
 {
     /**
      * @var string

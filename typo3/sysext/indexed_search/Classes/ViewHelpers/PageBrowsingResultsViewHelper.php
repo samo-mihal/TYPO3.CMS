@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\IndexedSearch\ViewHelpers;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\IndexedSearch\ViewHelpers;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\IndexedSearch\ViewHelpers;
 
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
@@ -46,7 +47,7 @@ class PageBrowsingResultsViewHelper extends AbstractViewHelper
 
     /**
      * @param array $arguments
-     * @param callable|\Closure $renderChildrenClosure
+     * @param \Closure $renderChildrenClosure
      * @param RenderingContextInterface $renderingContext
      * @return string
      */
@@ -58,7 +59,7 @@ class PageBrowsingResultsViewHelper extends AbstractViewHelper
 
         $firstResultOnPage = $currentPage * $resultsPerPage + 1;
         $lastResultOnPage = $currentPage * $resultsPerPage + $resultsPerPage;
-        $label = LocalizationUtility::translate('displayResults', 'IndexedSearch');
+        $label = LocalizationUtility::translate('displayResults', 'IndexedSearch') ?? '';
         return sprintf($label, $firstResultOnPage, min([$numberOfResults, $lastResultOnPage]), $numberOfResults);
     }
 }

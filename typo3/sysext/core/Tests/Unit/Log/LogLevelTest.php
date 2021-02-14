@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Unit\Log;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,10 @@ namespace TYPO3\CMS\Core\Tests\Unit\Log;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\Log;
+
+use Psr\Log\InvalidArgumentException;
+use TYPO3\CMS\Core\Log\LogLevel;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -28,7 +31,7 @@ class LogLevelTest extends UnitTestCase
     {
         $validLevels = [0, 1, 2, 3, 4, 5, 6, 7];
         foreach ($validLevels as $validLevel) {
-            self::assertTrue(\TYPO3\CMS\Core\Log\LogLevel::isValidLevel($validLevel));
+            self::assertTrue(LogLevel::isValidLevel($validLevel));
         }
     }
 
@@ -39,7 +42,7 @@ class LogLevelTest extends UnitTestCase
     {
         $invalidLevels = [-1, 8];
         foreach ($invalidLevels as $invalidLevel) {
-            self::assertFalse(\TYPO3\CMS\Core\Log\LogLevel::isValidLevel($invalidLevel));
+            self::assertFalse(LogLevel::isValidLevel($invalidLevel));
         }
     }
 
@@ -60,10 +63,10 @@ class LogLevelTest extends UnitTestCase
      */
     public function isValidLevelThrowsExceptionOnInvalidLevelIfAskedToDoSo($inputValue)
     {
-        $this->expectException(\Psr\Log\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionCode(1321637121);
 
-        \TYPO3\CMS\Core\Log\LogLevel::validateLevel($inputValue);
+        LogLevel::validateLevel($inputValue);
     }
 
     /**
@@ -71,6 +74,6 @@ class LogLevelTest extends UnitTestCase
      */
     public function normalizeLevelConvertsValidLevelFromStringToInteger()
     {
-        self::assertEquals(7, \TYPO3\CMS\Core\Log\LogLevel::normalizeLevel('debug'));
+        self::assertEquals(7, LogLevel::normalizeLevel('debug'));
     }
 }

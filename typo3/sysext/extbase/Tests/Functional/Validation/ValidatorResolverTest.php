@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Extbase\Tests\Functional\Validation;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,20 +15,26 @@ namespace TYPO3\CMS\Extbase\Tests\Functional\Validation;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Tests\Functional\Validation;
+
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Object\ObjectManager;
 use TYPO3\CMS\Extbase\Reflection\ReflectionService;
+use TYPO3\CMS\Extbase\Tests\Functional\Validation\Fixture\Domain\Model\AnotherModel;
+use TYPO3\CMS\Extbase\Tests\Functional\Validation\Fixture\Domain\Model\Model;
+use TYPO3\CMS\Extbase\Tests\Functional\Validation\Fixture\Validation\Validator\CustomValidator;
 use TYPO3\CMS\Extbase\Validation\Validator\CollectionValidator;
 use TYPO3\CMS\Extbase\Validation\Validator\ConjunctionValidator;
 use TYPO3\CMS\Extbase\Validation\Validator\GenericObjectValidator;
 use TYPO3\CMS\Extbase\Validation\Validator\NotEmptyValidator;
 use TYPO3\CMS\Extbase\Validation\Validator\StringLengthValidator;
 use TYPO3\CMS\Extbase\Validation\ValidatorResolver;
+use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
 /**
  * Test case
  */
-class ValidatorResolverTest extends \TYPO3\TestingFramework\Core\Functional\FunctionalTestCase
+class ValidatorResolverTest extends FunctionalTestCase
 {
     /**
      * @var \TYPO3\CMS\Extbase\Validation\ValidatorResolver|\PHPUnit\Framework\MockObject\MockObject|\TYPO3\TestingFramework\Core\AccessibleObjectInterface
@@ -54,19 +60,19 @@ class ValidatorResolverTest extends \TYPO3\TestingFramework\Core\Functional\Func
     {
         $this->validatorResolver->_call(
             'buildBaseValidatorConjunction',
-            \TYPO3\CMS\Extbase\Tests\Functional\Validation\Fixture\Domain\Model\Model::class,
-            \TYPO3\CMS\Extbase\Tests\Functional\Validation\Fixture\Domain\Model\Model::class
+            Model::class,
+            Model::class
         );
 
         /** @var array $baseValidatorConjunctions */
         $baseValidatorConjunctions = $this->validatorResolver->_get('baseValidatorConjunctions');
         self::assertTrue(is_array($baseValidatorConjunctions));
         self::assertCount(2, $baseValidatorConjunctions);
-        self::assertArrayHasKey(\TYPO3\CMS\Extbase\Tests\Functional\Validation\Fixture\Domain\Model\Model::class, $baseValidatorConjunctions);
-        self::assertArrayHasKey(\TYPO3\CMS\Extbase\Tests\Functional\Validation\Fixture\Domain\Model\AnotherModel::class, $baseValidatorConjunctions);
+        self::assertArrayHasKey(Model::class, $baseValidatorConjunctions);
+        self::assertArrayHasKey(AnotherModel::class, $baseValidatorConjunctions);
 
         /** @var ConjunctionValidator $conjunctionValidator */
-        $conjunctionValidator = $baseValidatorConjunctions[\TYPO3\CMS\Extbase\Tests\Functional\Validation\Fixture\Domain\Model\Model::class];
+        $conjunctionValidator = $baseValidatorConjunctions[Model::class];
         self::assertInstanceOf(ConjunctionValidator::class, $conjunctionValidator);
 
         $baseValidators = $conjunctionValidator->getValidators();
@@ -112,7 +118,7 @@ class ValidatorResolverTest extends \TYPO3\TestingFramework\Core\Functional\Func
 
         $barPropertyValidators->rewind();
         $propertyValidator = $barPropertyValidators->current();
-        self::assertInstanceOf(Fixture\Validation\Validator\CustomValidator::class, $propertyValidator);
+        self::assertInstanceOf(CustomValidator::class, $propertyValidator);
 
         /** @var \SplObjectStorage $bazPropertyValidators */
         $bazPropertyValidators = $propertyValidators['baz'];
@@ -132,7 +138,7 @@ class ValidatorResolverTest extends \TYPO3\TestingFramework\Core\Functional\Func
         $propertyValidator = $quxPropertyValidators->current();
         self::assertInstanceOf(ConjunctionValidator::class, $propertyValidator);
         self::assertSame(
-            $baseValidatorConjunctions[\TYPO3\CMS\Extbase\Tests\Functional\Validation\Fixture\Domain\Model\AnotherModel::class],
+            $baseValidatorConjunctions[AnotherModel::class],
             $propertyValidator
         );
     }

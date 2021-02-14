@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Impexp\Controller;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,8 @@ namespace TYPO3\CMS\Impexp\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Impexp\Controller;
+
 use Doctrine\DBAL\Driver\Statement;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -25,8 +27,8 @@ use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryHelper;
-use TYPO3\CMS\Core\Database\Query\Restriction\BackendWorkspaceRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
+use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 use TYPO3\CMS\Core\Exception;
 use TYPO3\CMS\Core\Http\HtmlResponse;
 use TYPO3\CMS\Core\Imaging\Icon;
@@ -142,7 +144,7 @@ class ExportController extends ImportExportController
     {
         // BUILDING EXPORT DATA:
         // Processing of InData array values:
-        $inData['filename'] = trim(preg_replace('/[^[:alnum:]._-]*/', '', preg_replace('/\\.(t3d|xml)$/', '', $inData['filename'])));
+        $inData['filename'] = trim((string)preg_replace('/[^[:alnum:]._-]*/', '', preg_replace('/\\.(t3d|xml)$/', '', $inData['filename'])));
         if ($inData['filename'] !== '') {
             $inData['filename'] .= $inData['filetype'] === 'xml' ? '.xml' : '.t3d';
         }
@@ -192,7 +194,7 @@ class ExportController extends ImportExportController
         if (is_array($inData['record'])) {
             foreach ($inData['record'] as $ref) {
                 $rParts = explode(':', $ref);
-                $this->export->export_addRecord($rParts[0], BackendUtility::getRecord($rParts[0], $rParts[1]));
+                $this->export->export_addRecord($rParts[0], BackendUtility::getRecord($rParts[0], (int)$rParts[1]));
             }
         }
         // Configure which tables to export
@@ -404,13 +406,13 @@ class ExportController extends ImportExportController
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($table);
 
         $orderBy = $GLOBALS['TCA'][$table]['ctrl']['sortby'] ?: $GLOBALS['TCA'][$table]['ctrl']['default_sortby'];
-        $queryBuilder->getRestrictions()->add(GeneralUtility::makeInstance(BackendWorkspaceRestriction::class));
+        $queryBuilder->getRestrictions()->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, 0));
 
         if ($this->excludeDisabledRecords === false) {
             $queryBuilder->getRestrictions()
                 ->removeAll()
                 ->add(GeneralUtility::makeInstance(DeletedRestriction::class))
-                ->add(GeneralUtility::makeInstance(BackendWorkspaceRestriction::class));
+                ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, 0));
         }
 
         $queryBuilder->select('*')
@@ -463,7 +465,7 @@ class ExportController extends ImportExportController
                 $rParts = explode(':', $ref);
                 [$tName, $rUid] = $rParts;
                 $nameSuggestion .= $tName . '_' . $rUid;
-                $rec = BackendUtility::getRecordWSOL($tName, $rUid);
+                $rec = BackendUtility::getRecordWSOL((string)$tName, (int)$rUid);
                 if (!empty($rec)) {
                     $records[] = [
                         'icon' => $this->iconFactory->getIconForRecord($tName, $rec, Icon::SIZE_SMALL)->render(),
@@ -489,7 +491,7 @@ class ExportController extends ImportExportController
                     if ($referenceParts[1] === '0') {
                         $iconAndTitle = $this->iconFactory->getIcon('apps-pagetree-root', Icon::SIZE_SMALL)->render() . $GLOBALS['TYPO3_CONF_VARS']['SYS']['sitename'];
                     } else {
-                        $record = BackendUtility::getRecordWSOL('pages', $referenceParts[1]);
+                        $record = BackendUtility::getRecordWSOL('pages', (int)$referenceParts[1]);
                         $iconAndTitle = $this->iconFactory->getIconForRecord('pages', $record, Icon::SIZE_SMALL)->render()
                             . BackendUtility::getRecordTitle('pages', $record, true);
                     }

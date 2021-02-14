@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Frontend\Tests\Unit\ContentObject\Menu;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,9 @@ namespace TYPO3\CMS\Frontend\Tests\Unit\ContentObject\Menu;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Frontend\Tests\Unit\ContentObject\Menu;
+
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\CMS\Frontend\ContentObject\Menu\Exception\NoSuchMenuTypeException;
 use TYPO3\CMS\Frontend\ContentObject\Menu\MenuContentObjectFactory;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
@@ -30,8 +32,8 @@ class MenuContentObjectFactoryTest extends UnitTestCase
     {
         $this->expectException(NoSuchMenuTypeException::class);
         $this->expectExceptionCode(1363278130);
-        $factory = new MenuContentObjectFactory;
-        $factory->getMenuObjectByType($this->getUniqueId('foo_'));
+        $factory = new MenuContentObjectFactory();
+        $factory->getMenuObjectByType(StringUtility::getUniqueId('foo_'));
     }
 
     /**
@@ -39,7 +41,7 @@ class MenuContentObjectFactoryTest extends UnitTestCase
      */
     public function getMenuObjectByTypeReturnsObjectForRegisteredMenuType()
     {
-        $factory = new MenuContentObjectFactory;
+        $factory = new MenuContentObjectFactory();
         self::assertIsObject($factory->getMenuObjectByType('TMENU'));
     }
 
@@ -48,7 +50,7 @@ class MenuContentObjectFactoryTest extends UnitTestCase
      */
     public function getMenuObjectByTypeReturnsObjectWithLowercasedMenuType()
     {
-        $factory = new MenuContentObjectFactory;
+        $factory = new MenuContentObjectFactory();
         self::assertIsObject($factory->getMenuObjectByType('tmenu'));
     }
 
@@ -57,7 +59,7 @@ class MenuContentObjectFactoryTest extends UnitTestCase
      */
     public function getMenuObjectByTypeReturnsInstanceOfOwnRegisteredTypeInsteadOfInternalType()
     {
-        $factory = new MenuContentObjectFactory;
+        $factory = new MenuContentObjectFactory();
         $selfClassName = static::class;
         $factory->registerMenuType('TMENU', $selfClassName);
         self::assertInstanceOf($selfClassName, $factory->getMenuObjectByType('TMENU'));
@@ -68,9 +70,9 @@ class MenuContentObjectFactoryTest extends UnitTestCase
      */
     public function getMenuObjectByTypeReturnsInstanceOfNewRegisteredType()
     {
-        $factory = new MenuContentObjectFactory;
+        $factory = new MenuContentObjectFactory();
         $selfClassName = static::class;
-        $uniqueMenuType = $this->getUniqueId('foo_');
+        $uniqueMenuType = StringUtility::getUniqueId('foo_');
         $factory->registerMenuType($uniqueMenuType, $selfClassName);
         self::assertInstanceOf($selfClassName, $factory->getMenuObjectByType($uniqueMenuType));
     }
@@ -82,7 +84,7 @@ class MenuContentObjectFactoryTest extends UnitTestCase
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionCode(1363429303);
-        $factory = new MenuContentObjectFactory;
+        $factory = new MenuContentObjectFactory();
         $factory->registerMenuType([], 'foo');
     }
 
@@ -93,7 +95,7 @@ class MenuContentObjectFactoryTest extends UnitTestCase
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionCode(1363429303);
-        $factory = new MenuContentObjectFactory;
+        $factory = new MenuContentObjectFactory();
         $factory->registerMenuType('foo', []);
     }
 }

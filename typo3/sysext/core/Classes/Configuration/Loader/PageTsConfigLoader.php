@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Configuration\Loader;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Configuration\Loader;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Configuration\Loader;
 
 use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\Configuration\Event\ModifyLoadedPageTsConfigEvent;
@@ -91,7 +93,7 @@ class PageTsConfigLoader
                             $extensionPath = ExtensionManagementUtility::extPath($includeTsConfigFileExtensionKey);
                             $includeTsConfigFileAndPath = PathUtility::getCanonicalPath($extensionPath . $includeTsConfigFilename);
                             if (strpos($includeTsConfigFileAndPath, $extensionPath) === 0 && file_exists($includeTsConfigFileAndPath)) {
-                                $tsData['page_' . $page['uid'] . '_includes_' . $key] = file_get_contents($includeTsConfigFileAndPath);
+                                $tsData['page_' . $page['uid'] . '_includes_' . $key] = (string)file_get_contents($includeTsConfigFileAndPath);
                             }
                         }
                     }

@@ -1,4 +1,5 @@
 <?php
+
 return [
     'ctrl' => [
         'title' => 'LLL:EXT:indexed_search/Resources/Private/Language/locallang_db.xlf:index_config',
@@ -16,9 +17,6 @@ return [
         'typeicon_classes' => [
             'default' => 'mimetypes-x-index_config'
         ]
-    ],
-    'interface' => [
-        'showRecordFieldList' => 'hidden,starttime,title,description,type,depth,table2index,alternative_source_pid,get_params,filepath,extensions'
     ],
     'columns' => [
         'hidden' => [

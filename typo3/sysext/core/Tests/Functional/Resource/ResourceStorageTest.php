@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Functional\Resource;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Core\Tests\Functional\Resource;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Functional\Resource;
+
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Resource\Folder;
 use TYPO3\CMS\Core\Resource\FolderInterface;
@@ -22,6 +23,7 @@ use TYPO3\CMS\Core\Resource\ResourceStorage;
 use TYPO3\CMS\Core\Resource\Search\FileSearchDemand;
 use TYPO3\CMS\Core\Resource\StorageRepository;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
 /**
@@ -54,7 +56,7 @@ class ResourceStorageTest extends FunctionalTestCase
         file_put_contents(Environment::getPublicPath() . '/fileadmin/adirectory/bar.txt', 'myData');
         clearstatcache();
         $subject->addFileMount('/adirectory/', ['read_only' => false]);
-        $file = ResourceFactory::getInstance()->getFileObjectFromCombinedIdentifier('1:/adirectory/bar.txt');
+        $file = GeneralUtility::makeInstance(ResourceFactory::class)->getFileObjectFromCombinedIdentifier('1:/adirectory/bar.txt');
 
         $rootProcessingFolder = $subject->getProcessingFolder();
         $processingFolder = $subject->getProcessingFolder($file);
@@ -89,7 +91,7 @@ class ResourceStorageTest extends FunctionalTestCase
         }
         file_put_contents(Environment::getPublicPath() . '/fileadmin/' . $targetDirectory . '/' . $fileName, 'myData');
         clearstatcache();
-        $file = ResourceFactory::getInstance()->getFileObjectFromCombinedIdentifier('1:/' . $targetDirectory . '/' . $fileName);
+        $file = GeneralUtility::makeInstance(ResourceFactory::class)->getFileObjectFromCombinedIdentifier('1:/' . $targetDirectory . '/' . $fileName);
 
         $subject = (new StorageRepository())->findByUid(1);
         $subject->setEvaluatePermissions(true);
@@ -169,7 +171,7 @@ class ResourceStorageTest extends FunctionalTestCase
      */
     public function getRoleReturnsDefaultForRegularFolders()
     {
-        $folderIdentifier = $this->getUniqueId();
+        $folderIdentifier = StringUtility::getUniqueId();
         $this->importDataSet('PACKAGE:typo3/testing-framework/Resources/Core/Functional/Fixtures/sys_file_storage.xml');
         $this->setUpBackendUserFromFixture(1);
 
@@ -193,11 +195,11 @@ class ResourceStorageTest extends FunctionalTestCase
         GeneralUtility::mkdir_deep(Environment::getPublicPath() . '/fileadmin/foo');
         file_put_contents(Environment::getPublicPath() . '/fileadmin/foo/bar.txt', 'myData');
         clearstatcache();
-        $file = ResourceFactory::getInstance()->getFileObjectFromCombinedIdentifier('1:/foo/bar.txt');
+        $file = GeneralUtility::makeInstance(ResourceFactory::class)->getFileObjectFromCombinedIdentifier('1:/foo/bar.txt');
 
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionCode(1325842622);
-        $subject->replaceFile($file, Environment::getPublicPath() . '/' . $this->getUniqueId());
+        $subject->replaceFile($file, Environment::getPublicPath() . '/' . StringUtility::getUniqueId());
     }
 
     /**
@@ -228,7 +230,7 @@ class ResourceStorageTest extends FunctionalTestCase
         file_put_contents(Environment::getPublicPath() . '/fileadmin/foo/bar.txt', 'myData');
         clearstatcache();
 
-        $file = ResourceFactory::getInstance()->getFileObjectFromCombinedIdentifier('1:/foo/bar.txt');
+        $file = GeneralUtility::makeInstance(ResourceFactory::class)->getFileObjectFromCombinedIdentifier('1:/foo/bar.txt');
         $subject->deleteFile($file);
 
         self::assertTrue(file_exists(Environment::getPublicPath() . '/fileadmin/_recycler_/bar.txt'));
@@ -248,7 +250,7 @@ class ResourceStorageTest extends FunctionalTestCase
         file_put_contents(Environment::getPublicPath() . '/fileadmin/foo/bar.txt', 'myData');
         clearstatcache();
 
-        $file = ResourceFactory::getInstance()->getFileObjectFromCombinedIdentifier('1:/foo/bar.txt');
+        $file = GeneralUtility::makeInstance(ResourceFactory::class)->getFileObjectFromCombinedIdentifier('1:/foo/bar.txt');
         $subject->deleteFile($file);
 
         self::assertFalse(file_exists(Environment::getPublicPath() . '/fileadmin/foo/bar.txt'));
@@ -402,7 +404,7 @@ class ResourceStorageTest extends FunctionalTestCase
             file_put_contents(Environment::getPublicPath() . '/fileadmin/bar/blupp.txt', 'myData');
             clearstatcache();
 
-            $folder = $searchFolder ? ResourceFactory::getInstance()->getFolderObjectFromCombinedIdentifier('1:' . $searchFolder) : null;
+            $folder = $searchFolder ? GeneralUtility::makeInstance(ResourceFactory::class)->getFolderObjectFromCombinedIdentifier('1:' . $searchFolder) : null;
             $search = FileSearchDemand::createForSearchTerm($searchTerm);
             if ($recursive) {
                 $search = $search->withRecursive();

@@ -21,12 +21,22 @@
 @import "component/svgtree";
 @import "component/elementbrowser";
 @import "component/modal";
+@import "component/note";
 @import "component/card";
 
 //
 // Modules
 //
+@import "module/access";
+@import "module/backenduser";
+@import "module/extensionmanager";
+@import "module/help";
+@import "module/install";
+@import "module/page";
+@import "module/recycler";
+@import "module/tstemplate";
 @import "module/viewpage";
+@import "module/workspaces";
 
 //
 // Components from bootstrap plugins
@@ -44,6 +54,21 @@
 @import "cropper/cropper";
 
 //
+// JQuery UI Resizable
+//
+@import "libs/jquery-ui-resizable";
+
+//
+// Sortable.js
+//
+@import "libs/sortable";
+
+//
+// tablesort.js
+//
+@import "libs/tablesort";
+
+//
 // NProgress
 //
 @import "nprogress/nprogress";
@@ -57,11 +82,9 @@
 @import "typo3/various_fixes";
 @import "typo3/element_animation";
 @import "typo3/element_cropper";
-@import "typo3/element_csh";
 @import "typo3/element_contextmenu";
 @import "typo3/element_docheader";
 @import "typo3/element_message";
-@import "typo3/element_pagetree";
 @import "typo3/element_slider";
 @import "typo3/element_spinner";
 @import "typo3/element_tab";
@@ -85,21 +108,7 @@
 @import "typo3/main_backend_layout_wizard";
 @import "typo3/main_form";
 @import "typo3/main_new_content_element_wizard";
-@import "typo3/module_database";
-@import "typo3/module_install";
-@import "typo3/module_recycler";
-@import "typo3/module_scheduler";
-@import "typo3/module_tstemplate";
-@import "typo3/module_web_page";
-@import "typo3/module_workspaces";
 @import "typo3/debugconsole";
-@import "typo3/module_web_list_sysnote";
-@import "typo3/module_extensionmanager";
-@import "typo3/module_beuser";
-@import "typo3/module_cshmanual";
 @import "typo3/wizard_localization";
-@import "typo3/structure/element_version";
-@import "typo3/structure/element_wizard";
 @import "typo3/structure/module_web_list";
 @import "typo3/visual/element_typoscript";
-@import "typo3/visual/element_version";

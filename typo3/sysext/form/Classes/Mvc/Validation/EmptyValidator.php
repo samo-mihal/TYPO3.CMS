@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\Mvc\Validation;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Form\Mvc\Validation;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Form\Mvc\Validation;
 
 use TYPO3\CMS\Extbase\Validation\Validator\AbstractValidator;
 
@@ -44,7 +46,7 @@ class EmptyValidator extends AbstractValidator
                 $this->translateErrorMessage(
                     'validation.error.1476396435',
                     'form'
-                ),
+                ) ?? '',
                 1476396435
             );
         }

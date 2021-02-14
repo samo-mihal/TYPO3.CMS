@@ -1,11 +1,9 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\Mvc\Persistence;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
- *
- * It originated from the Neos.Form package (www.neos.io)
  *
  * It is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, either version 2
@@ -16,6 +14,12 @@ namespace TYPO3\CMS\Form\Mvc\Persistence;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+/*
+ * Inspired by and partially taken from the Neos.Form package (www.neos.io)
+ */
+
+namespace TYPO3\CMS\Form\Mvc\Persistence;
 
 use TYPO3\CMS\Core\Resource\Folder;
 
@@ -93,7 +97,7 @@ interface FormPersistenceManagerInterface
     public function getUniquePersistenceIdentifier(string $formIdentifier, string $savePath): string;
 
     /**
-     * Check if an identifier is already used by a formDefintion.
+     * Check if an identifier is already used by a formDefinition.
      *
      * @param string $identifier
      * @return bool

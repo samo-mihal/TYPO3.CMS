@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Log\Processor;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,10 @@ namespace TYPO3\CMS\Core\Log\Processor;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Log\Processor;
+
+use TYPO3\CMS\Core\Log\LogRecord;
+
 /**
  * A log processor that does nothing. Used in unit tests.
  */
@@ -25,7 +28,7 @@ class NullProcessor extends AbstractProcessor
      * @param \TYPO3\CMS\Core\Log\LogRecord $logRecord The log record to process
      * @return \TYPO3\CMS\Core\Log\LogRecord The processed log record with additional data
      */
-    public function processLogRecord(\TYPO3\CMS\Core\Log\LogRecord $logRecord)
+    public function processLogRecord(LogRecord $logRecord)
     {
         return $logRecord;
     }

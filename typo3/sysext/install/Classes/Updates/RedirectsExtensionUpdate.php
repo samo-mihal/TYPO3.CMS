@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Install\Updates;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Install\Updates;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Install\Updates;
 
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -86,7 +88,7 @@ class RedirectsExtensionUpdate extends AbstractDownloadExtensionUpdate
     public function getDescription(): string
     {
         return 'The extension "redirects" includes functionality to handle any kind of redirects. '
-               . 'The functionality superseds sys_domain entries with the only purpose of redirecting to a different domain or entry. '
+               . 'The functionality supersedes sys_domain entries with the only purpose of redirecting to a different domain or entry. '
                . 'This upgrade wizard installs the redirect extension if necessary and migrates the sys_domain entries to standard redirects.';
     }
 
@@ -198,7 +200,7 @@ class RedirectsExtensionUpdate extends AbstractDownloadExtensionUpdate
             }
 
             if (empty($sourceDetails['path']) || $sourceDetails['path'] === '/') {
-                $redirectRecord['source_path'] = '.*';
+                $redirectRecord['source_path'] = '#.*#';
                 $redirectRecord['is_regexp'] = 1;
             } else {
                 // Remove the / and add a "/" always before, and at the very end, if path is not empty

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Unit\Database;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,9 @@ namespace TYPO3\CMS\Core\Tests\Unit\Database;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\Database;
+
+use TYPO3\CMS\Core\Database\RelationHandler;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -29,7 +31,7 @@ class RelationHandlerTest extends UnitTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->subject = $this->getMockBuilder(\TYPO3\CMS\Core\Database\RelationHandler::class)
+        $this->subject = $this->getMockBuilder(RelationHandler::class)
             ->setMethods(['purgeVersionedIds', 'purgeLiveVersionedIds'])
             ->getMock();
     }

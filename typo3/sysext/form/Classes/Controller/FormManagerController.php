@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\Controller;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,7 +15,10 @@ namespace TYPO3\CMS\Form\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Form\Controller;
+
 use Symfony\Component\Yaml\Yaml;
+use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Template\Components\ButtonBar;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Backend\View\BackendTemplateView;
@@ -52,7 +55,7 @@ class FormManagerController extends AbstractBackendController
      * @param \TYPO3\CMS\Form\Service\DatabaseService $databaseService
      * @internal
      */
-    public function injectDatabaseService(\TYPO3\CMS\Form\Service\DatabaseService $databaseService)
+    public function injectDatabaseService(DatabaseService $databaseService)
     {
         $this->databaseService = $databaseService;
     }
@@ -60,7 +63,7 @@ class FormManagerController extends AbstractBackendController
     /**
      * Default View Container
      *
-     * @var BackendTemplateView
+     * @var string
      */
     protected $defaultViewObjectName = BackendTemplateView::class;
 
@@ -115,7 +118,7 @@ class FormManagerController extends AbstractBackendController
         }
 
         $templatePath = GeneralUtility::getFileAbsFileName($templatePath);
-        $form = Yaml::parse(file_get_contents($templatePath));
+        $form = Yaml::parse((string)file_get_contents($templatePath));
         $form['label'] = $formName;
         $form['identifier'] = $this->formPersistenceManager->getUniqueIdentifier($this->convertFormNameToIdentifier($formName));
         $form['prototypeName'] = $prototypeName;
@@ -502,7 +505,7 @@ class FormManagerController extends AbstractBackendController
         $csConverter = GeneralUtility::makeInstance(CharsetConverter::class);
 
         $formIdentifier = $csConverter->specCharsToASCII('utf-8', $formName);
-        $formIdentifier = preg_replace('/[^a-zA-Z0-9-_]/', '', $formIdentifier);
+        $formIdentifier = (string)preg_replace('/[^a-zA-Z0-9-_]/', '', $formIdentifier);
         $formIdentifier = lcfirst($formIdentifier);
         return $formIdentifier;
     }
@@ -542,7 +545,7 @@ class FormManagerController extends AbstractBackendController
     protected function getModuleUrl(string $moduleName, array $urlParameters = []): string
     {
         /** @var \TYPO3\CMS\Backend\Routing\UriBuilder $uriBuilder */
-        $uriBuilder = GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Routing\UriBuilder::class);
+        $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
         return (string)$uriBuilder->buildUriFromRoute($moduleName, $urlParameters);
     }
 

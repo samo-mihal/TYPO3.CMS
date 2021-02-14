@@ -1,4 +1,5 @@
 <?php
+
 return [
     // LocalConfiguration / AdditionalConfiguration settings
     '$GLOBALS[\'TYPO3_CONF_VARS\'][\'SC_OPTIONS\'][\'GLOBAL\'][\'cliKeys\']' => [
@@ -329,6 +330,96 @@ return [
     '$GLOBALS[\'TYPO3_CONF_VARS\'][\'SYS\'][\'systemLogLevel\']' => [
         'restFiles' => [
             'Important-89645-RemovedSystemLogOptions.rst',
+        ],
+    ],
+    '$GLOBALS[\'TYPO3_CONF_VARS\'][\'EXTCONF\'][\'felogin\'][\'beforeRedirect\']' => [
+        'restFiles' => [
+            'Deprecation-88740-ExtFeloginPibasePlugin.rst',
+        ],
+    ],
+    '$GLOBALS[\'TYPO3_CONF_VARS\'][\'EXTCONF\'][\'felogin\'][\'postProcContent\']' => [
+        'restFiles' => [
+            'Deprecation-88740-ExtFeloginPibasePlugin.rst',
+        ],
+    ],
+    '$GLOBALS[\'TYPO3_CONF_VARS\'][\'EXTCONF\'][\'felogin\'][\'forgotPasswordMail\']' => [
+        'restFiles' => [
+            'Deprecation-88740-ExtFeloginPibasePlugin.rst',
+        ],
+    ],
+    '$GLOBALS[\'TYPO3_CONF_VARS\'][\'EXTCONF\'][\'felogin\'][\'password_changed\']' => [
+        'restFiles' => [
+            'Deprecation-88740-ExtFeloginPibasePlugin.rst',
+        ],
+    ],
+    '$GLOBALS[\'TYPO3_CONF_VARS\'][\'EXTCONF\'][\'felogin\'][\'login_confirmed\']' => [
+        'restFiles' => [
+            'Deprecation-88740-ExtFeloginPibasePlugin.rst',
+        ],
+    ],
+    '$GLOBALS[\'TYPO3_CONF_VARS\'][\'EXTCONF\'][\'felogin\'][\'login_error\']' => [
+        'restFiles' => [
+            'Deprecation-88740-ExtFeloginPibasePlugin.rst',
+        ],
+    ],
+    '$GLOBALS[\'TYPO3_CONF_VARS\'][\'EXTCONF\'][\'felogin\'][\'logout_confirmed\']' => [
+        'restFiles' => [
+            'Deprecation-88740-ExtFeloginPibasePlugin.rst',
+        ],
+    ],
+    '$GLOBALS[\'TYPO3_CONF_VARS\'][\'EXTCONF\'][\'felogin\'][\'loginFormOnSubmitFuncs\']' => [
+        'restFiles' => [
+            'Deprecation-88740-ExtFeloginPibasePlugin.rst',
+        ],
+    ],
+    '$GLOBALS[\'TYPO3_CONF_VARS\'][\'SC_OPTIONS\'][\'tslib/class.tslib_content.php\'][\'cObjTypeAndClass\']' => [
+        'restFiles' => [
+            'Deprecation-90937-VariousHooksInContentObjectRenderer.rst',
+        ],
+    ],
+    '$GLOBALS[\'TYPO3_CONF_VARS\'][\'SC_OPTIONS\'][\'tslib/class.tslib_content.php\'][\'cObjTypeAndClassDefault\']' => [
+        'restFiles' => [
+            'Deprecation-90937-VariousHooksInContentObjectRenderer.rst',
+        ],
+    ],
+    '$GLOBALS[\'TYPO3_CONF_VARS\'][\'SC_OPTIONS\'][\'tslib/class.tslib_content.php\'][\'extLinkATagParamsHandler\']' => [
+        'restFiles' => [
+            'Deprecation-90937-VariousHooksInContentObjectRenderer.rst',
+        ],
+    ],
+    '$GLOBALS[\'TYPO3_CONF_VARS\'][\'SC_OPTIONS\'][\'tslib/class.tslib_content.php\'][\'typolinkLinkHandler\']' => [
+        'restFiles' => [
+            'Deprecation-90937-VariousHooksInContentObjectRenderer.rst',
+        ],
+    ],
+    '$GLOBALS[\'TYPO3_CONF_VARS\'][\'SC_OPTIONS\'][\'tslib/class.tslib_fe.php\'][\'pageIndexing\']' => [
+        'restFiles' => [
+            'Deprecation-91012-VariousHooksRelatedToTypoScriptFrontendController.rst',
+        ],
+    ],
+    '$GLOBALS[\'TYPO3_CONF_VARS\'][\'SC_OPTIONS\'][\'tslib/class.tslib_fe.php\'][\'isOutputting\']' => [
+        'restFiles' => [
+            'Deprecation-91012-VariousHooksRelatedToTypoScriptFrontendController.rst',
+        ],
+    ],
+    '$GLOBALS[\'TYPO3_CONF_VARS\'][\'SC_OPTIONS\'][\'tslib/class.tslib_fe.php\'][\'tslib_fe-contentStrReplace\']' => [
+        'restFiles' => [
+            'Deprecation-91012-VariousHooksRelatedToTypoScriptFrontendController.rst',
+        ],
+    ],
+    '$GLOBALS[\'TYPO3_CONF_VARS\'][\'SC_OPTIONS\'][\'tslib/class.tslib_fe.php\'][\'contentPostProc-output\']' => [
+        'restFiles' => [
+            'Deprecation-91012-VariousHooksRelatedToTypoScriptFrontendController.rst',
+        ],
+    ],
+    '$GLOBALS[\'TYPO3_CONF_VARS\'][\'SC_OPTIONS\'][\'tslib/class.tslib_fe.php\'][\'hook_eofe\']' => [
+        'restFiles' => [
+            'Deprecation-91012-VariousHooksRelatedToTypoScriptFrontendController.rst',
+        ],
+    ],
+    '$GLOBALS[\'TYPO3_CONF_VARS\'][\'EXT\'][\'runtimeActivatedPackages\']' => [
+        'restFiles' => [
+            'Deprecation-91030-Runtime-ActivatedPackages.rst',
         ],
     ],
 ];

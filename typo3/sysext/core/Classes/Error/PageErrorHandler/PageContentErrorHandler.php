@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Error\PageErrorHandler;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,10 +15,14 @@ namespace TYPO3\CMS\Core\Error\PageErrorHandler;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Error\PageErrorHandler;
+
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Http\HtmlResponse;
+use TYPO3\CMS\Core\Http\RequestFactory;
+use TYPO3\CMS\Core\Http\Response;
 use TYPO3\CMS\Core\LinkHandling\LinkService;
 use TYPO3\CMS\Core\Routing\InvalidRouteArgumentsException;
 use TYPO3\CMS\Core\Site\Entity\Site;
@@ -71,14 +74,21 @@ class PageContentErrorHandler implements PageErrorHandlerInterface
         try {
             $resolvedUrl = $this->resolveUrl($request, $this->errorHandlerConfiguration['errorContentSource']);
             $content = null;
-            $report = [];
-
             if ($resolvedUrl !== (string)$request->getUri()) {
-                $content = GeneralUtility::getUrl($resolvedUrl, 0, null, $report);
-                if ($content === false && ((int)$report['error'] === -1 || (int)$report['error'] > 200)) {
-                    throw new \RuntimeException('Error handler could not fetch error page "' . $resolvedUrl . '", reason: ' . $report['message'], 1544172838);
+                try {
+                    $subResponse = GeneralUtility::makeInstance(RequestFactory::class)->request($resolvedUrl, 'GET');
+                } catch (\Exception $e) {
+                    throw new \RuntimeException('Error handler could not fetch error page "' . $resolvedUrl . '", reason: ' . $e->getMessage(), 1544172838);
                 }
+                if ($subResponse->getStatusCode() >= 300) {
+                    throw new \RuntimeException('Error handler could not fetch error page "' . $resolvedUrl . '", status code: ' . $subResponse->getStatusCode(), 1544172839);
+                }
+                // create new response object and re-use only the body and the content-type of the sub-request
+                return new Response($subResponse->getBody(), $this->statusCode, [
+                    'Content-Type' => $subResponse->getHeader('Content-Type')
+                ]);
             }
+            $content = 'The error page could not be resolved, as the error page itself is not accessible';
         } catch (InvalidRouteArgumentsException | SiteNotFoundException $e) {
             $content = 'Invalid error handler configuration: ' . $this->errorHandlerConfiguration['errorContentSource'];
         }
@@ -105,12 +115,22 @@ class PageContentErrorHandler implements PageErrorHandlerInterface
             return $urlParams['url'];
         }
 
-        $site = $request->getAttribute('site', null);
+        // Get the site related to the configured error page
+        $site = GeneralUtility::makeInstance(SiteFinder::class)->getSiteByPageId((int)$urlParams['pageuid']);
+        // Fall back to current request for the site
         if (!$site instanceof Site) {
-            $site = GeneralUtility::makeInstance(SiteFinder::class)->getSiteByPageId((int)$urlParams['pageuid']);
+            $site = $request->getAttribute('site', null);
         }
-        $language = $request->getAttribute('language', null);
-        if (!$language instanceof SiteLanguage || !$language->isEnabled()) {
+        /** @var SiteLanguage $requestLanguage */
+        $requestLanguage = $request->getAttribute('language', null);
+        // Try to get the current request language from the site that was found above
+        if ($requestLanguage instanceof SiteLanguage && $requestLanguage->isEnabled()) {
+            try {
+                $language = $site->getLanguageById($requestLanguage->getLanguageId());
+            } catch (\InvalidArgumentException $e) {
+                $language = $site->getDefaultLanguage();
+            }
+        } else {
             $language = $site->getDefaultLanguage();
         }
 

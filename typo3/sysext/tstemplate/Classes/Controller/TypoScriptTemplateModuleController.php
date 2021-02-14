@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Tstemplate\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Tstemplate\Controller;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Tstemplate\Controller;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -130,7 +131,7 @@ class TypoScriptTemplateModuleController
      * May contain an instance of a 'Function menu module' which connects to this backend module.
      *
      * @see checkExtObj()
-     * @var \object
+     * @var object
      */
     protected $extObj;
 
@@ -191,11 +192,12 @@ class TypoScriptTemplateModuleController
     public function mainAction(ServerRequestInterface $request): ResponseInterface
     {
         $this->request = $request;
+        $this->id = (int)($request->getParsedBody()['id'] ?? $request->getQueryParams()['id'] ?? 0);
         $changedMenuSettings = $request->getParsedBody()['SET'] ?? $request->getQueryParams()['SET'] ?? [];
+        $changedMenuSettings = is_array($changedMenuSettings) ? $changedMenuSettings : [];
         $this->menuConfig($changedMenuSettings);
         // Loads $this->extClassConf with the configuration for the CURRENT function of the menu.
         $this->extClassConf = $this->getExternalItemConfig('web_ts', 'function', $this->MOD_SETTINGS['function']);
-        $this->id = (int)($request->getParsedBody()['id'] ?? $request->getQueryParams()['id'] ?? 0);
         $this->perms_clause = $this->getBackendUser()->getPagePermsClause(Permission::PAGE_SHOW);
 
         // Checking for first level external objects
@@ -395,7 +397,7 @@ class TypoScriptTemplateModuleController
         } else {
             $urlParameters['e'] = ['constants' => 1];
         }
-        $urlParameters['SET'] = ['function' => \TYPO3\CMS\Tstemplate\Controller\TypoScriptTemplateInformationModuleFunctionController::class];
+        $urlParameters['SET'] = ['function' => TypoScriptTemplateInformationModuleFunctionController::class];
         $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
         $url = (string)$uriBuilder->buildUriFromRoute('web_ts', $urlParameters);
         return '<a href="' . htmlspecialchars($url) . '">' . htmlspecialchars($title) . '</a>';
@@ -411,6 +413,7 @@ class TypoScriptTemplateModuleController
     {
         $this->templateService = GeneralUtility::makeInstance(ExtendedTemplateService::class);
 
+        $moduleContent = [];
         $moduleContent['state'] = InfoboxViewHelper::STATE_INFO;
 
         // New standard?
@@ -626,7 +629,7 @@ page.10.value = HELLO WORLD!
      * Then MOD_SETTINGS array is cleaned up (see \TYPO3\CMS\Backend\Utility\BackendUtility::getModuleData()) so it contains only valid values. It's also updated with any SET[] values submitted.
      * Also loads the modTSconfig internal variable.
      *
-     * @param array|string|null $changedSettings can be anything
+     * @param array $changedSettings can be anything
      * @see mainAction()
      * @see \TYPO3\CMS\Backend\Utility\BackendUtility::getModuleData()
      * @see mergeExternalItems()
@@ -695,7 +698,7 @@ page.10.value = HELLO WORLD!
      * If an instance is created it is initiated with $this passed as value and $this->extClassConf as second argument. Further the $this->MOD_SETTING is cleaned up again after calling the init function.
      *
      * @see \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::insertModuleFunction()
-     * @param array|string|null $changedSettings
+     * @param array $changedSettings
      * @param ServerRequestInterface $request
      */
     protected function checkExtObj($changedSettings, ServerRequestInterface $request)
@@ -711,7 +714,7 @@ page.10.value = HELLO WORLD!
     /**
      * Return the content of the 'main' function inside the "Function menu module" if present
      *
-     * @return string
+     * @return string|null
      */
     protected function getExtObjContent()
     {
@@ -730,6 +733,8 @@ page.10.value = HELLO WORLD!
         } elseif (is_callable([$this->extObj, 'main'])) {
             return $this->extObj->main();
         }
+
+        return null;
     }
 
     /**

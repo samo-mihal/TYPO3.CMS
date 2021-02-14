@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Functional\DataHandling\Regular;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,16 +13,24 @@ namespace TYPO3\CMS\Core\Tests\Functional\DataHandling\Regular;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Functional\DataHandling\Regular;
+
+use TYPO3\CMS\Core\Database\ReferenceIndex;
+use TYPO3\CMS\Core\Migrations\TcaMigration;
+use TYPO3\CMS\Core\Tests\Functional\DataHandling\AbstractDataHandlerActionTestCase;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\StringUtility;
 
 /**
  * Functional test for the DataHandler
  */
-abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\DataHandling\AbstractDataHandlerActionTestCase
+abstract class AbstractActionTestCase extends AbstractDataHandlerActionTestCase
 {
+    const VALUE_PageIdParent = 88;
     const VALUE_PageId = 89;
     const VALUE_PageIdTarget = 90;
     const VALUE_PageIdWebsite = 1;
+    const VALUE_ContentIdParent = 296;
     const VALUE_ContentIdFirst = 297;
     const VALUE_ContentIdSecond = 298;
     const VALUE_ContentIdThird = 299;
@@ -55,7 +62,7 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
      */
 
     /**
-     * See DataSet/createContentRecords.csv
+     * Create a content record
      */
     public function createContents()
     {
@@ -78,51 +85,33 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         $this->recordIds['newContentLanguageAll'] = $newTableIds[self::TABLE_Content][0];
     }
 
-    /**
-     * See DataSet/modifyContentRecord.csv
-     */
     public function modifyContent()
     {
         $this->actionService->modifyRecord(self::TABLE_Content, self::VALUE_ContentIdSecond, ['header' => 'Testing #1']);
     }
 
-    /**
-     * See DataSet/hideContent.csv
-     */
     public function hideContent()
     {
         $this->actionService->modifyRecord(self::TABLE_Content, self::VALUE_ContentIdSecond, ['hidden' => '1']);
     }
 
-    /**
-     * See DataSet/deleteContentRecord.csv
-     */
     public function deleteContent()
     {
         $this->actionService->deleteRecord(self::TABLE_Content, self::VALUE_ContentIdSecond);
     }
 
-    /**
-     * See DataSet/deleteLocalizedContentNDeleteContent.csv
-     */
     public function deleteLocalizedContentAndDeleteContent()
     {
         $this->actionService->deleteRecord(self::TABLE_Content, self::VALUE_ContentIdThirdLocalized);
         $this->actionService->deleteRecord(self::TABLE_Content, self::VALUE_ContentIdThird);
     }
 
-    /**
-     * See DataSet/copyContentRecord.csv
-     */
     public function copyContent()
     {
         $copiedTableIds = $this->actionService->copyRecord(self::TABLE_Content, self::VALUE_ContentIdSecond, self::VALUE_PageId);
         $this->recordIds['copiedContentId'] = $copiedTableIds[self::TABLE_Content][self::VALUE_ContentIdSecond];
     }
 
-    /**
-     * See DataSet/copyContentToLanguage.csv
-     */
     public function copyContentToLanguage()
     {
         $copiedTableIds = $this->actionService->copyRecordToLanguage(self::TABLE_Content, self::VALUE_ContentIdSecond, self::VALUE_LanguageId);
@@ -153,8 +142,6 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
 
     /**
      * Free mode "translation" of a record in non default language
-     *
-     * See DataSet/copyContentToLanguageFromNonDefaultLanguage.csv
      */
     public function copyContentToLanguageFromNonDefaultLanguage()
     {
@@ -170,18 +157,12 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         $this->actionService->copyRecord(self::TABLE_Content, self::VALUE_ContentIdSecond, self::VALUE_PageId, ['header' => 'Testing #1']);
     }
 
-    /**
-     * See DataSet/localizeContentRecord.csv
-     */
     public function localizeContent()
     {
         $localizedTableIds = $this->actionService->localizeRecord(self::TABLE_Content, self::VALUE_ContentIdSecond, self::VALUE_LanguageId);
         $this->recordIds['localizedContentId'] = $localizedTableIds[self::TABLE_Content][self::VALUE_ContentIdSecond];
     }
 
-    /**
-     * See DataSet/localizeContentWHideAtCopy.csv
-     */
     public function localizeContentWithHideAtCopy()
     {
         $GLOBALS['TCA'][self::TABLE_Content]['ctrl']['hideAtCopy'] = true;
@@ -190,7 +171,6 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
     }
 
     /**
-     * See DataSet/localizeContentRecord.csv
      * @see \TYPO3\CMS\Core\Migrations\TcaMigration::sanitizeControlSectionIntegrity()
      */
     public function localizeContentWithEmptyTcaIntegrityColumns()
@@ -205,10 +185,17 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         foreach ($integrityFieldNames as $integrityFieldName) {
             unset($GLOBALS['TCA'][self::TABLE_Content]['columns'][$integrityFieldName]);
         }
+        // After TCA changes, refindex is not ok anymore for imported rows. Update it before performing other actions.
+        $referenceIndex = GeneralUtility::makeInstance(ReferenceIndex::class);
+        $referenceIndex->updateIndex(false);
+
         // explicitly call TcaMigration (which was executed already earlier in functional testing bootstrap)
-        $GLOBALS['TCA'] = (new \TYPO3\CMS\Core\Migrations\TcaMigration())->migrate($GLOBALS['TCA']);
+        $GLOBALS['TCA'] = (new TcaMigration())->migrate($GLOBALS['TCA']);
+        // create translated page first
+        $this->actionService->copyRecordToLanguage(self::TABLE_Page, self::VALUE_PageId, self::VALUE_LanguageId);
         // perform actions to be tested
-        self::localizeContent();
+        $localizedTableIds = $this->actionService->localizeRecord(self::TABLE_Content, self::VALUE_ContentIdSecond, self::VALUE_LanguageId);
+        $this->recordIds['localizedContentId'] = $localizedTableIds[self::TABLE_Content][self::VALUE_ContentIdSecond];
     }
 
     public function localizeContentWithLanguageSynchronization()
@@ -227,9 +214,6 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         self::localizeContentWithLanguageSynchronization();
     }
 
-    /**
-     * See DataSet/localizeContentFromNonDefaultLanguage.csv
-     */
     public function localizeContentFromNonDefaultLanguage()
     {
         $localizedTableIds = $this->actionService->localizeRecord(self::TABLE_Content, self::VALUE_ContentIdThirdLocalized, self::VALUE_LanguageIdSecond);
@@ -280,17 +264,16 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         self::createLocalizedContent();
     }
 
-    /**
-     * See DataSet/changeContentRecordSorting.csv
-     */
     public function changeContentSorting()
     {
         $this->actionService->moveRecord(self::TABLE_Content, self::VALUE_ContentIdFirst, -self::VALUE_ContentIdSecond);
     }
 
-    /**
-     * See DataSet/moveContentRecordToDifferentPage.csv
-     */
+    public function changeContentSortingAfterSelf()
+    {
+        $this->actionService->moveRecord(self::TABLE_Content, self::VALUE_ContentIdFirst, -self::VALUE_ContentIdFirst);
+    }
+
     public function moveContentToDifferentPage()
     {
         $this->actionService->moveRecord(self::TABLE_Content, self::VALUE_ContentIdSecond, self::VALUE_PageIdTarget);
@@ -304,18 +287,12 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         $this->actionService->moveRecord(self::TABLE_Content, self::VALUE_ContentIdSecond, self::VALUE_PageIdTarget, ['header' => 'Testing #1']);
     }
 
-    /**
-     * See DataSet/moveContentRecordToDifferentPageAndChangeSorting.csv
-     */
     public function moveContentToDifferentPageAndChangeSorting()
     {
         $this->actionService->moveRecord(self::TABLE_Content, self::VALUE_ContentIdSecond, self::VALUE_PageIdTarget);
         $this->actionService->moveRecord(self::TABLE_Content, self::VALUE_ContentIdFirst, -self::VALUE_ContentIdSecond);
     }
 
-    /**
-     * See DataSet/moveContentRecordToDifferentPageAndHide.csv
-     */
     public function moveContentToDifferentPageAndHide()
     {
         $this->actionService->moveRecord(self::TABLE_Content, self::VALUE_ContentIdSecond, self::VALUE_PageIdTarget, ['hidden' => '1']);
@@ -326,33 +303,68 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
      */
 
     /**
-     * See DataSet/createPageRecord.csv
+     * Create a page
      */
     public function createPage()
     {
-        $newTableIds = $this->actionService->createNewRecord(self::TABLE_Page, self::VALUE_PageId, ['title' => 'Testing #1', 'hidden' => 0]);
+        $newTableIds = $this->actionService->createNewRecord(self::TABLE_Page, self::VALUE_PageId, ['title' => 'Testing #1', 'hidden' => 0, 'nav_title' => 'Nav Testing #1']);
         $this->recordIds['newPageId'] = $newTableIds[self::TABLE_Page][0];
     }
 
+    public function createPageAndSubPageAndSubPageContent()
+    {
+        $newTableIds = $this->actionService->createNewRecord(self::TABLE_Page, self::VALUE_PageId, ['title' => 'Testing #1', 'hidden' => 0]);
+        $this->recordIds['newPageId'] = $newTableIds[self::TABLE_Page][0];
+        $newTableIds = $this->actionService->createNewRecord(self::TABLE_Page, $this->recordIds['newPageId'], ['title' => 'Testing #1 #1', 'hidden' => 0]);
+        $this->recordIds['newSubPageId'] = $newTableIds[self::TABLE_Page][0];
+        $newTableIds = $this->actionService->createNewRecord(self::TABLE_Content, $this->recordIds['newSubPageId'], ['header' => 'Testing #1 #1', 'hidden' => 0]);
+        $this->recordIds['newSubPageContentId'] = $newTableIds[self::TABLE_Content][0];
+    }
+
     /**
-     * See DataSet/modifyPageRecord.csv
+     * This test creates a page on pid=88 (unlike other tests) and moves the new draft page on that exact level,
+     * in order to only modify the "sorting" and not the "pid" setting.
      */
+    public function createPageAndChangePageSorting()
+    {
+        $newTableIds = $this->actionService->createNewRecord(self::TABLE_Page, 88, ['title' => 'Testing #1', 'hidden' => 0, 'nav_title' => 'Nav Testing #1']);
+        $this->recordIds['newPageId'] = $newTableIds[self::TABLE_Page][0];
+        $this->actionService->moveRecord(self::TABLE_Page, $this->recordIds['newPageId'], -self::VALUE_PageId);
+    }
+
+    /**
+     * This change creates a page on pid=89 and moves the page one level up (= we check the pid value of both placeholder + versioned record).
+     */
+    public function createPageAndMoveCreatedPage()
+    {
+        $newTableIds = $this->actionService->createNewRecord(self::TABLE_Page, self::VALUE_PageId, ['title' => 'Testing #1', 'hidden' => 0, 'nav_title' => 'Nav Testing #1']);
+        $this->recordIds['newPageId'] = $newTableIds[self::TABLE_Page][0];
+        $this->actionService->moveRecord(self::TABLE_Page, $this->recordIds['newPageId'], -self::VALUE_PageId);
+    }
+
+    public function createPageAndContentWithTcaDefaults()
+    {
+        $newTableIds = $this->actionService->createNewRecords(
+            self::VALUE_PageId,
+            [
+                self::TABLE_Page => ['title' => 'Testing #1'],
+                self::TABLE_Content => ['pid' => '__previousUid', 'header' => 'Testing #1']
+            ]
+        );
+        $this->recordIds['newPageId'] = $newTableIds[self::TABLE_Page][0];
+        $this->recordIds['newContentId'] = $newTableIds[self::TABLE_Content][0];
+    }
+
     public function modifyPage()
     {
         $this->actionService->modifyRecord(self::TABLE_Page, self::VALUE_PageId, ['title' => 'Testing #1']);
     }
 
-    /**
-     * See DataSet/deletePageRecord.csv
-     */
     public function deletePage()
     {
         $this->actionService->deleteRecord(self::TABLE_Page, self::VALUE_PageId);
     }
 
-    /**
-     * See DataSet/copyPage.csv
-     */
     public function copyPage()
     {
         $newTableIds = $this->actionService->copyRecord(self::TABLE_Page, self::VALUE_PageId, self::VALUE_PageIdTarget);
@@ -361,18 +373,12 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         $this->recordIds['newContentIdLast'] = $newTableIds[self::TABLE_Content][self::VALUE_ContentIdSecond];
     }
 
-    /**
-     * See DataSet/copyPageFreeMode.csv
-     */
     public function copyPageFreeMode()
     {
         $newTableIds = $this->actionService->copyRecord(self::TABLE_Page, self::VALUE_PageIdTarget, self::VALUE_PageIdTarget);
         $this->recordIds['newPageId'] = $newTableIds[self::TABLE_Page][self::VALUE_PageIdTarget];
     }
 
-    /**
-     * See DataSet/localizePageRecord.csv
-     */
     public function localizePage()
     {
         $localizedTableIds = $this->actionService->localizeRecord(self::TABLE_Page, self::VALUE_PageId, self::VALUE_LanguageId);
@@ -388,25 +394,122 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         $this->actionService->modifyRecord(self::TABLE_Page, self::VALUE_PageId, ['title' => 'Testing #1']);
     }
 
-    /**
-     * See DataSet/changePageRecordSorting.csv
-     */
+    public function localizePageAndContentsAndDeletePageLocalization()
+    {
+        $localizedTableIds = $this->actionService->localizeRecord(self::TABLE_Page, self::VALUE_PageId, self::VALUE_LanguageId);
+        $this->recordIds['localizedPageId'] = $localizedTableIds[self::TABLE_Page][self::VALUE_PageId];
+        $localizedTableIds = $this->actionService->localizeRecord(self::TABLE_Content, self::VALUE_ContentIdSecond, self::VALUE_LanguageId);
+        $this->recordIds['localizedContentId'] = $localizedTableIds[self::TABLE_Content][self::VALUE_ContentIdSecond];
+        // Deleting the localized page should also delete its localized records
+        $this->actionService->deleteRecord(self::TABLE_Page, $this->recordIds['localizedPageId']);
+    }
+
+    public function localizeNestedPagesAndContents()
+    {
+        $localizedTableIds = $this->actionService->localizeRecord(self::TABLE_Page, self::VALUE_PageIdParent, self::VALUE_LanguageId);
+        $this->recordIds['localizedParentPageId'] = $localizedTableIds[self::TABLE_Page][self::VALUE_PageIdParent];
+        $localizedTableIds = $this->actionService->localizeRecord(self::TABLE_Content, self::VALUE_ContentIdParent, self::VALUE_LanguageId);
+        $this->recordIds['localizedParentContentId'] = $localizedTableIds[self::TABLE_Content][self::VALUE_ContentIdParent];
+        $localizedTableIds = $this->actionService->localizeRecord(self::TABLE_Page, self::VALUE_PageId, self::VALUE_LanguageId);
+        $this->recordIds['localizedPageId'] = $localizedTableIds[self::TABLE_Page][self::VALUE_PageId];
+        $localizedTableIds = $this->actionService->localizeRecord(self::TABLE_Content, self::VALUE_ContentIdSecond, self::VALUE_LanguageId);
+        $this->recordIds['localizedContentId'] = $localizedTableIds[self::TABLE_Content][self::VALUE_ContentIdSecond];
+        // Have another localized content element on page 88 to verify it's translation is also properly discarded in workspaces
+        $this->actionService->copyRecord(self::TABLE_Content, self::VALUE_ContentIdParent, self::VALUE_PageIdParent);
+    }
+
     public function changePageSorting()
     {
         $this->actionService->moveRecord(self::TABLE_Page, self::VALUE_PageId, -self::VALUE_PageIdTarget);
     }
 
-    /**
-     * See DataSet/movePageRecordToDifferentPage.csv
-     */
+    public function changePageSortingAfterSelf()
+    {
+        $this->actionService->moveRecord(self::TABLE_Page, self::VALUE_PageId, -self::VALUE_PageId);
+    }
+
     public function movePageToDifferentPage()
     {
         $this->actionService->moveRecord(self::TABLE_Page, self::VALUE_PageId, self::VALUE_PageIdTarget);
     }
 
+    public function movePageToDifferentPageTwice()
+    {
+        $this->actionService->moveRecord(self::TABLE_Page, self::VALUE_PageId, self::VALUE_PageIdTarget);
+        $this->actionService->moveRecord(self::TABLE_Page, self::VALUE_PageId, self::VALUE_PageIdWebsite);
+    }
+
     /**
-     * See DataSet/movePageRecordToDifferentPageAndChangeSorting.csv
+     * Create page localization, then move default language page to different pages twice.
+     * Verifies the page localization is moved together with the default language page.
+     * In workspaces, the page localization will be a "new" overlay that is moved around.
      */
+    public function movePageLocalizedToDifferentPageTwice()
+    {
+        // Localize page first. In workspaces, this localization is created within ws, creating a "new" t3ver_state=-1 record
+        $this->actionService->localizeRecord(self::TABLE_Page, self::VALUE_PageId, self::VALUE_LanguageId);
+        $this->actionService->moveRecord(self::TABLE_Page, self::VALUE_PageId, self::VALUE_PageIdTarget);
+        $this->actionService->moveRecord(self::TABLE_Page, self::VALUE_PageId, self::VALUE_PageIdWebsite);
+    }
+
+    /**
+     * Create page localization in live, then move default language page in workspaces to different pages twice.
+     * Verifies the page localization is moved together with the default language page.
+     * This should create "move" a overlay for the localization.
+     *
+     * No ext:core implementation of this test since it is identical with
+     * moveLocalizedPageToDifferentPageTwice() in non-workspace
+     */
+    public function movePageLocalizedInLiveToDifferentPageTwice()
+    {
+        $this->setWorkspaceId(0);
+        $this->actionService->localizeRecord(self::TABLE_Page, self::VALUE_PageId, self::VALUE_LanguageId);
+        $this->setWorkspaceId(static::VALUE_WorkspaceId);
+        $this->actionService->moveRecord(self::TABLE_Page, self::VALUE_PageId, self::VALUE_PageIdTarget);
+        $this->actionService->moveRecord(self::TABLE_Page, self::VALUE_PageId, self::VALUE_PageIdWebsite);
+    }
+
+    /**
+     * Create page localization in live, then change the localization in workspace,
+     * then move default language page in workspaces to different pages twice.
+     * Verifies the page localization is moved together with the default language page, and that the
+     * "changed" t3ver_state=0 record is turned into a move placeholder when default language page is moved.
+     *
+     * No ext:core implementation of this test since it is identical with
+     * moveLocalizedPageToDifferentPageTwice() in non-workspace
+     */
+    public function movePageLocalizedInLiveWorkspaceChangedToDifferentPageTwice()
+    {
+        $this->setWorkspaceId(0);
+        $localizedTableIds = $this->actionService->localizeRecord(self::TABLE_Page, self::VALUE_PageId, self::VALUE_LanguageId);
+        $this->recordIds['localizedPageId'] = $localizedTableIds[self::TABLE_Page][self::VALUE_PageId];
+        $this->setWorkspaceId(static::VALUE_WorkspaceId);
+        $this->actionService->modifyRecord(self::TABLE_Page, $this->recordIds['localizedPageId'], ['title' => 'Testing #1']);
+        $this->actionService->moveRecord(self::TABLE_Page, self::VALUE_PageId, self::VALUE_PageIdTarget);
+        $this->actionService->moveRecord(self::TABLE_Page, self::VALUE_PageId, self::VALUE_PageIdWebsite);
+    }
+
+    /**
+     * Create page localization in live, then delete the localization in workspace,
+     * then move default language page in workspaces to different pages twice.
+     * Verifies the page localization is moved together with the default language page.
+     *
+     * @todo The "deleted" t3ver_state=2 record is turned into a move placeholder so the "marked for delete" information is lost.
+     *
+     * No ext:core implementation of this test since it is identical with
+     * moveLocalizedPageToDifferentPageTwice() in non-workspace
+     */
+    public function movePageLocalizedInLiveWorkspaceDeletedToDifferentPageTwice()
+    {
+        $this->setWorkspaceId(0);
+        $localizedTableIds = $this->actionService->localizeRecord(self::TABLE_Page, self::VALUE_PageId, self::VALUE_LanguageId);
+        $this->recordIds['localizedPageId'] = $localizedTableIds[self::TABLE_Page][self::VALUE_PageId];
+        $this->setWorkspaceId(static::VALUE_WorkspaceId);
+        $this->actionService->deleteRecord(self::TABLE_Page, $this->recordIds['localizedPageId']);
+        $this->actionService->moveRecord(self::TABLE_Page, self::VALUE_PageId, self::VALUE_PageIdTarget);
+        $this->actionService->moveRecord(self::TABLE_Page, self::VALUE_PageId, self::VALUE_PageIdWebsite);
+    }
+
     public function movePageToDifferentPageAndChangeSorting()
     {
         $this->actionService->moveRecord(self::TABLE_Page, self::VALUE_PageIdTarget, self::VALUE_PageIdWebsite);

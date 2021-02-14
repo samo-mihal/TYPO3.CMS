@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Recycler\Task;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Recycler\Task;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Recycler\Task;
 
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Scheduler\AbstractAdditionalFieldProvider;
@@ -44,6 +45,7 @@ class CleanerFieldProvider extends AbstractAdditionalFieldProvider
             $taskInfo['RecyclerCleanerPeriod'] = $task->getPeriod();
         }
 
+        $additionalFields = [];
         $additionalFields['period'] = [
             'code' => '<input type="text" class="form-control" name="tx_scheduler[RecyclerCleanerPeriod]" value="' . $taskInfo['RecyclerCleanerPeriod'] . '">',
             'label' => 'LLL:EXT:recycler/Resources/Private/Language/locallang_tasks.xlf:cleanerTaskPeriod',

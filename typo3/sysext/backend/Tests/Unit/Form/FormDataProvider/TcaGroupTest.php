@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
 
 use Prophecy\Prophecy\ObjectProphecy;
 use TYPO3\CMS\Backend\Clipboard\Clipboard;
@@ -54,7 +55,7 @@ class TcaGroupTest extends UnitTestCase
             ],
         ];
         $expected = $input;
-        self::assertSame($expected, (new TcaGroup)->addData($input));
+        self::assertSame($expected, (new TcaGroup())->addData($input));
     }
 
     /**
@@ -77,7 +78,7 @@ class TcaGroupTest extends UnitTestCase
         ];
         $this->expectException(\UnexpectedValueException::class);
         $this->expectExceptionCode(1438780511);
-        (new TcaGroup)->addData($input);
+        (new TcaGroup())->addData($input);
     }
 
     /**
@@ -119,7 +120,7 @@ class TcaGroupTest extends UnitTestCase
             ]
         ];
         $expected['processedTca']['columns']['aField']['config']['clipboardElements'] = [];
-        self::assertSame($expected, (new TcaGroup)->addData($input));
+        self::assertSame($expected, (new TcaGroup())->addData($input));
     }
 
     /**
@@ -190,6 +191,6 @@ class TcaGroupTest extends UnitTestCase
         ];
         $expected['processedTca']['columns']['aField']['config']['clipboardElements'] = [];
 
-        self::assertSame($expected, (new TcaGroup)->addData($input));
+        self::assertSame($expected, (new TcaGroup())->addData($input));
     }
 }

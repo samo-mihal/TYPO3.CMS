@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Backend\Middleware;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,15 +15,19 @@ namespace TYPO3\CMS\Backend\Middleware;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Middleware;
+
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use TYPO3\CMS\Backend\Exception\BackendAccessDeniedException;
 use TYPO3\CMS\Backend\Exception\BackendLockedException;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Http\JsonResponse;
 use TYPO3\CMS\Core\Http\RedirectResponse;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\HttpUtility;
 
 /**
  * Checks various security options for accessing the TYPO3 backend before proceeding
@@ -80,15 +84,27 @@ class LockedBackendGuard implements MiddlewareInterface
     protected function checkLockedBackend()
     {
         if ($GLOBALS['TYPO3_CONF_VARS']['BE']['adminOnly'] < 0) {
-            throw new BackendLockedException('TYPO3 Backend locked: Backend and Install Tool are locked for maintenance. [BE][adminOnly] is set to "' . (int)$GLOBALS['TYPO3_CONF_VARS']['BE']['adminOnly'] . '".', 1517949794);
+            throw new BackendLockedException(
+                HttpUtility::HTTP_STATUS_403,
+                'Backend and Install Tool are locked for maintenance. [BE][adminOnly] is set to "' . (int)$GLOBALS['TYPO3_CONF_VARS']['BE']['adminOnly'] . '".',
+                'TYPO3 Backend locked',
+                1517949794
+            );
         }
         if (@is_file(Environment::getLegacyConfigPath() . '/LOCK_BACKEND')) {
             $fileContent = file_get_contents(Environment::getLegacyConfigPath() . '/LOCK_BACKEND');
             if ($fileContent) {
                 return $fileContent;
             }
-            throw new BackendLockedException('TYPO3 Backend locked: Browser backend is locked for maintenance. Remove lock by removing the file "typo3conf/LOCK_BACKEND" or use CLI-scripts.', 1517949793);
+            throw new BackendLockedException(
+                HttpUtility::HTTP_STATUS_403,
+                'Backend access by browser is locked for maintenance. Remove lock by removing the file "typo3conf/LOCK_BACKEND" or use CLI-scripts.',
+                'TYPO3 Backend locked',
+                1517949793
+            );
         }
+
+        return null;
     }
 
     /**
@@ -101,7 +117,12 @@ class LockedBackendGuard implements MiddlewareInterface
     protected function validateVisitorsIpAgainstIpMaskList(string $ipAddress, string $ipMaskList = '')
     {
         if ($ipMaskList !== '' && !GeneralUtility::cmpIP($ipAddress, $ipMaskList)) {
-            throw new \RuntimeException('TYPO3 Backend access denied: The IP address of your client does not match the list of allowed IP addresses.', 1517949792);
+            throw new BackendAccessDeniedException(
+                HttpUtility::HTTP_STATUS_403,
+                'The IP address of your client does not match the list of allowed IP addresses.',
+                'TYPO3 Backend access denied',
+                1517949792
+            );
         }
     }
 }

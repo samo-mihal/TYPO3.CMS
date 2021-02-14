@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Acceptance\Backend\FormEngine;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,7 +15,10 @@ namespace TYPO3\CMS\Core\Tests\Acceptance\Backend\FormEngine;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Acceptance\Backend\FormEngine;
+
 use Codeception\Example;
+use Facebook\WebDriver\Exception\UnknownErrorException;
 use Facebook\WebDriver\Remote\RemoteWebDriver;
 use Facebook\WebDriver\Remote\RemoteWebElement;
 use Facebook\WebDriver\WebDriverKeys;
@@ -31,6 +34,7 @@ abstract class AbstractElementsBasicCest
      *
      * @param BackendTester $I
      * @param Example $testData
+     * @throws \Exception
      */
     protected function runInputFieldTest(BackendTester $I, Example $testData)
     {
@@ -52,8 +56,8 @@ abstract class AbstractElementsBasicCest
         $I->fillField($inputField, $testData['inputValue']);
         // Change focus to trigger validation
         $inputField->sendKeys(WebDriverKeys::TAB);
-        // Click on the div so that any opened popup (potentially from the field below) is closed
-        $formSection->click();
+        // Press ESC so that any opened popup (potentially from the field below) is closed
+        $inputField->sendKeys(WebDriverKeys::ESCAPE);
         $I->waitForElementNotVisible('#t3js-ui-block');
 
         $I->comment('Test value of visible and hidden field');
@@ -87,7 +91,7 @@ abstract class AbstractElementsBasicCest
      */
     protected function getInputField(RemoteWebElement $formSection)
     {
-        return $formSection->findElement(\WebDriverBy::xpath('.//*/input[@data-formengine-input-name]'));
+        return $formSection->findElement(\Facebook\WebDriver\WebDriverBy::xpath('.//*/input[@data-formengine-input-name]'));
     }
 
     /**
@@ -100,7 +104,7 @@ abstract class AbstractElementsBasicCest
     protected function getHiddenField(RemoteWebElement $formSection, RemoteWebElement $inputField)
     {
         $hiddenFieldXPath = './/*/input[@name="' . $inputField->getAttribute('data-formengine-input-name') . '"]';
-        return $formSection->findElement(\WebDriverBy::xpath($hiddenFieldXPath));
+        return $formSection->findElement(\Facebook\WebDriver\WebDriverBy::xpath($hiddenFieldXPath));
     }
 
     /**
@@ -116,11 +120,43 @@ abstract class AbstractElementsBasicCest
         return $I->executeInSelenium(
             function (RemoteWebDriver $webDriver) use ($fieldLabel) {
                 return $webDriver->findElement(
-                    \WebDriverBy::xpath(
+                    \Facebook\WebDriver\WebDriverBy::xpath(
                         '(//label[contains(text(),"' . $fieldLabel . '")])[1]/ancestor::fieldset[@class="form-section"][1]'
                     )
                 );
             }
         );
+    }
+
+    /**
+     * @param BackendTester $I
+     * @param string $tabTitle the tab you want to click. If necessary, several attempts are made
+     * @param string $referenceField one field that is available to receive a click. Will be used to scroll up from there.
+     */
+    protected function ensureTopOfFrameIsUsedAndClickTab(BackendTester $I, string $tabTitle, string $referenceField)
+    {
+        try {
+            $I->click($tabTitle);
+        } catch (UnknownErrorException $exception) {
+            // this is fired if the element can't be clicked, because for example another element overlays it.
+            $this->scrollToTopOfFrame($I, $tabTitle, $referenceField);
+        }
+    }
+
+    protected function scrollToTopOfFrame(BackendTester $I, string $tabTitle, string $referenceField)
+    {
+        $formSection = $this->getFormSectionByFieldLabel($I, $referenceField);
+        $field = $this->getInputField($formSection);
+        $maxPageUp = 10;
+        do {
+            $doItAgain = false;
+            $maxPageUp--;
+            try {
+                $field->sendKeys(WebDriverKeys::PAGE_UP);
+                $I->click($tabTitle);
+            } catch (UnknownErrorException $exception) {
+                $doItAgain = true;
+            }
+        } while ($doItAgain === true && $maxPageUp > 0);
     }
 }

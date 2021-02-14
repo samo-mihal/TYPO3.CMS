@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Validation\Validator;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Extbase\Validation\Validator;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Extbase\Validation\Validator;
 
 /**
  * Validator for boolean values
@@ -66,18 +67,18 @@ class BooleanValidator extends AbstractValidator
                 $this->addError($this->translateErrorMessage(
                     'validator.boolean.nottrue',
                     'extbase'
-                ), 1361959230);
+                ) ?? '', 1361959230);
             } else {
                 if ($expectation) {
                     $this->addError($this->translateErrorMessage(
                         'validator.boolean.nottrue',
                         'extbase'
-                    ), 1361959228);
+                    ) ?? '', 1361959228);
                 } else {
                     $this->addError($this->translateErrorMessage(
                         'validator.boolean.notfalse',
                         'extbase'
-                    ), 1361959229);
+                    ) ?? '', 1361959229);
                 }
             }
         }

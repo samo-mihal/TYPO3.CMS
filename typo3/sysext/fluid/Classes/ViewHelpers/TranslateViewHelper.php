@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\ViewHelpers;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Fluid\ViewHelpers;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Fluid\ViewHelpers;
 
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
@@ -64,11 +65,19 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
  *
  * ::
  *
- *    {f:translate(key: 'argumentsKey', arguments: {0: 'dog', 1: 'fox'}, default: 'default value')}
+ *    {f:translate(key: 'someKey', arguments: {0: 'dog', 1: 'fox'}, default: 'default value')}
  *
- * Value of key ``argumentsKey`` in the current website language
- * with ``%1`` and ``%2`` are replaced by "dog" and "fox" (:php:`printf()`).
- * If the key is not found, the output is "default value".
+ * Value of key ``someKey`` in the current website language
+ * with the given arguments (“dog” and “fox”) assigned for the specified
+ * ``%s`` conversions (:php:`sprintf()`) in the language file::
+ *
+ *    <trans-unit id="someKey" resname="someKey">
+ *        <source>Some text about a %s and a %s.</source>
+ *    </trans-unit>
+ *
+ * The output will be "Some text about a dog and a fox".
+ *
+ * If the key ``someKey`` is not found in the language file, the output is “default value”.
  *
  * Inline notation with extension name
  * -----------------------------------

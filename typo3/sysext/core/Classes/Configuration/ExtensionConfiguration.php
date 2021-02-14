@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Configuration;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Configuration;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Configuration;
 
 use TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationExtensionNotConfiguredException;
 use TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationPathDoesNotExistException;
@@ -141,7 +143,7 @@ class ExtensionConfiguration
      *
      * @param string $extension Extension name
      * @param string $path Configuration path to set - eg. "featureCategory/coolThingIsEnabled"
-     * @param null $value The value. If null, unset the path
+     * @param mixed|null $value The value. If null, unset the path
      * @internal
      */
     public function set(string $extension, string $path = '', $value = null): void
@@ -276,7 +278,7 @@ class ExtensionConfiguration
             'EXT:' . $extensionKey . '/ext_conf_template.txt'
         );
         if (file_exists($extConfTemplateFileLocation)) {
-            $rawString = file_get_contents($extConfTemplateFileLocation);
+            $rawString = (string)file_get_contents($extConfTemplateFileLocation);
         }
         return $rawString;
     }

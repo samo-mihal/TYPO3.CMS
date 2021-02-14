@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Persistence\Generic\Qom;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,25 +13,27 @@ namespace TYPO3\CMS\Extbase\Persistence\Generic\Qom;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Persistence\Generic\Qom;
+
 /**
  * Performs a logical conjunction of two other constraints.
  *
  * To satisfy the And constraint, a node-tuple must satisfy both constraint1 and
  * constraint2.
  */
-interface AndInterface extends \TYPO3\CMS\Extbase\Persistence\Generic\Qom\ConstraintInterface
+interface AndInterface extends ConstraintInterface
 {
     /**
      * Gets the first constraint.
      *
-     * @return \TYPO3\CMS\Extbase\Persistence\Generic\Qom\ConstraintInterface the constraint; non-null
+     * @return \TYPO3\CMS\Extbase\Persistence\Generic\Qom\ConstraintInterface the constraint
      */
     public function getConstraint1();
 
     /**
      * Gets the second constraint.
      *
-     * @return \TYPO3\CMS\Extbase\Persistence\Generic\Qom\ConstraintInterface the constraint; non-null
+     * @return \TYPO3\CMS\Extbase\Persistence\Generic\Qom\ConstraintInterface the constraint
      */
     public function getConstraint2();
 }

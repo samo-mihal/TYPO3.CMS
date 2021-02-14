@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Unit\Http;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,8 +15,11 @@ namespace TYPO3\CMS\Core\Tests\Unit\Http;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\Http;
+
 use Psr\Http\Message\ServerRequestFactoryInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use TYPO3\CMS\Core\Http\ServerRequest;
 use TYPO3\CMS\Core\Http\ServerRequestFactory;
 use TYPO3\CMS\Core\Http\UploadedFile;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
@@ -202,5 +205,20 @@ class ServerRequestFactoryTest extends UnitTestCase
         $uploadedFiles = ServerRequestFactory::fromGlobals()->getUploadedFiles();
 
         self::assertEmpty($uploadedFiles);
+    }
+
+    /**
+     * @test
+     */
+    public function handlesNumericKeys()
+    {
+        $_SERVER['HTTP_HOST'] = 'localhost';
+        $_SERVER['REQUEST_URI'] = '/index.php';
+        $_SERVER[1] = '1';
+
+        $request = ServerRequestFactory::fromGlobals();
+
+        self::assertInstanceOf(ServerRequest::class, $request, '$_SERVER with numeric key prevented creation.');
+        self::assertEquals([], $request->getHeader('1'), 'Numeric keys are not processed, default empty array should be returned.');
     }
 }

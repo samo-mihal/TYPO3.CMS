@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\IndexedSearch;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,19 +13,21 @@ namespace TYPO3\CMS\IndexedSearch;
  * The TYPO3 project - inspiring people to share!
  */
 
-use Psr\Http\Message\ServerRequestInterface;
+namespace TYPO3\CMS\IndexedSearch;
+
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
-use TYPO3\CMS\Core\Context\Context;
-use TYPO3\CMS\Core\Context\LanguageAspect;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
-use TYPO3\CMS\Core\Routing\PageArguments;
+use TYPO3\CMS\Core\Html\HtmlParser;
+use TYPO3\CMS\Core\Http\RequestFactory;
 use TYPO3\CMS\Core\TimeTracker\TimeTracker;
+use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
 use TYPO3\CMS\Core\Utility\PathUtility;
 use TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController;
+use TYPO3\CMS\IndexedSearch\Hook\CrawlerFilesHook;
 use TYPO3\CMS\IndexedSearch\Utility\IndexedSearchUtility;
 
 /**
@@ -98,13 +99,6 @@ class Indexer
      * @var bool
      */
     public $forceIndexing = false;
-
-    /**
-     * If TRUE, indexing is forced despite of hashes etc.
-     *
-     * @var bool
-     */
-    public $crawlerActive = false;
 
     /**
      * Set when crawler is detected (internal)
@@ -235,206 +229,15 @@ class Indexer
     public function __construct()
     {
         $this->timeTracker = GeneralUtility::makeInstance(TimeTracker::class);
-    }
-
-    /**
-     * Parent Object (TSFE) Initialization
-     *
-     * @param TypoScriptFrontendController $pObj Parent Object, passed by reference
-     */
-    public function hook_indexContent(&$pObj)
-    {
-        // Indexer configuration from Extension Manager interface:
-        $disableFrontendIndexing = (bool)GeneralUtility::makeInstance(ExtensionConfiguration::class)->get('indexed_search', 'disableFrontendIndexing');
-        // Crawler activation:
-        // Requirements are that the crawler is loaded, a crawler session is running and re-indexing requested as processing instruction:
-        if (\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::isLoaded('crawler') && $pObj->applicationData['tx_crawler']['running'] && in_array('tx_indexedsearch_reindex', $pObj->applicationData['tx_crawler']['parameters']['procInstructions'])) {
-            // Setting simple log message:
-            $pObj->applicationData['tx_crawler']['log'][] = 'Forced Re-indexing enabled';
-            // Setting variables:
-            $this->crawlerActive = true;
-            // Crawler active flag
-            $this->forceIndexing = true;
-        }
-        // Determine if page should be indexed, and if so, configure and initialize indexer
-        if ($pObj->config['config']['index_enable']) {
-            $this->log_push('Index page', '');
-            if (!$disableFrontendIndexing || $this->crawlerActive) {
-                if (!$pObj->page['no_search']) {
-                    if (!$pObj->no_cache) {
-                        /** @var LanguageAspect $languageAspect */
-                        $languageAspect = GeneralUtility::makeInstance(Context::class)->getAspect('language');
-                        if ($languageAspect->getId() === $languageAspect->getContentId()) {
-                            // Setting up internal configuration from config array:
-                            $this->conf = [];
-                            // Information about page for which the indexing takes place
-                            $this->conf['id'] = $pObj->id;
-                            // Page id
-                            $this->conf['type'] = $pObj->type;
-                            // Page type
-                            $this->conf['sys_language_uid'] = $languageAspect->getId();
-                            // sys_language UID of the language of the indexing.
-                            $this->conf['MP'] = $pObj->MP;
-                            // MP variable, if any (Mount Points)
-                            // Group list
-                            $this->conf['gr_list'] = implode(',', GeneralUtility::makeInstance(Context::class)->getPropertyFromAspect('frontend.user', 'groupIds', [0, -1]));
-                            // page arguments array
-                            $this->conf['staticPageArguments'] = [];
-                            /** @var PageArguments $pageArguments */
-                            if ($GLOBALS['TYPO3_REQUEST'] instanceof ServerRequestInterface) {
-                                $pageArguments = $GLOBALS['TYPO3_REQUEST']->getAttribute('routing', null);
-                                if ($pageArguments instanceof PageArguments) {
-                                    $this->conf['staticPageArguments'] = $pageArguments->getStaticArguments();
-                                }
-                            }
-                            // Array of the additional parameters
-                            $this->conf['crdate'] = $pObj->page['crdate'];
-                            // The creation date of the TYPO3 page
-
-                            // Root line uids
-                            $this->conf['rootline_uids'] = [];
-                            foreach ($pObj->config['rootLine'] as $rlkey => $rldat) {
-                                $this->conf['rootline_uids'][$rlkey] = $rldat['uid'];
-                            }
-                            // Content of page:
-                            $this->conf['content'] = $pObj->content;
-                            // Content string (HTML of TYPO3 page)
-                            $this->conf['indexedDocTitle'] = $pObj->convOutputCharset($pObj->indexedDocTitle);
-                            // Alternative title for indexing
-                            $this->conf['metaCharset'] = $pObj->metaCharset;
-                            // Character set of content (will be converted to utf-8 during indexing)
-                            $this->conf['mtime'] = $pObj->register['SYS_LASTCHANGED'] ?? $pObj->page['SYS_LASTCHANGED'];
-                            // Most recent modification time (seconds) of the content on the page. Used to evaluate whether it should be re-indexed.
-                            // Configuration of behavior:
-                            $this->conf['index_externals'] = $pObj->config['config']['index_externals'];
-                            // Whether to index external documents like PDF, DOC etc. (if possible)
-                            $this->conf['index_descrLgd'] = $pObj->config['config']['index_descrLgd'];
-                            // Length of description text (max 250, default 200)
-                            $this->conf['index_metatags'] = $pObj->config['config']['index_metatags'] ?? true;
-                            // Set to zero:
-                            $this->conf['recordUid'] = 0;
-                            $this->conf['freeIndexUid'] = 0;
-                            $this->conf['freeIndexSetId'] = 0;
-                            // Init and start indexing:
-                            $this->init();
-                            $this->indexTypo3PageContent();
-                        } else {
-                            $this->log_setTSlogMessage('Index page? No, languageId was different from contentId which indicates that the page contains fall-back content and that would be falsely indexed as localized content.');
-                        }
-                    } else {
-                        $this->log_setTSlogMessage('Index page? No, page was set to "no_cache" and so cannot be indexed.');
-                    }
-                } else {
-                    $this->log_setTSlogMessage('Index page? No, The "No Search" flag has been set in the page properties!');
-                }
-            } else {
-                $this->log_setTSlogMessage('Index page? No, Ordinary Frontend indexing during rendering is disabled.');
-            }
-            $this->log_pull();
-        }
-    }
-
-    /****************************
-     *
-     * Backend API
-     *
-     ****************************/
-    /**
-     * Initializing the "combined ID" of the page (phash) being indexed (or for which external media is attached)
-     *
-     * @param int $id The page uid, &id=
-     * @param int $type The page type, &type=
-     * @param int $sys_language_uid sys_language uid, typically &L=
-     * @param string $MP The MP variable (Mount Points), &MP=
-     * @param array $uidRL Rootline array of only UIDs.
-     * @param array $queryArguments Array of GET variables to register with this indexing
-     */
-    public function backend_initIndexer($id, $type, $sys_language_uid, $MP, $uidRL, $queryArguments = [])
-    {
-        // Setting up internal configuration from config array:
-        $this->conf = [];
-        // Information about page for which the indexing takes place
-        $this->conf['id'] = $id;
-        // Page id	(int)
-        $this->conf['type'] = $type;
-        // Page type (int)
-        $this->conf['sys_language_uid'] = $sys_language_uid;
-        // sys_language UID of the language of the indexing (int)
-        $this->conf['MP'] = $MP;
-        // MP variable, if any (Mount Points) (string)
-        $this->conf['gr_list'] = '0,-1';
-        // Group list (hardcoded for now...)
-        $this->conf['staticPageArguments'] = $queryArguments;
-        // Set to defaults
-        $this->conf['freeIndexUid'] = 0;
-        $this->conf['freeIndexSetId'] = 0;
-
-        // Root line uids
-        $this->conf['rootline_uids'] = $uidRL;
-        // Configuration of behavior:
-        $this->conf['index_externals'] = 1;
-        // Whether to index external documents like PDF, DOC etc. (if possible)
-        $this->conf['index_descrLgd'] = 200;
-        // Length of description text (max 250, default 200)
-        $this->conf['index_metatags'] = true;
-        // Whether to index document keywords and description (if present)
-        // Init and start indexing:
-        $this->init();
-    }
-
-    /**
-     * Sets the free-index uid. Can be called right after backend_initIndexer()
-     *
-     * @param int $freeIndexUid Free index UID
-     * @param int $freeIndexSetId Set id - an integer identifying the "set" of indexing operations.
-     */
-    public function backend_setFreeIndexUid($freeIndexUid, $freeIndexSetId = 0)
-    {
-        $this->conf['freeIndexUid'] = $freeIndexUid;
-        $this->conf['freeIndexSetId'] = $freeIndexSetId;
-    }
-
-    /**
-     * Indexing records as the content of a TYPO3 page.
-     *
-     * @param string $title Title equivalent
-     * @param string $keywords Keywords equivalent
-     * @param string $description Description equivalent
-     * @param string $content The main content to index
-     * @param string $charset The charset of the title, keyword, description and body-content. MUST BE VALID, otherwise nothing is indexed!
-     * @param int $mtime Last modification time, in seconds
-     * @param int $crdate The creation date of the content, in seconds
-     * @param int $recordUid The record UID that the content comes from (for registration with the indexed rows)
-     */
-    public function backend_indexAsTYPO3Page($title, $keywords, $description, $content, $charset, $mtime, $crdate = 0, $recordUid = 0)
-    {
-        // Content of page:
-        $this->conf['mtime'] = $mtime;
-        // Most recent modification time (seconds) of the content
-        $this->conf['crdate'] = $crdate;
-        // The creation date of the TYPO3 content
-        $this->conf['recordUid'] = $recordUid;
-        // UID of the record, if applicable
-        // Construct fake HTML for parsing:
-        $this->conf['content'] = '
-		<html>
-			<head>
-				<title>' . htmlspecialchars($title) . '</title>
-				<meta name="keywords" content="' . htmlspecialchars($keywords) . '" />
-				<meta name="description" content="' . htmlspecialchars($description) . '" />
-			</head>
-			<body>
-				' . htmlspecialchars($content) . '
-			</body>
-		</html>';
-        // Content string (HTML of TYPO3 page)
-        // Initializing charset:
-        $this->conf['metaCharset'] = $charset;
-        // Character set of content (will be converted to utf-8 during indexing)
-        $this->conf['indexedDocTitle'] = '';
-        // Alternative title for indexing
-        // Index content as if it was a TYPO3 page:
-        $this->indexTypo3PageContent();
+        // Indexer configuration from Extension Manager interface
+        $this->indexerConfig = GeneralUtility::makeInstance(ExtensionConfiguration::class)->get('indexed_search');
+        $this->tstamp_minAge = MathUtility::forceIntegerInRange((int)($this->indexerConfig['minAge'] ?? 0) * 3600, 0);
+        $this->tstamp_maxAge = MathUtility::forceIntegerInRange((int)($this->indexerConfig['maxAge'] ?? 0) * 3600, 0);
+        $this->maxExternalFiles = MathUtility::forceIntegerInRange($this->indexerConfig['maxExternalFiles'], 0, 1000, 5);
+        $this->flagBitMask = MathUtility::forceIntegerInRange($this->indexerConfig['flagBitMask'], 0, 255);
+        // Workaround: If the extension configuration was not updated yet, the value is not existing
+        $this->enableMetaphoneSearch = !isset($this->indexerConfig['enableMetaphoneSearch']) || $this->indexerConfig['enableMetaphoneSearch'];
+        $this->storeMetaphoneInfoAsWords = !IndexedSearchUtility::isTableUsed('index_words') && $this->enableMetaphoneSearch;
     }
 
     /********************************
@@ -442,22 +245,18 @@ class Indexer
      * Initialization
      *
      *******************************/
+
     /**
-     * Initializes the object. $this->conf MUST be set with proper values prior to this call!!!
+     * Initializes the object.
+     * @param array|null $configuration will be used to set $this->conf, otherwise $this->conf MUST be set with proper values prior to this call
      */
-    public function init()
+    public function init(array $configuration = null)
     {
+        if (is_array($configuration)) {
+            $this->conf = $configuration;
+        }
         // Setting phash / phash_grouping which identifies the indexed page based on some of these variables:
         $this->setT3Hashes();
-        // Indexer configuration from Extension Manager interface:
-        $this->indexerConfig = GeneralUtility::makeInstance(ExtensionConfiguration::class)->get('indexed_search');
-        $this->tstamp_minAge = MathUtility::forceIntegerInRange($this->indexerConfig['minAge'] * 3600, 0);
-        $this->tstamp_maxAge = MathUtility::forceIntegerInRange($this->indexerConfig['maxAge'] * 3600, 0);
-        $this->maxExternalFiles = MathUtility::forceIntegerInRange($this->indexerConfig['maxExternalFiles'], 0, 1000, 5);
-        $this->flagBitMask = MathUtility::forceIntegerInRange($this->indexerConfig['flagBitMask'], 0, 255);
-        // Workaround: If the extension configuration was not updated yet, the value is not existing
-        $this->enableMetaphoneSearch = !isset($this->indexerConfig['enableMetaphoneSearch']) || $this->indexerConfig['enableMetaphoneSearch'];
-        $this->storeMetaphoneInfoAsWords = !IndexedSearchUtility::isTableUsed('index_words') && $this->enableMetaphoneSearch;
         // Initialize external document parsers:
         // Example configuration, see ext_localconf.php of this file!
         if ($this->conf['index_externals']) {
@@ -528,7 +327,7 @@ class Indexer
             // This will also prevent pages from being indexed if a fe_users has logged in and it turns out that the page content is not changed anyway. fe_users logged in should always search with hash_gr_list = "0,-1" OR "[their_group_list]". This situation will be prevented only if the page has been indexed with no user login on before hand. Else the page will be indexed by users until that event. However that does not present a serious problem.
             $checkCHash = $this->checkContentHash();
             if (!is_array($checkCHash) || $check === 1) {
-                $Pstart = GeneralUtility::milliseconds();
+                $Pstart = IndexedSearchUtility::milliseconds();
                 $this->log_push('Converting charset of content (' . $this->conf['metaCharset'] . ') to utf-8', '');
                 $this->charsetEntity2utf8($this->contentParts, $this->conf['metaCharset']);
                 $this->log_pull();
@@ -552,7 +351,7 @@ class Indexer
                 }
                 $this->log_pull();
                 // Set parsetime
-                $this->updateParsetime($this->hash['phash'], GeneralUtility::milliseconds() - $Pstart);
+                $this->updateParsetime($this->hash['phash'], IndexedSearchUtility::milliseconds() - $Pstart);
                 // Checking external files if configured for.
                 $this->log_push('Checking external files', '');
                 if ($this->conf['index_externals']) {
@@ -599,7 +398,8 @@ class Indexer
             }
             // @todo The code below stops at first unset tag. Is that correct?
             for ($i = 0; isset($meta[$i]); $i++) {
-                $meta[$i] = GeneralUtility::get_tag_attributes($meta[$i]);
+                // decode HTML entities, meta tag content needs to be encoded later
+                $meta[$i] = GeneralUtility::get_tag_attributes($meta[$i], true);
                 if (stripos($meta[$i]['name'], 'keywords') !== false) {
                     $contentArr['keywords'] .= ',' . $this->addSpacesToKeywordList($meta[$i]['content']);
                 }
@@ -638,6 +438,8 @@ class Indexer
                 return $reg2[1];
             }
         }
+
+        return '';
     }
 
     /**
@@ -682,10 +484,10 @@ class Indexer
         if (!$isTagInText) {
             return false;
         }
-        list($paramList, $isTagInText) = explode('>', substr($isTagInText, strlen($startTag)), 2);
+        [$paramList, $isTagInText] = explode('>', substr($isTagInText, strlen($startTag)), 2);
         $afterTagInText = stristr($isTagInText, $endTag);
         if ($afterTagInText) {
-            $stringBefore = substr($string, 0, strpos(strtolower($string), strtolower($startTag)));
+            $stringBefore = substr($string, 0, (int)strpos(strtolower($string), strtolower($startTag)));
             $tagContent = substr($isTagInText, 0, strlen($isTagInText) - strlen($afterTagInText));
             $stringAfter = $stringBefore . substr($afterTagInText, strlen($endTag));
         } else {
@@ -704,8 +506,10 @@ class Indexer
     public function typoSearchTags(&$body)
     {
         $expBody = preg_split('/\\<\\!\\-\\-[\\s]?TYPO3SEARCH_/', $body);
+        $expBody = $expBody ?: [];
         if (count($expBody) > 1) {
             $body = '';
+            $prev = '';
             foreach ($expBody as $val) {
                 $part = explode('-->', $val, 2);
                 if (trim($part[0]) === 'begin') {
@@ -729,10 +533,15 @@ class Indexer
      */
     public function extractLinks($content)
     {
+        $crawler = null;
         // Get links:
         $list = $this->extractHyperLinks($content);
-        if ($this->indexerConfig['useCrawlerForExternalFiles'] && \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::isLoaded('crawler')) {
-            $crawler = GeneralUtility::makeInstance(\tx_crawler_lib::class);
+        if ($this->indexerConfig['useCrawlerForExternalFiles'] && ExtensionManagementUtility::isLoaded('crawler')) {
+            /**
+             * todo: remove dependency to class tx_crawler_lib
+             * @link https://forge.typo3.org/issues/83603
+             */
+            $crawler = GeneralUtility::makeInstance('tx_crawler_lib');
         }
         // Traverse links:
         foreach ($list as $linkInfo) {
@@ -775,7 +584,7 @@ class Indexer
                                 'conf' => $this->conf
                             ];
                             unset($params['conf']['content']);
-                            $crawler->addQueueEntry_callBack(0, $params, Hook\CrawlerFilesHook::class, $this->conf['id']);
+                            $crawler->addQueueEntry_callBack(0, $params, CrawlerFilesHook::class, $this->conf['id']);
                             $this->log_setTSlogMessage('media "' . $params['document'] . '" added to "crawler" queue.', 1);
                         } else {
                             $this->indexRegularDocument($linkInfo['href'], false, $linkSource, $ext);
@@ -787,7 +596,7 @@ class Indexer
                                 'conf' => $this->conf
                             ];
                             unset($params['conf']['content']);
-                            $crawler->addQueueEntry_callBack(0, $params, Hook\CrawlerFilesHook::class, $this->conf['id']);
+                            $crawler->addQueueEntry_callBack(0, $params, CrawlerFilesHook::class, $this->conf['id']);
                             $this->log_setTSlogMessage('media "' . $params['document'] . '" added to "crawler" queue.', 1);
                         } else {
                             $this->indexRegularDocument($linkSource);
@@ -807,7 +616,7 @@ class Indexer
      */
     public function extractHyperLinks($html)
     {
-        $htmlParser = GeneralUtility::makeInstance(\TYPO3\CMS\Core\Html\HtmlParser::class);
+        $htmlParser = GeneralUtility::makeInstance(HtmlParser::class);
         $htmlParts = $htmlParser->splitTags('a', $html);
         $hyperLinksData = [];
         foreach ($htmlParts as $index => $tagData) {
@@ -819,7 +628,7 @@ class Indexer
                         $hyperLinksData[] = [
                             'tag' => $tagData,
                             'href' => $tagAttributes[0]['href'],
-                            'localPath' => $this->createLocalPath($tagAttributes[0]['href'])
+                            'localPath' => $this->createLocalPath(urldecode($tagAttributes[0]['href']))
                         ];
                     }
                 }
@@ -837,7 +646,7 @@ class Indexer
     public function extractBaseHref($html)
     {
         $href = '';
-        $htmlParser = GeneralUtility::makeInstance(\TYPO3\CMS\Core\Html\HtmlParser::class);
+        $htmlParser = GeneralUtility::makeInstance(HtmlParser::class);
         $htmlParts = $htmlParser->splitTags('base', $html);
         foreach ($htmlParts as $index => $tagData) {
             if ($index % 2 !== 0) {
@@ -862,14 +671,14 @@ class Indexer
     /**
      * Index External URLs HTML content
      *
-     * @param string $externalUrl URL, eg. "http://typo3.org/
+     * @param string $externalUrl URL, eg. "https://typo3.org/
      * @see indexRegularDocument()
      */
     public function indexExternalUrl($externalUrl)
     {
         // Get headers:
         $urlHeaders = $this->getUrlHeaders($externalUrl);
-        if (stripos($urlHeaders['Content-Type'], 'text/html') !== false) {
+        if (is_array($urlHeaders) && stripos($urlHeaders['Content-Type'], 'text/html') !== false) {
             $content = ($this->indexExternalUrl_content = GeneralUtility::getUrl($externalUrl));
             if ((string)$content !== '') {
                 // Create temporary file:
@@ -893,20 +702,17 @@ class Indexer
      */
     public function getUrlHeaders($url)
     {
-        // Try to get the headers only
-        $content = GeneralUtility::getUrl($url, 2);
-        if ((string)$content !== '') {
-            // Compile headers:
-            $headers = GeneralUtility::trimExplode(LF, $content, true);
+        try {
+            $response = GeneralUtility::makeInstance(RequestFactory::class)->request($url, 'HEAD');
+            $headers = $response->getHeaders();
             $retVal = [];
-            foreach ($headers as $line) {
-                if (trim($line) === '') {
-                    break;
-                }
-                list($headKey, $headValue) = explode(':', $line, 2);
-                $retVal[$headKey] = $headValue;
+            foreach ($headers as $key => $value) {
+                $retVal[$key] = implode('', $value);
             }
             return $retVal;
+        } catch (\Exception $e) {
+            // fail silently if the HTTP request failed
+            return false;
         }
     }
 
@@ -1082,7 +888,7 @@ class Indexer
                 foreach ($cParts as $cPKey) {
                     $this->internal_log = [];
                     $this->log_push('Index: ' . str_replace('.', '_', PathUtility::basename($file)) . ($cPKey ? '#' . $cPKey : ''), '');
-                    $Pstart = GeneralUtility::milliseconds();
+                    $Pstart = IndexedSearchUtility::milliseconds();
                     $subinfo = ['key' => $cPKey];
                     // Setting page range. This is "0" (zero) when no division is made, otherwise a range like "1-3"
                     $phash_arr = ($this->file_phash_arr = $this->setExtHashes($file, $subinfo));
@@ -1101,7 +907,7 @@ class Indexer
                             $this->log_pull();
                             if (is_array($contentParts)) {
                                 // Calculating a hash over what is to be the actual content. (see indexTypo3PageContent())
-                                $content_md5h = IndexedSearchUtility::md5inthash(implode($contentParts, ''));
+                                $content_md5h = IndexedSearchUtility::md5inthash(implode('', $contentParts));
                                 if ($this->checkExternalDocContentHash($phash_arr['phash_grouping'], $content_md5h) || $force) {
                                     // Increment counter:
                                     $this->externalFileCounter++;
@@ -1126,7 +932,7 @@ class Indexer
                                     }
                                     $this->log_pull();
                                     // Set parsetime
-                                    $this->updateParsetime($phash_arr['phash'], GeneralUtility::milliseconds() - $Pstart);
+                                    $this->updateParsetime($phash_arr['phash'], IndexedSearchUtility::milliseconds() - $Pstart);
                                 } else {
                                     // Update the timestamp
                                     $this->updateTstamp($phash_arr['phash'], $fileInfo['mtime']);
@@ -1257,12 +1063,16 @@ class Indexer
      */
     public function bodyDescription($contentArr)
     {
+        $bodyDescription = '';
         // Setting description
         $maxL = MathUtility::forceIntegerInRange($this->conf['index_descrLgd'], 0, 255, 200);
         if ($maxL) {
             $bodyDescription = preg_replace('/\s+/u', ' ', $contentArr['body']);
-            // Shorten the string:
-            $bodyDescription = mb_strcut($bodyDescription, 0, $maxL, 'utf-8');
+            // Shorten the string. If the database has the wrong character set
+            // set the string is probably truncated again. mb_strcut can not be
+            // used here because it's not part of the fallback package
+            // symfony/polyfill-mbstring in case of the missing ext:mbstring.
+            $bodyDescription = \mb_substr($bodyDescription, 0, $maxL, 'utf-8');
         }
         return $bodyDescription;
     }
@@ -1308,7 +1118,7 @@ class Indexer
                 $this->metaphoneContent .= ' ' . $retArr[$val]['metaphone'];
             }
             // Priority used for flagBitMask feature (see extension configuration)
-            $retArr[$val]['cmp'] = $retArr[$val]['cmp'] | pow(2, $offset);
+            $retArr[$val]['cmp'] = $retArr[$val]['cmp'] | 2 ** $offset;
             // Increase number of occurrences
             $retArr[$val]['count']++;
             $this->wordcount++;
@@ -1387,7 +1197,7 @@ class Indexer
         $fields = [
             'phash' => $this->hash['phash'],
             'phash_grouping' => $this->hash['phash_grouping'],
-            'static_page_arguments' => json_encode($this->conf['staticPageArguments']),
+            'static_page_arguments' => is_array($this->conf['staticPageArguments']) ? json_encode($this->conf['staticPageArguments']) : null,
             'contentHash' => $this->content_md5h,
             'data_page_id' => $this->conf['id'],
             'data_page_type' => $this->conf['type'],
@@ -2146,7 +1956,7 @@ class Indexer
         } else {
             $newFreq = $freq / $mapFactor;
         }
-        return $newFreq;
+        return (int)$newFreq;
     }
 
     /********************************
@@ -2165,7 +1975,7 @@ class Indexer
             'type' => (int)$this->conf['type'],
             'sys_lang' => (int)$this->conf['sys_language_uid'],
             'MP' => (string)$this->conf['MP'],
-            'staticPageArguments' => $this->conf['staticPageArguments'],
+            'staticPageArguments' => is_array($this->conf['staticPageArguments']) ? json_encode($this->conf['staticPageArguments']) : null,
         ];
         // Set grouping hash (Identifies a "page" combined of id, type, language, mountpoint and cHash parameters):
         $this->hash['phash_grouping'] = IndexedSearchUtility::md5inthash(serialize($hArray));
@@ -2238,7 +2048,7 @@ class Indexer
      *
      * @param string $keywordList
      * @return string
-     * @see http://forge.typo3.org/issues/14959
+     * @see https://forge.typo3.org/issues/14959
      */
     protected function addSpacesToKeywordList($keywordList)
     {

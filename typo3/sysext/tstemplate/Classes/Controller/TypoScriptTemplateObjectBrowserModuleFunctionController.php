@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Tstemplate\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,7 +13,10 @@ namespace TYPO3\CMS\Tstemplate\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Tstemplate\Controller;
+
 use Psr\Http\Message\ServerRequestInterface;
+use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
@@ -282,7 +284,7 @@ class TypoScriptTemplateObjectBrowserModuleFunctionController
         // EDIT A VALUE:
         $assigns['typoScriptPath'] = $sObj;
         if (!empty($sObj)) {
-            list($theSetup, $theSetupValue) = $this->templateService->ext_getSetup($theSetup, $sObj);
+            [$theSetup, $theSetupValue] = $this->templateService->ext_getSetup($theSetup, $sObj);
             $assigns['theSetupValue'] = $theSetupValue;
             if ($existTemplate === false) {
                 $noTemplateMessage = GeneralUtility::makeInstance(FlashMessage::class, $lang->getLL('noCurrentTemplate'), $lang->getLL('edit'), FlashMessage::ERROR);
@@ -293,7 +295,7 @@ class TypoScriptTemplateObjectBrowserModuleFunctionController
                 'id' => $this->id
             ];
             /** @var \TYPO3\CMS\Backend\Routing\UriBuilder $uriBuilder */
-            $uriBuilder = GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Routing\UriBuilder::class);
+            $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
             $aHref = (string)$uriBuilder->buildUriFromRoute('web_ts', $urlParameters);
             $assigns['moduleUrl'] = (string)$uriBuilder->buildUriFromRoute('web_ts', $urlParameters);
             $assigns['isNotInTopLevelKeyList'] = !isset($this->pObj->MOD_SETTINGS['ts_browser_TLKeys_' . $bType][$sObj]);
@@ -339,14 +341,14 @@ class TypoScriptTemplateObjectBrowserModuleFunctionController
             if (!$theKey || !str_replace('-', '', $theKey)) {
                 $theKey = '';
             }
-            list($theSetup, $theSetupValue) = $this->templateService->ext_getSetup($theSetup, $this->pObj->MOD_SETTINGS['ts_browser_toplevel_' . $bType] ?: '');
+            [$theSetup, $theSetupValue] = $this->templateService->ext_getSetup($theSetup, $this->pObj->MOD_SETTINGS['ts_browser_toplevel_' . $bType] ?: '');
             $tree = $this->templateService->ext_getObjTree($theSetup, $theKey, '', '', $theSetupValue, $this->pObj->MOD_SETTINGS['ts_browser_alphaSort']);
             $tree = $this->templateService->substituteCMarkers($tree);
             $urlParameters = [
                 'id' => $this->id
             ];
             /** @var \TYPO3\CMS\Backend\Routing\UriBuilder $uriBuilder */
-            $uriBuilder = GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Routing\UriBuilder::class);
+            $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
             $aHref = (string)$uriBuilder->buildUriFromRoute('web_ts', $urlParameters);
             // Parser Errors:
             $pEkey = $bType === 'setup' ? 'config' : 'constants';

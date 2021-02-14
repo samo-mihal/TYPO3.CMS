@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Scheduler\CronCommand;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,10 @@ namespace TYPO3\CMS\Scheduler\CronCommand;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Scheduler\CronCommand;
+
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * This class provides calculations for the cron command format.
@@ -40,6 +43,7 @@ class CronCommand
      * This value starts with 'now + 1 minute' if not set externally
      * by unit tests. After a call to calculateNextValue() it holds the timestamp of
      * the next execution date which matches the cron command restrictions.
+     * @var int
      */
     protected $timestamp;
 
@@ -53,7 +57,7 @@ class CronCommand
     {
         $cronCommand = NormalizeCommand::normalize($cronCommand);
         // Explode cron command to sections
-        $this->cronCommandSections = \TYPO3\CMS\Core\Utility\GeneralUtility::trimExplode(' ', $cronCommand);
+        $this->cronCommandSections = GeneralUtility::trimExplode(' ', $cronCommand);
         // Initialize the values with the starting time
         // This takes care that the calculated time is always in the future
         if ($timestamp === false) {
@@ -151,9 +155,9 @@ class CronCommand
      */
     protected function dayMatchesCronCommand($timestamp)
     {
-        $dayOfMonth = date('j', $timestamp);
-        $month = date('n', $timestamp);
-        $dayOfWeek = date('N', $timestamp);
+        $dayOfMonth = (int)date('j', $timestamp);
+        $month = (int)date('n', $timestamp);
+        $dayOfWeek = (int)date('N', $timestamp);
         $isInDayOfMonth = $this->isInCommandList($this->cronCommandSections[2], $dayOfMonth);
         $isInMonth = $this->isInCommandList($this->cronCommandSections[3], $month);
         $isInDayOfWeek = $this->isInCommandList($this->cronCommandSections[4], $dayOfWeek);
@@ -177,8 +181,8 @@ class CronCommand
      * Determine if a given number validates a cron command section. The given cron
      * command must be a 'normalized' list with only comma separated integers or '*'
      *
-     * @param string $commandExpression: cron command
-     * @param int $numberToMatch: number to look up
+     * @param string $commandExpression cron command
+     * @param int $numberToMatch number to look up
      * @return bool TRUE if number is in list
      */
     protected function isInCommandList($commandExpression, $numberToMatch)
@@ -186,7 +190,7 @@ class CronCommand
         if ((string)$commandExpression === '*') {
             $inList = true;
         } else {
-            $inList = \TYPO3\CMS\Core\Utility\GeneralUtility::inList($commandExpression, $numberToMatch);
+            $inList = GeneralUtility::inList($commandExpression, (string)$numberToMatch);
         }
         return $inList;
     }
@@ -205,10 +209,10 @@ class CronCommand
      */
     protected function numberOfSecondsInDay($timestamp)
     {
-        $now = mktime(0, 0, 0, date('n', $timestamp), date('j', $timestamp), date('Y', $timestamp));
+        $now = mktime(0, 0, 0, (int)date('n', $timestamp), (int)date('j', $timestamp), (int)date('Y', $timestamp));
         // Make sure to be in next day, even if day has 25 hours
         $nextDay = $now + 60 * 60 * 25;
-        $nextDay = mktime(0, 0, 0, date('n', $nextDay), date('j', $nextDay), date('Y', $nextDay));
+        $nextDay = mktime(0, 0, 0, (int)date('n', $nextDay), (int)date('j', $nextDay), (int)date('Y', $nextDay));
         return $nextDay - $now;
     }
 
@@ -220,6 +224,6 @@ class CronCommand
      */
     protected function roundTimestamp($timestamp)
     {
-        return mktime(date('H', $timestamp), date('i', $timestamp), 0, date('n', $timestamp), date('j', $timestamp), date('Y', $timestamp));
+        return mktime((int)date('H', $timestamp), (int)date('i', $timestamp), 0, (int)date('n', $timestamp), (int)date('j', $timestamp), (int)date('Y', $timestamp));
     }
 }

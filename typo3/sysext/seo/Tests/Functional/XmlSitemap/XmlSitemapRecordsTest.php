@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Seo\Tests\Functional\XmlSitemap;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Seo\Tests\Functional\XmlSitemap;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Seo\Tests\Functional\XmlSitemap;
 
 use TYPO3\CMS\Frontend\Tests\Functional\SiteHandling\AbstractTestCase;
 use TYPO3\TestingFramework\Core\Functional\Framework\Frontend\InternalRequest;
@@ -39,6 +40,7 @@ class XmlSitemapRecordsTest extends AbstractTestCase
         $this->importDataSet('EXT:seo/Tests/Functional/Fixtures/pages-sitemap.xml');
         $this->importDataSet('EXT:seo/Tests/Functional/Fixtures/sys_category.xml');
         $this->importDataSet('EXT:seo/Tests/Functional/Fixtures/tt_content.xml');
+        $this->importDataSet('EXT:seo/Tests/Functional/Fixtures/sys_news.xml');
         $this->setUpFrontendRootPage(
             1,
             [
@@ -68,13 +70,13 @@ class XmlSitemapRecordsTest extends AbstractTestCase
      * @var array $expectedEntries
      * @var array $notExpectedEntries
      */
-    public function checkIfSiteMapIndexContainsSysCategoryLinks(string $host, array $expectedEntries, array $notExpectedEntries): void
+    public function checkIfSiteMapIndexContainsSysCategoryLinks(string $sitemap, string $host, array $expectedEntries, array $notExpectedEntries): void
     {
         $response = $this->executeFrontendRequest(
             (new InternalRequest($host))->withQueryParameters(
                 [
                     'type' => 1533906435,
-                    'sitemap' => 'records',
+                    'sitemap' => $sitemap,
                 ]
             )
         );
@@ -107,6 +109,7 @@ class XmlSitemapRecordsTest extends AbstractTestCase
     {
         return [
             'default-language' => [
+                'records',
                 'http://localhost/',
                 [
                     'http://localhost/?tx_example_category%5Bid%5D=1&amp;',
@@ -119,6 +122,7 @@ class XmlSitemapRecordsTest extends AbstractTestCase
                 ]
             ],
             'french-language' => [
+                'records',
                 'http://localhost/fr',
                 [
                     'http://localhost/fr/?tx_example_category%5Bid%5D=3&amp;',
@@ -130,6 +134,26 @@ class XmlSitemapRecordsTest extends AbstractTestCase
                     'http://localhost/?tx_example_category%5Bid%5D=1&amp;',
                     'http://localhost/?tx_example_category%5Bid%5D=2&amp;',
                 ]
+            ],
+            'only-records-in-live-workspace-should-be-shown-when-not-in-workspace-mode' => [
+                'records',
+                'http://localhost/',
+                [
+                    'http://localhost/?tx_example_category%5Bid%5D=1&amp;',
+                    'http://localhost/?tx_example_category%5Bid%5D=2&amp;',
+                ],
+                [
+                    'http://localhost/?tx_example_category%5Bid%5D=4&amp;',
+                ]
+            ],
+            'non-workspace-tables-should-work-fine' => [
+                'records_without_workspace_settings',
+                'http://localhost/',
+                [
+                    'http://localhost/?tx_example_news%5Bid%5D=1&amp;',
+                    'http://localhost/?tx_example_news%5Bid%5D=2&amp;',
+                ],
+                []
             ],
         ];
     }

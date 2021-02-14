@@ -99,10 +99,10 @@ SYS:
             description: 'Defines a list of IP addresses which will allow development-output to display. The debug() function will use this as a filter. See the function <code>\TYPO3\CMS\Core\Utility\GeneralUtility::cmpIP()</code> for details on syntax. Setting this to blank value will deny all. Setting to "*" will allow all.'
         ddmmyy:
             type: text
-            description: 'Format of Day-Month-Year - see PHP-function <a href="http://php.net/date" target="_blank" rel="noreferrer">date()</a>'
+            description: 'Format of Day-Month-Year - see PHP-function <a href="https://php.net/date" target="_blank" rel="noreferrer">date()</a>'
         hhmm:
             type: text
-            description: 'Format of Hours-Minutes - see PHP-function <a href="http://php.net/date" target="_blank" rel="noreferrer">date()</a>'
+            description: 'Format of Hours-Minutes - see PHP-function <a href="https://php.net/date" target="_blank" rel="noreferrer">date()</a>'
         USdateFormat:
             type: bool
             description: 'If TRUE, dates entered in the TCEforms of the backend will be formatted mm-dd-yyyy'
@@ -129,18 +129,18 @@ SYS:
             description: 'Integer: memory_limit in MB: If more than 16, TYPO3 will try to use ini_set() to set the memory limit of PHP to the value. This works only if the function ini_set() is not disabled by your sysadmin.'
         phpTimeZone:
             type: text
-            description: 'timezone to force for all date() and mktime() functions. A list of supported values can be found at <a href="http://php.net/manual/en/timezones.php" target="_blank" rel="noreferrer">php.net</a>. If this is not set, a valid fallback will be searched for by PHP (php.ini''s <a href="http://www.php.net/manual/en/datetime.configuration.php#ini.date.timezone" target="_blank" rel="noreferrer">date.timezone</a> setting, server defaults, etc); and if no fallback is found, the value of "UTC" is used instead.'
+            description: 'timezone to force for all date() and mktime() functions. A list of supported values can be found at <a href="https://php.net/manual/en/timezones.php" target="_blank" rel="noreferrer">php.net</a>. If this is not set, a valid fallback will be searched for by PHP (php.ini''s <a href="http://www.php.net/manual/en/datetime.configuration.php#ini.date.timezone" target="_blank" rel="noreferrer">date.timezone</a> setting, server defaults, etc); and if no fallback is found, the value of "UTC" is used instead.'
         UTF8filesystem:
             type: bool
             description: |
               <p>
                 If TRUE then TYPO3 uses utf-8 to store file names. This allows for accented Latin letters as well as any other non-latin characters like Cyrillic and Chinese.
                 <strong>IMPORTANT:</strong> This requires a UTF-8 compatible locale in order to work. Otherwise problems with filenames containing special characters will occur.
-                See [SYS][systemLocale] and <a href="http://php.net/manual/en/function.setlocale.php" target="_blank" rel="noreferrer">setlocale()</a>.
+                See [SYS][systemLocale] and <a href="https://php.net/manual/en/function.setlocale.php" target="_blank" rel="noreferrer">setlocale()</a>.
               </p>
         systemLocale:
             type: text
-            description: 'Locale used for certain system related functions, e.g. escaping shell commands. If problems with filenames containing special characters occur, the value of this option is probably wrong. See <a href="http://php.net/manual/en/function.setlocale.php" target="_blank" rel="noreferrer">setlocale()</a>.'
+            description: 'Locale used for certain system related functions, e.g. escaping shell commands. If problems with filenames containing special characters occur, the value of this option is probably wrong. See <a href="https://php.net/manual/en/function.setlocale.php" target="_blank" rel="noreferrer">setlocale()</a>.'
         reverseProxyIP:
             type: list
             description: 'List of IP addresses. If TYPO3 is behind one or more (intransparent) reverse proxies the IP addresses must be added here.'
@@ -181,13 +181,13 @@ SYS:
             description: 'Classname to handle PHP errors. E.g.: TYPO3\CMS\Core\Error\ErrorHandler. This class displays and logs all errors that are registered as [SYS][errorHandlerErrors]. Leave empty to disable error handling. Errors will be logged and can be sent to the optionally installed developer log or to the "syslog" database table. If an error is registered in [SYS][exceptionalErrors] it will be turned into an exception to be handled by the configured exceptionHandler.'
         errorHandlerErrors:
             type: errors
-            description: 'The E_* constant that will be handled by the [SYS][errorHandler]. Not all PHP error types can be handled! Default is 30466 = <code>E_ALL & ~(E_STRICT | E_NOTICE | E_COMPILE_WARNING | E_COMPILE_ERROR | E_CORE_WARNING | E_CORE_ERROR | E_PARSE | E_ERROR)</code> (see <a href="http://php.net/manual/en/errorfunc.constants.php" target="_blank" rel="noreferrer">PHP documentation</a>).'
+            description: 'The E_* constant that will be handled by the [SYS][errorHandler]. Not all PHP error types can be handled! <code>E_USER_DEPRECATED</code> will always be handled, regardless of this setting. Default is 30466 = <code>E_ALL & ~(E_STRICT | E_NOTICE | E_COMPILE_WARNING | E_COMPILE_ERROR | E_CORE_WARNING | E_CORE_ERROR | E_PARSE | E_ERROR)</code> (see <a href="https://php.net/manual/en/errorfunc.constants.php" target="_blank" rel="noreferrer">PHP documentation</a>).'
         exceptionalErrors:
             type: errors
-            description: 'The E_* constant that will be converted into an exception by the default [SYS][errorHandler]. Default is 4096 = <code>E_ALL & ~(E_STRICT | E_NOTICE | E_COMPILE_WARNING | E_COMPILE_ERROR | E_CORE_WARNING | E_CORE_ERROR | E_PARSE | E_ERROR | E_DEPRECATED | E_USER_DEPRECATED | E_WARNING | E_USER_ERROR | E_USER_NOTICE | E_USER_WARNING)</code> (see <a href="http://php.net/manual/en/errorfunc.constants.php" target="_blank rel="noreferrer"">PHP documentation</a>). E_USER_DEPRECATED is always excluded to avoid exceptions to be thrown for deprecation messages.'
+            description: 'The E_* constant that will be converted into an exception by the default [SYS][errorHandler]. Default is 4096 = <code>E_ALL & ~(E_STRICT | E_NOTICE | E_COMPILE_WARNING | E_COMPILE_ERROR | E_CORE_WARNING | E_CORE_ERROR | E_PARSE | E_ERROR | E_DEPRECATED | E_USER_DEPRECATED | E_WARNING | E_USER_ERROR | E_USER_NOTICE | E_USER_WARNING)</code> (see <a href="https://php.net/manual/en/errorfunc.constants.php" target="_blank rel="noreferrer"">PHP documentation</a>). E_USER_DEPRECATED is always excluded to avoid exceptions to be thrown for deprecation messages.'
         belogErrorReporting:
             type: errors
-            description: 'Configures which PHP errors should be logged to the "syslog" database table (extension: belog). If set to "0" no PHP errors are logged to the sys_log table. Default is 30711 = <code>E_ALL & ~(E_STRICT | E_NOTICE)</code> (see <a href="http://php.net/manual/en/errorfunc.constants.php" target="_blank" rel="noreferrer">PHP documentation</a>).'
+            description: 'Configures which PHP errors should be logged to the "syslog" database table (extension: belog). If set to "0" no PHP errors are logged to the sys_log table. Default is 30711 = <code>E_ALL & ~(E_STRICT | E_NOTICE)</code> (see <a href="https://php.net/manual/en/errorfunc.constants.php" target="_blank" rel="noreferrer">PHP documentation</a>).'
         generateApacheHtaccess:
             type: bool
             description: 'TYPO3 can create <em>.htaccess</em> files which are used by Apache Webserver. They are useful for access protection or performance improvements. Currently <em>.htaccess</em> files in the following directories are created, if they do not exist: <ul><li>typo3temp/compressor/</li></ul>You want to disable this feature, if you are not running Apache or want to use own rulesets.'
@@ -197,7 +197,7 @@ SYS:
               '0': 'Disabled - Do not modify IP addresses at all'
               '1': 'Mask the last byte for IPv4 addresses / Mask the Interface ID for IPv6 addresses (default)'
               '2': 'Mask the last two bytes for IPv4 addresses / Mask the Interface ID and SLA ID for IPv6 addresses'
-            description: 'Configures if and how IP addresses stored via TYPO3''s API should be anonymized ("masked") with a zero-numbered replacement.'
+            description: 'Configures if and how IP addresses stored via TYPO3''s API should be anonymized ("masked") with a zero-numbered replacement. This is respected within anonymization Task, not while creating new log entries.'
         systemMaintainers:
             type: array
             description: 'A list of backend user IDs allowed to access the Install Tool'
@@ -205,6 +205,9 @@ SYS:
             type: container
             description: 'New features of TYPO3 that are activated on new installations but upgrading installations can still use the old behaviour'
             items:
+              fluidBasedPageModule:
+                type: bool
+                description: 'Use the rewritten page layout backend module which is based on Fluid. Can be toggled off to use the legacy PageLayoutView on installations which require the hooks etc. which are associated with PageLayoutView'
               form.legacyUploadMimeTypes:
                 type: bool
                 description: 'If on, some mime types are predefined for the "FileUpload" and "ImageUpload" elements of the "form" extension which always allows file uploads of these types, no matter the specific form element definition.'
@@ -214,12 +217,14 @@ SYS:
               security.frontend.keepSessionDataOnLogout:
                 type: bool
                 description: 'If on, session data is kept in an anonymous session after frontend user logged out. As this is a potential security risk, it is recommended to disable this option if not specifically needed.'
+              security.backend.enforceReferrer:
+                type: bool
+                description: 'If on, HTTP referrer headers are enforced for backend and install tool requests to mitigate
+                  potential same-site request forgery attacks. The behavior can be disabled in case HTTP proxies filter
+                  required `Referer` header. As this is a potential security risk, it is recommended to enable this option.'
               rearrangedRedirectMiddlewares:
                 type: bool
                 description: 'If on, the middlewares "base redirect" and "redirects" are switched, so that "redirects" (if ext:redirects is installed) is executed before "base redirect". The new ordering aims to be a better default shipped by the TYPO3 core.'
-              betaTranslationServer:
-                type: bool
-                description: 'If on, the new translation server is used which is filled by exports of https://crowdin.com/project/typo3-cms. This setting will be removed as soon as the new integration is stable.'
               felogin.extbase:
                 type: bool
                 description: 'If activated, and if extension "felogin" is loaded, extbase based code will be used instead of pibase version'
@@ -271,19 +276,25 @@ BE:
               '1': 'Send a notification-email every time a backend user logs in'
               '2': 'Send a notification-email every time an ADMIN backend user logs in'
             description: 'Send emails to <code>warning_email_addr</code> upon backend-login'
+        passwordReset:
+          type: bool
+          description: 'Enable password reset functionality for TYPO3 Backend users. Can be disabled for systems where only e.g. LDAP / OAuth login is allowed.'
+        passwordResetForAdmins:
+          type: bool
+          description: 'Enable password reset functionality on the backend login for TYPO3 Administrators as well. Disable this option for increased security.'
         lockIP:
             type: int
             allowedValues:
-              '0': 'Do not lock Backend User sessions to their IP address at all'
+              '0': 'Default: Do not lock Backend User sessions to their IP address at all'
               '1': 'Use the first part of the editors'' IPv4 address (e.g. "192.") as part of the session locking of Backend Users'
               '2': 'Use the first two parts of the editors'' IPv4 address (e.g. "192.168") as part of the session locking of Backend Users'
               '3': 'Use the first three parts of the editors'' IPv4 address (e.g. "192.168.13") as part of the session locking of Backend Users'
-              '4': 'Default: Use the editors'' full IPv4 address (e.g. "192.168.13.84") as part of the session locking of Backend Users (highest security)'
+              '4': 'Use the editors'' full IPv4 address (e.g. "192.168.13.84") as part of the session locking of Backend Users (highest security)'
             description: 'Session IP locking for backend users. See <a href="#FE-lockIP">[FE][lockIP]</a> for details.'
         lockIPv6:
             type: int
             allowedValues:
-              '0': 'Do not lock Backend User sessions to their IP address at all'
+              '0': 'Default: Do not lock Backend User sessions to their IP address at all'
               '1': 'Use the first block (16 bits) of the editors'' IPv6 address (e.g. "2001:") as part of the session locking of Backend Users'
               '2': 'Use the first two blocks (32 bits) of the editors'' IPv6 address (e.g. "2001:0db8") as part of the session locking of Backend Users'
               '3': 'Use the first three blocks (48 bits) of the editors'' IPv6 address (e.g. "2001:0db8:85a3") as part of the session locking of Backend Users'
@@ -291,7 +302,7 @@ BE:
               '5': 'Use the first five blocks (80 bits) of the editors'' IPv6 address (e.g. "2001:0db8:85a3:08d3:1319") as part of the session locking of Backend Users'
               '6': 'Use the first six blocks (96 bits) of the editors'' IPv6 address (e.g. "2001:0db8:85a3:08d3:1319:8a2e") as part of the session locking of Backend Users'
               '7': 'Use the first seven blocks (112 bits) of the editors'' IPv6 address (e.g. "2001:0db8:85a3:08d3:1319:8a2e:0370") as part of the session locking of Backend Users'
-              '8': 'Default: Use the editors'' full IPv6 address (e.g. "2001:0db8:85a3:08d3:1319:8a2e:0370:7344") as part of the session locking of Backend Users (highest security)'
+              '8': 'Use the editors'' full IPv6 address (e.g. "2001:0db8:85a3:08d3:1319:8a2e:0370:7344") as part of the session locking of Backend Users (highest security)'
             description: 'Session IPv6 locking for backend users. See <a href="#FE-lockIPv6">[FE][lockIPv6]</a> for details.'
         sessionTimeout:
             type: int
@@ -317,6 +328,13 @@ BE:
         cookieName:
             type: text
             description: 'Set the name for the cookie used for the back-end user session'
+        cookieSameSite:
+          type: text
+          allowedValues:
+            'lax': 'Cookies set by TYPO3 are only available for the current site, third-party integrations are not allowed to read cookies, except for links and simple HTML forms'
+            'strict': 'Cookies sent by TYPO3 are only available for the current site, never shared to other third-party packages'
+            'none': 'Allow cookies set by TYPO3 to be sent to other sites as well, please note - this only works with HTTPS connections'
+          description: 'Indicates that the cookie should send proper information where the cookie can be shared (first-party cookies vs. third-party cookies) in TYPO3 Backend.'
         loginSecurityLevel:
             type: text
             description: 'Keywords that determines the security level of login to the backend. "normal" means the password from the login form is sent in clear-text. The client/server communication should be secured with HTTPS.'
@@ -376,6 +394,7 @@ BE:
                     type: dropdown
                     allowedValues:
                         'TYPO3\CMS\Core\Crypto\PasswordHashing\Argon2iPasswordHash': 'Good password hash mechanism. Used by default if available.'
+                        'TYPO3\CMS\Core\Crypto\PasswordHashing\Argon2idPasswordHash': 'Good password hash mechanism.'
                         'TYPO3\CMS\Core\Crypto\PasswordHashing\BcryptPasswordHash': 'Good password hash mechanism.'
                         'TYPO3\CMS\Core\Crypto\PasswordHashing\Pbkdf2PasswordHash': 'Fallback hash mechanism if argon and bcrypt are not available.'
                         'TYPO3\CMS\Core\Crypto\PasswordHashing\PhpassPasswordHash': 'Fallback hash mechanism if none of the above are available.'
@@ -410,16 +429,16 @@ FE:
         lockIP:
             type: int
             allowedValues:
-              '0': 'Do not lock Frontend User sessions to their IP address at all'
+              '0': 'Default: Do not lock Frontend User sessions to their IP address at all'
               '1': 'Use the first part of the visitors'' IPv4 address (e.g. "192.") as part of the session locking of Frontend Users'
-              '2': 'Default - Use the first two parts of the visitors'' IPv4 address (e.g. "192.168") as part of the session locking of Frontend Users'
+              '2': 'Use the first two parts of the visitors'' IPv4 address (e.g. "192.168") as part of the session locking of Frontend Users'
               '3': 'Use the first three parts of the visitors'' IPv4 address (e.g. "192.168.13") as part of the session locking of Frontend Users'
               '4': 'Use the visitors'' full IPv4 address (e.g. "192.168.13.84") as part of the session locking of Frontend Users (highest security)'
-            description: 'If activated, Frontend Users are locked to (a part of) their public IP (<code>$_SERVER[''REMOTE_ADDR'']</code>) for their session, if REMOTE_ADDR is an IPv4-address. Enhances security but may throw off users that may change IP during their session (in which case you can lower it). The integer indicates how many parts of the IP address to include in the check for session (next to the user agent).'
+            description: 'If activated, Frontend Users are locked to (a part of) their public IP (<code>$_SERVER[''REMOTE_ADDR'']</code>) for their session, if REMOTE_ADDR is an IPv4-address. Enhances security but may throw off users that may change IP during their session (in which case you can lower it). The integer indicates how many parts of the IP address to include in the check for the session.'
         lockIPv6:
             type: int
             allowedValues:
-              '0': 'Do not lock Backend User sessions to their IP address at all'
+              '0': 'Default: Do not lock Backend User sessions to their IP address at all'
               '1': 'Use the first block (16 bits) of the editors'' IPv6 address (e.g. "2001:") as part of the session locking of Backend Users'
               '2': 'Use the first two blocks (32 bits) of the editors'' IPv6 address (e.g. "2001:0db8") as part of the session locking of Backend Users'
               '3': 'Use the first three blocks (48 bits) of the editors'' IPv6 address (e.g. "2001:0db8:85a3") as part of the session locking of Backend Users'
@@ -427,8 +446,8 @@ FE:
               '5': 'Use the first five blocks (80 bits) of the editors'' IPv6 address (e.g. "2001:0db8:85a3:08d3:1319") as part of the session locking of Backend Users'
               '6': 'Use the first six blocks (96 bits) of the editors'' IPv6 address (e.g. "2001:0db8:85a3:08d3:1319:8a2e") as part of the session locking of Backend Users'
               '7': 'Use the first seven blocks (112 bits) of the editors'' IPv6 address (e.g. "2001:0db8:85a3:08d3:1319:8a2e:0370") as part of the session locking of Backend Users'
-              '8': 'Default: Use the visitors'' full IPv6 address (e.g. "2001:0db8:85a3:08d3:1319:8a2e:0370:7344") as part of the session locking of Backend Users (highest security)'
-            description: 'If activated, Frontend Users are locked to (a part of) their public IP (<code>$_SERVER[''REMOTE_ADDR'']</code>) for their session, if REMOTE_ADDR is an IPv6-address. Enhances security but may throw off users that may change IP during their session (in which case you can lower it). The integer indicates how many parts of the IP address to include in the check for session (next to the user agent).'
+              '8': 'Use the visitors'' full IPv6 address (e.g. "2001:0db8:85a3:08d3:1319:8a2e:0370:7344") as part of the session locking of Backend Users (highest security)'
+            description: 'If activated, Frontend Users are locked to (a part of) their public IP (<code>$_SERVER[''REMOTE_ADDR'']</code>) for their session, if REMOTE_ADDR is an IPv6-address. Enhances security but may throw off users that may change IP during their session (in which case you can lower it). The integer indicates how many parts of the IP address to include in the check for the session.'
         loginSecurityLevel:
             type: text
             description: 'See description for <a href="#BE-loginSecurityLevel">[BE][loginSecurityLevel]</a>. Default state for frontend is "normal". The client/server communication should be secured with HTTPS.'
@@ -450,6 +469,13 @@ FE:
         cookieName:
             type: text
             description: 'Set the name for the cookie used for the front-end user session'
+        cookieSameSite:
+          type: text
+          allowedValues:
+            'lax': 'Cookies set by TYPO3 are only available for the current site, third-party integrations are not allowed to read cookies, except for links and simple HTML forms'
+            'strict': 'Cookies sent by TYPO3 are only available for the current site, never shared to other third-party packages'
+            'none': 'Allow cookies set by TYPO3 to be sent to other sites as well, please note - this only works with HTTPS connections'
+          description: 'Indicates that the cookie should send proper information where the cookie can be shared (first-party cookies vs. third-party cookies) in TYPO3 Frontend.'
         defaultUserTSconfig:
             type: multiline
             description: 'Enter lines of default frontend user/group TSconfig.'
@@ -484,7 +510,7 @@ FE:
                   description: 'Configure Parameters that require a cHash. If no cHash is given but one of the parameters are set, then TYPO3 triggers the configured cHash Error behaviour'
               excludedParameters:
                   type: array
-                  description: 'The the given parameters will be ignored in the cHash calculation. Example: L,tx_search_pi1[query]'
+                  description: 'The given parameters will be ignored in the cHash calculation. Example: L,tx_search_pi1[query]'
               excludedParametersIfEmpty:
                   type: array
                   description: 'Configure Parameters that are only relevant for the cHash if there''s an associated value available. Set excludeAllEmptyParameters to true to skip all empty parameters.'
@@ -514,6 +540,7 @@ FE:
                     type: dropdown
                     allowedValues:
                         'TYPO3\CMS\Core\Crypto\PasswordHashing\Argon2iPasswordHash': 'Good password hash mechanism. Used by default if available.'
+                        'TYPO3\CMS\Core\Crypto\PasswordHashing\Argon2idPasswordHash': 'Good password hash mechanism.'
                         'TYPO3\CMS\Core\Crypto\PasswordHashing\BcryptPasswordHash': 'Good password hash mechanism.'
                         'TYPO3\CMS\Core\Crypto\PasswordHashing\Pbkdf2PasswordHash': 'Fallback hash mechanism if argon and bcrypt are not available.'
                         'TYPO3\CMS\Core\Crypto\PasswordHashing\PhpassPasswordHash': 'Fallback hash mechanism if none of the above are available.'
@@ -524,6 +551,22 @@ MAIL:
     type: container
     description: 'Mail'
     items:
+        format:
+            type: dropdown
+            allowedValues:
+                'html': 'Send emails only in HTML format'
+                'txt': 'Send emails only in plain text format'
+                'both': 'Send emails in HTML and plain text format'
+            description: 'The Mailer API allows to send out templated emails, which can be configured on a system-level to send out HTML-based emails or plain text emails, or emails with both variants.'
+        layoutRootPaths:
+            type: array
+            description: 'List of paths to look for layouts for templated emails. Should be specified as .txt and .html files.'
+        partialRootPaths:
+            type: array
+            description: 'List of paths to look for partials for templated emails. Should be specified as .txt and .html files.'
+        templateRootPaths:
+            type: array
+            description: 'List of paths to look for template files for templated emails. Should be specified as .txt and .html files.'
         transport:
             type: text
             description: '<dl><dt>smtp</dt><dd>Sends messages over the (standardized) Simple Message Transfer Protocol. It can deal with encryption and authentication. Most flexible option, requires a mail server and configurations in transport_smtp_* settings below. Works the same on Windows, Unix and MacOS.</dd><dt>sendmail</dt><dd>Sends messages by communicating with a locally installed MTA - such as sendmail. See setting transport_sendmail_command bellow.<dd><dt>mbox</dt><dd>This doesn''t send any mail out, but instead will write every outgoing mail to a file adhering to the RFC 4155 mbox format, which is a simple text file where the mails are concatenated. Useful for debugging the mail sending process and on development machines which cannot send mails to the outside. Configure the file to write to in the ''transport_mbox_file'' setting below</dd><dt>&lt;classname&gt;</dt><dd>Custom class which implements Swift_Transport. The constructor receives all settings from the MAIL section to make it possible to add custom settings.</dd></dl>'
@@ -531,8 +574,8 @@ MAIL:
             type: text
             description: '<em>only with transport=smtp</em>: &lt;server:port> of mailserver to connect to. &lt;port> defaults to "25".'
         transport_smtp_encrypt:
-            type: text
-            description: '<em>only with transport=smtp</em>: Connect to the server using the specified transport protocol. Requires openssl library. Usually available: <em>ssl, sslv2, sslv3, tls</em>. Check <a href="http://www.php.net/stream_get_transports" target="_blank rel="noreferrer"">stream_get_transports()</a>.'
+            type: bool
+            description: '<em>only with transport=smtp</em>: Connect to the server using SSL/TLS (disables STARTTLS which is used by default if supported by the server). Must not be enabled when connecting to port 587, as servers will use STARTTLS (inner encryption) via SMTP instead of SMTPS.'
         transport_smtp_username:
             type: text
             description: '<em>only with transport=smtp</em>: If your SMTP server requires authentication, enter your username here.'

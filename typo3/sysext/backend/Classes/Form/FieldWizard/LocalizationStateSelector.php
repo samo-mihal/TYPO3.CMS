@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Backend\Form\FieldWizard;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Backend\Form\FieldWizard;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Form\FieldWizard;
 
 use TYPO3\CMS\Backend\Form\AbstractNode;
 use TYPO3\CMS\Core\DataHandling\Localization\State;
@@ -36,10 +38,7 @@ class LocalizationStateSelector extends AbstractNode
         $result = $this->initializeResultArray();
 
         $fieldName = $this->data['fieldName'];
-        $l10nStateFieldName = '';
-        if (isset($l10nStateFieldName)) {
-            $l10nStateFieldName = 'l10n_state';
-        }
+        $l10nStateFieldName = 'l10n_state';
         if (
             !$l10nStateFieldName
             || !isset($this->data['defaultLanguageRow'])

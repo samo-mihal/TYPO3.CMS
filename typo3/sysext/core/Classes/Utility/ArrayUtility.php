@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Utility;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Utility;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Utility;
 
 use TYPO3\CMS\Core\Utility\Exception\MissingArrayPathException;
 
@@ -192,7 +193,7 @@ class ArrayUtility
         // Loop through each part and extract its value
         $value = $array;
         foreach ($path as $segment) {
-            if (array_key_exists($segment, $value)) {
+            if (is_array($value) && array_key_exists($segment, $value)) {
                 // Replace current value with child
                 $value = $value[$segment];
             } else {
@@ -262,7 +263,7 @@ class ArrayUtility
      * );
      *
      * @param array $array Input array to manipulate
-     * @param string|array $path Path in array to search for
+     * @param string|array|\ArrayAccess $path Path in array to search for
      * @param mixed $value Value to set at path location in array
      * @param string $delimiter Path delimiter
      * @return array Modified array
@@ -678,7 +679,7 @@ class ArrayUtility
      *
      * @param array $array The initial array to be filtered/reduced
      * @param mixed $keepItems The items which are allowed/kept in the array - accepts array or csv string
-     * @param string $getValueFunc (optional) Callback function used to get the value to keep
+     * @param callable|null $getValueFunc (optional) Callback function used to get the value to keep
      * @return array The filtered/reduced array with the kept items
      */
     public static function keepItemsInArray(array $array, $keepItems, $getValueFunc = null)
@@ -836,7 +837,7 @@ class ArrayUtility
             if (is_array($value)) {
                 $result[$key] = self::stripTagsFromValuesRecursive($value);
             } elseif (is_string($value) || (is_object($value) && method_exists($value, '__toString'))) {
-                $result[$key] = strip_tags($value);
+                $result[$key] = strip_tags((string)$value);
             }
         }
         return $result;

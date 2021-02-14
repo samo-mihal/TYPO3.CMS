@@ -11,7 +11,7 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import * as $ from 'jquery';
+import $ from 'jquery';
 
 /**
  * Module: TYPO3/CMS/Info/TranslationStatus
@@ -36,7 +36,7 @@ class TranslationStatus {
 
     const additionalArguments: string[] = [];
     $selected.each((index: number, element: Element): void => {
-      additionalArguments.push('edit[pages][' + (<HTMLInputElement>element).dataset.uid + ']=new');
+      additionalArguments.push('cmd[pages][' + (<HTMLInputElement>element).dataset.uid + '][localize]=' + languageId);
     });
     const updatedHref = $newButton.data('editUrl') + '&' + additionalArguments.join('&');
     $newButton.attr('href', updatedHref);

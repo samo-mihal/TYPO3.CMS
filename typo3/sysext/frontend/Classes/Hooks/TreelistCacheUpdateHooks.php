@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Frontend\Hooks;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Frontend\Hooks;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Frontend\Hooks;
 
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Database\Connection;
@@ -225,7 +226,7 @@ class TreelistCacheUpdateHooks
         }
         // From time to time clean the cache from expired entries
         // (theoretically every 1000 calls)
-        $randomNumber = rand(1, 1000);
+        $randomNumber = random_int(1, 1000);
         if ($randomNumber === 500) {
             $this->removeExpiredCacheEntries();
         }

@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\TestMeta\Controller;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\TestMeta\Controller;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\TestMeta\Controller;
 
 use TYPO3\CMS\Core\MetaTag\MetaTagManagerRegistry;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -29,8 +31,10 @@ class MetaPluginController
     public function setMetaData($content, $configuration): string
     {
         $pageId = $GLOBALS['TYPO3_REQUEST']->getQueryParams()['id'];
-        GeneralUtility::makeInstance(CustomPageTitleProvider::class)
-            ->setTitle('static title with pageId: ' . $pageId . ' and pluginNumber: ' . $configuration['pluginNumber']);
+        if (!empty($configuration['setTitle'])) {
+            GeneralUtility::makeInstance(CustomPageTitleProvider::class)
+                          ->setTitle('static title with pageId: ' . $pageId . ' and pluginNumber: ' . $configuration['pluginNumber']);
+        }
         $metaTagManager = GeneralUtility::makeInstance(MetaTagManagerRegistry::class)->getManagerForProperty('og:title');
         $metaTagManager->addProperty(
             'og:title',

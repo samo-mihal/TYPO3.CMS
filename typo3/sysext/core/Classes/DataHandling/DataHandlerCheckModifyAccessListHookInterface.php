@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\DataHandling;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Core\DataHandling;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\DataHandling;
+
 /**
  * Interface for hook in \TYPO3\CMS\Core\DataHandling\DataHandler::checkModifyAccessList
  */
@@ -22,9 +23,9 @@ interface DataHandlerCheckModifyAccessListHookInterface
     /**
      * Hook that determines whether a user has access to modify a table.
      *
-     * @param bool &$accessAllowed Whether the user has access to modify a table
+     * @param bool $accessAllowed Whether the user has access to modify a table
      * @param string $table The name of the table to be modified
      * @param \TYPO3\CMS\Core\DataHandling\DataHandler $parent The calling parent object
      */
-    public function checkModifyAccessList(&$accessAllowed, $table, \TYPO3\CMS\Core\DataHandling\DataHandler $parent);
+    public function checkModifyAccessList(&$accessAllowed, $table, DataHandler $parent);
 }

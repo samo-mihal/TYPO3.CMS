@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\DependencyInjection;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\DependencyInjection;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\DependencyInjection;
 
 use Psr\Container\ContainerInterface;
 
@@ -46,6 +48,7 @@ class FailsafeContainer implements ContainerInterface
 
         $factories = [];
         foreach ($providers as $provider) {
+            /** @var ServiceProviderInterface $provider */
             $factories = $provider->getFactories() + $factories;
             foreach ($provider->getExtensions() as $id => $extension) {
                 // Decorate a previously defined extension or if that is not available,

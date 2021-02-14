@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\Tests\Unit\Mvc\Configuration;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Form\Tests\Unit\Mvc\Configuration;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Form\Tests\Unit\Mvc\Configuration;
 
 use TYPO3\CMS\Form\Mvc\Configuration\Exception\CycleInheritancesException;
 use TYPO3\CMS\Form\Mvc\Configuration\InheritancesResolverService;
@@ -354,7 +356,7 @@ class InheritancesResolverServiceTest extends UnitTestCase
     /**
      * @test
      */
-    public function getResolvedConfigurationThrowsExceptionIfCycleDepenciesOnSameLevelIsFound(): void
+    public function getResolvedConfigurationThrowsExceptionIfCycleDependenciesOnSameLevelIsFound(): void
     {
         $input = [
             'TYPO3' => [
@@ -384,7 +386,7 @@ class InheritancesResolverServiceTest extends UnitTestCase
     /**
      * @test
      */
-    public function getResolvedConfigurationThrowsExceptionIfCycleDepenciesOnSameLevelWithGapIsFound(): void
+    public function getResolvedConfigurationThrowsExceptionIfCycleDependenciesOnSameLevelWithGapIsFound(): void
     {
         $input = [
             'TYPO3' => [
@@ -424,7 +426,7 @@ class InheritancesResolverServiceTest extends UnitTestCase
     /**
      * @test
      */
-    public function getResolvedConfigurationThrowsExceptionIfCycleDepenciesOnHigherLevelIsFound(): void
+    public function getResolvedConfigurationThrowsExceptionIfCycleDependenciesOnHigherLevelIsFound(): void
     {
         $input = [
             'TYPO3' => [

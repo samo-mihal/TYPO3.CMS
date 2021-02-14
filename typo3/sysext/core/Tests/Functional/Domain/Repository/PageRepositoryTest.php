@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Functional\Domain\Repository;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,19 +13,24 @@ namespace TYPO3\CMS\Core\Tests\Functional\Domain\Repository;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Functional\Domain\Repository;
+
 use Prophecy\Argument;
 use TYPO3\CMS\Core\Context\Context;
+use TYPO3\CMS\Core\Context\DateTimeAspect;
 use TYPO3\CMS\Core\Context\LanguageAspect;
 use TYPO3\CMS\Core\Context\WorkspaceAspect;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Domain\Repository\PageRepository;
 use TYPO3\CMS\Core\Domain\Repository\PageRepositoryGetPageHookInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\StringUtility;
+use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
 /**
  * Test case
  */
-class PageRepositoryTest extends \TYPO3\TestingFramework\Core\Functional\FunctionalTestCase
+class PageRepositoryTest extends FunctionalTestCase
 {
     protected $coreExtensionsToLoad = ['frontend'];
 
@@ -57,9 +61,8 @@ class PageRepositoryTest extends \TYPO3\TestingFramework\Core\Functional\Functio
         $subject = new PageRepository();
         $rows = $subject->getMenu(2, 'uid, title');
         self::assertArrayHasKey(5, $rows);
-        self::assertArrayHasKey(6, $rows);
         self::assertArrayHasKey(7, $rows);
-        self::assertCount(3, $rows);
+        self::assertCount(2, $rows);
     }
 
     /**
@@ -70,11 +73,10 @@ class PageRepositoryTest extends \TYPO3\TestingFramework\Core\Functional\Functio
         $subject = new PageRepository();
         $rows = $subject->getMenu([2, 3], 'uid, title');
         self::assertArrayHasKey(5, $rows);
-        self::assertArrayHasKey(6, $rows);
         self::assertArrayHasKey(7, $rows);
         self::assertArrayHasKey(8, $rows);
         self::assertArrayHasKey(9, $rows);
-        self::assertCount(5, $rows);
+        self::assertCount(4, $rows);
     }
 
     /**
@@ -88,11 +90,39 @@ class PageRepositoryTest extends \TYPO3\TestingFramework\Core\Functional\Functio
 
         $rows = $subject->getMenu([2, 3], 'uid, title');
         self::assertEquals('Attrappe 1-2-5', $rows[5]['title']);
-        self::assertEquals('Attrappe 1-2-6', $rows[6]['title']);
         self::assertEquals('Dummy 1-2-7', $rows[7]['title']);
         self::assertEquals('Dummy 1-3-8', $rows[8]['title']);
         self::assertEquals('Attrappe 1-3-9', $rows[9]['title']);
-        self::assertCount(5, $rows);
+        self::assertCount(4, $rows);
+    }
+
+    /**
+     * @test
+     */
+    public function getMenuWithMountPoint()
+    {
+        $subject = new PageRepository();
+        $rows = $subject->getMenu([1000]);
+        self::assertEquals('root default language', $rows[1003]['title']);
+        self::assertEquals('1001', $rows[1003]['uid']);
+        self::assertEquals('1001-1003', $rows[1003]['_MP_PARAM']);
+        self::assertCount(2, $rows);
+    }
+
+    /**
+     * @test
+     */
+    public function getMenuPageOverlayWithMountPoint()
+    {
+        $subject = new PageRepository(new Context([
+            'language' => new LanguageAspect(1)
+        ]));
+        $rows = $subject->getMenu([1000]);
+        self::assertEquals('root translation', $rows[1003]['title']);
+        self::assertEquals('1001', $rows[1003]['uid']);
+        self::assertEquals('1002', $rows[1003]['_PAGES_OVERLAY_UID']);
+        self::assertEquals('1001-1003', $rows[1003]['_MP_PARAM']);
+        self::assertCount(2, $rows);
     }
 
     /**
@@ -243,6 +273,29 @@ class PageRepositoryTest extends \TYPO3\TestingFramework\Core\Functional\Functio
     /**
      * @test
      */
+    public function groupRestrictedPageCanBeOverlaid()
+    {
+        $subject = new PageRepository();
+        $origRow = $subject->getPage(6, true);
+
+        $subject = new PageRepository(new Context([
+            'language' => new LanguageAspect(1)
+        ]));
+        $rows = $subject->getPagesOverlay([$origRow]);
+        self::assertIsArray($rows);
+        self::assertCount(1, $rows);
+        self::assertArrayHasKey(0, $rows);
+
+        $row = $rows[0];
+        $this->assertOverlayRow($row);
+        self::assertEquals('Attrappe 1-2-6', $row['title']);
+        self::assertEquals('905', $row['_PAGES_OVERLAY_UID']);
+        self::assertEquals(1, $row['_PAGES_OVERLAY_LANGUAGE']);
+    }
+
+    /**
+     * @test
+     */
     public function getPagesOverlayByRowMultiple()
     {
         $subject = new PageRepository();
@@ -338,7 +391,7 @@ class PageRepositoryTest extends \TYPO3\TestingFramework\Core\Functional\Functio
         $connection = GeneralUtility::makeInstance(ConnectionPool::class)->getConnectionForTable('pages');
 
         $expectedSQL = sprintf(
-            ' AND (%s = 0) AND ((%s = 0) OR (%s = 2)) AND (%s < 200)',
+            ' AND (%s = 0) AND ((%s = 0) OR (%s = 2)) AND (%s <> 255)',
             $connection->quoteIdentifier('pages.deleted'),
             $connection->quoteIdentifier('pages.t3ver_wsid'),
             $connection->quoteIdentifier('pages.t3ver_wsid'),
@@ -351,18 +404,19 @@ class PageRepositoryTest extends \TYPO3\TestingFramework\Core\Functional\Functio
     /**
      * @test
      */
-    public function initSetsPublicPropertyCorrectlyForLive()
+    public function initSetsEnableFieldsCorrectlyForLive(): void
     {
-        $GLOBALS['SIM_ACCESS_TIME'] = 123;
-
-        $subject = new PageRepository(new Context());
+        $subject = new PageRepository(new Context([
+            'date' => new DateTimeAspect(new \DateTimeImmutable('@1451779200'))
+        ]));
 
         $connection = GeneralUtility::makeInstance(ConnectionPool::class)->getConnectionForTable('pages');
         $expectedSQL = sprintf(
-            ' AND ((%s = 0) AND (%s <= 0) AND (%s <> -1) AND (%s = 0) AND (%s <= 123) AND ((%s = 0) OR (%s > 123))) AND (%s < 200)',
+            ' AND ((%s = 0) AND (%s <= 0) AND (%s = 0) AND (%s = 0) AND (%s = 0) AND (%s <= 1451779200) AND ((%s = 0) OR (%s > 1451779200))) AND (%s <> 255)',
             $connection->quoteIdentifier('pages.deleted'),
             $connection->quoteIdentifier('pages.t3ver_state'),
-            $connection->quoteIdentifier('pages.pid'),
+            $connection->quoteIdentifier('pages.t3ver_wsid'),
+            $connection->quoteIdentifier('pages.t3ver_oid'),
             $connection->quoteIdentifier('pages.hidden'),
             $connection->quoteIdentifier('pages.starttime'),
             $connection->quoteIdentifier('pages.endtime'),
@@ -371,6 +425,36 @@ class PageRepositoryTest extends \TYPO3\TestingFramework\Core\Functional\Functio
         );
 
         self::assertSame($expectedSQL, $subject->where_hid_del);
+    }
+
+    ////////////////////////////////
+    // Tests concerning mountpoints
+    ////////////////////////////////
+    ///
+    /**
+     * @test
+     */
+    public function getMountPointInfoForDefaultLanguage()
+    {
+        $subject = new PageRepository();
+        $mountPointInfo = $subject->getMountPointInfo(1003);
+        self::assertEquals('1001-1003', $mountPointInfo['MPvar']);
+    }
+
+    /**
+     * @test
+     */
+    public function getMountPointInfoForTranslation()
+    {
+        $mpVar = '1001-1003';
+        $subject = new PageRepository(new Context([
+            'language' => new LanguageAspect(1)
+        ]));
+        $mountPointInfo = $subject->getMountPointInfo(1003);
+        self::assertEquals($mpVar, $mountPointInfo['MPvar']);
+
+        $mountPointInfo = $subject->getMountPointInfo(1004);
+        self::assertEquals($mpVar, $mountPointInfo['MPvar']);
     }
 
     ////////////////////////////////
@@ -427,7 +511,7 @@ class PageRepositoryTest extends \TYPO3\TestingFramework\Core\Functional\Functio
      */
     public function enableFieldsHidesVersionedRecordsAndPlaceholders()
     {
-        $table = $this->getUniqueId('aTable');
+        $table = StringUtility::getUniqueId('aTable');
         $GLOBALS['TCA'][$table] = [
             'ctrl' => [
                 'versioningWS' => true
@@ -446,8 +530,8 @@ class PageRepositoryTest extends \TYPO3\TestingFramework\Core\Functional\Functio
         );
         self::assertThat(
             $conditions,
-            self::stringContains(' AND (' . $connection->quoteIdentifier($table . '.pid') . ' <> -1)'),
-            'Records from page -1'
+            self::stringContains(' AND (' . $connection->quoteIdentifier($table . '.t3ver_oid') . ' = 0)'),
+            'Records with online version'
         );
     }
 
@@ -456,7 +540,7 @@ class PageRepositoryTest extends \TYPO3\TestingFramework\Core\Functional\Functio
      */
     public function enableFieldsDoesNotHidePlaceholdersInPreview()
     {
-        $table = $this->getUniqueId('aTable');
+        $table = StringUtility::getUniqueId('aTable');
         $GLOBALS['TCA'][$table] = [
             'ctrl' => [
                 'versioningWS' => true
@@ -477,8 +561,8 @@ class PageRepositoryTest extends \TYPO3\TestingFramework\Core\Functional\Functio
         );
         self::assertThat(
             $conditions,
-            self::stringContains(' AND (' . $connection->quoteIdentifier($table . '.pid') . ' <> -1)'),
-            'Records from page -1'
+            self::stringContains(' AND (' . $connection->quoteIdentifier($table . '.t3ver_oid') . ' = 0)'),
+            'Records from online versions'
         );
     }
 
@@ -487,7 +571,7 @@ class PageRepositoryTest extends \TYPO3\TestingFramework\Core\Functional\Functio
      */
     public function enableFieldsDoesFilterToCurrentAndLiveWorkspaceForRecordsInPreview()
     {
-        $table = $this->getUniqueId('aTable');
+        $table = StringUtility::getUniqueId('aTable');
         $GLOBALS['TCA'][$table] = [
             'ctrl' => [
                 'versioningWS' => true

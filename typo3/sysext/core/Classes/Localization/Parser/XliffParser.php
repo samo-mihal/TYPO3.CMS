@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Localization\Parser;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Localization\Parser;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Localization\Parser;
 
 /**
  * Parser for XLIFF file.
@@ -76,7 +77,7 @@ class XliffParser extends AbstractXmlParser
                             $id = (string)$translationElement['id'];
                         } else {
                             $id = (string)$translationElement->{'trans-unit'}[0]['id'];
-                            $id = substr($id, 0, strpos($id, '['));
+                            $id = substr($id, 0, (int)strpos($id, '['));
                         }
                         $parsedData[$id] = $parsedTranslationElement;
                     }

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Localization;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Localization;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Localization;
 
 use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\SingletonInterface;
@@ -68,6 +69,7 @@ class Locales implements SingletonInterface
         'lt' => 'Lithuanian',
         'lv' => 'Latvian',
         'mi' => 'Maori',
+        'mk' => 'Macedonian',
         'ms' => 'Malay',
         'nl' => 'Dutch',
         'no' => 'Norwegian',
@@ -76,6 +78,7 @@ class Locales implements SingletonInterface
         'pt_BR' => 'Brazilian Portuguese',
         'ro' => 'Romanian',
         'ru' => 'Russian',
+        'rw' => 'Kinyarwanda',
         'sk' => 'Slovak',
         'sl' => 'Slovenian',
         'sq' => 'Albanian',
@@ -156,7 +159,7 @@ class Locales implements SingletonInterface
     public static function initialize(): Locales
     {
         trigger_error('Locales::initialize() will be removed in TYPO3 v11.0, fetch the instance of a class via GeneralUtility::makeInstance() or DependencyInjection', E_USER_DEPRECATED);
-        return new self;
+        return new self();
     }
 
     /**
@@ -236,7 +239,7 @@ class Locales implements SingletonInterface
         foreach ($preferredLanguages as $preferredLanguage) {
             $quality = 1.0;
             if (strpos($preferredLanguage, ';q=') !== false) {
-                list($preferredLanguage, $quality) = explode(';q=', $preferredLanguage);
+                [$preferredLanguage, $quality] = explode(';q=', $preferredLanguage);
             }
             $sortedPreferredLanguages[$preferredLanguage] = $quality;
         }
@@ -248,7 +251,7 @@ class Locales implements SingletonInterface
                 break;
             }
             // Strip the country code from the end
-            list($preferredLanguage, ) = explode('-', $preferredLanguage);
+            [$preferredLanguage, ] = explode('-', $preferredLanguage);
             if (isset($allLanguageCodesFromLocales[$preferredLanguage])) {
                 $selectedLanguage = $allLanguageCodesFromLocales[$preferredLanguage];
                 break;

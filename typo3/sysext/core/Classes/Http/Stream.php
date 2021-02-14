@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Http;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Http;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Http;
 
 use Psr\Http\Message\StreamInterface;
 
@@ -67,7 +68,7 @@ class Stream implements StreamInterface
      * This method MUST NOT raise an exception in order to conform with PHP's
      * string casting operations.
      *
-     * @see http://php.net/manual/en/language.oop5.magic.php#object.tostring
+     * @see https://php.net/manual/en/language.oop5.magic.php#object.tostring
      * @return string
      */
     public function __toString()
@@ -308,7 +309,7 @@ class Stream implements StreamInterface
      * The keys returned are identical to the keys returned from PHP's
      * stream_get_meta_data() function.
      *
-     * @link http://php.net/manual/en/function.stream-get-meta-data.php
+     * @link https://php.net/manual/en/function.stream-get-meta-data.php
      *
      * @param string $key Specific metadata to retrieve.
      *

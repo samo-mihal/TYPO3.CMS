@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\UnitDeprecated\Localization;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,8 @@ namespace TYPO3\CMS\Core\Tests\UnitDeprecated\Localization;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\UnitDeprecated\Localization;
+
 use Prophecy\Argument;
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
@@ -22,6 +24,7 @@ use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Localization\LanguageStore;
 use TYPO3\CMS\Core\Localization\LocalizationFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -42,15 +45,15 @@ class LocalizationFactoryTest extends UnitTestCase
     public function getParsedDataHandlesLocallangXMLOverride()
     {
         $cacheManagerProphecy = $this->prophesize(CacheManager::class);
-        GeneralUtility::setSingletonInstance(CacheManager::class, $cacheManagerProphecy->reveal());
         $cacheFrontendProphecy = $this->prophesize(FrontendInterface::class);
         $cacheManagerProphecy->getCache('l10n')->willReturn($cacheFrontendProphecy->reveal());
         $cacheFrontendProphecy->get(Argument::cetera())->willReturn(false);
         $cacheFrontendProphecy->set(Argument::cetera())->willReturn(null);
 
-        $subject = new LocalizationFactory;
+        $store = new LanguageStore();
+        $subject = new LocalizationFactory($store, $cacheManagerProphecy->reveal());
 
-        $unique = 'locallangXMLOverrideTest' . substr($this->getUniqueId(), 0, 10);
+        $unique = 'locallangXMLOverrideTest' . substr(StringUtility::getUniqueId(), 0, 10);
         $xml = '<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 			<T3locallang>
 				<data type="array">
@@ -69,8 +72,6 @@ class LocalizationFactoryTest extends UnitTestCase
         // Set override file
         $GLOBALS['TYPO3_CONF_VARS']['SYS']['locallangXMLOverride']['EXT:core/Resources/Private/Language/locallang_core.xlf'][$unique] = $file;
 
-        /** @var $store LanguageStore */
-        $store = GeneralUtility::makeInstance(LanguageStore::class);
         $store->flushData('EXT:core/Resources/Private/Language/locallang_core.xlf');
 
         // Get override value

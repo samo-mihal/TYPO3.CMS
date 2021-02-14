@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Redirects\Service;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,10 +15,13 @@ namespace TYPO3\CMS\Redirects\Service;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Redirects\Service;
+
 use Psr\Http\Message\UriInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use TYPO3\CMS\Core\Context\Context;
+use TYPO3\CMS\Core\Domain\Repository\PageRepository;
 use TYPO3\CMS\Core\Http\Uri;
 use TYPO3\CMS\Core\LinkHandling\LinkService;
 use TYPO3\CMS\Core\Resource\Exception\InvalidPathException;
@@ -32,7 +35,6 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\HttpUtility;
 use TYPO3\CMS\Frontend\Authentication\FrontendUserAuthentication;
 use TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController;
-use TYPO3\CMS\Frontend\Page\PageRepository;
 use TYPO3\CMS\Frontend\Service\TypoLinkCodecService;
 use TYPO3\CMS\Frontend\Typolink\AbstractTypolinkBuilder;
 use TYPO3\CMS\Frontend\Typolink\UnableToLinkException;
@@ -79,6 +81,7 @@ class RedirectService implements LoggerAwareInterface
     public function matchRedirect(string $domain, string $path, string $query = '')
     {
         $allRedirects = $this->fetchRedirects();
+        $path = rawurldecode($path);
         // Check if the domain matches, or if there is a
         // redirect fitting for any domain
         foreach ([$domain, '*'] as $domainName) {
@@ -107,7 +110,7 @@ class RedirectService implements LoggerAwareInterface
             if (!empty($allRedirects[$domainName]['regexp'])) {
                 $allRegexps = array_keys($allRedirects[$domainName]['regexp']);
                 foreach ($allRegexps as $regexp) {
-                    $matchResult = @preg_match($regexp, $path);
+                    $matchResult = @preg_match((string)$regexp, $path);
                     if ($matchResult) {
                         $possibleRedirects += $allRedirects[$domainName]['regexp'][$regexp];
                     } elseif ($matchResult === false) {
@@ -123,6 +126,8 @@ class RedirectService implements LoggerAwareInterface
                 }
             }
         }
+
+        return null;
     }
 
     /**
@@ -192,10 +197,11 @@ class RedirectService implements LoggerAwareInterface
      * @param array $matchedRedirect
      * @param array $queryParams
      * @param FrontendUserAuthentication $frontendUserAuthentication
+     * @param UriInterface $uri
      * @param SiteInterface|null $site
      * @return UriInterface|null
      */
-    public function getTargetUrl(array $matchedRedirect, array $queryParams, FrontendUserAuthentication $frontendUserAuthentication, ?SiteInterface $site = null): ?UriInterface
+    public function getTargetUrl(array $matchedRedirect, array $queryParams, FrontendUserAuthentication $frontendUserAuthentication, UriInterface $uri, ?SiteInterface $site = null): ?UriInterface
     {
         $this->logger->debug('Found a redirect to process', $matchedRedirect);
         $linkParameterParts = GeneralUtility::makeInstance(TypoLinkCodecService::class)->decode((string)$matchedRedirect['target']);
@@ -210,6 +216,10 @@ class RedirectService implements LoggerAwareInterface
         }
         // Do this for files, folders, external URLs
         if (!empty($linkDetails['url'])) {
+            if ($matchedRedirect['is_regexp'] ?? false) {
+                $linkDetails = $this->replaceRegExpCaptureGroup($matchedRedirect, $uri, $linkDetails);
+            }
+
             $url = new Uri($linkDetails['url']);
             if ($matchedRedirect['force_https']) {
                 $url = $url->withScheme('https');
@@ -253,7 +263,7 @@ class RedirectService implements LoggerAwareInterface
      * Called when TypoScript/TSFE is available, so typolink is used to generate the URL
      *
      * @param array $redirectRecord
-     * @param FrontendUserAuthentication|null $frontendUserAuthentication
+     * @param FrontendUserAuthentication $frontendUserAuthentication
      * @param SiteInterface|null $site
      * @param array $linkDetails
      * @param array $queryParams
@@ -275,6 +285,7 @@ class RedirectService implements LoggerAwareInterface
             $configuration = [
                 'parameter' => (string)$redirectRecord['target'],
                 'forceAbsoluteUrl' => true,
+                'linkAccessRestrictedPages' => true,
             ];
             if ($redirectRecord['force_https']) {
                 $configuration['forceAbsoluteUrl.']['scheme'] = 'https';
@@ -282,7 +293,7 @@ class RedirectService implements LoggerAwareInterface
             if ($redirectRecord['keep_query_parameters']) {
                 $configuration['additionalParams'] = HttpUtility::buildQueryString($queryParams, '&');
             }
-            list($url) = $linkBuilder->build($linkDetails, '', '', $configuration);
+            [$url] = $linkBuilder->build($linkDetails, '', '', $configuration);
             return new Uri($url);
         } catch (UnableToLinkException $e) {
             // This exception is also thrown by the DatabaseRecordTypolinkBuilder
@@ -307,7 +318,7 @@ class RedirectService implements LoggerAwareInterface
      *
      * So a link to a page can be generated.
      *
-     * @param FrontendUserAuthentication|null $frontendUserAuthentication
+     * @param FrontendUserAuthentication $frontendUserAuthentication
      * @param SiteInterface|null $site
      * @param array $queryParams
      * @return TypoScriptFrontendController
@@ -335,5 +346,22 @@ class RedirectService implements LoggerAwareInterface
             $GLOBALS['TSFE']->sys_page = GeneralUtility::makeInstance(PageRepository::class);
         }
         return $controller;
+    }
+
+    /**
+     * @param array $matchedRedirect
+     * @param UriInterface $uri
+     * @param array $linkDetails
+     * @return array
+     */
+    protected function replaceRegExpCaptureGroup(array $matchedRedirect, UriInterface $uri, array $linkDetails): array
+    {
+        $matchResult = @preg_match($matchedRedirect['source_path'], $uri->getPath(), $matches);
+        if ($matchResult > 0) {
+            foreach ($matches as $key => $val) {
+                $linkDetails['url'] = str_replace('$' . $key, $val, $linkDetails['url']);
+            }
+        }
+        return $linkDetails;
     }
 }

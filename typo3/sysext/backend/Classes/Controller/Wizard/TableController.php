@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Backend\Controller\Wizard;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Backend\Controller\Wizard;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Controller\Wizard;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -122,7 +124,7 @@ class TableController extends AbstractWizardController
 
         $normalizedParams = $request->getAttribute('normalizedParams');
         $requestUri = $normalizedParams->getRequestUri();
-        list($rUri) = explode('#', $requestUri);
+        [$rUri] = explode('#', $requestUri);
         $content = '<form action="' . htmlspecialchars($rUri) . '" method="post" id="TableController" name="wizardForm">';
         if ($this->P['table'] && $this->P['field'] && $this->P['uid']) {
             $tableWizard = $this->renderTableWizard($request);
@@ -311,7 +313,7 @@ class TableController extends AbstractWizardController
                 } else {
                     // Regular line based table configuration:
                     $columns = $row[$this->colsFieldName] ?? 0;
-                    $configuration = $this->configurationStringToArray($row[$this->P['field']], (int)$columns);
+                    $configuration = $this->configurationStringToArray($row[$this->P['field']] ?? '', (int)$columns);
                 }
             }
             $configuration = is_array($configuration) ? $configuration : [];
@@ -409,7 +411,6 @@ class TableController extends AbstractWizardController
 				</tfoot>';
         }
         $content = '';
-        $addSubmitOnClick = 'onclick="document.getElementById(\'TableController\').submit();"';
         // Implode all table rows into a string, wrapped in table tags.
         $content .= '
 
@@ -426,7 +427,7 @@ class TableController extends AbstractWizardController
 			<div class="checkbox">
 				<input type="hidden" name="TABLE[textFields]" value="0" />
 				<label for="textFields">
-					<input type="checkbox" ' . $addSubmitOnClick . ' name="TABLE[textFields]" id="textFields" value="1"' . ($this->inputStyle ? ' checked="checked"' : '') . ' />
+					<input type="checkbox" data-global-event="change" data-action-submit="$form" name="TABLE[textFields]" id="textFields" value="1"' . ($this->inputStyle ? ' checked="checked"' : '') . ' />
 					' . $this->getLanguageService()->getLL('table_smallFields') . '
 				</label>
 			</div>';
@@ -597,7 +598,8 @@ class TableController extends AbstractWizardController
         // Setting number of columns
         // auto...
         if (!$columns && trim($tableLines[0])) {
-            $columns = count(explode($this->tableParsing_delimiter, $tableLines[0]));
+            $exploded = explode($this->tableParsing_delimiter, $tableLines[0]);
+            $columns = is_array($exploded) ? count($exploded) : 0;
         }
         $columns = $columns ?: 4;
         // Traverse the number of table elements:

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extensionmanager\Tests\Unit\Utility;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Extensionmanager\Tests\Unit\Utility;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Extensionmanager\Tests\Unit\Utility;
 
 use TYPO3\CMS\Extensionmanager\Utility\EmConfUtility;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
@@ -32,8 +33,8 @@ class EmConfUtilityTest extends UnitTestCase
             'extKey' => 'key',
             'EM_CONF' => [],
         ];
-        $fixture = new EmConfUtility();
-        $emConf = $fixture->constructEmConf($extensionData);
+        $subject = new EmConfUtility();
+        $emConf = $subject->constructEmConf($extensionData);
         self::assertStringContainsString('Extension Manager/Repository config file for ext', $emConf);
     }
 
@@ -56,8 +57,12 @@ class EmConfUtilityTest extends UnitTestCase
                 'suggests' => [],
             ],
         ];
-        $fixture = new EmConfUtility();
-        self::assertEquals($expected, $fixture->fixEmConf($input));
+        $subject = new EmConfUtility();
+        $_EXTKEY = 'seminars';
+        $result = $subject->constructEmConf(['EM_CONF' => $input, 'extKey' => $_EXTKEY]);
+        eval(substr($result, 7));
+        $result = $EM_CONF[$_EXTKEY];
+        self::assertEquals($expected, $result);
     }
 
     /**
@@ -80,7 +85,12 @@ class EmConfUtilityTest extends UnitTestCase
                 'suggests' => [],
             ],
         ];
-        $fixture = new EmConfUtility();
-        self::assertEquals($expected, $fixture->fixEmConf($input));
+        $subject = new EmConfUtility();
+
+        $_EXTKEY = 'seminars';
+        $result = $subject->constructEmConf(['EM_CONF' => $input, 'extKey' => $_EXTKEY]);
+        eval(substr($result, 7));
+        $result = $EM_CONF[$_EXTKEY];
+        self::assertEquals($expected, $result);
     }
 }

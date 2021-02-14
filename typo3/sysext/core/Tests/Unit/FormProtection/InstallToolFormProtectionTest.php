@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Unit\FormProtection;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,10 @@ namespace TYPO3\CMS\Core\Tests\Unit\FormProtection;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\FormProtection;
+
+use TYPO3\CMS\Core\FormProtection\InstallToolFormProtection;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -33,7 +36,7 @@ class InstallToolFormProtectionTest extends UnitTestCase
     {
         parent::setUp();
         $this->subject = $this->getAccessibleMock(
-            \TYPO3\CMS\Core\FormProtection\InstallToolFormProtection::class,
+            InstallToolFormProtection::class,
             ['dummy']
         );
     }
@@ -52,7 +55,7 @@ class InstallToolFormProtectionTest extends UnitTestCase
         $action = 'edit';
         $formInstanceName = '42';
 
-        $tokenId = \TYPO3\CMS\Core\Utility\GeneralUtility::hmac($formName . $action . $formInstanceName . $sessionToken);
+        $tokenId = GeneralUtility::hmac($formName . $action . $formInstanceName . $sessionToken);
 
         $_SESSION['installToolFormToken'] = $sessionToken;
 

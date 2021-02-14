@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Unit\Resource;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,7 +13,14 @@ namespace TYPO3\CMS\Core\Tests\Unit\Resource;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\Resource;
+
 use org\bovigo\vfs\vfsStream;
+use TYPO3\CMS\Core\Resource\Folder;
+use TYPO3\CMS\Core\Resource\ResourceFactory;
+use TYPO3\CMS\Core\Resource\ResourceStorage;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -38,9 +44,9 @@ class FolderTest extends UnitTestCase
     protected function createFolderFixture($path, $name, $mockedStorage = null)
     {
         if ($mockedStorage === null) {
-            $mockedStorage = $this->createMock(\TYPO3\CMS\Core\Resource\ResourceStorage::class);
+            $mockedStorage = $this->createMock(ResourceStorage::class);
         }
-        return new \TYPO3\CMS\Core\Resource\Folder($mockedStorage, $path, $name);
+        return new Folder($mockedStorage, $path, $name);
     }
 
     /**
@@ -48,9 +54,9 @@ class FolderTest extends UnitTestCase
      */
     public function constructorArgumentsAreAvailableAtRuntime()
     {
-        $path = $this->getUniqueId();
-        $name = $this->getUniqueId();
-        $mockedStorage = $this->createMock(\TYPO3\CMS\Core\Resource\ResourceStorage::class);
+        $path = StringUtility::getUniqueId('path_');
+        $name = StringUtility::getUniqueId('name_');
+        $mockedStorage = $this->createMock(ResourceStorage::class);
         $fixture = $this->createFolderFixture($path, $name, $mockedStorage);
         self::assertSame($mockedStorage, $fixture->getStorage());
         self::assertStringStartsWith($path, $fixture->getIdentifier());
@@ -83,7 +89,7 @@ class FolderTest extends UnitTestCase
      */
     public function getFilesReturnsArrayWithFilenamesAsKeys()
     {
-        $mockedStorage = $this->createMock(\TYPO3\CMS\Core\Resource\ResourceStorage::class);
+        $mockedStorage = $this->createMock(ResourceStorage::class);
         $mockedStorage->expects(self::once())->method('getFilesInFolder')->willReturn(
             [
                 'somefile.png' => [
@@ -106,7 +112,7 @@ class FolderTest extends UnitTestCase
      */
     public function getFilesHandsOverRecursiveFALSEifNotExplicitlySet()
     {
-        $mockedStorage = $this->createMock(\TYPO3\CMS\Core\Resource\ResourceStorage::class);
+        $mockedStorage = $this->createMock(ResourceStorage::class);
         $mockedStorage
             ->expects(self::once())
             ->method('getFilesInFolder')
@@ -122,7 +128,7 @@ class FolderTest extends UnitTestCase
      */
     public function getFilesHandsOverRecursiveTRUEifSet()
     {
-        $mockedStorage = $this->createMock(\TYPO3\CMS\Core\Resource\ResourceStorage::class);
+        $mockedStorage = $this->createMock(ResourceStorage::class);
         $mockedStorage
             ->expects(self::once())
             ->method('getFilesInFolder')
@@ -130,7 +136,7 @@ class FolderTest extends UnitTestCase
             ->willReturn([]);
 
         $fixture = $this->createFolderFixture('/somePath', 'someName', $mockedStorage);
-        $fixture->getFiles(0, 0, \TYPO3\CMS\Core\Resource\Folder::FILTER_MODE_USE_OWN_AND_STORAGE_FILTERS, true);
+        $fixture->getFiles(0, 0, Folder::FILTER_MODE_USE_OWN_AND_STORAGE_FILTERS, true);
     }
 
     /**
@@ -138,10 +144,10 @@ class FolderTest extends UnitTestCase
      */
     public function getSubfolderCallsFactoryWithCorrectArguments()
     {
-        $mockedStorage = $this->createMock(\TYPO3\CMS\Core\Resource\ResourceStorage::class);
+        $mockedStorage = $this->createMock(ResourceStorage::class);
         $mockedStorage->expects(self::once())->method('hasFolderInFolder')->with(self::equalTo('someSubfolder'))->willReturn(true);
         /** @var \PHPUnit\Framework\MockObject\MockObject|\TYPO3\CMS\Core\Resource\ResourceFactory $mockedFactory */
-        $mockedFactory = $this->createMock(\TYPO3\CMS\Core\Resource\ResourceFactory::class);
+        $mockedFactory = $this->createMock(ResourceFactory::class);
         $folderFixture = $this->createFolderFixture(
             '/somePath/someFolder/',
             'someFolder',
@@ -153,8 +159,8 @@ class FolderTest extends UnitTestCase
             $mockedStorage
         );
         $mockedStorage->expects(self::once())->method('getFolderInFolder')->willReturn($subfolderFixture);
-        \TYPO3\CMS\Core\Utility\GeneralUtility::setSingletonInstance(
-            \TYPO3\CMS\Core\Resource\ResourceFactory::class,
+        GeneralUtility::setSingletonInstance(
+            ResourceFactory::class,
             $mockedFactory
         );
         self::assertEquals($subfolderFixture, $folderFixture->getSubfolder('someSubfolder'));
@@ -169,7 +175,7 @@ class FolderTest extends UnitTestCase
         $currentIdentifier = '/parent/current/';
 
         $parentFolderFixture = $this->createFolderFixture($parentIdentifier, 'parent');
-        $mockedStorage = $this->getMockBuilder(\TYPO3\CMS\Core\Resource\ResourceStorage::class)
+        $mockedStorage = $this->getMockBuilder(ResourceStorage::class)
             ->setMethods(['getFolderIdentifierFromFileIdentifier', 'getFolder'])
             ->disableOriginalConstructor()
             ->getMock();

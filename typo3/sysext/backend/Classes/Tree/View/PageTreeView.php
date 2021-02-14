@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Tree\View;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Tree\View;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Tree\View;
 
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -69,7 +70,7 @@ class PageTreeView extends AbstractTreeView
      */
     public function init($clause = '', $orderByFields = '')
     {
-        parent::init(' AND deleted=0 AND sys_language_uid=0 ' . $clause, 'sorting');
+        parent::init(' AND deleted=0 AND sys_language_uid=0 ' . $clause, $orderByFields ?: 'sorting');
     }
 
     /**

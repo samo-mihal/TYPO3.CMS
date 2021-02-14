@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\Controller;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,8 @@ namespace TYPO3\CMS\Form\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Form\Controller;
+
 use TYPO3\CMS\Core\Configuration\FlexForm\FlexFormTools;
 use TYPO3\CMS\Core\Service\FlexFormService;
 use TYPO3\CMS\Core\Utility\ArrayUtility;
@@ -26,6 +28,7 @@ use TYPO3\CMS\Form\Domain\Configuration\ConfigurationService;
 use TYPO3\CMS\Form\Domain\Configuration\FormDefinition\Converters\FinisherOptionsFlexFormOverridesConverter;
 use TYPO3\CMS\Form\Domain\Configuration\FormDefinition\Converters\FlexFormFinisherOverridesConverterDto;
 use TYPO3\CMS\Form\Mvc\Configuration\TypoScriptService;
+use TYPO3\CMS\Form\Mvc\Persistence\FormPersistenceManagerInterface;
 
 /**
  * The frontend controller
@@ -45,7 +48,7 @@ class FormFrontendController extends ActionController
      * @param \TYPO3\CMS\Form\Mvc\Persistence\FormPersistenceManagerInterface $formPersistenceManager
      * @internal
      */
-    public function injectFormPersistenceManager(\TYPO3\CMS\Form\Mvc\Persistence\FormPersistenceManagerInterface $formPersistenceManager)
+    public function injectFormPersistenceManager(FormPersistenceManagerInterface $formPersistenceManager)
     {
         $this->formPersistenceManager = $formPersistenceManager;
     }
@@ -192,6 +195,7 @@ class FormFrontendController extends ActionController
         array $flexForm,
         string $sheetIdentifier
     ): array {
+        $sheetData = [];
         $sheetData['data'] = array_filter(
             $flexForm['data'] ?? [],
             function ($key) use ($sheetIdentifier) {

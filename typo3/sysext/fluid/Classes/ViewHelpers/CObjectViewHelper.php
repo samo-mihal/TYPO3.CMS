@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\ViewHelpers;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,14 +13,19 @@ namespace TYPO3\CMS\Fluid\ViewHelpers;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Fluid\ViewHelpers;
+
 use TYPO3\CMS\Core\Context\Context;
+use TYPO3\CMS\Core\TimeTracker\TimeTracker;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
 use TYPO3\CMS\Extbase\Object\ObjectManager;
+use TYPO3\CMS\Extbase\Reflection\ObjectAccess;
 use TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
 use TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController;
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
+use TYPO3Fluid\Fluid\Core\ViewHelper\Exception;
 use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithContentArgumentAndRenderStatic;
 
 /**
@@ -73,8 +77,8 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithContentArgumentAndRenderS
  *        20.current = 1
  *    }
  *
- * When passing an object with ``{data}`` the properties of the object are accessable with :ts:`.field` in
- * TypoScript. If only a single value is passed or the ``currentValueKey`` is specified :ts:`.current = 1`
+ * When passing an object with ``{data}``, the properties of the object are accessible with :ts:`.field` in
+ * TypoScript. If only a single value is passed or the ``currentValueKey`` is specified, :ts:`.current = 1`
  * can be used in the TypoScript.
  */
 class CObjectViewHelper extends AbstractViewHelper
@@ -134,7 +138,7 @@ class CObjectViewHelper extends AbstractViewHelper
         }
         $currentValue = null;
         if (is_object($data)) {
-            $data = \TYPO3\CMS\Extbase\Reflection\ObjectAccess::getGettableProperties($data);
+            $data = ObjectAccess::getGettableProperties($data);
         } elseif (is_string($data) || is_numeric($data)) {
             $currentValue = (string)$data;
             $data = [$data];
@@ -146,11 +150,11 @@ class CObjectViewHelper extends AbstractViewHelper
             $contentObjectRenderer->setCurrentVal($data[$currentValueKey]);
         }
         $pathSegments = GeneralUtility::trimExplode('.', $typoscriptObjectPath);
-        $lastSegment = array_pop($pathSegments);
+        $lastSegment = (string)array_pop($pathSegments);
         $setup = static::getConfigurationManager()->getConfiguration(ConfigurationManagerInterface::CONFIGURATION_TYPE_FULL_TYPOSCRIPT);
         foreach ($pathSegments as $segment) {
             if (!array_key_exists($segment . '.', $setup)) {
-                throw new \TYPO3Fluid\Fluid\Core\ViewHelper\Exception(
+                throw new Exception(
                     'TypoScript object path "' . $typoscriptObjectPath . '" does not exist',
                     1253191023
                 );
@@ -158,14 +162,38 @@ class CObjectViewHelper extends AbstractViewHelper
             $setup = $setup[$segment . '.'];
         }
         if (!isset($setup[$lastSegment])) {
-            throw new \TYPO3Fluid\Fluid\Core\ViewHelper\Exception(
+            throw new Exception(
                 'No Content Object definition found at TypoScript object path "' . $typoscriptObjectPath . '"',
                 1540246570
             );
         }
-        $content = $contentObjectRenderer->cObjGetSingle($setup[$lastSegment], $setup[$lastSegment . '.'] ?? []);
+        $content = self::renderContentObject($contentObjectRenderer, $setup, $typoscriptObjectPath, $lastSegment);
         if (!isset($GLOBALS['TSFE']) || !($GLOBALS['TSFE'] instanceof TypoScriptFrontendController)) {
             static::resetFrontendEnvironment();
+        }
+        return $content;
+    }
+
+    /**
+     * Renders single content object and increases time tracker stack pointer
+     *
+     * @param ContentObjectRenderer $contentObjectRenderer
+     * @param array $setup
+     * @param string $typoscriptObjectPath
+     * @param string $lastSegment
+     * @return string
+     */
+    protected static function renderContentObject(ContentObjectRenderer $contentObjectRenderer, array $setup, string $typoscriptObjectPath, string $lastSegment): string
+    {
+        $timeTracker = GeneralUtility::makeInstance(TimeTracker::class);
+        if ($timeTracker->LR) {
+            $timeTracker->push('/f:cObject/', '<' . $typoscriptObjectPath);
+        }
+        $timeTracker->incStackPointer();
+        $content = $contentObjectRenderer->cObjGetSingle($setup[$lastSegment], $setup[$lastSegment . '.'] ?? [], $typoscriptObjectPath);
+        $timeTracker->decStackPointer();
+        if ($timeTracker->LR) {
+            $timeTracker->pull($content);
         }
         return $content;
     }

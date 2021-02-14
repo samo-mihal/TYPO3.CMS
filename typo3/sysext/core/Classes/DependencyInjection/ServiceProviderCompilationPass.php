@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\DependencyInjection;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,8 @@ namespace TYPO3\CMS\Core\DependencyInjection;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\DependencyInjection;
+
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
@@ -26,7 +28,7 @@ use Symfony\Component\DependencyInjection\Reference;
 class ServiceProviderCompilationPass implements CompilerPassInterface
 {
     /**
-     * @var Registry
+     * @var ServiceProviderRegistry
      */
     private $registry;
 
@@ -128,7 +130,7 @@ class ServiceProviderCompilationPass implements CompilerPassInterface
             }
         }
 
-        $className = $this->getReturnType($this->getReflection($callable), $serviceName);
+        $className = $this->getReturnType($this->getReflection($callable), $serviceName) ?? 'object';
         $factoryDefinition->setClass($className);
         $factoryDefinition->setPublic(true);
 
@@ -160,7 +162,8 @@ class ServiceProviderCompilationPass implements CompilerPassInterface
         $innerName = null;
 
         $reflection = $this->getReflection($callable);
-        $className = $this->getReturnType($reflection, $serviceName);
+        $previousClass = $container->has($serviceName) ? $container->findDefinition($serviceName)->getClass() : null;
+        $className = $this->getReturnType($reflection, $serviceName) ?? $previousClass ?? 'object';
 
         $factoryDefinition = new Definition($className);
         $factoryDefinition->setClass($className);
@@ -216,15 +219,19 @@ class ServiceProviderCompilationPass implements CompilerPassInterface
     /**
      * @param \ReflectionFunctionAbstract $reflection
      * @param string $serviceName
-     * @return string
+     * @return string|null
      */
-    private function getReturnType(\ReflectionFunctionAbstract $reflection, string $serviceName): string
+    private function getReturnType(\ReflectionFunctionAbstract $reflection, string $serviceName): ?string
     {
         if ($reflection->getReturnType() instanceof \ReflectionNamedType) {
             return $reflection->getReturnType()->getName();
         }
 
-        return $serviceName;
+        if (class_exists($serviceName, true) || interface_exists($serviceName, true)) {
+            return $serviceName;
+        }
+
+        return null;
     }
 
     /**

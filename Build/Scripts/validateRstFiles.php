@@ -1,6 +1,6 @@
 #!/usr/bin/env php
 <?php
-declare(strict_types = 1);
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -194,7 +194,7 @@ class validateRstFiles
                     . '[78]'                     // from 7.x and 8.x (as there was no extension scanner back then)
                     . ')'
                     . '#',
-                'regex' => '#^\.\. index:: .*(?:FullyScanned|PartiallyScanned|NotScanned).*#',
+                'regex' => '#^\.\. index:: .*[, ](?:Fully|Partially|Not)Scanned([, ]|$).*#',
                 'title' => 'missing FullyScanned / PartiallyScanned / NotScanned tag',
                 'message' => 'insert \'.. index:: <at least one valid keyword and either FullyScanned, PartiallyScanned or NotScanned>\' at the last line of the file. See Build/Scripts/validateRstFiles.php for allowed keywords',
             ],

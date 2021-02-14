@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Resource\Driver;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,9 @@ namespace TYPO3\CMS\Core\Resource\Driver;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Resource\Driver;
+
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\PathUtility;
 
 /**
@@ -115,7 +117,7 @@ abstract class AbstractDriver implements DriverInterface
      */
     public function hasCapability($capability)
     {
-        return $this->capabilities & $capability == $capability;
+        return ($this->capabilities & $capability) === $capability;
     }
 
     /*******************
@@ -130,7 +132,7 @@ abstract class AbstractDriver implements DriverInterface
      */
     protected function getTemporaryPathForFile($fileIdentifier)
     {
-        return \TYPO3\CMS\Core\Utility\GeneralUtility::tempnam('fal-tempfile-', '.' . PathUtility::pathinfo($fileIdentifier, PATHINFO_EXTENSION));
+        return GeneralUtility::tempnam('fal-tempfile-', '.' . PathUtility::pathinfo($fileIdentifier, PATHINFO_EXTENSION));
     }
 
     /**

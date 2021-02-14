@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Scheduler\Example;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Scheduler\Example;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Scheduler\Example;
 
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
@@ -32,7 +33,7 @@ class TestTaskAdditionalFieldProvider extends AbstractAdditionalFieldProvider
      * In this case, it adds an email field
      *
      * @param array $taskInfo Reference to the array containing the info used in the add/edit form
-     * @param AbstractTask|null $task When editing, reference to the current task. NULL when adding.
+     * @param TestTask|null $task When editing, reference to the current task. NULL when adding.
      * @param SchedulerModuleController $schedulerModule Reference to the calling object (Scheduler's BE module)
      * @return array Array containing all the information pertaining to the additional fields
      */
@@ -94,7 +95,7 @@ class TestTaskAdditionalFieldProvider extends AbstractAdditionalFieldProvider
      * if the task class matches
      *
      * @param array $submittedData Array containing the data submitted by the user
-     * @param \TYPO3\CMS\Scheduler\Task\AbstractTask $task Reference to the current task object
+     * @param TestTask $task Reference to the current task object
      */
     public function saveAdditionalFields(array $submittedData, AbstractTask $task)
     {

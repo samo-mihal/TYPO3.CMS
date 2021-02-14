@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extensionmanager\ViewHelpers\Be;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,7 +13,10 @@ namespace TYPO3\CMS\Extensionmanager\ViewHelpers\Be;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extensionmanager\ViewHelpers\Be;
+
 use TYPO3\CMS\Extensionmanager\Controller\AbstractController;
+use TYPO3\CMS\Fluid\ViewHelpers\Be\AbstractBackendViewHelper;
 
 /**
  * Special ViewHelper for the BE module of the Extension Manager. Loads JS code for triggering
@@ -23,16 +25,21 @@ use TYPO3\CMS\Extensionmanager\Controller\AbstractController;
  * = Examples =
  *
  * <code title="Simple">
- * <em:be.container triggers="{triggers}" />
+ * <em:be.trigger triggers="TYPO3.ModuleMenu.App.refreshMenu" />
  * </code>
  * <output>
- * Writes some JS inline code
+ * Writes custom HTML instruction tags
  * </output>
  *
  * @internal
  */
-class TriggerViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\Be\AbstractBackendViewHelper
+class TriggerViewHelper extends AbstractBackendViewHelper
 {
+    /**
+     * @var bool
+     */
+    protected $escapeOutput = false;
+
     /**
      * Initializes the arguments
      */
@@ -47,26 +54,26 @@ class TriggerViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\Be\AbstractBackendV
      * menu when modules are loaded/unloaded.
      *
      * @return string This ViewHelper does not return any content
-     * @see \TYPO3\CMS\Backend\Template\DocumentTemplate
-     * @see \TYPO3\CMS\Core\Page\PageRenderer
      */
     public function render()
     {
-        $pageRenderer = $this->getPageRenderer();
+        $html = '';
         // Handle triggers
-        if (!empty($this->arguments['triggers'][AbstractController::TRIGGER_RefreshModuleMenu])) {
-            $pageRenderer->addJsInlineCode(
-                AbstractController::TRIGGER_RefreshModuleMenu,
-                'if (top && top.TYPO3.ModuleMenu.App) { top.TYPO3.ModuleMenu.App.refreshMenu(); }'
-            );
+        $triggers = $this->arguments['triggers'] ?? [];
+        if (!empty($triggers[AbstractController::TRIGGER_RefreshModuleMenu])) {
+            $html .= $this->buildInstructionDataTag('TYPO3.ModuleMenu.App.refreshMenu');
         }
+        if (!empty($triggers[AbstractController::TRIGGER_RefreshTopbar])) {
+            $html .= $this->buildInstructionDataTag('TYPO3.Backend.Topbar.refresh');
+        }
+        return $html;
+    }
 
-        if (!empty($this->arguments['triggers'][AbstractController::TRIGGER_RefreshTopbar])) {
-            $pageRenderer->addJsInlineCode(
-                AbstractController::TRIGGER_RefreshTopbar,
-                'if (top && top.TYPO3.Backend && top.TYPO3.Backend.Topbar) { top.TYPO3.Backend.Topbar.refresh(); }'
-            );
-        }
-        return '';
+    protected function buildInstructionDataTag(string $dispatchAction): string
+    {
+        return sprintf(
+            '<typo3-immediate-action action="%s"></typo3-immediate-action>' . "\n",
+            htmlspecialchars($dispatchAction)
+        );
     }
 }

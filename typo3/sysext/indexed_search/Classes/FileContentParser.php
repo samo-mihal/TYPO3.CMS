@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\IndexedSearch;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\IndexedSearch;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\IndexedSearch;
 
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Core\Environment;
@@ -396,7 +397,7 @@ class FileContentParser
             case 'jpg':
             case 'tif':
                 // PHP EXIF
-                return sprintf($this->sL('LLL:EXT:indexed_search/Resources/Private/Language/locallang_main.xlf:extension.Images'), $extension);
+                return sprintf($this->sL('LLL:EXT:indexed_search/Resources/Private/Language/locallang_main.xlf:extension.images'), $extension);
             case 'html':
             case 'htm':
                 // PHP strip-tags()
@@ -435,7 +436,7 @@ class FileContentParser
     /**
      * Wraps the "splitLabel function" of the language object.
      *
-     * @param string $reference: Reference/key of the label
+     * @param string $reference Reference/key of the label
      * @return string The label of the reference/key to be fetched
      */
     protected function sL($reference)
@@ -458,6 +459,7 @@ class FileContentParser
      */
     public function readFileContent($ext, $absFile, $cPKey)
     {
+        $cmd = null;
         $contentArr = null;
         // Return immediately if initialization didn't set support up:
         if (!$this->supportedExtensions[$ext]) {
@@ -474,7 +476,7 @@ class FileContentParser
                     $pdfInfo = $this->splitPdfInfo($res);
                     unset($res);
                     if ((int)$pdfInfo['pages']) {
-                        list($low, $high) = explode('-', $cPKey);
+                        [$low, $high] = explode('-', $cPKey);
                         // Get pdf content:
                         $tempFileName = GeneralUtility::tempnam('Typo3_indexer');
                         // Create temporary name
@@ -483,7 +485,7 @@ class FileContentParser
                         $cmd = $this->app['pdftotext'] . ' -f ' . $low . ' -l ' . $high . ' -enc UTF-8 -q ' . escapeshellarg($absFile) . ' ' . $tempFileName;
                         CommandUtility::exec($cmd);
                         if (@is_file($tempFileName)) {
-                            $content = file_get_contents($tempFileName);
+                            $content = (string)file_get_contents($tempFileName);
                             unlink($tempFileName);
                         } else {
                             $content = '';
@@ -562,6 +564,9 @@ class FileContentParser
                         case 'xltx':
                             // Read sheet1.xml:
                             $cmd = $this->app['unzip'] . ' -p ' . escapeshellarg($absFile) . ' xl/worksheets/sheet1.xml';
+                            break;
+                        default:
+                            $cmd = '';
                             break;
                     }
                     CommandUtility::exec($cmd, $res);
@@ -726,7 +731,7 @@ class FileContentParser
             if ($this->lastLocale !== null) {
                 throw new \RuntimeException('Cannot set new locale as locale has already been changed before.', 1357064437);
             }
-            $this->lastLocale = setlocale(LC_CTYPE, 0);
+            $this->lastLocale = setlocale(LC_CTYPE, '0');
             setlocale(LC_CTYPE, $GLOBALS['TYPO3_CONF_VARS']['SYS']['systemLocale']);
         }
     }
@@ -804,7 +809,7 @@ class FileContentParser
      */
     public function removeEndJunk($string)
     {
-        return trim(preg_replace('/[' . LF . chr(12) . ']*$/', '', $string));
+        return trim((string)preg_replace('/[' . LF . chr(12) . ']*$/', '', $string));
     }
 
     /************************

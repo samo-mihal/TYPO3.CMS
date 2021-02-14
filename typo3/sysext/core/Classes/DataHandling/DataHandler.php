@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\DataHandling;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\DataHandling;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\DataHandling;
 
 use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Driver\Statement;
@@ -37,11 +38,9 @@ use TYPO3\CMS\Core\Crypto\PasswordHashing\PasswordHashFactory;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryHelper;
-use TYPO3\CMS\Core\Database\Query\Restriction\BackendWorkspaceRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\QueryRestrictionContainerInterface;
 use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
-use TYPO3\CMS\Core\Database\ReferenceIndex;
 use TYPO3\CMS\Core\Database\RelationHandler;
 use TYPO3\CMS\Core\DataHandling\History\RecordHistoryStore;
 use TYPO3\CMS\Core\DataHandling\Localization\DataMapProcessor;
@@ -115,6 +114,7 @@ class DataHandler implements LoggerAwareInterface
      * is similar, it's not saved then.
      *
      * @var bool
+     * @internal should only be used from within TYPO3 Core
      */
     public $checkSimilar = true;
 
@@ -176,6 +176,7 @@ class DataHandler implements LoggerAwareInterface
      * YOU MUST KNOW what you do if you use this feature!
      *
      * @var bool
+     * @internal should only be used from within TYPO3 Core
      */
     public $bypassWorkspaceRestrictions = false;
 
@@ -192,6 +193,7 @@ class DataHandler implements LoggerAwareInterface
      * If '*' then all will (that the user has permission to of course)
      *
      * @var string
+     * @internal should only be used from within TYPO3 Core
      */
     public $copyWhichTables = '*';
 
@@ -211,6 +213,7 @@ class DataHandler implements LoggerAwareInterface
      * (thus UserTSconfig overrules externally set defaults which overrules TCA defaults)
      *
      * @var array
+     * @internal should only be used from within TYPO3 Core
      */
     public $defaultValues = [];
 
@@ -220,6 +223,7 @@ class DataHandler implements LoggerAwareInterface
      * found in the table, because it's not checked. All columns can be set by this array!
      *
      * @var array
+     * @internal should only be used from within TYPO3 Core
      */
     public $overrideValues = [];
 
@@ -229,6 +233,7 @@ class DataHandler implements LoggerAwareInterface
      * Then an empty checkbox will disable the field.
      *
      * @var array
+     * @internal should only be used from within TYPO3 Core
      */
     public $data_disableFields = [];
 
@@ -248,6 +253,7 @@ class DataHandler implements LoggerAwareInterface
      * iteration functions inside DataHandler for traversing a FlexForm structure.
      *
      * @var object
+     * @internal should only be used from within TYPO3 Core
      */
     public $callBackObj;
 
@@ -266,6 +272,7 @@ class DataHandler implements LoggerAwareInterface
      * Contains mapping of auto-versionized records.
      *
      * @var array
+     * @internal should only be used from within TYPO3 Core
      */
     public $autoVersionIdMap = [];
 
@@ -280,6 +287,7 @@ class DataHandler implements LoggerAwareInterface
      * Like $substNEWwithIDs, but where each old "NEW..." id is mapped to the table it was from.
      *
      * @var array
+     * @internal should only be used from within TYPO3 Core
      */
     public $substNEWwithIDs_table = [];
 
@@ -287,13 +295,15 @@ class DataHandler implements LoggerAwareInterface
      * Holds the tables and there the ids of newly created child records from IRRE
      *
      * @var array
+     * @internal should only be used from within TYPO3 Core
      */
     public $newRelatedIDs = [];
 
     /**
-     * This array is the sum of all copying operations in this class. May be READ from outside, thus partly public.
+     * This array is the sum of all copying operations in this class.
      *
      * @var array
+     * @internal should only be used from within TYPO3 Core
      */
     public $copyMappingArray_merged = [];
 
@@ -308,6 +318,7 @@ class DataHandler implements LoggerAwareInterface
      * Errors are collected in this variable.
      *
      * @var array
+     * @internal should only be used from within TYPO3 Core
      */
     public $errorLog = [];
 
@@ -322,6 +333,7 @@ class DataHandler implements LoggerAwareInterface
      * Indicates whether the pagetree needs a refresh because of important changes
      *
      * @var bool
+     * @internal should only be used from within TYPO3 Core
      */
     public $pagetreeNeedsRefresh = false;
 
@@ -342,6 +354,7 @@ class DataHandler implements LoggerAwareInterface
      * Will be set to uid of be_user executing this script
      *
      * @var int
+     * @internal should only be used from within TYPO3 Core
      */
     public $userid;
 
@@ -349,6 +362,7 @@ class DataHandler implements LoggerAwareInterface
      * Will be set to username of be_user executing this script
      *
      * @var string
+     * @internal should only be used from within TYPO3 Core
      */
     public $username;
 
@@ -356,6 +370,7 @@ class DataHandler implements LoggerAwareInterface
      * Will be set if user is admin
      *
      * @var bool
+     * @internal should only be used from within TYPO3 Core
      */
     public $admin;
 
@@ -363,12 +378,18 @@ class DataHandler implements LoggerAwareInterface
      * Can be overridden from $GLOBALS['TYPO3_CONF_VARS']
      *
      * @var array
+     * @deprecated will be removed in TYPO3 11. use PagePermissionAssembler instead.
      */
     public $defaultPermissions = [
         'user' => 'show,edit,delete,new,editcontent',
         'group' => 'show,edit,new,editcontent',
         'everybody' => ''
     ];
+
+    /**
+     * @var PagePermissionAssembler
+     */
+    protected $pagePermissionAssembler;
 
     /**
      * The list of <table>-<fields> that cannot be edited by user. This is compiled from TCA/exclude-flag combined with non_exclude_fields for the user.
@@ -418,6 +439,7 @@ class DataHandler implements LoggerAwareInterface
      * Permission mapping
      *
      * @var array
+     * @deprecated will be removed in TYPO3 11. use PagePermissionAssembler instead.
      */
     public $pMap = [
         'show' => 1,
@@ -437,17 +459,11 @@ class DataHandler implements LoggerAwareInterface
      * Min 1, should be power of 2
      *
      * @var int
+     * @internal should only be used from within TYPO3 Core
      */
     public $sortIntervals = 256;
 
     // Internal caching arrays
-    /**
-     * Used by function checkRecordUpdateAccess() to store whether a record is updatable or not.
-     *
-     * @var array
-     */
-    protected $recUpdateAccessCache = [];
-
     /**
      * User by function checkRecordInsertAccess() to store whether a record can be inserted on a page id
      *
@@ -481,6 +497,7 @@ class DataHandler implements LoggerAwareInterface
      * For accumulation of MM relations that must be written after new records are created.
      *
      * @var array
+     * @internal
      */
     public $dbAnalysisStore = [];
 
@@ -488,6 +505,7 @@ class DataHandler implements LoggerAwareInterface
      * Used for tracking references that might need correction after operations
      *
      * @var array
+     * @internal
      */
     public $registerDBList = [];
 
@@ -495,6 +513,7 @@ class DataHandler implements LoggerAwareInterface
      * Used for tracking references that might need correction in pid field after operations (e.g. IRRE)
      *
      * @var array
+     * @internal
      */
     public $registerDBPids = [];
 
@@ -507,6 +526,7 @@ class DataHandler implements LoggerAwareInterface
      * are only available after an action has been completed.
      *
      * @var array
+     * @internal
      */
     public $copyMappingArray = [];
 
@@ -514,6 +534,7 @@ class DataHandler implements LoggerAwareInterface
      * Array used for remapping uids and values at the end of process_datamap
      *
      * @var array
+     * @internal
      */
     public $remapStack = [];
 
@@ -522,6 +543,7 @@ class DataHandler implements LoggerAwareInterface
      * (e.g. $remapStackRecords[<table>][<uid>] = <index in $remapStack>)
      *
      * @var array
+     * @internal
      */
     public $remapStackRecords = [];
 
@@ -540,24 +562,22 @@ class DataHandler implements LoggerAwareInterface
     protected $remapStackActions = [];
 
     /**
-     * Array used for executing post-processing on the reference index
+     * Registry object to gather reference index update requests and perform updates after
+     * main processing has been done. The first call to start() instantiates this object.
+     * Recursive sub instances receive this instance via __construct().
+     * The final update() call is done at the end of process_cmdmap() or process_datamap()
+     * in the outer most instance.
      *
-     * @var array
+     * @var ReferenceIndexUpdater
      */
-    protected $remapStackRefIndex = [];
-
-    /**
-     * Array used for additional calls to $this->updateRefIndex
-     *
-     * @var array
-     */
-    public $updateRefIndexStack = [];
+    protected $referenceIndexUpdater;
 
     /**
      * Tells, that this DataHandler instance was called from \TYPO3\CMS\Impext\ImportExport.
      * This variable is set by \TYPO3\CMS\Impext\ImportExport
      *
-     * @var array
+     * @var bool
+     * @internal only used within TYPO3 Core
      */
     public $callFromImpExp = false;
 
@@ -567,6 +587,7 @@ class DataHandler implements LoggerAwareInterface
      * Set to "currentRecord" during checking of values.
      *
      * @var array
+     * @internal
      */
     public $checkValue_currentRecord = [];
 
@@ -626,16 +647,26 @@ class DataHandler implements LoggerAwareInterface
 
     /**
      * Sets up the data handler cache and some additional options, the main logic is done in the start() method.
+     *
+     * @param ReferenceIndexUpdater|null $referenceIndexUpdater Hand over from outer most instance to sub instances
      */
-    public function __construct()
+    public function __construct(ReferenceIndexUpdater $referenceIndexUpdater = null)
     {
         $this->checkStoredRecords = (bool)$GLOBALS['TYPO3_CONF_VARS']['BE']['checkStoredRecords'];
         $this->checkStoredRecords_loose = (bool)$GLOBALS['TYPO3_CONF_VARS']['BE']['checkStoredRecordsLoose'];
         $this->runtimeCache = $this->getRuntimeCache();
+        $this->pagePermissionAssembler = GeneralUtility::makeInstance(PagePermissionAssembler::class, $GLOBALS['TYPO3_CONF_VARS']['BE']['defaultPermissions']);
+        if ($referenceIndexUpdater === null) {
+            // Create ReferenceIndexUpdater object. This should only happen on outer most instance,
+            // sub instances should receive the reference index updater from a parent.
+            $referenceIndexUpdater = GeneralUtility::makeInstance(ReferenceIndexUpdater::class);
+        }
+        $this->referenceIndexUpdater = $referenceIndexUpdater;
     }
 
     /**
      * @param array $control
+     * @internal
      */
     public function setControl(array $control)
     {
@@ -704,6 +735,7 @@ class DataHandler implements LoggerAwareInterface
      * Example: $mirror[table][11] = '22,33' will look for content in $this->datamap[table][11] and copy it to $this->datamap[table][22] and $this->datamap[table][33]
      *
      * @param array $mirror This array has the syntax $mirror[table_name][uid] = [list of uids to copy data-value TO!]
+     * @internal
      */
     public function setMirror($mirror)
     {
@@ -733,6 +765,7 @@ class DataHandler implements LoggerAwareInterface
      * Initializes default values coming from User TSconfig
      *
      * @param array $userTS User TSconfig array
+     * @internal should only be used from within DataHandler
      */
     public function setDefaultsFromUserTS($userTS)
     {
@@ -752,6 +785,35 @@ class DataHandler implements LoggerAwareInterface
                 $this->defaultValues[$k] = $v;
             }
         }
+    }
+
+    /**
+     * When a new record is created, all values that haven't been set but are set via PageTSconfig / UserTSconfig
+     * get applied here.
+     *
+     * This is only executed for new records. The most important part is that the pageTS of the actual resolved $pid
+     * is taken, and a new field array with empty defaults is set again.
+     *
+     * @param string $table
+     * @param int $pageId
+     * @param array $prepopulatedFieldArray
+     * @return array
+     */
+    protected function applyDefaultsForFieldArray(string $table, int $pageId, array $prepopulatedFieldArray): array
+    {
+        // First set TCAdefaults respecting the given PageID
+        $tcaDefaults = BackendUtility::getPagesTSconfig($pageId)['TCAdefaults.'] ?? null;
+        // Re-apply $this->defaultValues settings
+        $this->setDefaultsFromUserTS($tcaDefaults);
+        $cleanFieldArray = $this->newFieldArray($table);
+        if (isset($prepopulatedFieldArray['pid'])) {
+            $cleanFieldArray['pid'] = $prepopulatedFieldArray['pid'];
+        }
+        $sortColumn = $GLOBALS['TCA'][$table]['ctrl']['sortby'] ?? null;
+        if ($sortColumn !== null && isset($prepopulatedFieldArray[$sortColumn])) {
+            $cleanFieldArray[$sortColumn] = $prepopulatedFieldArray[$sortColumn];
+        }
+        return $cleanFieldArray;
     }
 
     /**
@@ -781,6 +843,7 @@ class DataHandler implements LoggerAwareInterface
      * @param string $table (reference) The table currently processing data for
      * @param string $id (reference) The record uid currently processing data for, [integer] or [string] (like 'NEW...')
      * @param array $fieldArray (reference) The field array of a record
+     * @internal should only be used from within DataHandler
      */
     public function hook_processDatamap_afterDatabaseOperations(&$hookObjectsArr, &$status, &$table, &$id, &$fieldArray)
     {
@@ -857,7 +920,7 @@ class DataHandler implements LoggerAwareInterface
         }
         // Pre-process data-map and synchronize localization states
         $this->datamap = GeneralUtility::makeInstance(SlugEnricher::class)->enrichDataMap($this->datamap);
-        $this->datamap = DataMapProcessor::instance($this->datamap, $this->BE_USER)->process();
+        $this->datamap = DataMapProcessor::instance($this->datamap, $this->BE_USER, $this->referenceIndexUpdater)->process();
         // Organize tables so that the pages-table is always processed first. This is required if you want to make sure that content pointing to a new page will be created.
         $orderOfTables = [];
         // Set pages first.
@@ -937,35 +1000,28 @@ class DataHandler implements LoggerAwareInterface
                         }
                     }
                     $theRealPid = $fieldArray['pid'];
-                    // Now, check if we may insert records on this pid.
-                    if ($theRealPid >= 0) {
-                        // Checks if records can be inserted on this $pid.
-                        // If this is a page translation, the check needs to be done for the l10n_parent record
-                        if ($table === 'pages' && $incomingFieldArray[$GLOBALS['TCA'][$table]['ctrl']['languageField']] > 0 && $incomingFieldArray[$GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField']] > 0) {
-                            $recordAccess = $this->checkRecordInsertAccess($table, $incomingFieldArray[$GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField']]);
-                        } else {
-                            $recordAccess = $this->checkRecordInsertAccess($table, $theRealPid);
-                        }
-                        if ($recordAccess) {
-                            $this->addDefaultPermittedLanguageIfNotSet($table, $incomingFieldArray);
-                            $recordAccess = $this->BE_USER->recordEditAccessInternals($table, $incomingFieldArray, true);
-                            if (!$recordAccess) {
-                                $this->newlog('recordEditAccessInternals() check failed. [' . $this->BE_USER->errorMsg . ']', SystemLogErrorClassification::USER_ERROR);
-                            } elseif (!$this->bypassWorkspaceRestrictions) {
-                                // Workspace related processing:
-                                // If LIVE records cannot be created due to workspace restrictions, prepare creation of placeholder-record
-                                if (!$this->BE_USER->workspaceAllowsLiveEditingInTable($table)) {
-                                    if (BackendUtility::isTableWorkspaceEnabled($table)) {
-                                        $createNewVersion = true;
-                                    } else {
-                                        $recordAccess = false;
-                                        $this->newlog('Record could not be created in this workspace in this branch', SystemLogErrorClassification::USER_ERROR);
-                                    }
-                                }
+                    // Checks if records can be inserted on this $pid.
+                    // If this is a page translation, the check needs to be done for the l10n_parent record
+                    if ($table === 'pages' && $incomingFieldArray[$GLOBALS['TCA'][$table]['ctrl']['languageField']] > 0 && $incomingFieldArray[$GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField']] > 0) {
+                        $recordAccess = $this->checkRecordInsertAccess($table, $incomingFieldArray[$GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField']]);
+                    } else {
+                        $recordAccess = $this->checkRecordInsertAccess($table, $theRealPid);
+                    }
+                    if ($recordAccess) {
+                        $this->addDefaultPermittedLanguageIfNotSet($table, $incomingFieldArray);
+                        $recordAccess = $this->BE_USER->recordEditAccessInternals($table, $incomingFieldArray, true);
+                        if (!$recordAccess) {
+                            $this->newlog('recordEditAccessInternals() check failed. [' . $this->BE_USER->errorMsg . ']', SystemLogErrorClassification::USER_ERROR);
+                        } elseif (!$this->bypassWorkspaceRestrictions && !$this->BE_USER->workspaceAllowsLiveEditingInTable($table)) {
+                            // If LIVE records cannot be created due to workspace restrictions, prepare creation of placeholder-record
+                            // So, if no live records were allowed in the current workspace, we have to create a new version of this record
+                            if (BackendUtility::isTableWorkspaceEnabled($table)) {
+                                $createNewVersion = true;
+                            } else {
+                                $recordAccess = false;
+                                $this->newlog('Record could not be created in this workspace', SystemLogErrorClassification::USER_ERROR);
                             }
                         }
-                    } else {
-                        $this->logger->debug('Internal ERROR: pid should not be less than zero!');
                     }
                     // Yes new record, change $record_status to 'insert'
                     $status = 'new';
@@ -1010,7 +1066,7 @@ class DataHandler implements LoggerAwareInterface
                                 $this->pagetreeNeedsRefresh = true;
 
                                 /** @var DataHandler $tce */
-                                $tce = GeneralUtility::makeInstance(__CLASS__);
+                                $tce = GeneralUtility::makeInstance(__CLASS__, $this->referenceIndexUpdater);
                                 $tce->enableLogging = $this->enableLogging;
                                 // Setting up command for creating a new version of the record:
                                 $cmd = [];
@@ -1054,11 +1110,18 @@ class DataHandler implements LoggerAwareInterface
                 }
 
                 // Here the "pid" is set IF NOT the old pid was a string pointing to a place in the subst-id array.
-                list($tscPID) = BackendUtility::getTSCpid($table, $id, $old_pid_value ?: $fieldArray['pid']);
-                if ($status === 'new' && $table === 'pages') {
-                    $TSConfig = BackendUtility::getPagesTSconfig($tscPID)['TCEMAIN.'] ?? [];
-                    if (isset($TSConfig['permissions.']) && is_array($TSConfig['permissions.'])) {
-                        $fieldArray = $this->setTSconfigPermissions($fieldArray, $TSConfig['permissions.']);
+                [$tscPID] = BackendUtility::getTSCpid($table, $id, $old_pid_value ?: $fieldArray['pid']);
+                if ($status === 'new') {
+                    // Apply TCAdefaults from pageTS
+                    $fieldArray = $this->applyDefaultsForFieldArray($table, (int)$tscPID, $fieldArray);
+                    // Apply page permissions as well
+                    if ($table === 'pages') {
+                        $fieldArray = $this->pagePermissionAssembler->applyDefaults(
+                            $fieldArray,
+                            (int)$tscPID,
+                            (int)$this->userid,
+                            (int)$this->BE_USER->firstMainGroup
+                        );
                     }
                 }
                 // Processing of all fields in incomingFieldArray and setting them in $fieldArray
@@ -1127,11 +1190,15 @@ class DataHandler implements LoggerAwareInterface
                             $newVersion_placeholderFieldArray['t3ver_state'] = (string)new VersionState(VersionState::NEW_PLACEHOLDER);
                             // Setting workspace - only so display of placeholders can filter out those from other workspaces.
                             $newVersion_placeholderFieldArray['t3ver_wsid'] = $this->BE_USER->workspace;
-                            $newVersion_placeholderFieldArray[$GLOBALS['TCA'][$table]['ctrl']['label']] = $this->getPlaceholderTitleForTableLabel($table);
+                            // Only set a label if it is an input field
+                            $labelField = $GLOBALS['TCA'][$table]['ctrl']['label'];
+                            if ($GLOBALS['TCA'][$table]['columns'][$labelField]['config']['type'] === 'input') {
+                                $newVersion_placeholderFieldArray[$labelField] = $this->getPlaceholderTitleForTableLabel($table);
+                            }
                             // Saving placeholder as 'original'
                             $this->insertDB($table, $id, $newVersion_placeholderFieldArray, false, (int)($incomingFieldArray['uid'] ?? 0));
-                            // For the actual new offline version, set versioning values to point to placeholder:
-                            $fieldArray['pid'] = -1;
+                            // For the actual new offline version, set versioning values to point to placeholder
+                            $fieldArray['pid'] = $theRealPid;
                             $fieldArray['t3ver_oid'] = $this->substNEWwithIDs[$id];
                             // Setting placeholder state value for version (so it can know it is currently a new version...)
                             $fieldArray['t3ver_state'] = (string)new VersionState(VersionState::NEW_PLACEHOLDER_VERSION);
@@ -1176,7 +1243,9 @@ class DataHandler implements LoggerAwareInterface
                 $hookObj->processDatamap_afterAllOperations($this);
             }
         }
+
         if ($this->isOuterMostInstance()) {
+            $this->referenceIndexUpdater->update();
             $this->processClearCacheQueue();
             $this->resetElementsToBeDeleted();
         }
@@ -1248,6 +1317,7 @@ class DataHandler implements LoggerAwareInterface
      *
      * @param string $table Table name
      * @param int $id Record uid
+     * @internal should only be used from within DataHandler
      */
     public function placeholderShadowing($table, $id)
     {
@@ -1304,6 +1374,7 @@ class DataHandler implements LoggerAwareInterface
      * @param string $table The table name
      * @param string $placeholderContent Placeholder content to be used
      * @return string placeholder value
+     * @internal should only be used from within DataHandler
      */
     public function getPlaceholderTitleForTableLabel($table, $placeholderContent = null)
     {
@@ -1333,6 +1404,7 @@ class DataHandler implements LoggerAwareInterface
      * @param string $status Is 'new' or 'update'
      * @param int $tscPID TSconfig PID
      * @return array Field Array
+     * @internal should only be used from within DataHandler
      */
     public function fillInFieldArray($table, $id, $fieldArray, $incomingFieldArray, $realPid, $status, $tscPID)
     {
@@ -1482,13 +1554,15 @@ class DataHandler implements LoggerAwareInterface
      * @param string $value Value to be evaluated. Notice, this is the INPUT value from the form. The original value (from any existing record) must be manually looked up inside the function if needed - or taken from $currentRecord array.
      * @param string $id The record-uid, mainly - but not exclusively - used for logging
      * @param string $status 'update' or 'new' flag
-     * @param int $realPid The real PID value of the record. For updates, this is just the pid of the record. For new records this is the PID of the page where it is inserted. If $realPid is -1 it means that a new version of the record is being inserted.
+     * @param int $realPid The real PID value of the record. For updates, this is just the pid of the record. For new records this is the PID of the page where it is inserted.
      * @param int $tscPID TSconfig PID
      * @param array $incomingFieldArray the fields being explicitly set by the outside (unlike $fieldArray)
      * @return array Returns the evaluated $value as key "value" in this array. Can be checked with isset($res['value']) ...
+     * @internal should only be used from within DataHandler
      */
     public function checkValue($table, $field, $value, $id, $status, $realPid, $tscPID, $incomingFieldArray = [])
     {
+        $curValueRec = null;
         // Result array
         $res = [];
 
@@ -1559,7 +1633,7 @@ class DataHandler implements LoggerAwareInterface
         }
 
         // Getting config for the field
-        $tcaFieldConf = $GLOBALS['TCA'][$table]['columns'][$field]['config'];
+        $tcaFieldConf = $this->resolveFieldConfigurationAndRespectColumnsOverrides($table, $field);
 
         // Create $recFID only for those types that need it
         if ($tcaFieldConf['type'] === 'flex') {
@@ -1574,6 +1648,27 @@ class DataHandler implements LoggerAwareInterface
     }
 
     /**
+     * Use columns overrides for evaluation.
+     *
+     * Fetch the TCA ["config"] part for a specific field, including the columnsOverrides value.
+     * Used for checkValue purposes currently (as it takes the checkValue_currentRecord value).
+     *
+     * @param string $table
+     * @param string $field
+     * @return array
+     */
+    protected function resolveFieldConfigurationAndRespectColumnsOverrides(string $table, string $field): array
+    {
+        $tcaFieldConf = $GLOBALS['TCA'][$table]['columns'][$field]['config'];
+        $recordType = BackendUtility::getTCAtypeValue($table, $this->checkValue_currentRecord);
+        $columnsOverridesConfigOfField = $GLOBALS['TCA'][$table]['types'][$recordType]['columnsOverrides'][$field]['config'] ?? null;
+        if ($columnsOverridesConfigOfField) {
+            ArrayUtility::mergeRecursiveWithOverrule($tcaFieldConf, $columnsOverridesConfigOfField);
+        }
+        return $tcaFieldConf;
+    }
+
+    /**
      * Branches out evaluation of a field value based on its type as configured in $GLOBALS['TCA']
      * Can be called for FlexForm pseudo fields as well, BUT must not have $field set if so.
      *
@@ -1584,13 +1679,14 @@ class DataHandler implements LoggerAwareInterface
      * @param int $id UID of record
      * @param mixed $curValue Current value of the field
      * @param string $status 'update' or 'new' flag
-     * @param int $realPid The real PID value of the record. For updates, this is just the pid of the record. For new records this is the PID of the page where it is inserted. If $realPid is -1 it means that a new version of the record is being inserted.
+     * @param int $realPid The real PID value of the record. For updates, this is just the pid of the record. For new records this is the PID of the page where it is inserted.
      * @param string $recFID Field identifier [table:uid:field] for flexforms
      * @param string $field Field name. Must NOT be set if the call is for a flexform field (since flexforms are not allowed within flexforms).
      * @param array $uploadedFiles
      * @param int $tscPID TSconfig PID
      * @param array $additionalData Additional data to be forwarded to sub-processors
      * @return array Returns the evaluated $value as key "value" in this array.
+     * @internal should only be used from within DataHandler
      */
     public function checkValue_SW($res, $value, $tcaFieldConf, $table, $id, $curValue, $status, $realPid, $recFID, $field, $uploadedFiles, $tscPID, array $additionalData = null)
     {
@@ -1699,7 +1795,7 @@ class DataHandler implements LoggerAwareInterface
      * @param array $tcaFieldConf Field configuration from TCA
      * @param string $table Table name
      * @param int $id UID of record
-     * @param int $realPid The real PID value of the record. For updates, this is just the pid of the record. For new records this is the PID of the page where it is inserted. If $realPid is -1 it means that a new version of the record is being inserted.
+     * @param int $realPid The real PID value of the record. For updates, this is just the pid of the record. For new records this is the PID of the page where it is inserted.
      * @param string $field Field name
      * @return array $res The result array. The processed value (if any!) is set in the "value" key.
      */
@@ -1721,17 +1817,16 @@ class DataHandler implements LoggerAwareInterface
         if ($this->dontProcessTransformations) {
             return $valueArray;
         }
-        $recordType = BackendUtility::getTCAtypeValue($table, $this->checkValue_currentRecord);
-        $columnsOverridesConfigOfField = $GLOBALS['TCA'][$table]['types'][$recordType]['columnsOverrides'][$field]['config'] ?? null;
-        if ($columnsOverridesConfigOfField) {
-            ArrayUtility::mergeRecursiveWithOverrule($tcaFieldConf, $columnsOverridesConfigOfField);
+        // Keep null as value
+        if ($value === null) {
+            return $valueArray;
         }
         if (isset($tcaFieldConf['enableRichtext']) && (bool)$tcaFieldConf['enableRichtext'] === true) {
+            $recordType = BackendUtility::getTCAtypeValue($table, $this->checkValue_currentRecord);
             $richtextConfigurationProvider = GeneralUtility::makeInstance(Richtext::class);
             $richtextConfiguration = $richtextConfigurationProvider->getConfiguration($table, $field, $realPid, $recordType, $tcaFieldConf);
-            $parseHTML = GeneralUtility::makeInstance(RteHtmlParser::class);
-            $parseHTML->init($table . ':' . $field, $realPid);
-            $valueArray['value'] = $parseHTML->RTE_transform($value, [], 'db', $richtextConfiguration);
+            $rteParser = GeneralUtility::makeInstance(RteHtmlParser::class);
+            $valueArray['value'] = $rteParser->transformTextForPersistence((string)$value, $richtextConfiguration['proc.'] ?? []);
         }
 
         return $valueArray;
@@ -1744,7 +1839,7 @@ class DataHandler implements LoggerAwareInterface
      * @param array $tcaFieldConf Field configuration from TCA
      * @param string $table Table name
      * @param int $id UID of record
-     * @param int $realPid The real PID value of the record. For updates, this is just the pid of the record. For new records this is the PID of the page where it is inserted. If $realPid is -1 it means that a new version of the record is being inserted.
+     * @param int $realPid The real PID value of the record. For updates, this is just the pid of the record. For new records this is the PID of the page where it is inserted.
      * @param string $field Field name
      * @return array $res The result array. The processed value (if any!) is set in the "value" key.
      */
@@ -1766,8 +1861,11 @@ class DataHandler implements LoggerAwareInterface
 
                 // Convert the date/time into a timestamp for the sake of the checks
                 $emptyValue = $dateTimeFormats[$tcaFieldConf['dbType']]['empty'];
-                // We store UTC timestamps in the database, which is what getTimestamp() returns.
-                $dateTime = new \DateTime($value);
+                // We expect the ISO 8601 $value to contain a UTC timezone specifier.
+                // We explicitly fallback to UTC if no timezone specifier is given (e.g. for copy operations).
+                $dateTime = new \DateTime($value, new \DateTimeZone('UTC'));
+                // The timestamp (UTC) returned by getTimestamp() will be converted to
+                // a local time string by gmdate() later.
                 $value = $value === $emptyValue ? null : $dateTime->getTimestamp();
             }
         }
@@ -1794,8 +1892,8 @@ class DataHandler implements LoggerAwareInterface
             }
 
             // Process UNIQUE settings:
-            // Field is NOT set for flexForms - which also means that uniqueInPid and unique is NOT available for flexForm fields! Also getUnique should not be done for versioning and if PID is -1 ($realPid<0) then versioning is happening...
-            if ($field && $realPid >= 0 && !empty($res['value'])) {
+            // Field is NOT set for flexForms - which also means that uniqueInPid and unique is NOT available for flexForm fields! Also getUnique should not be done for versioning
+            if ($field && !empty($res['value'])) {
                 if (in_array('uniqueInPid', $evalCodesArray, true)) {
                     $res['value'] = $this->getUnique($table, $field, $res['value'], $id, $realPid);
                 }
@@ -1835,7 +1933,7 @@ class DataHandler implements LoggerAwareInterface
      * @param array $tcaFieldConf Field configuration from TCA
      * @param string $table Table name
      * @param int $id UID of record
-     * @param int $realPid The real PID value of the record. For updates, this is just the pid of the record. For new records this is the PID of the page where it is inserted. If $realPid is -1 it means that a new version of the record is being inserted.
+     * @param int $realPid The real PID value of the record. For updates, this is just the pid of the record. For new records this is the PID of the page where it is inserted.
      * @param string $field Field name
      * @param array $incomingFieldArray the fields being explicitly set by the outside (unlike $fieldArray) for the record
      * @return array $res The result array. The processed value (if any!) is set in the "value" key.
@@ -1854,17 +1952,6 @@ class DataHandler implements LoggerAwareInterface
             $value = $helper->sanitize($value);
         }
 
-        // In case a workspace is given, and the $realPid(!) still is negative
-        // this is most probably triggered by versionizeRecord() and a raw record
-        // copy - thus, uniqueness cannot be determined without having the
-        // real information
-        // @todo This is still not explicit, but probably should be
-        if ($workspaceId > 0 && $realPid === -1
-            && !MathUtility::canBeInterpretedAsInteger($id)
-        ) {
-            return ['value' => $value];
-        }
-
         // Return directly in case no evaluations are defined
         if (empty($tcaFieldConf['eval'])) {
             return ['value' => $value];
@@ -1873,6 +1960,9 @@ class DataHandler implements LoggerAwareInterface
         $state = RecordStateFactory::forName($table)
             ->fromArray($fullRecord, $realPid, $id);
         $evalCodesArray = GeneralUtility::trimExplode(',', $tcaFieldConf['eval'], true);
+        if (in_array('unique', $evalCodesArray, true)) {
+            $value = $helper->buildSlugForUniqueInTable($value, $state);
+        }
         if (in_array('uniqueInSite', $evalCodesArray, true)) {
             $value = $helper->buildSlugForUniqueInSite($value, $state);
         }
@@ -1891,7 +1981,7 @@ class DataHandler implements LoggerAwareInterface
      * @param array $tcaFieldConf Field configuration from TCA
      * @param string $table Table name
      * @param int $id UID of record
-     * @param int $realPid The real PID value of the record. For updates, this is just the pid of the record. For new records this is the PID of the page where it is inserted. If $realPid is -1 it means that a new version of the record is being inserted.
+     * @param int $realPid The real PID value of the record. For updates, this is just the pid of the record. For new records this is the PID of the page where it is inserted.
      * @param string $field Field name
      * @return array Modified $res array
      */
@@ -1931,7 +2021,7 @@ class DataHandler implements LoggerAwareInterface
             // @todo: error message to the user - dynamic item sets via itemProcFunc on check would be a bad idea anyway.
             $value = $value & $maxV;
         }
-        if ($field && $realPid >= 0 && $value > 0 && !empty($tcaFieldConf['eval'])) {
+        if ($field && $value > 0 && !empty($tcaFieldConf['eval'])) {
             $evalCodesArray = GeneralUtility::trimExplode(',', $tcaFieldConf['eval'], true);
             $otherRecordsWithSameValue = [];
             $maxCheckedRecords = 0;
@@ -2125,7 +2215,7 @@ class DataHandler implements LoggerAwareInterface
      * @param int $id UID of record
      * @param mixed $curValue Current value of the field
      * @param string $status 'update' or 'new' flag
-     * @param int $realPid The real PID value of the record. For updates, this is just the pid of the record. For new records this is the PID of the page where it is inserted. If $realPid is -1 it means that a new version of the record is being inserted.
+     * @param int $realPid The real PID value of the record. For updates, this is just the pid of the record. For new records this is the PID of the page where it is inserted.
      * @param string $recFID Field identifier [table:uid:field] for flexforms
      * @param int $tscPID TSconfig PID
      * @param array $uploadedFiles Uploaded files for the field
@@ -2159,11 +2249,7 @@ class DataHandler implements LoggerAwareInterface
                 );
 
                 $dataStructureArray = $flexFormTools->parseDataStructureByIdentifier($dataStructureIdentifier);
-            } catch (InvalidParentRowException $e) {
-            } catch (InvalidParentRowLoopException $e) {
-            } catch (InvalidParentRowRootException $e) {
-            } catch (InvalidPointerFieldValueException $e) {
-            } catch (InvalidIdentifierException $e) {
+            } catch (InvalidParentRowException|InvalidParentRowLoopException|InvalidParentRowRootException|InvalidPointerFieldValueException|InvalidIdentifierException $e) {
             }
 
             // Get current value array:
@@ -2216,6 +2302,7 @@ class DataHandler implements LoggerAwareInterface
      * @param array $array Array with FlexForm data
      * @param bool $addPrologue If set, the XML prologue is returned as well.
      * @return string Input array converted to XML
+     * @internal should only be used from within DataHandler
      */
     public function checkValue_flexArray2Xml($array, $addPrologue = false)
     {
@@ -2240,7 +2327,7 @@ class DataHandler implements LoggerAwareInterface
         foreach ($actionCMDs as $key => $value) {
             if ($key === '_ACTION') {
                 // First, check if there are "commands":
-                if (current($actionCMDs[$key]) === '') {
+                if (empty(array_filter($actionCMDs[$key]))) {
                     continue;
                 }
 
@@ -2271,10 +2358,11 @@ class DataHandler implements LoggerAwareInterface
      * @param array $PP Additional parameters in a numeric array: $table,$id,$curValue,$status,$realPid,$recFID
      * @param string $field Field name
      * @param array $additionalData Additional data to be forwarded to sub-processors
+     * @internal should only be used from within DataHandler
      */
     public function checkValue_inline($res, $value, $tcaFieldConf, $PP, $field, array $additionalData = null)
     {
-        list($table, $id, , $status) = $PP;
+        [$table, $id, , $status] = $PP;
         $this->checkValueForInline($res, $value, $tcaFieldConf, $table, $id, $status, $field, $additionalData);
     }
 
@@ -2291,6 +2379,7 @@ class DataHandler implements LoggerAwareInterface
      * @param string $field Field name
      * @param array $additionalData Additional data to be forwarded to sub-processors
      * @return array|bool Modified $res array
+     * @internal should only be used from within DataHandler
      */
     public function checkValueForInline($res, $value, $tcaFieldConf, $table, $id, $status, $field, array $additionalData = null)
     {
@@ -2329,6 +2418,7 @@ class DataHandler implements LoggerAwareInterface
      * @param array $tcaFieldConf Field configuration from TCA
      * @param array $valueArray Current value array of items
      * @return array The truncated value array of items
+     * @internal should only be used from within DataHandler
      */
     public function checkValue_checkMax($tcaFieldConf, $valueArray)
     {
@@ -2355,6 +2445,8 @@ class DataHandler implements LoggerAwareInterface
      * @param int $id UID to filter out in the lookup (the record itself...)
      * @param int $newPid If set, the value will be unique for this PID
      * @return string Modified value (if not-unique). Will be the value appended with a number (until 100, then the function just breaks).
+     * @todo: consider workspaces, especially when publishing a unique value which has a unique value already in live
+     * @internal should only be used from within DataHandler
      */
     public function getUnique($table, $field, $value, $id, $newPid = 0)
     {
@@ -2401,7 +2493,7 @@ class DataHandler implements LoggerAwareInterface
      * @param string $field Field name for which $value must be unique
      * @param int $uid UID to filter out in the lookup (the record itself...)
      * @param int $pid If set, the value will be unique for this PID
-     * @return \Doctrine\DBAL\Driver\Statement|int Return the prepared statement to check uniqueness
+     * @return \Doctrine\DBAL\Driver\Statement Return the prepared statement to check uniqueness
      */
     protected function getUniqueCountStatement(
         string $value,
@@ -2419,6 +2511,26 @@ class DataHandler implements LoggerAwareInterface
                 $queryBuilder->expr()->eq($field, $queryBuilder->createPositionalParameter($value, \PDO::PARAM_STR)),
                 $queryBuilder->expr()->neq('uid', $queryBuilder->createPositionalParameter($uid, \PDO::PARAM_INT))
             );
+        // ignore translations of current record if field is configured with l10n_mode = "exclude"
+        if (($GLOBALS['TCA'][$table]['columns'][$field]['l10n_mode'] ?? '') === 'exclude'
+            && ($GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField'] ?? '') !== ''
+            && ($GLOBALS['TCA'][$table]['columns'][$field]['languageField'] ?? '') !== '') {
+            $queryBuilder
+                ->andWhere(
+                    $queryBuilder->expr()->orX(
+                    // records without l10n_parent must be taken into account (in any language)
+                        $queryBuilder->expr()->eq(
+                            $GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField'],
+                            $queryBuilder->createPositionalParameter(0, \PDO::PARAM_INT)
+                        ),
+                        // translations of other records must be taken into account
+                        $queryBuilder->expr()->neq(
+                            $GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField'],
+                            $queryBuilder->createPositionalParameter($uid, \PDO::PARAM_INT)
+                        )
+                    )
+                );
+        }
         if ($pid !== 0) {
             $queryBuilder->andWhere(
                 $queryBuilder->expr()->eq('pid', $queryBuilder->createPositionalParameter($pid, \PDO::PARAM_INT))
@@ -2429,7 +2541,6 @@ class DataHandler implements LoggerAwareInterface
                 $queryBuilder->expr()->gte('pid', $queryBuilder->createPositionalParameter(0, \PDO::PARAM_INT))
             );
         }
-
         return $queryBuilder->execute();
     }
 
@@ -2443,6 +2554,7 @@ class DataHandler implements LoggerAwareInterface
      * @param string $value Value string.
      * @param int $pageId If set, the value will be unique for this PID
      * @return array
+     * @internal should only be used from within DataHandler
      */
     public function getRecordsWithSameValue($tableName, $uid, $fieldName, $value, $pageId = 0)
     {
@@ -2458,7 +2570,7 @@ class DataHandler implements LoggerAwareInterface
         $queryBuilder->getRestrictions()
             ->removeAll()
             ->add(GeneralUtility::makeInstance(DeletedRestriction::class))
-            ->add(GeneralUtility::makeInstance(BackendWorkspaceRestriction::class));
+            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, (int)$this->BE_USER->workspace));
 
         $queryBuilder->select('*')
             ->from($tableName)
@@ -2477,10 +2589,6 @@ class DataHandler implements LoggerAwareInterface
             $queryBuilder->andWhere(
                 $queryBuilder->expr()->eq('pid', $queryBuilder->createNamedParameter($pageId, \PDO::PARAM_INT))
             );
-        } else {
-            $queryBuilder->andWhere(
-                $queryBuilder->expr()->gte('pid', $queryBuilder->createNamedParameter(0, \PDO::PARAM_INT))
-            );
         }
 
         $result = $queryBuilder->execute()->fetchAll();
@@ -2493,6 +2601,7 @@ class DataHandler implements LoggerAwareInterface
      * @param array $evalArray Array of evaluations to traverse.
      * @param string $is_in The "is_in" value of the field configuration from TCA
      * @return array
+     * @internal should only be used from within DataHandler
      */
     public function checkValue_text_Eval($value, $evalArray, $is_in)
     {
@@ -2533,6 +2642,7 @@ class DataHandler implements LoggerAwareInterface
      * @param string $is_in Is-in string for 'is_in' evaluation
      * @param string $table Table name the eval is evaluated on
      * @return array Modified $value in key 'value' or empty array
+     * @internal should only be used from within DataHandler
      */
     public function checkValue_input_Eval($value, $evalArray, $is_in, string $table = ''): array
     {
@@ -2722,6 +2832,7 @@ class DataHandler implements LoggerAwareInterface
      * @param string $currentTable Table name, needs to be passed to \TYPO3\CMS\Core\Database\RelationHandler
      * @param string $currentField field name, needs to be set for writing to sys_history
      * @return array Modified value array
+     * @internal should only be used from within DataHandler
      */
     public function checkValue_group_select_processDBdata($valueArray, $tcaFieldConf, $id, $status, $type, $currentTable, $currentField)
     {
@@ -2773,6 +2884,7 @@ class DataHandler implements LoggerAwareInterface
      *
      * @param string $value Input string, comma separated values. For each part it will also be detected if a '|' is found and the first part will then be used if that is the case. Further the value will be rawurldecoded.
      * @return array The value array.
+     * @internal should only be used from within DataHandler
      */
     public function checkValue_group_select_explodeSelectGroupValue($value)
     {
@@ -2799,6 +2911,7 @@ class DataHandler implements LoggerAwareInterface
      * @param array $workspaceOptions
      * @return array The modified 'data' part.
      * @see checkValue_flex_procInData_travDS()
+     * @internal should only be used from within DataHandler
      */
     public function checkValue_flex_procInData($dataPart, $dataPart_current, $uploadedFiles, $dataStructure, $pParams, $callBackFunc = '', array $workspaceOptions = [])
     {
@@ -2836,6 +2949,7 @@ class DataHandler implements LoggerAwareInterface
      * @param string $structurePath
      * @param array $workspaceOptions
      * @see checkValue_flex_procInData()
+     * @internal should only be used from within DataHandler
      */
     public function checkValue_flex_procInData_travDS(&$dataValues, $dataValues_current, $uploadedFiles, $DSelements, $pParams, $callBackFunc, $structurePath, array $workspaceOptions = [])
     {
@@ -2903,7 +3017,7 @@ class DataHandler implements LoggerAwareInterface
                         }
                     } else {
                         // Default
-                        list($CVtable, $CVid, $CVcurValue, $CVstatus, $CVrealPid, $CVrecFID, $CVtscPID) = $pParams;
+                        [$CVtable, $CVid, $CVcurValue, $CVstatus, $CVrealPid, $CVrecFID, $CVtscPID] = $pParams;
 
                         $additionalData = [
                             'flexFormId' => $CVrecFID,
@@ -3121,6 +3235,7 @@ class DataHandler implements LoggerAwareInterface
             }
         }
         if ($this->isOuterMostInstance()) {
+            $this->referenceIndexUpdater->update();
             $this->processClearCacheQueue();
             $this->resetNestedElementCalls();
         }
@@ -3143,6 +3258,7 @@ class DataHandler implements LoggerAwareInterface
      * @param int $language Language ID (from sys_language table)
      * @param bool $ignoreLocalization If TRUE, any localization routine is skipped
      * @return int|null ID of new record, if any
+     * @internal should only be used from within DataHandler
      */
     public function copyRecord($table, $uid, $destPid, $first = false, $overrideValues = [], $excludeFields = '', $language = 0, $ignoreLocalization = false)
     {
@@ -3156,7 +3272,7 @@ class DataHandler implements LoggerAwareInterface
         }
 
         // Fetch record with permission check
-        $row = $this->recordInfoWithPermissionCheck($table, $uid, 'show');
+        $row = $this->recordInfoWithPermissionCheck($table, $uid, Permission::PAGE_SHOW);
 
         // This checks if the record can be selected which is all that a copy action requires.
         if ($row === false) {
@@ -3164,9 +3280,12 @@ class DataHandler implements LoggerAwareInterface
             return null;
         }
 
+        // NOT using \TYPO3\CMS\Backend\Utility\BackendUtility::getTSCpid() because we need the real pid - not the ID of a page, if the input is a page...
+        $tscPID = BackendUtility::getTSconfig_pidValue($table, $uid, $destPid);
+
         // Check if table is allowed on destination page
-        if ($destPid >= 0 && !$this->isTableAllowedForThisPage($destPid, $table)) {
-            $this->log($table, $uid, SystemLogDatabaseAction::INSERT, 0, SystemLogErrorClassification::USER_ERROR, 'Attempt to insert record "%s:%s" on a page (%s) that can\'t store record type.', -1, [$table, $uid, $destPid]);
+        if (!$this->isTableAllowedForThisPage($tscPID, $table)) {
+            $this->log($table, $uid, SystemLogDatabaseAction::INSERT, 0, SystemLogErrorClassification::USER_ERROR, 'Attempt to insert record "%s:%s" on a page (%s) that can\'t store record type.', -1, [$table, $uid, $tscPID]);
             return null;
         }
 
@@ -3179,7 +3298,7 @@ class DataHandler implements LoggerAwareInterface
 
         $data = [];
         $nonFields = array_unique(GeneralUtility::trimExplode(',', 'uid,perms_userid,perms_groupid,perms_user,perms_group,perms_everybody,t3ver_oid,t3ver_wsid,t3ver_state,t3ver_count,t3ver_stage,t3ver_tstamp,' . $excludeFields, true));
-        BackendUtility::workspaceOL($table, $row, -99, false);
+        BackendUtility::workspaceOL($table, $row, $this->BE_USER->workspace);
         $row = BackendUtility::purgeComputedPropertiesFromRecord($row);
 
         // Initializing:
@@ -3189,8 +3308,6 @@ class DataHandler implements LoggerAwareInterface
         // Getting "copy-after" fields if applicable:
         $copyAfterFields = $destPid < 0 ? $this->fixCopyAfterDuplFields($table, $uid, abs($destPid), 0) : [];
         // Page TSconfig related:
-        // NOT using \TYPO3\CMS\Backend\Utility\BackendUtility::getTSCpid() because we need the real pid - not the ID of a page, if the input is a page...
-        $tscPID = BackendUtility::getTSconfig_pidValue($table, $uid, $destPid);
         $TSConfig = BackendUtility::getPagesTSconfig($tscPID)['TCEMAIN.'] ?? [];
         $tE = $this->getTableEntries($table, $TSConfig);
         // Traverse ALL fields of the selected record:
@@ -3268,6 +3385,7 @@ class DataHandler implements LoggerAwareInterface
      *
      * @param int $uid Page UID to copy
      * @param int $destPid Destination PID: >=0 then it points to a page-id on which to insert the record (as the first element). <0 then it points to a uid from its own table after which to insert it (works if
+     * @internal should only be used from within DataHandler
      */
     public function copyPages($uid, $destPid)
     {
@@ -3339,11 +3457,13 @@ class DataHandler implements LoggerAwareInterface
      * @param array $copyTablesArray Table on pages to copy along with the page.
      * @param bool $first Is a flag set, if the record copied is NOT a 'slave' to another record copied. That is, if this record was asked to be copied in the cmd-array
      * @return int|null The id of the new page, if applicable.
+     * @internal should only be used from within DataHandler
      */
     public function copySpecificPage($uid, $destPid, $copyTablesArray, $first = false)
     {
         // Copy the page itself:
         $theNewRootID = $this->copyRecord('pages', $uid, $destPid, $first);
+        $currentWorkspaceId = (int)$this->BE_USER->workspace;
         // If a new page was created upon the copy operation we will proceed with all the tables ON that page:
         if ($theNewRootID) {
             foreach ($copyTablesArray as $table) {
@@ -3364,8 +3484,15 @@ class DataHandler implements LoggerAwareInterface
                         }
                     }
                     $isTableWorkspaceEnabled = BackendUtility::isTableWorkspaceEnabled($table);
+                    if ($isTableWorkspaceEnabled) {
+                        $fields[] = 't3ver_oid';
+                        $fields[] = 't3ver_state';
+                        $fields[] = 't3ver_wsid';
+                        $fields[] = 't3ver_move_id';
+                    }
                     $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($table);
                     $this->addDeleteRestriction($queryBuilder->getRestrictions()->removeAll());
+                    $queryBuilder->getRestrictions()->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, $currentWorkspaceId));
                     $queryBuilder
                         ->select(...$fields)
                         ->from($table)
@@ -3375,24 +3502,6 @@ class DataHandler implements LoggerAwareInterface
                                 $queryBuilder->createNamedParameter($uid, \PDO::PARAM_INT)
                             )
                         );
-                    if ($isTableWorkspaceEnabled && (int)$this->BE_USER->workspace === 0) {
-                        // Table is workspace enabled, user is in default ws -> add t3ver_wsid=0 restriction
-                        $queryBuilder->andWhere(
-                            $queryBuilder->expr()->eq(
-                                't3ver_wsid',
-                                $queryBuilder->createNamedParameter(0, \PDO::PARAM_INT)
-                            )
-                        );
-                    } elseif ($isTableWorkspaceEnabled) {
-                        // Table is workspace enabled, user has a ws selected -> select wsid=0 and selected wsid rows
-                        $queryBuilder->andWhere($queryBuilder->expr()->in(
-                            't3ver_wsid',
-                            $queryBuilder->createNamedParameter(
-                                [0, $this->BE_USER->workspace],
-                                Connection::PARAM_INT_ARRAY
-                            )
-                        ));
-                    }
                     if (!empty($GLOBALS['TCA'][$table]['ctrl']['sortby'])) {
                         $queryBuilder->orderBy($GLOBALS['TCA'][$table]['ctrl']['sortby'], 'DESC');
                     }
@@ -3400,11 +3509,27 @@ class DataHandler implements LoggerAwareInterface
                     try {
                         $result = $queryBuilder->execute();
                         $rows = [];
+                        $movedLiveIds = [];
+                        $movedLiveRecords = [];
                         while ($row = $result->fetch()) {
-                            $rows[$row['uid']] = $row;
+                            if ($isTableWorkspaceEnabled && (int)$row['t3ver_state'] === VersionState::MOVE_PLACEHOLDER) {
+                                $movedLiveIds[(int)$row['t3ver_move_id']] = (int)$row['uid'];
+                            }
+                            $rows[(int)$row['uid']] = $row;
                         }
                         // Resolve placeholders of workspace versions
-                        if (!empty($rows) && (int)$this->BE_USER->workspace !== 0 && $isTableWorkspaceEnabled) {
+                        if (!empty($rows) && $currentWorkspaceId > 0 && $isTableWorkspaceEnabled) {
+                            // If a record was moved within the page, the PlainDataResolver needs the move placeholder
+                            // but not the original live version, otherwise the move placeholder is not considered at all
+                            // For this reason, we find the live ids, where there was also a move placeholder in the SQL
+                            // query above in $movedLiveIds and now we removed them before handing them over to PlainDataResolver.
+                            // see changeContentSortingAndCopyDraftPage test
+                            foreach ($movedLiveIds as $liveId => $movePlaceHolderId) {
+                                if (isset($rows[$liveId])) {
+                                    $movedLiveRecords[$movePlaceHolderId] = $rows[$liveId];
+                                    unset($rows[$liveId]);
+                                }
+                            }
                             $rows = array_reverse(
                                 $this->resolveVersionedRecords(
                                     $table,
@@ -3414,6 +3539,9 @@ class DataHandler implements LoggerAwareInterface
                                 ),
                                 true
                             );
+                            foreach ($movedLiveRecords as $movePlaceHolderId => $liveRecord) {
+                                $rows[$movePlaceHolderId] = $liveRecord;
+                            }
                         }
                         if (is_array($rows)) {
                             $languageSourceMap = [];
@@ -3423,7 +3551,7 @@ class DataHandler implements LoggerAwareInterface
                                 // Skip localized records that will be processed in
                                 // copyL10nOverlayRecords() on copying the default language record
                                 $transOrigPointer = $row[$transOrigPointerField];
-                                if ($row[$languageField] > 0 && $transOrigPointer > 0 && isset($rows[$transOrigPointer])) {
+                                if ($row[$languageField] > 0 && $transOrigPointer > 0 && (isset($rows[$transOrigPointer]) || isset($movedLiveIds[$transOrigPointer]))) {
                                     continue;
                                 }
                                 // Copying each of the underlying records...
@@ -3466,6 +3594,7 @@ class DataHandler implements LoggerAwareInterface
      * @param array $overrideArray Override array - must NOT contain any fields not in the table!
      * @param array $workspaceOptions Options to be forwarded if actions happen on a workspace currently
      * @return int Returns the new ID of the record (if applicable)
+     * @internal should only be used from within DataHandler
      */
     public function copyRecord_raw($table, $uid, $pid, $overrideArray = [], array $workspaceOptions = [])
     {
@@ -3481,7 +3610,7 @@ class DataHandler implements LoggerAwareInterface
         }
 
         // Fetch record with permission check
-        $row = $this->recordInfoWithPermissionCheck($table, $uid, 'show');
+        $row = $this->recordInfoWithPermissionCheck($table, $uid, Permission::PAGE_SHOW);
 
         // This checks if the record can be selected which is all that a copy action requires.
         if ($row === false) {
@@ -3514,7 +3643,6 @@ class DataHandler implements LoggerAwareInterface
                 $row[$field] = $value;
             }
         }
-        // Force versioning related fields:
         $row['pid'] = $pid;
         // Setting original UID:
         if ($GLOBALS['TCA'][$table]['ctrl']['origUid']) {
@@ -3522,6 +3650,15 @@ class DataHandler implements LoggerAwareInterface
         }
         // Do the copy by internal function
         $theNewSQLID = $this->insertNewCopyVersion($table, $row, $pid);
+
+        // When a record is copied in workspace (eg. to create a delete placeholder record for a live record), records
+        // pointing to that record need a reference index update. This is for instance the case in FAL, if a sys_file_reference
+        // for a eg. tt_content record is marked as deleted. The tt_content record then needs a reference index update.
+        // This scenario seems to currently only show up if in workspaces, so the refindex update is restricted to this for now.
+        if (!empty($workspaceOptions)) {
+            $this->referenceIndexUpdater->registerUpdateForReferencesToItem($table, (int)$row['uid'], (int)$this->BE_USER->workspace);
+        }
+
         if ($theNewSQLID) {
             $this->dbAnalysisStoreExec();
             $this->dbAnalysisStore = [];
@@ -3536,8 +3673,9 @@ class DataHandler implements LoggerAwareInterface
      *
      * @param string $table Table name
      * @param array $fieldArray Field array to insert as a record
-     * @param int $realPid The value of PID field.  -1 is indication that we are creating a new version!
+     * @param int $realPid The value of PID field.
      * @return int Returns the new ID of the record (if applicable)
+     * @internal should only be used from within DataHandler
      */
     public function insertNewCopyVersion($table, $fieldArray, $realPid)
     {
@@ -3653,7 +3791,7 @@ class DataHandler implements LoggerAwareInterface
                 $recordLocalization = BackendUtility::getRecordLocalization($item['table'], $item['id'], $language);
                 if ($recordLocalization) {
                     $dbAnalysis->itemArray[$index]['id'] = $recordLocalization[0]['uid'];
-                } elseif ($this->isNestedElementCallRegistered($item['table'], $item['id'], 'localize') === false) {
+                } elseif ($this->isNestedElementCallRegistered($item['table'], $item['id'], 'localize-' . (string)$language) === false) {
                     $dbAnalysis->itemArray[$index]['id'] = $this->localize($item['table'], $item['id'], $language);
                 }
             }
@@ -3735,6 +3873,10 @@ class DataHandler implements LoggerAwareInterface
                             $newId = $this->copyRecord($v['table'], $v['id'], $realDestPid);
                         }
                     }
+                } elseif ($this->BE_USER->workspace > 0 && !BackendUtility::isTableWorkspaceEnabled($v['table'])) {
+                    // We are in workspace context creating a new parent version and have a child table
+                    // that is not workspace aware. We don't do anything with this child.
+                    continue;
                 } else {
                     // If a record has been copied already during this request,
                     // prevent superfluous duplication and use the existing copy
@@ -3773,11 +3915,12 @@ class DataHandler implements LoggerAwareInterface
      * @return array Result array with key "value" containing the value of the processing.
      * @see copyRecord()
      * @see checkValue_flex_procInData_travDS()
+     * @internal should only be used from within DataHandler
      */
     public function copyRecord_flexFormCallBack($pParams, $dsConf, $dataValue, $_1, $_2, $_3, $workspaceOptions)
     {
         // Extract parameters:
-        list($table, $uid, $field, $realDestPid) = $pParams;
+        [$table, $uid, $field, $realDestPid] = $pParams;
         // If references are set for this field, set flag so they can be corrected later (in ->remapListedDBRecords())
         if (($this->isReferenceField($dsConf) || $this->getInlineFieldType($dsConf) !== false) && (string)$dataValue !== '') {
             $dataValue = $this->copyRecord_procBasedOnFieldType($table, $uid, $field, $dataValue, [], $dsConf, $realDestPid, 0, $workspaceOptions);
@@ -3796,6 +3939,7 @@ class DataHandler implements LoggerAwareInterface
      * @param bool $first
      * @param array $overrideValues
      * @param string $excludeFields
+     * @internal should only be used from within DataHandler
      */
     public function copyL10nOverlayRecords($table, $uid, $destPid, $first = false, $overrideValues = [], $excludeFields = '')
     {
@@ -3808,7 +3952,7 @@ class DataHandler implements LoggerAwareInterface
         $queryBuilder->getRestrictions()
             ->removeAll()
             ->add(GeneralUtility::makeInstance(DeletedRestriction::class))
-            ->add(GeneralUtility::makeInstance(BackendWorkspaceRestriction::class));
+            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, (int)$this->BE_USER->workspace));
 
         $queryBuilder->select('*')
             ->from($table)
@@ -3819,11 +3963,17 @@ class DataHandler implements LoggerAwareInterface
                 )
             );
 
+        // Never copy the actual move placeholders around, as the newly copied records are
+        // Always created as new record / new placeholder pairs
         if (BackendUtility::isTableWorkspaceEnabled($table)) {
             $queryBuilder->andWhere(
-                $queryBuilder->expr()->eq('t3ver_oid', $queryBuilder->createNamedParameter(0, \PDO::PARAM_INT))
+                $queryBuilder->expr()->notIn(
+                    't3ver_state',
+                    [VersionState::MOVE_PLACEHOLDER, VersionState::DELETE_PLACEHOLDER]
+                )
             );
         }
+
         // If $destPid is < 0, get the pid of the record with uid equal to abs($destPid)
         $tscPID = BackendUtility::getTSconfig_pidValue($table, $uid, $destPid);
         // Get the localized records to be copied
@@ -3914,6 +4064,7 @@ class DataHandler implements LoggerAwareInterface
      * @param string $table Table name to move
      * @param int $uid Record uid to move
      * @param int $destPid Position to move to: $destPid: >=0 then it points to a page-id on which to insert the record (as the first element). <0 then it points to a uid from its own table after which to insert it (works if
+     * @internal should only be used from within DataHandler
      */
     public function moveRecord($table, $uid, $destPid)
     {
@@ -3940,7 +4091,7 @@ class DataHandler implements LoggerAwareInterface
             // Edit rights for the record...
             $mayMoveAccess = $this->checkRecordUpdateAccess($table, $uid);
         } else {
-            $mayMoveAccess = $this->doesRecordExist($table, $uid, 'delete');
+            $mayMoveAccess = $this->doesRecordExist($table, $uid, Permission::PAGE_DELETE);
         }
         // Finding out, if the record may be moved TO another place. Here we check insert-rights (non-pages = edit, pages = new),
         // unless the pages are moved on the same pid, then edit-rights are checked
@@ -3991,6 +4142,7 @@ class DataHandler implements LoggerAwareInterface
      * @param int $uid Record uid to move
      * @param int $destPid Position to move to: $destPid: >=0 then it points to a page-id on which to insert the record (as the first element). <0 then it points to a uid from its own table after which to insert it (works if
      * @see moveRecord()
+     * @internal should only be used from within DataHandler
      */
     public function moveRecord_raw($table, $uid, $destPid)
     {
@@ -3998,8 +4150,9 @@ class DataHandler implements LoggerAwareInterface
         $origDestPid = $destPid;
         // This is the actual pid of the moving to destination
         $resolvedPid = $this->resolvePid($table, $destPid);
-        // Checking if the pid is negative, but no sorting row is defined. In that case, find the correct pid. Basically this check make the error message 4-13 meaning less... But you can always remove this check if you prefer the error instead of a no-good action (which is to move the record to its own page...)
-        // $destPid>=0 because we must correct pid in case of versioning "page" types.
+        // Checking if the pid is negative, but no sorting row is defined. In that case, find the correct pid.
+        // Basically this check make the error message 4-13 meaning less... But you can always remove this check if you
+        // prefer the error instead of a no-good action (which is to move the record to its own page...)
         if (($destPid < 0 && !$sortColumn) || $destPid >= 0) {
             $destPid = $resolvedPid;
         }
@@ -4020,11 +4173,19 @@ class DataHandler implements LoggerAwareInterface
         // Check if this is a translation of a page, if so then it just needs to be kept "sorting" in sync
         // Usually called from moveL10nOverlayRecords()
         if ($table === 'pages') {
-            $defaultLanguagePageId = $this->getDefaultLanguagePageId((int)$uid);
-            if ($defaultLanguagePageId !== (int)$uid) {
-                $originalTranslationRecord = $this->recordInfo($table, $defaultLanguagePageId, 'pid,' . $sortColumn);
+            $defaultLanguagePageUid = $this->getDefaultLanguagePageId((int)$uid);
+            // In workspaces, the default language page may have been moved to a different pid than the
+            // default language page record of live workspace. In this case, localized pages need to be
+            // moved to the pid of the workspace move record.
+            $defaultLanguagePageWorkspaceOverlay = BackendUtility::getWorkspaceVersionOfRecord((int)$this->BE_USER->workspace, 'pages', $defaultLanguagePageUid, 'uid');
+            if (is_array($defaultLanguagePageWorkspaceOverlay)) {
+                $defaultLanguagePageUid = (int)$defaultLanguagePageWorkspaceOverlay['uid'];
+            }
+            if ($defaultLanguagePageUid !== (int)$uid) {
+                // If the default language page has been moved, localized pages need to be moved to
+                // that pid and sorting, too.
+                $originalTranslationRecord = $this->recordInfo($table, $defaultLanguagePageUid, 'pid,' . $sortColumn);
                 $updateFields[$sortColumn] = $originalTranslationRecord[$sortColumn];
-                // Ensure that the PID is always the same as the default language page
                 $destPid = $originalTranslationRecord['pid'];
             }
         }
@@ -4033,7 +4194,7 @@ class DataHandler implements LoggerAwareInterface
         if ($destPid >= 0) {
             if ($table !== 'pages' || $this->destNotInsideSelf($destPid, $uid)) {
                 // Clear cache before moving
-                list($parentUid) = BackendUtility::getTSCpid($table, $uid, '');
+                [$parentUid] = BackendUtility::getTSCpid($table, $uid, '');
                 $this->registerRecordIdForPageCacheClearing($table, $uid, $parentUid);
                 // Setting PID
                 $updateFields['pid'] = $destPid;
@@ -4079,10 +4240,6 @@ class DataHandler implements LoggerAwareInterface
                 $this->fixUniqueInSite($table, (int)$uid);
                 if ($table === 'pages') {
                     $this->fixUniqueInSiteForSubpages((int)$uid);
-                }
-                // fixCopyAfterDuplFields
-                if ($origDestPid < 0) {
-                    $this->fixCopyAfterDuplFields($table, $uid, abs($origDestPid), 1);
                 }
             } elseif ($this->enableLogging) {
                 $destPropArr = $this->getRecordProperties('pages', $destPid);
@@ -4143,10 +4300,6 @@ class DataHandler implements LoggerAwareInterface
                     if ($table === 'pages') {
                         $this->fixUniqueInSiteForSubpages((int)$uid);
                     }
-                    // fixCopyAfterDuplFields
-                    if ($origDestPid < 0) {
-                        $this->fixCopyAfterDuplFields($table, $uid, abs($origDestPid), 1);
-                    }
                 } elseif ($this->enableLogging) {
                     $destPropArr = $this->getRecordProperties('pages', $destPid);
                     $this->log($table, $uid, SystemLogDatabaseAction::MOVE, 0, SystemLogErrorClassification::USER_ERROR, 'Attempt to move page \'%s\' (%s) to inside of its own rootline (at page \'%s\' (%s))', 10, [$propArr['header'], $uid, $destPropArr['header'], $destPid], $propArr['pid']);
@@ -4164,6 +4317,7 @@ class DataHandler implements LoggerAwareInterface
      * @param string $table Record Table
      * @param int $uid Record UID
      * @param int $destPid Position to move to
+     * @internal should only be used from within DataHandler
      */
     public function moveRecord_procFields($table, $uid, $destPid)
     {
@@ -4185,9 +4339,11 @@ class DataHandler implements LoggerAwareInterface
      * @param string $field Record field
      * @param string $value Record field value
      * @param array $conf TCA configuration of current field
+     * @internal should only be used from within DataHandler
      */
     public function moveRecord_procBasedOnFieldType($table, $uid, $destPid, $field, $value, $conf)
     {
+        $dbAnalysis = null;
         if ($conf['type'] === 'inline') {
             $foreign_table = $conf['foreign_table'];
             $moveChildrenWithParent = !isset($conf['behaviour']['disableMovingChildrenWithParent']) || !$conf['behaviour']['disableMovingChildrenWithParent'];
@@ -4221,6 +4377,7 @@ class DataHandler implements LoggerAwareInterface
      * @param string $uid Record UID
      * @param string $destPid Position to move to
      * @param string $originalRecordDestinationPid Position to move the original record to
+     * @internal should only be used from within DataHandler
      */
     public function moveL10nOverlayRecords($table, $uid, $destPid, $originalRecordDestinationPid)
     {
@@ -4233,24 +4390,19 @@ class DataHandler implements LoggerAwareInterface
         $queryBuilder->getRestrictions()
             ->removeAll()
             ->add(GeneralUtility::makeInstance(DeletedRestriction::class))
-            ->add(GeneralUtility::makeInstance(BackendWorkspaceRestriction::class));
+            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, $this->BE_USER->workspace));
 
-        $queryBuilder->select('*')
+        $l10nRecords = $queryBuilder->select('*')
             ->from($table)
             ->where(
                 $queryBuilder->expr()->eq(
                     $GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField'],
                     $queryBuilder->createNamedParameter($uid, \PDO::PARAM_INT, ':pointer')
                 )
-            );
+            )
+            ->execute()
+            ->fetchAll();
 
-        if (BackendUtility::isTableWorkspaceEnabled($table)) {
-            $queryBuilder->andWhere(
-                $queryBuilder->expr()->eq('t3ver_oid', $queryBuilder->createNamedParameter(0, \PDO::PARAM_INT))
-            );
-        }
-
-        $l10nRecords = $queryBuilder->execute()->fetchAll();
         if (is_array($l10nRecords)) {
             $localizedDestPids = [];
             // If $$originalRecordDestinationPid < 0, then it is the uid of the original language record we are inserting after
@@ -4284,16 +4436,17 @@ class DataHandler implements LoggerAwareInterface
      * @param int $uid Record uid (to be localized)
      * @param int $language Language ID (from sys_language table)
      * @return int|bool The uid (int) of the new translated record or FALSE (bool) if something went wrong
+     * @internal should only be used from within DataHandler
      */
     public function localize($table, $uid, $language)
     {
         $newId = false;
         $uid = (int)$uid;
-        if (!$GLOBALS['TCA'][$table] || !$uid || $this->isNestedElementCallRegistered($table, $uid, 'localize') !== false) {
+        if (!$GLOBALS['TCA'][$table] || !$uid || $this->isNestedElementCallRegistered($table, $uid, 'localize-' . (string)$language) !== false) {
             return false;
         }
 
-        $this->registerNestedElementCall($table, $uid, 'localize');
+        $this->registerNestedElementCall($table, $uid, 'localize-' . (string)$language);
         if (!$GLOBALS['TCA'][$table]['ctrl']['languageField'] || !$GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField']) {
             $this->newlog('Localization failed; "languageField" and "transOrigPointerField" must be defined for the table ' . $table, SystemLogErrorClassification::USER_ERROR);
             return false;
@@ -4304,7 +4457,7 @@ class DataHandler implements LoggerAwareInterface
             return false;
         }
 
-        if (!$this->doesRecordExist($table, $uid, 'show')) {
+        if (!$this->doesRecordExist($table, $uid, Permission::PAGE_SHOW)) {
             $this->newlog('Attempt to localize record ' . $table . ':' . $uid . ' without permission.', SystemLogErrorClassification::USER_ERROR);
             return false;
         }
@@ -4377,7 +4530,7 @@ class DataHandler implements LoggerAwareInterface
             // Check if we are just prefixing:
             if ($fCfg['l10n_mode'] === 'prefixLangTitle') {
                 if (($fCfg['config']['type'] === 'text' || $fCfg['config']['type'] === 'input') && (string)$row[$fN] !== '') {
-                    list($tscPID) = BackendUtility::getTSCpid($table, $uid, '');
+                    [$tscPID] = BackendUtility::getTSCpid($table, $uid, '');
                     $TSConfig = BackendUtility::getPagesTSconfig($tscPID)['TCEMAIN.'] ?? [];
                     $tE = $this->getTableEntries($table, $TSConfig);
                     if (!empty($TSConfig['translateToMessage']) && !$tE['disablePrependAtCopy']) {
@@ -4566,7 +4719,7 @@ class DataHandler implements LoggerAwareInterface
         // Remove child records (if synchronization requested it):
         if (is_array($removeArray) && !empty($removeArray)) {
             /** @var DataHandler $tce */
-            $tce = GeneralUtility::makeInstance(__CLASS__);
+            $tce = GeneralUtility::makeInstance(__CLASS__, $this->referenceIndexUpdater);
             $tce->enableLogging = $this->enableLogging;
             $tce->start([], $removeArray, $this->BE_USER);
             $tce->process_cmdmap();
@@ -4599,6 +4752,7 @@ class DataHandler implements LoggerAwareInterface
      *
      * @param string $table Table name
      * @param int $id Record UID
+     * @internal should only be used from within DataHandler
      */
     public function deleteAction($table, $id)
     {
@@ -4626,11 +4780,13 @@ class DataHandler implements LoggerAwareInterface
      * @param int $uid Record UID
      * @param bool $noRecordCheck Flag: If $noRecordCheck is set, then the function does not check permission to delete record
      * @param bool $forceHardDelete If TRUE, the "deleted" flag is ignored if applicable for record and the record is deleted COMPLETELY!
+     * @param bool $deleteRecordsOnPage If false and if deleting pages, records on the page will not be deleted (edge case while swapping workspaces)
+     * @internal should only be used from within DataHandler
      */
-    public function deleteEl($table, $uid, $noRecordCheck = false, $forceHardDelete = false)
+    public function deleteEl($table, $uid, $noRecordCheck = false, $forceHardDelete = false, bool $deleteRecordsOnPage = true)
     {
         if ($table === 'pages') {
-            $this->deletePages($uid, $noRecordCheck, $forceHardDelete);
+            $this->deletePages($uid, $noRecordCheck, $forceHardDelete, $deleteRecordsOnPage);
         } else {
             $this->deleteVersionsForRecord($table, $uid, $forceHardDelete);
             $this->deleteRecord($table, $uid, $noRecordCheck, $forceHardDelete);
@@ -4643,6 +4799,7 @@ class DataHandler implements LoggerAwareInterface
      * @param string $table Table name
      * @param int $uid Record UID
      * @param bool $forceHardDelete If TRUE, the "deleted" flag is ignored if applicable for record and the record is deleted COMPLETELY!
+     * @internal should only be used from within DataHandler
      */
     public function deleteVersionsForRecord($table, $uid, $forceHardDelete)
     {
@@ -4650,12 +4807,23 @@ class DataHandler implements LoggerAwareInterface
         if (is_array($versions)) {
             foreach ($versions as $verRec) {
                 if (!$verRec['_CURRENT_VERSION']) {
+                    $currentUserWorkspace = null;
+                    if ((int)$verRec['t3ver_wsid'] !== (int)$this->BE_USER->workspace) {
+                        // If deleting records from 'foreign' / 'other' workspaces, the be user must be put into
+                        // this workspace temporarily so stuff like refindex updating is registered for this workspace
+                        // when deleting records in there.
+                        $currentUserWorkspace = $this->BE_USER->workspace;
+                        $this->BE_USER->workspace = (int)$verRec['t3ver_wsid'];
+                    }
                     if ($table === 'pages') {
                         $this->deletePages($verRec['uid'], true, $forceHardDelete);
                     } else {
                         $this->deleteRecord($table, $verRec['uid'], true, $forceHardDelete);
                     }
-
+                    if ($currentUserWorkspace !== null) {
+                        // Switch back workspace
+                        $this->BE_USER->workspace = $currentUserWorkspace;
+                    }
                     // Delete move-placeholder
                     $versionState = VersionState::cast($verRec['t3ver_state']);
                     if ($versionState->equals(VersionState::MOVE_POINTER)) {
@@ -4674,6 +4842,7 @@ class DataHandler implements LoggerAwareInterface
      *
      * @param string $table Table name
      * @param int $uid Record UID
+     * @internal should only be used from within DataHandler
      */
     public function undeleteRecord($table, $uid)
     {
@@ -4693,12 +4862,18 @@ class DataHandler implements LoggerAwareInterface
      * @param bool $noRecordCheck Flag: If $noRecordCheck is set, then the function does not check permission to delete record
      * @param bool $forceHardDelete If TRUE, the "deleted" flag is ignored if applicable for record and the record is deleted COMPLETELY!
      * @param bool $undeleteRecord If TRUE, the "deleted" flag is set to 0 again and thus, the item is undeleted.
+     * @internal should only be used from within DataHandler
      */
     public function deleteRecord($table, $uid, $noRecordCheck = false, $forceHardDelete = false, $undeleteRecord = false)
     {
+        $currentUserWorkspace = (int)$this->BE_USER->workspace;
         $uid = (int)$uid;
         if (!$GLOBALS['TCA'][$table] || !$uid) {
             $this->log($table, $uid, SystemLogDatabaseAction::DELETE, 0, SystemLogErrorClassification::USER_ERROR, 'Attempt to delete record without delete-permissions. [' . $this->BE_USER->errorMsg . ']');
+            return;
+        }
+        // Skip processing already deleted records
+        if (!$forceHardDelete && !$undeleteRecord && $this->hasDeletedRecord($table, $uid)) {
             return;
         }
 
@@ -4717,12 +4892,20 @@ class DataHandler implements LoggerAwareInterface
             $this->log($table, $uid, SystemLogDatabaseAction::DELETE, 0, SystemLogErrorClassification::USER_ERROR, 'Attempt to delete record without delete-permissions');
             return;
         }
-        if (!$noRecordCheck && !$this->doesRecordExist($table, $uid, 'delete')) {
+        if ($table === 'pages') {
+            $perms = Permission::PAGE_DELETE;
+        } elseif ($table === 'sys_file_reference' && array_key_exists('pages', $this->datamap)) {
+            // @todo: find a more generic way to handle content relations of a page (without needing content editing access to that page)
+            $perms = Permission::PAGE_EDIT;
+        } else {
+            $perms = Permission::CONTENT_EDIT;
+        }
+        if (!$noRecordCheck && !$this->doesRecordExist($table, $uid, $perms)) {
             return;
         }
 
         // Clear cache before deleting the record, else the correct page cannot be identified by clear_cache
-        list($parentUid) = BackendUtility::getTSCpid($table, $uid, '');
+        [$parentUid] = BackendUtility::getTSCpid($table, $uid, '');
         $this->registerRecordIdForPageCacheClearing($table, $uid, $parentUid);
         $deleteField = $GLOBALS['TCA'][$table]['ctrl']['delete'];
         $databaseErrorMessage = '';
@@ -4736,23 +4919,21 @@ class DataHandler implements LoggerAwareInterface
             // before (un-)deleting this record, check for child records or references
             $this->deleteRecord_procFields($table, $uid, $undeleteRecord);
             try {
-                GeneralUtility::makeInstance(ConnectionPool::class)
-                    ->getConnectionForTable($table)
-                    ->update($table, $updateFields, ['uid' => (int)$uid]);
                 // Delete all l10n records as well, impossible during undelete because it might bring too many records back to life
                 if (!$undeleteRecord) {
                     $this->deletedRecords[$table][] = (int)$uid;
                     $this->deleteL10nOverlayRecords($table, $uid);
                 }
+                GeneralUtility::makeInstance(ConnectionPool::class)
+                    ->getConnectionForTable($table)
+                    ->update($table, $updateFields, ['uid' => (int)$uid]);
             } catch (DBALException $e) {
                 $databaseErrorMessage = $e->getPrevious()->getMessage();
             }
         } else {
             // Delete the hard way...:
             try {
-                GeneralUtility::makeInstance(ConnectionPool::class)
-                    ->getConnectionForTable($table)
-                    ->delete($table, ['uid' => (int)$uid]);
+                $this->hardDeleteSingleRecord($table, (int)$uid);
                 $this->deletedRecords[$table][] = (int)$uid;
                 $this->deleteL10nOverlayRecords($table, $uid);
             } catch (DBALException $e) {
@@ -4788,27 +4969,10 @@ class DataHandler implements LoggerAwareInterface
             $this->getRecordHistoryStore()->deleteRecord($table, $uid, $this->correlationId);
         }
 
-        // Update reference index:
+        // Update reference index with table/uid on left side (recuid)
         $this->updateRefIndex($table, $uid);
-
-        // We track calls to update the reference index as to avoid calling it twice
-        // with the same arguments. This is done because reference indexing is quite
-        // costly and the update reference index stack usually contain duplicates.
-        // NB: also filled and checked in loop below. The initialisation prevents
-        // running the "root" record twice if it appears in the stack twice.
-        $updateReferenceIndexCalls = [[$table, $uid]];
-
-        // If there are entries in the updateRefIndexStack
-        if (is_array($this->updateRefIndexStack[$table]) && is_array($this->updateRefIndexStack[$table][$uid])) {
-            while ($args = array_pop($this->updateRefIndexStack[$table][$uid])) {
-                if (!in_array($args, $updateReferenceIndexCalls, true)) {
-                    // $args[0]: table, $args[1]: uid
-                    $this->updateRefIndex($args[0], $args[1]);
-                    $updateReferenceIndexCalls[] = $args;
-                }
-            }
-            unset($this->updateRefIndexStack[$table][$uid]);
-        }
+        // Update reference index with table/uid on right side (ref_uid). Important if children of a relation are deleted / undeleted.
+        $this->referenceIndexUpdater->registerUpdateForReferencesToItem($table, $uid, $currentUserWorkspace);
     }
 
     /**
@@ -4817,8 +4981,10 @@ class DataHandler implements LoggerAwareInterface
      * @param int $uid Page id
      * @param bool $force If TRUE, pages are not checked for permission.
      * @param bool $forceHardDelete If TRUE, the "deleted" flag is ignored if applicable for record and the record is deleted COMPLETELY!
+     * @param bool $deleteRecordsOnPage If false, records on the page will not be deleted (edge case while swapping workspaces)
+     * @internal should only be used from within DataHandler
      */
-    public function deletePages($uid, $force = false, $forceHardDelete = false)
+    public function deletePages($uid, $force = false, $forceHardDelete = false, bool $deleteRecordsOnPage = true)
     {
         $uid = (int)$uid;
         if ($uid === 0) {
@@ -4838,7 +5004,7 @@ class DataHandler implements LoggerAwareInterface
         // Perform deletion if not error:
         if (is_array($res)) {
             foreach ($res as $deleteId) {
-                $this->deleteSpecificPage($deleteId, $forceHardDelete);
+                $this->deleteSpecificPage($deleteId, $forceHardDelete, $deleteRecordsOnPage);
             }
         } else {
             /** @var FlashMessage $flashMessage */
@@ -4851,45 +5017,103 @@ class DataHandler implements LoggerAwareInterface
     }
 
     /**
-     * Delete a page and all records on it.
+     * Delete a page (or set deleted field to 1) and all records on it.
      *
      * @param int $uid Page id
      * @param bool $forceHardDelete If TRUE, the "deleted" flag is ignored if applicable for record and the record is deleted COMPLETELY!
+     * @param bool $deleteRecordsOnPage If false, records on the page will not be deleted (edge case while swapping workspaces)
      * @internal
      * @see deletePages()
      */
-    public function deleteSpecificPage($uid, $forceHardDelete = false)
+    public function deleteSpecificPage($uid, $forceHardDelete = false, bool $deleteRecordsOnPage = true)
     {
         $uid = (int)$uid;
-        if ($uid) {
+        if (!$uid) {
+            // Early void return on invalid uid
+            return;
+        }
+        $forceHardDelete = (bool)$forceHardDelete;
+
+        // Delete either a default language page or a translated page
+        $pageIdInDefaultLanguage = $this->getDefaultLanguagePageId($uid);
+        $isPageTranslation = false;
+        $pageLanguageId = 0;
+        if ($pageIdInDefaultLanguage !== $uid) {
+            // For translated pages, translated records in other tables (eg. tt_content) for the
+            // to-delete translated page have their pid field set to the uid of the default language record,
+            // NOT the uid of the translated page record.
+            // If a translated page is deleted, only translations of records in other tables of this language
+            // should be deleted. The code checks if the to-delete page is a translated page and
+            // adapts the query for other tables to use the uid of the default language page as pid together
+            // with the language id of the translated page.
+            $isPageTranslation = true;
+            $pageLanguageId = $this->pageInfo($uid, $GLOBALS['TCA']['pages']['ctrl']['languageField']);
+        }
+
+        if ($deleteRecordsOnPage) {
             $tableNames = $this->compileAdminTables();
             foreach ($tableNames as $table) {
-                if ($table !== 'pages') {
-                    $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
-                        ->getQueryBuilderForTable($table);
+                if ($table === 'pages' || ($isPageTranslation && !BackendUtility::isTableLocalizable($table))) {
+                    // Skip pages table. And skip table if not translatable, but a translated page is deleted
+                    continue;
+                }
 
-                    $this->addDeleteRestriction($queryBuilder->getRestrictions()->removeAll());
+                $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($table);
+                $this->addDeleteRestriction($queryBuilder->getRestrictions()->removeAll());
+                $queryBuilder
+                    ->select('uid')
+                    ->from($table);
 
-                    $statement = $queryBuilder
-                        ->select('uid')
-                        ->from($table)
-                        ->where($queryBuilder->expr()->eq(
+                if ($isPageTranslation) {
+                    // Only delete records in the specified language
+                    $queryBuilder->where(
+                        $queryBuilder->expr()->eq(
+                            'pid',
+                            $queryBuilder->createNamedParameter($pageIdInDefaultLanguage, \PDO::PARAM_INT)
+                        ),
+                        $queryBuilder->expr()->eq(
+                            $GLOBALS['TCA'][$table]['ctrl']['languageField'],
+                            $queryBuilder->createNamedParameter($pageLanguageId, \PDO::PARAM_INT)
+                        )
+                    );
+                } else {
+                    // Delete all records on this page
+                    $queryBuilder->where(
+                        $queryBuilder->expr()->eq(
                             'pid',
                             $queryBuilder->createNamedParameter($uid, \PDO::PARAM_INT)
-                        ))
-                        ->execute();
+                        )
+                    );
+                }
 
-                    while ($row = $statement->fetch()) {
-                        $this->copyMovedRecordToNewLocation($table, $row['uid']);
-                        $this->deleteVersionsForRecord($table, $row['uid'], $forceHardDelete);
-                        $this->deleteRecord($table, $row['uid'], true, $forceHardDelete);
-                    }
+                $currentUserWorkspace = (int)$this->BE_USER->workspace;
+                if ($currentUserWorkspace !== 0 && BackendUtility::isTableWorkspaceEnabled($table)) {
+                    // If we are in a workspace, make sure only records of this workspace are deleted.
+                    $queryBuilder->andWhere(
+                        $queryBuilder->expr()->eq(
+                            't3ver_wsid',
+                            $queryBuilder->createNamedParameter($currentUserWorkspace, \PDO::PARAM_INT)
+                        )
+                    );
+                }
+
+                $statement = $queryBuilder->execute();
+
+                while ($row = $statement->fetch()) {
+                    // Handle a detail related to workspace placeholder records, delete any
+                    // further workspace overlays for the record in question, then delete the record.
+                    $this->copyMovedRecordToNewLocation($table, $row['uid']);
+                    $this->deleteVersionsForRecord($table, $row['uid'], $forceHardDelete);
+                    $this->deleteRecord($table, $row['uid'], true, $forceHardDelete);
                 }
             }
-            $this->copyMovedRecordToNewLocation('pages', $uid);
-            $this->deleteVersionsForRecord('pages', $uid, $forceHardDelete);
-            $this->deleteRecord('pages', $uid, true, $forceHardDelete);
         }
+
+        // Handle a detail related to workspace placeholder records, delete any
+        // further workspace overlays for the page in question, then delete the page.
+        $this->copyMovedRecordToNewLocation('pages', $uid);
+        $this->deleteVersionsForRecord('pages', $uid, $forceHardDelete);
+        $this->deleteRecord('pages', $uid, true, $forceHardDelete);
     }
 
     /**
@@ -4923,7 +5147,7 @@ class DataHandler implements LoggerAwareInterface
                     ]
                 ];
                 /** @var DataHandler $dataHandler */
-                $dataHandler = GeneralUtility::makeInstance(__CLASS__);
+                $dataHandler = GeneralUtility::makeInstance(__CLASS__, $this->referenceIndexUpdater);
                 $dataHandler->enableLogging = $this->enableLogging;
                 $dataHandler->neverHideAtCopy = true;
                 $dataHandler->start([], $command, $this->BE_USER);
@@ -4941,6 +5165,7 @@ class DataHandler implements LoggerAwareInterface
      *
      * @param int $uid Page id
      * @return int[]|string If array: List of page uids to traverse and delete (means OK), if string: error message.
+     * @internal should only be used from within DataHandler
      */
     public function canDeletePage($uid)
     {
@@ -4952,16 +5177,16 @@ class DataHandler implements LoggerAwareInterface
         // Because it is currently only deleting the translation
         $defaultLanguagePageId = $this->getDefaultLanguagePageId($uid);
         if ($defaultLanguagePageId !== $uid) {
-            if ($this->doesRecordExist('pages', (int)$defaultLanguagePageId, 'delete')) {
+            if ($this->doesRecordExist('pages', (int)$defaultLanguagePageId, Permission::PAGE_DELETE)) {
                 $isTranslatedPage = true;
             } else {
                 return 'Attempt to delete page without permissions';
             }
-        } elseif (!$this->doesRecordExist('pages', $uid, 'delete')) {
+        } elseif (!$this->doesRecordExist('pages', $uid, Permission::PAGE_DELETE)) {
             return 'Attempt to delete page without permissions';
         }
 
-        $pageIdsInBranch = $this->doesBranchExist('', $uid, $this->pMap['delete'], true);
+        $pageIdsInBranch = $this->doesBranchExist('', $uid, Permission::PAGE_DELETE, true);
 
         if ($this->deleteTree) {
             if ($pageIdsInBranch === -1) {
@@ -4980,8 +5205,8 @@ class DataHandler implements LoggerAwareInterface
             $pagesInBranch = [$uid];
         }
 
-        if (!$this->checkForRecordsFromDisallowedTables($pagesInBranch)) {
-            return 'Attempt to delete records from disallowed tables';
+        if ($disallowedTables = $this->checkForRecordsFromDisallowedTables($pagesInBranch)) {
+            return 'Attempt to delete records from disallowed tables (' . implode(', ', $disallowedTables) . ')';
         }
 
         foreach ($pagesInBranch as $pageInBranch) {
@@ -4998,6 +5223,7 @@ class DataHandler implements LoggerAwareInterface
      * @param string $table Record Table
      * @param int $id Record UID
      * @return string Returns a string IF there is an error (error string explaining). FALSE means record can be deleted
+     * @internal should only be used from within DataHandler
      */
     public function cannotDeleteRecord($table, $id)
     {
@@ -5005,7 +5231,13 @@ class DataHandler implements LoggerAwareInterface
             $res = $this->canDeletePage($id);
             return is_array($res) ? false : $res;
         }
-        return $this->doesRecordExist($table, $id, 'delete') ? false : 'No permission to delete record';
+        if ($table === 'sys_file_reference' && array_key_exists('pages', $this->datamap)) {
+            // @todo: find a more generic way to handle content relations of a page (without needing content editing access to that page)
+            $perms = Permission::PAGE_EDIT;
+        } else {
+            $perms = Permission::CONTENT_EDIT;
+        }
+        return $this->doesRecordExist($table, $id, $perms) ? false : 'No permission to delete record';
     }
 
     /**
@@ -5014,6 +5246,7 @@ class DataHandler implements LoggerAwareInterface
      * @param string $table Table name of the record
      * @param int $uid uid of the record
      * @return bool Whether the record can be undeleted
+     * @internal should only be used from within DataHandler
      */
     public function isRecordUndeletable($table, $uid)
     {
@@ -5042,6 +5275,7 @@ class DataHandler implements LoggerAwareInterface
      * @param string $uid Record UID
      * @param bool $undeleteRecord If a record should be undeleted (e.g. from history/undo)
      * @see deleteRecord()
+     * @internal should only be used from within DataHandler
      */
     public function deleteRecord_procFields($table, $uid, $undeleteRecord = false)
     {
@@ -5066,6 +5300,7 @@ class DataHandler implements LoggerAwareInterface
      * @param array $conf TCA configuration of current field
      * @param bool $undeleteRecord If a record should be undeleted (e.g. from history/undo)
      * @see deleteRecord()
+     * @internal should only be used from within DataHandler
      */
     public function deleteRecord_procBasedOnFieldType($table, $uid, $field, $value, $conf, $undeleteRecord = false)
     {
@@ -5102,7 +5337,7 @@ class DataHandler implements LoggerAwareInterface
             $dbAnalysis = $this->createRelationHandlerInstance();
             $dbAnalysis->start($value, $allowedTables, $conf['MM'], $uid, $table, $conf);
             foreach ($dbAnalysis->itemArray as $v) {
-                $this->updateRefIndexStack[$table][$uid][] = [$v['table'], $v['id']];
+                $this->updateRefIndex($v['table'], $v['id']);
             }
         }
     }
@@ -5112,6 +5347,7 @@ class DataHandler implements LoggerAwareInterface
      *
      * @param string $table Record Table
      * @param string $uid Record UID
+     * @internal should only be used from within DataHandler
      */
     public function deleteL10nOverlayRecords($table, $uid)
     {
@@ -5124,7 +5360,7 @@ class DataHandler implements LoggerAwareInterface
         $queryBuilder->getRestrictions()
             ->removeAll()
             ->add(GeneralUtility::makeInstance(DeletedRestriction::class))
-            ->add(GeneralUtility::makeInstance(BackendWorkspaceRestriction::class));
+            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, (int)$this->BE_USER->workspace));
 
         $queryBuilder->select('*')
             ->from($table)
@@ -5135,23 +5371,335 @@ class DataHandler implements LoggerAwareInterface
                 )
             );
 
-        if (BackendUtility::isTableWorkspaceEnabled($table)) {
-            $queryBuilder->andWhere(
-                $queryBuilder->expr()->eq('t3ver_oid', $queryBuilder->createNamedParameter(0, \PDO::PARAM_INT))
-            );
-        }
-
         $result = $queryBuilder->execute();
         while ($record = $result->fetch()) {
             // Ignore workspace delete placeholders. Those records have been marked for
             // deletion before - deleting them again in a workspace would revert that state.
-            if ($this->BE_USER->workspace > 0 && BackendUtility::isTableWorkspaceEnabled($table)) {
-                BackendUtility::workspaceOL($table, $record);
+            if ((int)$this->BE_USER->workspace > 0 && BackendUtility::isTableWorkspaceEnabled($table)) {
+                BackendUtility::workspaceOL($table, $record, $this->BE_USER->workspace);
                 if (VersionState::cast($record['t3ver_state'])->equals(VersionState::DELETE_PLACEHOLDER)) {
                     continue;
                 }
             }
             $this->deleteAction($table, (int)$record['t3ver_oid'] > 0 ? (int)$record['t3ver_oid'] : (int)$record['uid']);
+        }
+    }
+
+    /*********************************************
+     *
+     * Cmd: Workspace discard & flush
+     *
+     ********************************************/
+
+    /**
+     * Discard a versioned record from this workspace. This deletes records from the database - no soft delete.
+     * This main entry method is called recursive for sub pages, localizations, relations and records on a page.
+     * The method checks user access and gathers facts about this record to hand the deletion over to detail methods.
+     *
+     * The incoming $uid or $row can be anything: The workspace of current user is respected and only records
+     * of current user workspace are discarded. If giving a live record uid, the versioned overly will be fetched.
+     *
+     * @param string $table Database table name
+     * @param int|null $uid Uid of live or versioned record to be discarded, or null if $record is given
+     * @param array|null $record Record row that should be discarded. Used instead of $uid within recursion.
+     */
+    public function discard(string $table, ?int $uid, array $record = null): void
+    {
+        if ($uid === null && $record === null) {
+            throw new \RuntimeException('Either record $uid or $record row must be given', 1600373491);
+        }
+
+        // Fetch record we are dealing with if not given
+        if ($record === null) {
+            $record = BackendUtility::getRecord($table, $uid);
+        }
+        if (!is_array($record)) {
+            return;
+        }
+        $uid = (int)$record['uid'];
+
+        // Call hook and return if hook took care of the element
+        $recordWasDiscarded = false;
+        foreach ($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processCmdmapClass'] ?? [] as $className) {
+            $hookObj = GeneralUtility::makeInstance($className);
+            if (method_exists($hookObj, 'processCmdmap_discardAction')) {
+                $hookObj->processCmdmap_discardAction($table, $uid, $record, $recordWasDiscarded);
+            }
+        }
+
+        $userWorkspace = (int)$this->BE_USER->workspace;
+        if ($recordWasDiscarded
+            || $userWorkspace === 0
+            || !BackendUtility::isTableWorkspaceEnabled($table)
+            || $this->hasDeletedRecord($table, $uid)
+        ) {
+            return;
+        }
+
+        // Gather versioned, live and placeholder record if there are any
+        $liveRecord = null;
+        $versionRecord = null;
+        $placeholderRecord = null;
+        if ((int)$record['t3ver_wsid'] === 0) {
+            $liveRecord = $record;
+            $record = BackendUtility::getWorkspaceVersionOfRecord($userWorkspace, $table, $uid);
+        }
+        if (!is_array($record)) {
+            return;
+        }
+        $recordState = VersionState::cast($record['t3ver_state']);
+        if ($recordState->equals(VersionState::NEW_PLACEHOLDER)) {
+            $placeholderRecord = $record;
+            $versionRecord = BackendUtility::getWorkspaceVersionOfRecord($userWorkspace, $table, $uid);
+            if (!is_array($versionRecord)) {
+                return;
+            }
+        } elseif ($recordState->equals(VersionState::NEW_PLACEHOLDER_VERSION)) {
+            $versionRecord = $record;
+            $placeholderRecord = BackendUtility::getLiveVersionOfRecord($table, $uid);
+            if (!is_array($placeholderRecord)) {
+                return;
+            }
+        } elseif ($recordState->equals(VersionState::MOVE_POINTER)) {
+            $versionRecord = $record;
+            $liveRecord = $liveRecord ?: BackendUtility::getLiveVersionOfRecord($table, $uid);
+            if (!is_array($liveRecord)) {
+                return;
+            }
+            $placeholderRecord = BackendUtility::getMovePlaceholder($table, $liveRecord['uid']);
+            if (!is_array($placeholderRecord)) {
+                return;
+            }
+        } else {
+            $versionRecord = $record;
+            $liveRecord = $liveRecord ?: BackendUtility::getLiveVersionOfRecord($table, $uid);
+            if (!is_array($liveRecord)) {
+                return;
+            }
+        }
+        // Do not use $record, $recordState and $uid below anymore, rely on $versionRecord, $liveRecord and $placeholderRecord
+
+        // User access checks
+        if ($userWorkspace !== (int)$versionRecord['t3ver_wsid']) {
+            $this->newlog('Attempt to discard workspace record ' . $table . ':' . $versionRecord['uid'] . ' failed: Different workspace', SystemLogErrorClassification::USER_ERROR);
+            return;
+        }
+        if ($errorCode = $this->BE_USER->workspaceCannotEditOfflineVersion($table, $versionRecord['uid'])) {
+            $this->newlog('Attempt to discard workspace record ' . $table . ':' . $versionRecord['uid'] . ' failed: ' . $errorCode, SystemLogErrorClassification::USER_ERROR);
+            return;
+        }
+        if (!$this->checkRecordUpdateAccess($table, $versionRecord['uid'])) {
+            $this->newlog('Attempt to discard workspace record ' . $table . ':' . $versionRecord['uid'] . ' failed: User has no edit access', SystemLogErrorClassification::USER_ERROR);
+            return;
+        }
+        $fullLanguageAccessCheck = !($table === 'pages' && (int)$versionRecord[$GLOBALS['TCA']['pages']['ctrl']['transOrigPointerField']] !== 0);
+        if (!$this->BE_USER->recordEditAccessInternals($table, $versionRecord, false, true, $fullLanguageAccessCheck)) {
+            $this->newlog('Attempt to discard workspace record ' . $table . ':' . $versionRecord['uid'] . ' failed: User has no delete access', SystemLogErrorClassification::USER_ERROR);
+            return;
+        }
+
+        // Perform discard operations
+        $versionState = VersionState::cast($versionRecord['t3ver_state']);
+        if ($table === 'pages' && $versionState->equals(VersionState::NEW_PLACEHOLDER_VERSION)) {
+            // When discarding a new page page, there can be new sub pages and new records.
+            // Those need to be discarded, otherwise they'd end up as records without parent page.
+            $this->discardSubPagesAndRecordsOnPage($versionRecord);
+        }
+
+        $this->discardLocalizationOverlayRecords($table, $versionRecord);
+        $this->discardRecordRelations($table, $versionRecord);
+        $this->hardDeleteSingleRecord($table, (int)$versionRecord['uid']);
+        $this->deletedRecords[$table][] = (int)$versionRecord['uid'];
+        $this->registerReferenceIndexRowsForDrop($table, (int)$versionRecord['uid'], $userWorkspace);
+        $this->getRecordHistoryStore()->deleteRecord($table, (int)$versionRecord['uid'], $this->correlationId);
+        $this->log(
+            $table,
+            (int)$versionRecord['uid'],
+            SystemLogDatabaseAction::DELETE,
+            0,
+            SystemLogErrorClassification::MESSAGE,
+            'Record ' . $table . ':' . $versionRecord['uid'] . ' was deleted unrecoverable from page ' . $versionRecord['pid'],
+            0,
+            [],
+            (int)$versionRecord['pid']
+        );
+
+        if ($versionState->equals(VersionState::MOVE_POINTER)
+            || $versionState->equals(VersionState::NEW_PLACEHOLDER_VERSION)
+        ) {
+            // Drop placeholder records if any
+            $this->hardDeleteSingleRecord($table, (int)$placeholderRecord['uid']);
+            $this->deletedRecords[$table][] = (int)$placeholderRecord['uid'];
+        }
+    }
+
+    /**
+     * Also discard any sub pages and records of a new parent page if this page is discarded.
+     * Discarding only in specific localization, if needed.
+     *
+     * @param array $page Page record row
+     */
+    protected function discardSubPagesAndRecordsOnPage(array $page): void
+    {
+        $isLocalizedPage = false;
+        $sysLanguageId = (int)$page[$GLOBALS['TCA']['pages']['ctrl']['languageField']];
+        if ($sysLanguageId > 0) {
+            // New or moved localized page.
+            // Discard records on this page localization, but no sub pages.
+            // Records of a translated page have the pid set to the default language page uid. Found in l10n_parent.
+            // @todo: Discard other page translations that inherit from this?! (l10n_source field)
+            $isLocalizedPage = true;
+            $pid = (int)$page[$GLOBALS['TCA']['pages']['ctrl']['transOrigPointerField']];
+        } else {
+            // New or moved default language page.
+            // Discard any sub pages and all other records of this page, including any page localizations.
+            // The t3ver_state=-1 record is incoming here. Records on this page have their pid field set to the uid
+            // of the t3ver_state=1 record, which is in the t3ver_oid field of the incoming record.
+            $pid = (int)$page['t3ver_oid'];
+        }
+        $tables = $this->compileAdminTables();
+        foreach ($tables as $table) {
+            if (($isLocalizedPage && $table === 'pages')
+                || ($isLocalizedPage && !BackendUtility::isTableLocalizable($table))
+                || !BackendUtility::isTableWorkspaceEnabled($table)
+            ) {
+                continue;
+            }
+            $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($table);
+            $this->addDeleteRestriction($queryBuilder->getRestrictions()->removeAll());
+            $queryBuilder->select('*')
+                ->from($table)
+                ->where(
+                    $queryBuilder->expr()->eq(
+                        'pid',
+                        $queryBuilder->createNamedParameter($pid, \PDO::PARAM_INT)
+                    ),
+                    $queryBuilder->expr()->eq(
+                        't3ver_wsid',
+                        $queryBuilder->createNamedParameter((int)$this->BE_USER->workspace, \PDO::PARAM_INT)
+                    )
+                );
+            if ($isLocalizedPage) {
+                // Add sys_language_uid = x restriction if discarding a localized page
+                $queryBuilder->andWhere(
+                    $queryBuilder->expr()->eq(
+                        $GLOBALS['TCA'][$table]['ctrl']['languageField'],
+                        $queryBuilder->createNamedParameter($sysLanguageId, \PDO::PARAM_INT)
+                    )
+                );
+            }
+            $statement = $queryBuilder->execute();
+            while ($row = $statement->fetch()) {
+                $this->discard($table, null, $row);
+            }
+        }
+    }
+
+    /**
+     * Discard record relations like inline and MM of a record.
+     *
+     * @param string $table Table name of this record
+     * @param array $record The record row to handle
+     */
+    protected function discardRecordRelations(string $table, array $record): void
+    {
+        foreach ($record as $field => $value) {
+            $fieldConfig = $GLOBALS['TCA'][$table]['columns'][$field]['config'] ?? null;
+            if (!isset($fieldConfig['type'])) {
+                continue;
+            }
+            if ($fieldConfig['type'] === 'inline') {
+                $foreignTable = $fieldConfig['foreign_table'] ?? null;
+                if (!$foreignTable
+                     || (isset($fieldConfig['behaviour']['enableCascadingDelete'])
+                        && (bool)$fieldConfig['behaviour']['enableCascadingDelete'] === false)
+                ) {
+                    continue;
+                }
+                $inlineType = $this->getInlineFieldType($fieldConfig);
+                if ($inlineType === 'list' || $inlineType === 'field') {
+                    $dbAnalysis = $this->createRelationHandlerInstance();
+                    $dbAnalysis->start($value, $fieldConfig['foreign_table'], '', (int)$record['uid'], $table, $fieldConfig);
+                    $dbAnalysis->undeleteRecord = true;
+                    foreach ($dbAnalysis->itemArray as $relationRecord) {
+                        $this->discard($relationRecord['table'], (int)$relationRecord['id']);
+                    }
+                }
+            } elseif ($this->isReferenceField($fieldConfig) && !empty($fieldConfig['MM'])) {
+                $this->discardMmRelations($table, $fieldConfig, $record);
+            }
+            // @todo not inline and not mm - probably not handled correctly and has no proper test coverage yet
+        }
+    }
+
+    /**
+     * When a workspace record row is discarded that has mm relations, existing mm table rows need
+     * to be deleted. The method performs the delete operation depending on TCA field configuration.
+     *
+     * @param string $table Handled table name
+     * @param array $fieldConfig TCA configuration of this field
+     * @param array $record The full record of a left- or ride-side relation
+     */
+    protected function discardMmRelations(string $table, array $fieldConfig, array $record): void
+    {
+        $recordUid = (int)$record['uid'];
+        $mmTableName = $fieldConfig['MM'];
+        // left - non foreign - uid_local vs. right - foreign - uid_foreign decision
+        $relationUidFieldName = isset($fieldConfig['MM_opposite_field']) ? 'uid_foreign' : 'uid_local';
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($mmTableName);
+        $queryBuilder->delete($mmTableName)->where(
+            // uid_local = given uid OR uid_foreign = given uid
+            $queryBuilder->expr()->eq($relationUidFieldName, $queryBuilder->createNamedParameter($recordUid, \PDO::PARAM_INT))
+        );
+        if (!empty($fieldConfig['MM_table_where']) && is_string($fieldConfig['MM_table_where'])) {
+            $queryBuilder->andWhere(
+                QueryHelper::stripLogicalOperatorPrefix(str_replace('###THIS_UID###', (string)$recordUid, $fieldConfig['MM_table_where']))
+            );
+        }
+        $mmMatchFields = $fieldConfig['MM_match_fields'] ?? [];
+        foreach ($mmMatchFields as $fieldName => $fieldValue) {
+            $queryBuilder->andWhere(
+                $queryBuilder->expr()->eq($fieldName, $queryBuilder->createNamedParameter($fieldValue, \PDO::PARAM_STR))
+            );
+        }
+        $queryBuilder->execute();
+    }
+
+    /**
+     * Find localization overlays of a record and discard them.
+     *
+     * @param string $table Table of this record
+     * @param array $record Record row
+     */
+    protected function discardLocalizationOverlayRecords(string $table, array $record): void
+    {
+        if (!BackendUtility::isTableLocalizable($table)) {
+            return;
+        }
+        $uid = (int)$record['uid'];
+        $versionState = VersionState::cast($record['t3ver_state']);
+        if ($versionState->equals(VersionState::NEW_PLACEHOLDER_VERSION)) {
+            // The t3ver_state=-1 record is incoming here. Localization overlays of this record have their uid field set
+            // to the uid of the t3ver_state=1 record, which is in the t3ver_oid field of the incoming record.
+            $uid = (int)$record['t3ver_oid'];
+        }
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($table);
+        $this->addDeleteRestriction($queryBuilder->getRestrictions()->removeAll());
+        $statement = $queryBuilder->select('*')
+            ->from($table)
+            ->where(
+                $queryBuilder->expr()->eq(
+                    $GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField'],
+                    $queryBuilder->createNamedParameter($uid, \PDO::PARAM_INT)
+                ),
+                $queryBuilder->expr()->eq(
+                    't3ver_wsid',
+                    $queryBuilder->createNamedParameter((int)$this->BE_USER->workspace, \PDO::PARAM_INT)
+                )
+            )
+            ->execute();
+        while ($record = $statement->fetch()) {
+            $this->discard($table, null, $record);
         }
     }
 
@@ -5170,6 +5718,7 @@ class DataHandler implements LoggerAwareInterface
      * @param bool $delete If TRUE, the version is created to delete the record.
      * @return int|null Returns the id of the new version (if any)
      * @see copyRecord()
+     * @internal should only be used from within DataHandler
      */
     public function versionizeRecord($table, $id, $label, $delete = false)
     {
@@ -5185,19 +5734,19 @@ class DataHandler implements LoggerAwareInterface
         }
 
         // Fetch record with permission check
-        $row = $this->recordInfoWithPermissionCheck($table, $id, 'show');
+        $row = $this->recordInfoWithPermissionCheck($table, $id, Permission::PAGE_SHOW);
 
         // This checks if the record can be selected which is all that a copy action requires.
         if ($row === false) {
             $this->newlog(
                 'The record does not exist or you don\'t have correct permissions to make a new version (copy) of this record "' . $table . ':' . $id . '"',
-                1
+                SystemLogErrorClassification::USER_ERROR
             );
             return null;
         }
 
         // Record must be online record, otherwise we would create a version of a version
-        if ($row['t3ver_oid'] ?? 0 > 0) {
+        if (($row['t3ver_oid'] ?? 0) > 0) {
             $this->newlog('Record "' . $table . ':' . $id . '" you wanted to versionize was already a version in archive (record has an online ID)!', SystemLogErrorClassification::USER_ERROR);
             return null;
         }
@@ -5226,6 +5775,7 @@ class DataHandler implements LoggerAwareInterface
             $overrideArray[$GLOBALS['TCA'][$table]['ctrl']['editlock']] = 0;
         }
         // Checking if the record already has a version in the current workspace of the backend user
+        $versionRecord = ['uid' => null];
         if ($this->BE_USER->workspace !== 0) {
             // Look for version already in workspace:
             $versionRecord = BackendUtility::getWorkspaceVersionOfRecord($this->BE_USER->workspace, $table, $id, 'uid');
@@ -5241,7 +5791,7 @@ class DataHandler implements LoggerAwareInterface
                 'delete' => $delete,
                 'label' => $label,
             ];
-            return $this->copyRecord_raw($table, $id, -1, $overrideArray, $workspaceOptions);
+            return $this->copyRecord_raw($table, $id, (int)$row['pid'], $overrideArray, $workspaceOptions);
         }
         // Reuse the existing record and return its uid
         // (prior to TYPO3 CMS 6.2, an error was thrown here, which
@@ -5256,6 +5806,7 @@ class DataHandler implements LoggerAwareInterface
      * @param int $id Current record (about to go offline)
      * @param int $swapWith Swap record (about to go online)
      * @see version_swap()
+     * @internal should only be used from within DataHandler
      */
     public function version_remapMMForVersionSwap($table, $id, $swapWith)
     {
@@ -5325,11 +5876,12 @@ class DataHandler implements LoggerAwareInterface
      * @param string $path Path in flexforms
      * @see version_remapMMForVersionSwap()
      * @see checkValue_flex_procInData_travDS()
+     * @internal should only be used from within DataHandler
      */
     public function version_remapMMForVersionSwap_flexFormCallBack($pParams, $dsConf, $dataValue, $dataValue_ext1, $dataValue_ext2, $path)
     {
         // Extract parameters:
-        list($table, $uid, $field) = $pParams;
+        [$table, $uid, $field] = $pParams;
         if ($this->isReferenceField($dsConf)) {
             $allowedTables = $dsConf['type'] === 'group' ? $dsConf['allowed'] : $dsConf['foreign_table'];
             $prependName = $dsConf['type'] === 'group' ? $dsConf['prepend_tname'] : '';
@@ -5350,6 +5902,7 @@ class DataHandler implements LoggerAwareInterface
      * @param int $id Current record (about to go offline)
      * @param int $swapWith Swap record (about to go online)
      * @see version_remapMMForVersionSwap()
+     * @internal should only be used from within DataHandler
      */
     public function version_remapMMForVersionSwap_execSwap($table, $id, $swapWith)
     {
@@ -5383,7 +5936,7 @@ class DataHandler implements LoggerAwareInterface
      */
     protected function getLocalTCE()
     {
-        $copyTCE = GeneralUtility::makeInstance(DataHandler::class);
+        $copyTCE = GeneralUtility::makeInstance(DataHandler::class, $this->referenceIndexUpdater);
         $copyTCE->copyTree = $this->copyTree;
         $copyTCE->enableLogging = $this->enableLogging;
         // Transformations should NOT be carried out during copy
@@ -5391,11 +5944,14 @@ class DataHandler implements LoggerAwareInterface
         // make sure the isImporting flag is transferred, so all hooks know if
         // the current process is an import process
         $copyTCE->isImporting = $this->isImporting;
+        $copyTCE->bypassAccessCheckForRecords = $this->bypassAccessCheckForRecords;
+        $copyTCE->bypassWorkspaceRestrictions = $this->bypassWorkspaceRestrictions;
         return $copyTCE;
     }
 
     /**
      * Processes the fields with references as registered during the copy process. This includes all FlexForm fields which had references.
+     * @internal should only be used from within DataHandler
      */
     public function remapListedDBRecords()
     {
@@ -5467,11 +6023,12 @@ class DataHandler implements LoggerAwareInterface
      * @return array Array where the "value" key carries the value.
      * @see checkValue_flex_procInData_travDS()
      * @see remapListedDBRecords()
+     * @internal should only be used from within DataHandler
      */
     public function remapListedDBRecords_flexFormCallBack($pParams, $dsConf, $dataValue, $dataValue_ext1, $dataValue_ext2)
     {
         // Extract parameters:
-        list($table, $uid, $field) = $pParams;
+        [$table, $uid, $field] = $pParams;
         // If references are set for this field, set flag so they can be corrected later:
         if ($this->isReferenceField($dsConf) && (string)$dataValue !== '') {
             $vArray = $this->remapListedDBRecords_procDBRefs($dsConf, $dataValue, $uid, $table);
@@ -5492,6 +6049,7 @@ class DataHandler implements LoggerAwareInterface
      * @param string $table Table name
      * @return array|null Returns array of items ready to implode for field content.
      * @see remapListedDBRecords()
+     * @internal should only be used from within DataHandler
      */
     public function remapListedDBRecords_procDBRefs($conf, $value, $MM_localUid, $table)
     {
@@ -5558,6 +6116,7 @@ class DataHandler implements LoggerAwareInterface
      * @param string $value Field value
      * @param int $uid The uid of the ORIGINAL record
      * @param string $table Table name
+     * @internal should only be used from within DataHandler
      */
     public function remapListedDBRecords_procInline($conf, $value, $uid, $table)
     {
@@ -5571,11 +6130,13 @@ class DataHandler implements LoggerAwareInterface
                 $dbAnalysis = $this->createRelationHandlerInstance();
                 $dbAnalysis->start($value, $conf['foreign_table'], '', 0, $table, $conf);
 
-                // Keep original (live) item array and update values for specific versioned records
-                $originalItemArray = $dbAnalysis->itemArray;
+                $updatePidForRecords = [];
+                // Update values for specific versioned records
                 foreach ($dbAnalysis->itemArray as &$item) {
+                    $updatePidForRecords[$item['table']][] = $item['id'];
                     $versionedId = $this->getAutoVersionId($item['table'], $item['id']);
-                    if (!empty($versionedId)) {
+                    if ($versionedId !== null) {
+                        $updatePidForRecords[$item['table']][] = $versionedId;
                         $item['id'] = $versionedId;
                     }
                 }
@@ -5593,21 +6154,25 @@ class DataHandler implements LoggerAwareInterface
                     $thePidToUpdate = $this->copyMappingArray_merged['pages'][$thePidToUpdate];
                 }
 
-                // Update child records if change to pid is required (only if the current record is not on a workspace):
-                if ($thePidToUpdate) {
+                // Update child records if change to pid is required
+                if ($thePidToUpdate && !empty($updatePidForRecords)) {
                     // Ensure that only the default language page is used as PID
                     $thePidToUpdate = $this->getDefaultLanguagePageId($thePidToUpdate);
+                    // @todo: this can probably go away
                     // ensure, only live page ids are used as 'pid' values
                     $liveId = BackendUtility::getLiveVersionIdOfRecord('pages', $theUidToUpdate);
                     if ($liveId !== null) {
                         $thePidToUpdate = $liveId;
                     }
                     $updateValues = ['pid' => $thePidToUpdate];
-                    foreach ($originalItemArray as $v) {
-                        if ($v['id'] && $v['table'] && BackendUtility::getLiveVersionIdOfRecord($v['table'], $v['id']) === null) {
-                            GeneralUtility::makeInstance(ConnectionPool::class)
-                                ->getConnectionForTable($v['table'])
-                                ->update($v['table'], $updateValues, ['uid' => (int)$v['id']]);
+                    foreach ($updatePidForRecords as $tableName => $uids) {
+                        if (empty($tableName) || empty($uids)) {
+                            continue;
+                        }
+                        $conn = GeneralUtility::makeInstance(ConnectionPool::class)
+                            ->getConnectionForTable($tableName);
+                        foreach ($uids as $updateUid) {
+                            $conn->update($tableName, $updateValues, ['uid' => $updateUid]);
                         }
                     }
                 }
@@ -5618,6 +6183,7 @@ class DataHandler implements LoggerAwareInterface
     /**
      * Processes the $this->remapStack at the end of copying, inserting, etc. actions.
      * The remapStack takes care about the correct mapping of new and old uids in case of relational data.
+     * @internal should only be used from within DataHandler
      */
     public function processRemapStack()
     {
@@ -5626,6 +6192,7 @@ class DataHandler implements LoggerAwareInterface
             $remapFlexForms = [];
             $hookPayload = [];
 
+            $newValue = null;
             foreach ($this->remapStack as $remapAction) {
                 // If no position index for the arguments was set, skip this remap action:
                 if (!is_array($remapAction['pos'])) {
@@ -5752,29 +6319,21 @@ class DataHandler implements LoggerAwareInterface
                 }
             }
         }
-        // Processes the reference index updates of the remap stack:
-        foreach ($this->remapStackRefIndex as $table => $idArray) {
-            foreach ($idArray as $id) {
-                $this->updateRefIndex($table, $id);
-                unset($this->remapStackRefIndex[$table][$id]);
-            }
-        }
         // Reset:
         $this->remapStack = [];
         $this->remapStackRecords = [];
         $this->remapStackActions = [];
-        $this->remapStackRefIndex = [];
     }
 
     /**
      * Updates FlexForm data.
      *
-     * @param string $flexFormId, e.g. <table>:<uid>:<field>
+     * @param string $flexFormId e.g. <table>:<uid>:<field>
      * @param array $modifications Modifications with paths and values (e.g. 'sDEF/lDEV/field/vDEF' => 'TYPO3')
      */
     protected function updateFlexFormData($flexFormId, array $modifications)
     {
-        list($table, $uid, $field) = explode(':', $flexFormId, 3);
+        [$table, $uid, $field] = explode(':', $flexFormId, 3);
 
         if (!MathUtility::canBeInterpretedAsInteger($uid) && !empty($this->substNEWwithIDs[$uid])) {
             $uid = $this->substNEWwithIDs[$uid];
@@ -5841,6 +6400,7 @@ class DataHandler implements LoggerAwareInterface
      * @param int $id The affected ID
      * @param array $callback The callback information (object and method)
      * @param array $arguments The arguments to be used with the callback
+     * @internal should only be used from within DataHandler
      */
     public function addRemapAction($table, $id, array $callback, array $arguments)
     {
@@ -5855,17 +6415,6 @@ class DataHandler implements LoggerAwareInterface
     }
 
     /**
-     * Adds a table-id-pair to the reference index remapping stack.
-     *
-     * @param string $table
-     * @param int $id
-     */
-    public function addRemapStackRefIndex($table, $id)
-    {
-        $this->remapStackRefIndex[$table][$id] = $id;
-    }
-
-    /**
      * If a parent record was versionized on a workspace in $this->process_datamap,
      * it might be possible, that child records (e.g. on using IRRE) were affected.
      * This function finds these relations and updates their uids in the $incomingFieldArray.
@@ -5875,6 +6424,7 @@ class DataHandler implements LoggerAwareInterface
      * @param int $id Uid of the parent record
      * @param array $incomingFieldArray Reference to the incomingFieldArray of process_datamap
      * @param array $registerDBList Reference to the $registerDBList array that was created/updated by versionizing calls to DataHandler in process_datamap.
+     * @internal should only be used from within DataHandler
      */
     public function getVersionizedIncomingFieldArray($table, $id, &$incomingFieldArray, &$registerDBList)
     {
@@ -5900,6 +6450,19 @@ class DataHandler implements LoggerAwareInterface
         }
     }
 
+    /**
+     * Simple helper method to hard delete one row from table ignoring delete TCA field
+     *
+     * @param string $table A row from this table should be deleted
+     * @param int $uid Uid of row to be deleted
+     */
+    protected function hardDeleteSingleRecord(string $table, int $uid): void
+    {
+        GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getConnectionForTable($table)
+            ->delete($table, ['uid' => $uid], [\PDO::PARAM_INT]);
+    }
+
     /*****************************
      *
      * Access control / Checking functions
@@ -5910,6 +6473,7 @@ class DataHandler implements LoggerAwareInterface
      *
      * @param string $table Table name
      * @return bool Returns TRUE if the user has general access to modify the $table
+     * @internal should only be used from within DataHandler
      */
     public function checkModifyAccessList($table)
     {
@@ -5928,6 +6492,7 @@ class DataHandler implements LoggerAwareInterface
      * @param string $table Table name
      * @param int $id UID of record
      * @return bool Returns TRUE if OK. Cached results.
+     * @internal should only be used from within DataHandler
      */
     public function isRecordInWebMount($table, $id)
     {
@@ -5943,6 +6508,7 @@ class DataHandler implements LoggerAwareInterface
      *
      * @param int $pid Page ID to check
      * @return bool TRUE if OK. Cached results.
+     * @internal should only be used from within DataHandler
      */
     public function isInWebMount($pid)
     {
@@ -5960,6 +6526,7 @@ class DataHandler implements LoggerAwareInterface
      * @param array|bool $data Record data
      * @param array $hookObjectsArr Hook objects
      * @return bool Returns TRUE if the user may update the record given by $table and $id
+     * @internal should only be used from within DataHandler
      */
     public function checkRecordUpdateAccess($table, $id, $data = false, $hookObjectsArr = null)
     {
@@ -5985,7 +6552,13 @@ class DataHandler implements LoggerAwareInterface
                 return $cachedValue;
             }
 
-            if ($this->doesRecordExist($table, $id, 'edit')) {
+            if ($table === 'pages' || ($table === 'sys_file_reference' && array_key_exists('pages', $this->datamap))) {
+                // @todo: find a more generic way to handle content relations of a page (without needing content editing access to that page)
+                $perms = Permission::PAGE_EDIT;
+            } else {
+                $perms = Permission::CONTENT_EDIT;
+            }
+            if ($this->doesRecordExist($table, $id, $perms)) {
                 $res = 1;
             }
             // Cache the result
@@ -6002,6 +6575,7 @@ class DataHandler implements LoggerAwareInterface
      * @param int $pid Integer PID
      * @param int $action For logging: Action number.
      * @return bool Returns TRUE if the user may insert a record from table $insertTable on page $pid
+     * @internal should only be used from within DataHandler
      */
     public function checkRecordInsertAccess($insertTable, $pid, $action = SystemLogDatabaseAction::INSERT)
     {
@@ -6016,12 +6590,12 @@ class DataHandler implements LoggerAwareInterface
 
         $res = false;
         if ($insertTable === 'pages') {
-            $perms = $this->pMap['new'];
+            $perms = Permission::PAGE_NEW;
         } elseif (($insertTable === 'sys_file_reference') && array_key_exists('pages', $this->datamap)) {
             // @todo: find a more generic way to handle content relations of a page (without needing content editing access to that page)
-            $perms = $this->pMap['edit'];
+            $perms = Permission::PAGE_EDIT;
         } else {
-            $perms = $this->pMap['editcontent'];
+            $perms = Permission::CONTENT_EDIT;
         }
         $pageExists = (bool)$this->doesRecordExist('pages', $pid, $perms);
         // If either admin and root-level or if page record exists and 1) if 'pages' you may create new ones 2) if page-content, new content items may be inserted on the $pid page
@@ -6048,6 +6622,7 @@ class DataHandler implements LoggerAwareInterface
      * @param int $page_uid Page id for which to check, including 0 (zero) if checking for page tree root.
      * @param string $checkTable Table name to check
      * @return bool TRUE if OK
+     * @internal should only be used from within DataHandler
      */
     public function isTableAllowedForThisPage($page_uid, $checkTable)
     {
@@ -6081,13 +6656,17 @@ class DataHandler implements LoggerAwareInterface
      *
      * @param string $table Record table name
      * @param int $id Record UID
-     * @param int|string $perms Permission restrictions to observe: Either an integer that will be bitwise AND'ed or a string, which points to a key in the ->pMap array
+     * @param int|string $perms Permission restrictions to observe: Either an integer that will be bitwise AND'ed or a string, which points to a key in the ->pMap array. Only integers are supported starting with TYPO3 v11.
      * @return bool Returns TRUE if the record given by $table, $id and $perms can be selected
      *
      * @throws \RuntimeException
+     * @internal should only be used from within DataHandler
      */
     public function doesRecordExist($table, $id, $perms)
     {
+        if (!MathUtility::canBeInterpretedAsInteger($perms)) {
+            trigger_error('Support for handing in permissions as string into "doesRecordExist" will be not be supported with TYPO3 v11 anymore. Use the Permission BitSet class instead.', E_USER_DEPRECATED);
+        }
         return $this->recordInfoWithPermissionCheck($table, $id, $perms, 'uid, pid') !== false;
     }
 
@@ -6152,35 +6731,34 @@ class DataHandler implements LoggerAwareInterface
      * @param int $perms Perms integer to check each page record for.
      * @param bool $recurse Recursion flag: If set, it will go out through the branch.
      * @return string|int List of page IDs in branch, if there are subpages, empty string if there are none or -1 if no permission
+     * @internal should only be used from within DataHandler
      */
     public function doesBranchExist($inList, $pid, $perms, $recurse)
     {
         $pid = (int)$pid;
         $perms = (int)$perms;
-        if ($pid >= 0) {
-            $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('pages');
-            $this->addDeleteRestriction($queryBuilder->getRestrictions()->removeAll());
-            $result = $queryBuilder
-                ->select('uid', 'perms_userid', 'perms_groupid', 'perms_user', 'perms_group', 'perms_everybody')
-                ->from('pages')
-                ->where($queryBuilder->expr()->eq('pid', $queryBuilder->createNamedParameter($pid, \PDO::PARAM_INT)))
-                ->orderBy('sorting')
-                ->execute();
-            while ($row = $result->fetch()) {
-                // IF admin, then it's OK
-                if ($this->admin || $this->BE_USER->doesUserHaveAccess($row, $perms)) {
-                    $inList .= $row['uid'] . ',';
-                    if ($recurse) {
-                        // Follow the subpages recursively...
-                        $inList = $this->doesBranchExist($inList, $row['uid'], $perms, $recurse);
-                        if ($inList === -1) {
-                            return -1;
-                        }
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('pages');
+        $this->addDeleteRestriction($queryBuilder->getRestrictions()->removeAll());
+        $result = $queryBuilder
+            ->select('uid', 'perms_userid', 'perms_groupid', 'perms_user', 'perms_group', 'perms_everybody')
+            ->from('pages')
+            ->where($queryBuilder->expr()->eq('pid', $queryBuilder->createNamedParameter($pid, \PDO::PARAM_INT)))
+            ->orderBy('sorting')
+            ->execute();
+        while ($row = $result->fetch()) {
+            // IF admin, then it's OK
+            if ($this->admin || $this->BE_USER->doesUserHaveAccess($row, $perms)) {
+                $inList .= $row['uid'] . ',';
+                if ($recurse) {
+                    // Follow the subpages recursively...
+                    $inList = $this->doesBranchExist($inList, $row['uid'], $perms, $recurse);
+                    if ($inList === -1) {
+                        return -1;
                     }
-                } else {
-                    // No permissions
-                    return -1;
                 }
+            } else {
+                // No permissions
+                return -1;
             }
         }
         return $inList;
@@ -6191,6 +6769,7 @@ class DataHandler implements LoggerAwareInterface
      *
      * @param string $table Table name
      * @return bool TRUE, if readonly
+     * @internal should only be used from within DataHandler
      */
     public function tableReadOnly($table)
     {
@@ -6203,6 +6782,7 @@ class DataHandler implements LoggerAwareInterface
      *
      * @param string $table Table name
      * @return bool TRUE, if readonly
+     * @internal should only be used from within DataHandler
      */
     public function tableAdminOnly($table)
     {
@@ -6217,6 +6797,7 @@ class DataHandler implements LoggerAwareInterface
      * @param int $destinationId Destination Page ID to test
      * @param int $id Page ID to test for presence inside Destination
      * @return bool Returns FALSE if ID is inside destination (including equal to)
+     * @internal should only be used from within DataHandler
      */
     public function destNotInsideSelf($destinationId, $id)
     {
@@ -6253,6 +6834,7 @@ class DataHandler implements LoggerAwareInterface
      * Will also generate this list for admin-users so they must be check for before calling the function
      *
      * @return array Array of [table]-[field] pairs to exclude from editing.
+     * @internal should only be used from within DataHandler
      */
     public function getExcludeListArray()
     {
@@ -6262,7 +6844,10 @@ class DataHandler implements LoggerAwareInterface
             foreach ($GLOBALS['TCA'] as $table => $tableConfiguration) {
                 if (isset($tableConfiguration['columns'])) {
                     foreach ($tableConfiguration['columns'] as $field => $config) {
-                        if ($config['exclude'] && !isset($nonExcludeFieldsArray[$table . ':' . $field])) {
+                        $isExcludeField = ($config['exclude'] ?? false);
+                        $isOnlyVisibleForAdmins = ($GLOBALS['TCA'][$table]['columns'][$field]['displayCond'] ?? '') === 'HIDE_FOR_NON_ADMINS';
+                        $editorHasPermissionForThisField = isset($nonExcludeFieldsArray[$table . ':' . $field]);
+                        if ($isOnlyVisibleForAdmins || ($isExcludeField && !$editorHasPermissionForThisField)) {
                             $list[] = $table . '-' . $field;
                         }
                     }
@@ -6279,6 +6864,7 @@ class DataHandler implements LoggerAwareInterface
      * @param int $page_uid Page ID
      * @param int $doktype Page doktype
      * @return bool|array Returns a list of the tables that are 'present' on the page but not allowed with the page_uid/doktype
+     * @internal should only be used from within DataHandler
      */
     public function doesPageHaveUnallowedTables($page_uid, $doktype)
     {
@@ -6330,6 +6916,7 @@ class DataHandler implements LoggerAwareInterface
      * @param int $id Page uid
      * @param string $field Field name for which to return value
      * @return string Value of the field. Result is cached in $this->pageCache[$id][$field] and returned from there next time!
+     * @internal should only be used from within DataHandler
      */
     public function pageInfo($id, $field)
     {
@@ -6357,6 +6944,7 @@ class DataHandler implements LoggerAwareInterface
      * @param int $id UID of the record from $table
      * @param string $fieldList Field list for the SELECT query, eg. "*" or "uid,pid,...
      * @return array|null Returns the selected record on success, otherwise NULL.
+     * @internal should only be used from within DataHandler
      */
     public function recordInfo($table, $id, $fieldList)
     {
@@ -6380,7 +6968,7 @@ class DataHandler implements LoggerAwareInterface
      *
      * @param string $table Record table name
      * @param int $id Record UID
-     * @param int|string $perms Permission restrictions to observe: Either an integer that will be bitwise AND'ed or a string, which points to a key in the ->pMap array
+     * @param int|string $perms Permission restrictions to observe: Either an integer that will be bitwise AND'ed or a string, which points to a key in the ->pMap array. With TYPO3 v11, only integers are allowed
      * @param string $fieldList - fields - default is '*'
      * @throws \RuntimeException
      * @return array|bool Row if exists and accessible, false otherwise
@@ -6403,12 +6991,11 @@ class DataHandler implements LoggerAwareInterface
         }
         // Processing the incoming $perms (from possible string to integer that can be AND'ed)
         if (!MathUtility::canBeInterpretedAsInteger($perms)) {
+            trigger_error('Support for handing in permissions as string into "recordInfoWithPermissionCheck" will be not be supported with TYPO3 v11 anymore. Use the Permission BitSet class instead.', E_USER_DEPRECATED);
             if ($table !== 'pages') {
                 switch ($perms) {
                     case 'edit':
-
                     case 'delete':
-
                     case 'new':
                         // This holds it all in case the record is not page!!
                         if ($table === 'sys_file_reference' && array_key_exists('pages', $this->datamap)) {
@@ -6419,7 +7006,7 @@ class DataHandler implements LoggerAwareInterface
                         break;
                 }
             }
-            $perms = (int)$this->pMap[$perms];
+            $perms = (int)(Permission::getMap()[$perms] ?? 0);
         } else {
             $perms = (int)$perms;
         }
@@ -6469,6 +7056,7 @@ class DataHandler implements LoggerAwareInterface
      * @param int $id Uid of record
      * @param bool $noWSOL If set, no workspace overlay is performed
      * @return array Properties of record
+     * @internal should only be used from within DataHandler
      */
     public function getRecordProperties($table, $id, $noWSOL = false)
     {
@@ -6485,6 +7073,7 @@ class DataHandler implements LoggerAwareInterface
      * @param string $table Table name
      * @param array $row Input row
      * @return array|null Output array
+     * @internal should only be used from within DataHandler
      */
     public function getRecordPropertiesFromRow($table, $row)
     {
@@ -6507,6 +7096,7 @@ class DataHandler implements LoggerAwareInterface
      * @param int $uid
      * @param int $pid
      * @return int
+     * @internal should only be used from within DataHandler
      */
     public function eventPid($table, $uid, $pid)
     {
@@ -6525,6 +7115,7 @@ class DataHandler implements LoggerAwareInterface
      * @param string $table Record table name
      * @param int $id Record uid
      * @param array $fieldArray Array of field=>value pairs to insert. FIELDS MUST MATCH the database FIELDS. No check is done.
+     * @internal should only be used from within DataHandler
      */
     public function updateDB($table, $id, $fieldArray)
     {
@@ -6598,6 +7189,7 @@ class DataHandler implements LoggerAwareInterface
      * @param int $suggestedUid Suggested UID value for the inserted record. See the array $this->suggestedInsertUids; Admin-only feature
      * @param bool $dontSetNewIdIndex If TRUE, the ->substNEWwithIDs array is not updated. Only useful in very rare circumstances!
      * @return int|null Returns ID on success.
+     * @internal should only be used from within DataHandler
      */
     public function insertDB($table, $id, $fieldArray, $newVersion = false, $suggestedUid = 0, $dontSetNewIdIndex = false)
     {
@@ -6613,10 +7205,7 @@ class DataHandler implements LoggerAwareInterface
                 if ($this->BE_USER->isAdmin() && $suggestedUid && $this->suggestedInsertUids[$table . ':' . $suggestedUid]) {
                     // When the value of ->suggestedInsertUids[...] is "DELETE" it will try to remove the previous record
                     if ($this->suggestedInsertUids[$table . ':' . $suggestedUid] === 'DELETE') {
-                        // DELETE:
-                        GeneralUtility::makeInstance(ConnectionPool::class)
-                            ->getConnectionForTable($table)
-                            ->delete($table, ['uid' => (int)$suggestedUid]);
+                        $this->hardDeleteSingleRecord($table, (int)$suggestedUid);
                     }
                     $fieldArray['uid'] = $suggestedUid;
                 }
@@ -6700,6 +7289,7 @@ class DataHandler implements LoggerAwareInterface
      * @return array|null Selected row
      * @see insertDB()
      * @see updateDB()
+     * @internal should only be used from within DataHandler
      */
     public function checkStoredRecord($table, $id, $fieldArray, $action)
     {
@@ -6769,6 +7359,7 @@ class DataHandler implements LoggerAwareInterface
      * @param string $table Table name
      * @param int $id Record ID
      * @param int $logId Log entry ID, important for linking between log and history views
+     * @internal should only be used from within DataHandler
      */
     public function setHistory($table, $id, $logId)
     {
@@ -6798,21 +7389,35 @@ class DataHandler implements LoggerAwareInterface
     }
 
     /**
-     * Update Reference Index (sys_refindex) for a record
-     * Should be called any almost any update to a record which could affect references inside the record.
+     * Register a table/uid combination in current user workspace for reference updating.
+     * Should be called on almost any update to a record which could affect references inside the record.
      *
      * @param string $table Table name
-     * @param int $id Record UID
+     * @param int $uid Record UID
+     * @param int $workspace Workspace the record lives in
+     * @internal should only be used from within DataHandler
      */
-    public function updateRefIndex($table, $id)
+    public function updateRefIndex($table, $uid, int $workspace = null): void
     {
-        /** @var ReferenceIndex $refIndexObj */
-        $refIndexObj = GeneralUtility::makeInstance(ReferenceIndex::class);
-        if (BackendUtility::isTableWorkspaceEnabled($table)) {
-            $refIndexObj->setWorkspaceId($this->BE_USER->workspace);
+        if ($workspace === null) {
+            $workspace = (int)$this->BE_USER->workspace;
         }
-        $refIndexObj->enableRuntimeCache();
-        $refIndexObj->updateRefIndexTable($table, $id);
+        $this->referenceIndexUpdater->registerForUpdate((string)$table, (int)$uid, $workspace);
+    }
+
+    /**
+     * Delete rows from sys_refindex a table / uid combination is involved in:
+     * Either on left side (tablename + recuid) OR right side (ref_table + ref_uid).
+     * Useful in scenarios like workspace-discard where parents or children are hard deleted: The
+     * expensive updateRefIndex() does not need to be called since we can just drop straight ahead.
+     *
+     * @param string $table Table name, used as tablename and ref_table
+     * @param int $uid Record uid, used as recuid and ref_uid
+     * @param int $workspace Workspace the record lives in
+     */
+    public function registerReferenceIndexRowsForDrop(string $table, int $uid, int $workspace): void
+    {
+        $this->referenceIndexUpdater->registerForDrop($table, $uid, $workspace);
     }
 
     /*********************************************
@@ -6849,6 +7454,7 @@ class DataHandler implements LoggerAwareInterface
      * @param int $uid Uid of record to find sorting number for. May be zero in case of new.
      * @param int $pid Positioning PID, either >=0 (pointing to page in which case we find sorting number for first record in page) or <0 (pointing to record in which case to find next sorting number after this record)
      * @return int|array|bool|null Returns integer if PID is >=0, otherwise an array with PID and sorting number. Possibly FALSE in case of error.
+     * @internal should only be used from within DataHandler
      */
     public function getSortNumber($table, $uid, $pid)
     {
@@ -6857,10 +7463,10 @@ class DataHandler implements LoggerAwareInterface
             return null;
         }
 
+        $considerWorkspaces = BackendUtility::isTableWorkspaceEnabled($table);
         $connectionPool = GeneralUtility::makeInstance(ConnectionPool::class);
         $queryBuilder = $connectionPool->getQueryBuilderForTable($table);
         $this->addDeleteRestriction($queryBuilder->getRestrictions()->removeAll());
-        $queryBuilder->getRestrictions()->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, $this->BE_USER->workspace));
 
         $queryBuilder
             ->select($sortColumn, 'pid', 'uid')
@@ -6869,8 +7475,15 @@ class DataHandler implements LoggerAwareInterface
         // find and return the sorting value for the first record on that pid
         if ($pid >= 0) {
             // Fetches the first record (lowest sorting) under this pid
+            $queryBuilder
+                ->where($queryBuilder->expr()->eq('pid', $queryBuilder->createNamedParameter($pid, \PDO::PARAM_INT)));
+
+            if ($considerWorkspaces) {
+                $queryBuilder->andWhere(
+                    $queryBuilder->expr()->eq('t3ver_oid', 0)
+                );
+            }
             $row = $queryBuilder
-                ->where($queryBuilder->expr()->eq('pid', $queryBuilder->createNamedParameter($pid, \PDO::PARAM_INT)))
                 ->orderBy($sortColumn, 'ASC')
                 ->addOrderBy('uid', 'ASC')
                 ->setMaxResults(1)
@@ -6913,8 +7526,11 @@ class DataHandler implements LoggerAwareInterface
             if ($lookForLiveVersion = BackendUtility::getLiveVersionOfRecord($table, $row['uid'], $sortColumn . ',pid,uid')) {
                 $row = $lookForLiveVersion;
             }
-            // Fetch move placeholder, since it might point to a new page in the current workspace
-            if ($movePlaceholder = BackendUtility::getMovePlaceholder($table, $row['uid'], 'uid,pid,' . $sortColumn)) {
+            // Fetch move placeholder, since it might point to a new page in the current workspace.
+            // Only do that if we're not inserting a record after itself, otherwise we'd update the
+            // move placeholder that we're currently trying to move around with data of itself.
+            $movePlaceholder = BackendUtility::getMovePlaceholder($table, $row['uid'], 'uid,pid,' . $sortColumn);
+            if ($movePlaceholder && ((int)$movePlaceholder['uid'] !== (int)$uid)) {
                 $row = $movePlaceholder;
             }
             // If the record should be inserted after itself, keep the current sorting information:
@@ -6923,9 +7539,8 @@ class DataHandler implements LoggerAwareInterface
             } else {
                 $queryBuilder = $connectionPool->getQueryBuilderForTable($table);
                 $this->addDeleteRestriction($queryBuilder->getRestrictions()->removeAll());
-                $queryBuilder->getRestrictions()->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, $this->BE_USER->workspace));
 
-                $subResults = $queryBuilder
+                $queryBuilder
                         ->select($sortColumn, 'pid', 'uid')
                         ->from($table)
                         ->where(
@@ -6940,9 +7555,17 @@ class DataHandler implements LoggerAwareInterface
                         )
                         ->orderBy($sortColumn, 'ASC')
                         ->addOrderBy('uid', 'DESC')
-                        ->setMaxResults(2)
-                        ->execute()
-                        ->fetchAll();
+                        ->setMaxResults(2);
+
+                if ($considerWorkspaces) {
+                    $queryBuilder->andWhere(
+                        $queryBuilder->expr()->eq('t3ver_oid', 0)
+                    );
+                }
+
+                $subResults = $queryBuilder
+                    ->execute()
+                    ->fetchAll();
                 // Fetches the next record in order to calculate the in-between sortNumber
                 // There was a record afterwards
                 if (count($subResults) === 2) {
@@ -6993,6 +7616,12 @@ class DataHandler implements LoggerAwareInterface
                 ->set($sortBy, $queryBuilder->quoteIdentifier($sortBy) . ' + ' . $this->sortIntervals . ' + ' . $this->sortIntervals, false);
             if ($sortingValue !== null) {
                 $queryBuilder->andWhere($queryBuilder->expr()->gt($sortBy, $sortingValue));
+            }
+            if (BackendUtility::isTableWorkspaceEnabled($table)) {
+                $queryBuilder
+                    ->andWhere(
+                        $queryBuilder->expr()->eq('t3ver_oid', 0)
+                    );
             }
 
             $deleteColumn = $GLOBALS['TCA'][$table]['ctrl']['delete'] ?? '';
@@ -7085,9 +7714,11 @@ class DataHandler implements LoggerAwareInterface
      * @param array $fieldArray Field Array, returned with modifications
      * @param array $TSConfig_p TSconfig properties
      * @return array Modified Field Array
+     * @deprecated will be removed in TYPO3 v11.0 - Use PagePermissionAssembler instead.
      */
     public function setTSconfigPermissions($fieldArray, $TSConfig_p)
     {
+        trigger_error('DataHandler->setTSconfigPermissions will be removed in TYPO3 v11.0. Use the PagePermissionAssembler API instead.', E_USER_DEPRECATED);
         if ((string)$TSConfig_p['userid'] !== '') {
             $fieldArray['perms_userid'] = (int)$TSConfig_p['userid'];
         }
@@ -7112,6 +7743,7 @@ class DataHandler implements LoggerAwareInterface
      *
      * @param string $table Table name for which to set default values.
      * @return array Array with default values.
+     * @internal should only be used from within DataHandler
      */
     public function newFieldArray($table)
     {
@@ -7125,14 +7757,6 @@ class DataHandler implements LoggerAwareInterface
                 }
             }
         }
-        // Set default permissions for a page.
-        if ($table === 'pages') {
-            $fieldArray['perms_userid'] = $this->userid;
-            $fieldArray['perms_groupid'] = (int)$this->BE_USER->firstMainGroup;
-            $fieldArray['perms_user'] = $this->assemblePermissions($this->defaultPermissions['user']);
-            $fieldArray['perms_group'] = $this->assemblePermissions($this->defaultPermissions['group']);
-            $fieldArray['perms_everybody'] = $this->assemblePermissions($this->defaultPermissions['everybody']);
-        }
         return $fieldArray;
     }
 
@@ -7141,6 +7765,7 @@ class DataHandler implements LoggerAwareInterface
      *
      * @param string $table Table name
      * @param array $incomingFieldArray Incoming array (passed by reference)
+     * @internal should only be used from within DataHandler
      */
     public function addDefaultPermittedLanguageIfNotSet($table, &$incomingFieldArray)
     {
@@ -7174,6 +7799,7 @@ class DataHandler implements LoggerAwareInterface
      * @param string $table Table name
      * @param array $data Data array with fields from table. These will be overlaid with values in $this->overrideValues[$table]
      * @return array Data array, processed.
+     * @internal should only be used from within DataHandler
      */
     public function overrideFieldArray($table, $data)
     {
@@ -7191,6 +7817,7 @@ class DataHandler implements LoggerAwareInterface
      * @param int $id Record uid
      * @param array $fieldArray Array of field=>value pairs intended to be inserted into the database. All keys with values matching exactly the current value will be unset!
      * @return array Returns $fieldArray. If the returned array is empty, then the record should not be updated!
+     * @internal should only be used from within DataHandler
      */
     public function compareFieldArrayWithCurrentAndUnset($table, $id, $fieldArray)
     {
@@ -7283,14 +7910,17 @@ class DataHandler implements LoggerAwareInterface
      * @return int Integer mask
      * @see setTSconfigPermissions()
      * @see newFieldArray()
+     * @deprecated will be removed in TYPO3 v11.0 - Use PagePermissionAssembler instead.
      */
     public function assemblePermissions($string)
     {
+        trigger_error('DataHandler->assemblePermissions will be removed in TYPO3 v11.0. Use the PagePermissionAssembler API instead.', E_USER_DEPRECATED);
         $keyArr = GeneralUtility::trimExplode(',', $string, true);
         $value = 0;
+        $permissionMap = Permission::getMap();
         foreach ($keyArr as $key) {
-            if ($key && isset($this->pMap[$key])) {
-                $value |= $this->pMap[$key];
+            if ($key && isset($permissionMap[$key])) {
+                $value |= $permissionMap[$key];
             }
         }
         return $value;
@@ -7301,6 +7931,7 @@ class DataHandler implements LoggerAwareInterface
      *
      * @param string $input Input string
      * @return string Output string
+     * @internal should only be used from within DataHandler
      */
     public function convNumEntityToByteValue($input)
     {
@@ -7333,6 +7964,7 @@ class DataHandler implements LoggerAwareInterface
      *
      * @param string $table Table name
      * @return string Delete clause
+     * @internal should only be used from within DataHandler
      */
     public function deleteClause($table)
     {
@@ -7368,7 +8000,7 @@ class DataHandler implements LoggerAwareInterface
         if (isset(self::$recordPidsForDeletedRecords[$table][$uid])) {
             return self::$recordPidsForDeletedRecords[$table][$uid];
         }
-        list($parentUid) = BackendUtility::getTSCpid($table, $uid, '');
+        [$parentUid] = BackendUtility::getTSCpid($table, $uid, '');
         return [$parentUid];
     }
 
@@ -7378,6 +8010,7 @@ class DataHandler implements LoggerAwareInterface
      * @param string $table Table name
      * @param array $TSconfig TSconfig for page
      * @return array TSconfig merged
+     * @internal should only be used from within DataHandler
      */
     public function getTableEntries($table, $TSconfig)
     {
@@ -7393,6 +8026,7 @@ class DataHandler implements LoggerAwareInterface
      * @param string $table Table name
      * @param int $uid Record uid
      * @return int|false PID value (unless the record did not exist in which case FALSE is returned)
+     * @internal should only be used from within DataHandler
      */
     public function getPID($table, $uid)
     {
@@ -7411,6 +8045,7 @@ class DataHandler implements LoggerAwareInterface
     /**
      * Executing dbAnalysisStore
      * This will save MM relations for new records but is executed after records are created because we need to know the ID of them
+     * @internal should only be used from within DataHandler
      */
     public function dbAnalysisStoreExec()
     {
@@ -7431,6 +8066,7 @@ class DataHandler implements LoggerAwareInterface
      * @param int $counter Number of levels to go down.
      * @param int $rootID ID of root point for new copied branch: The idea seems to be that a copy is not made of the already new page!
      * @return array Return array.
+     * @internal should only be used from within DataHandler
      */
     public function int_pageTreeInfo($CPtable, $pid, $counter, $rootID)
     {
@@ -7444,7 +8080,7 @@ class DataHandler implements LoggerAwareInterface
                 ->where($queryBuilder->expr()->eq('pid', $queryBuilder->createNamedParameter($pid, \PDO::PARAM_INT)))
                 ->orderBy('sorting', 'DESC');
             if (!$this->admin) {
-                $queryBuilder->andWhere($this->BE_USER->getPagePermsClause($this->pMap['show']));
+                $queryBuilder->andWhere($this->BE_USER->getPagePermsClause(Permission::PAGE_SHOW));
             }
             if ((int)$this->BE_USER->workspace === 0) {
                 $queryBuilder->andWhere(
@@ -7493,6 +8129,7 @@ class DataHandler implements LoggerAwareInterface
      * List of all tables (those administrators has access to = array_keys of $GLOBALS['TCA'])
      *
      * @return array Array of all TCA table names
+     * @internal should only be used from within DataHandler
      */
     public function compileAdminTables()
     {
@@ -7504,6 +8141,7 @@ class DataHandler implements LoggerAwareInterface
      *
      * @param string $table Table name
      * @param int $uid Record UID
+     * @internal should only be used from within DataHandler
      */
     public function fixUniqueInPid($table, $uid)
     {
@@ -7566,7 +8204,6 @@ class DataHandler implements LoggerAwareInterface
     /**
      * Check if there are subpages that need an adoption as well
      * @param int $pageId
-     * @param int $pid
      */
     protected function fixUniqueInSiteForSubpages(int $pageId)
     {
@@ -7591,6 +8228,7 @@ class DataHandler implements LoggerAwareInterface
      * @param bool $update If set, updates the record
      * @param array $newData Input array. If fields are already specified AND $update is not set, values are not set in output array.
      * @return array Output array (For when the copying operation needs to get the information instead of updating the info)
+     * @internal should only be used from within DataHandler
      */
     public function fixCopyAfterDuplFields($table, $uid, $prevUid, $update, $newData = [])
     {
@@ -7643,6 +8281,7 @@ class DataHandler implements LoggerAwareInterface
      *
      * @param array $conf Config array for TCA/columns field
      * @return bool TRUE if DB reference field (group/db or select with foreign-table)
+     * @internal should only be used from within DataHandler
      */
     public function isReferenceField($conf)
     {
@@ -7655,6 +8294,7 @@ class DataHandler implements LoggerAwareInterface
      *
      * @param array $conf Config array for TCA/columns field
      * @return string|bool string Inline subtype (field|mm|list), boolean: FALSE
+     * @internal should only be used from within DataHandler
      */
     public function getInlineFieldType($conf)
     {
@@ -7683,6 +8323,7 @@ class DataHandler implements LoggerAwareInterface
      * @param int $count Counter (number of recursions)
      * @param string $prevTitle Previous title we checked for (in previous recursion)
      * @return string The field value, possibly appended with a "copy label
+     * @internal should only be used from within DataHandler
      */
     public function getCopyHeader($table, $pid, $field, $value, $count, $prevTitle = '')
     {
@@ -7718,6 +8359,7 @@ class DataHandler implements LoggerAwareInterface
      * @param string $table Table name
      * @return string Label to append, containing "%s" for the number
      * @see getCopyHeader()
+     * @internal should only be used from within DataHandler
      */
     public function prependLabel($table)
     {
@@ -7730,6 +8372,7 @@ class DataHandler implements LoggerAwareInterface
      * @param string $table Table name
      * @param int $pid "Destination pid" : If the value is >= 0 it's just returned directly (through (int)though) but if the value is <0 then the method looks up the record with the uid equal to abs($pid) (positive number) and returns the PID of that record! The idea is that negative numbers point to the record AFTER WHICH the position is supposed to be!
      * @return int
+     * @internal should only be used from within DataHandler
      */
     public function resolvePid($table, $pid)
     {
@@ -7744,10 +8387,6 @@ class DataHandler implements LoggerAwareInterface
                 ->where($query->expr()->eq('uid', $query->createNamedParameter(abs($pid), \PDO::PARAM_INT)))
                 ->execute()
                 ->fetch();
-            // Look, if the record UID happens to be an offline record. If so, find its live version.
-            if ($lookForLiveVersion = BackendUtility::getLiveVersionOfRecord($table, abs($pid), 'pid')) {
-                $row = $lookForLiveVersion;
-            }
             $pid = (int)$row['pid'];
         }
         return $pid;
@@ -7759,6 +8398,7 @@ class DataHandler implements LoggerAwareInterface
      * @param string $table Table name
      * @param string $value The value to fix
      * @return string Clean name
+     * @internal should only be used from within DataHandler
      */
     public function clearPrefixFromValue($table, $value)
     {
@@ -7770,15 +8410,16 @@ class DataHandler implements LoggerAwareInterface
      * Check if there are records from tables on the pages to be deleted which the current user is not allowed to
      *
      * @param int[] $pageIds IDs of pages which should be checked
-     * @return bool Return TRUE, if permission granted
+     * @return string[]|null Return null, if permission granted, otherwise an array with the tables that are not allowed to be deleted
      * @see canDeletePage()
      */
-    protected function checkForRecordsFromDisallowedTables(array $pageIds)
+    protected function checkForRecordsFromDisallowedTables(array $pageIds): ?array
     {
         if ($this->admin) {
-            return true;
+            return null;
         }
 
+        $disallowedTables = [];
         if (!empty($pageIds)) {
             $tableNames = $this->compileAdminTables();
             foreach ($tableNames as $table) {
@@ -7795,11 +8436,11 @@ class DataHandler implements LoggerAwareInterface
                     ->execute()
                     ->fetchColumn(0);
                 if ($count && ($this->tableReadOnly($table) || !$this->checkModifyAccessList($table))) {
-                    return false;
+                    $disallowedTables[] = $table;
                 }
             }
         }
-        return true;
+        return !empty($disallowedTables) ? $disallowedTables : null;
     }
 
     /**
@@ -7808,6 +8449,7 @@ class DataHandler implements LoggerAwareInterface
      * @param string $table The tablename of the record
      * @param int $uid The uid of the record
      * @return bool Returns TRUE if the record is copied or is the result of a copy action
+     * @internal should only be used from within DataHandler
      */
     public function isRecordCopied($table, $uid)
     {
@@ -7867,7 +8509,7 @@ class DataHandler implements LoggerAwareInterface
                 // For move commands we may get more then 1 parent.
                 $pageUids = $this->getOriginalParentOfRecord($table, $uid);
                 foreach ($pageUids as $originalParent) {
-                    list($tagsToClearFromPrepare, $clearCacheCommandsFromPrepare)
+                    [$tagsToClearFromPrepare, $clearCacheCommandsFromPrepare]
                         = $this->prepareCacheFlush($table, $uid, $originalParent);
                     $tagsToClear = array_merge($tagsToClear, $tagsToClearFromPrepare);
                     $clearCacheCommands = array_merge($clearCacheCommands, $clearCacheCommandsFromPrepare);
@@ -7909,7 +8551,8 @@ class DataHandler implements LoggerAwareInterface
         $pageUid = 0;
         // Get Page TSconfig relevant:
         $TSConfig = BackendUtility::getPagesTSconfig($pid)['TCEMAIN.'] ?? [];
-        if (empty($TSConfig['clearCache_disable'])) {
+        if (empty($TSConfig['clearCache_disable']) && $this->BE_USER->workspace === 0) {
+            $connectionPool = GeneralUtility::makeInstance(ConnectionPool::class);
             // If table is "pages":
             $pageIdsThatNeedCacheFlush = [];
             if ($table === 'pages') {
@@ -7917,7 +8560,6 @@ class DataHandler implements LoggerAwareInterface
                 $pageUid = $this->getDefaultLanguagePageId($uid);
 
                 // Builds list of pages on the SAME level as this page (siblings)
-                $connectionPool = GeneralUtility::makeInstance(ConnectionPool::class);
                 $queryBuilder = $connectionPool->getQueryBuilderForTable('pages');
                 $queryBuilder->getRestrictions()
                     ->removeAll()
@@ -7933,10 +8575,10 @@ class DataHandler implements LoggerAwareInterface
                     )
                     ->execute();
 
-                $pid_tmp = 0;
+                $parentPageId = 0;
                 while ($row_tmp = $siblings->fetch()) {
                     $pageIdsThatNeedCacheFlush[] = (int)$row_tmp['uid'];
-                    $pid_tmp = (int)$row_tmp['pid'];
+                    $parentPageId = (int)$row_tmp['pid'];
                     // Add children as well:
                     if ($TSConfig['clearCache_pageSiblingChildren']) {
                         $siblingChildrenQuery = $connectionPool->getQueryBuilderForTable('pages');
@@ -7956,11 +8598,11 @@ class DataHandler implements LoggerAwareInterface
                         }
                     }
                 }
-                // Finally, add the parent page as well:
-                if ($pid_tmp > 0) {
-                    $pageIdsThatNeedCacheFlush[] = $pid_tmp;
+                // Finally, add the parent page as well when clearing a specific page
+                if ($parentPageId > 0) {
+                    $pageIdsThatNeedCacheFlush[] = $parentPageId;
                 }
-                // Add grand-parent as well:
+                // Add grand-parent as well if configured
                 if ($TSConfig['clearCache_pageGrandParent']) {
                     $parentQuery = $connectionPool->getQueryBuilderForTable('pages');
                     $parentQuery->getRestrictions()
@@ -7971,7 +8613,7 @@ class DataHandler implements LoggerAwareInterface
                         ->from('pages')
                         ->where($parentQuery->expr()->eq(
                             'uid',
-                            $parentQuery->createNamedParameter($pid_tmp, \PDO::PARAM_INT)
+                            $parentQuery->createNamedParameter($parentPageId, \PDO::PARAM_INT)
                         ))
                         ->execute()
                         ->fetch();
@@ -7982,6 +8624,25 @@ class DataHandler implements LoggerAwareInterface
             } else {
                 // For other tables than "pages", delete cache for the records "parent page".
                 $pageIdsThatNeedCacheFlush[] = $pageUid = (int)$this->getPID($table, $uid);
+                // Add the parent page as well
+                if ($TSConfig['clearCache_pageGrandParent']) {
+                    $parentQuery = $connectionPool->getQueryBuilderForTable('pages');
+                    $parentQuery->getRestrictions()
+                        ->removeAll()
+                        ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
+                    $parentPageRecord = $parentQuery
+                        ->select('pid')
+                        ->from('pages')
+                        ->where($parentQuery->expr()->eq(
+                            'uid',
+                            $parentQuery->createNamedParameter($pageUid, \PDO::PARAM_INT)
+                        ))
+                        ->execute()
+                        ->fetch();
+                    if (!empty($parentPageRecord)) {
+                        $pageIdsThatNeedCacheFlush[] = (int)$parentPageRecord['pid'];
+                    }
+                }
             }
             // Call pre-processing function for clearing of cache for page ids:
             foreach ($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['clearPageCacheEval'] ?? [] as $funcName) {
@@ -7991,12 +8652,7 @@ class DataHandler implements LoggerAwareInterface
             }
             // Delete cache for selected pages:
             foreach ($pageIdsThatNeedCacheFlush as $pageId) {
-                // Workspaces always use "-1" as the page id which do not
-                // point to real pages and caches at all. Flushing caches for
-                // those records does not make sense and decreases performance
-                if ($pageId >= 0) {
-                    $tagsToClear['pageId_' . $pageId] = true;
-                }
+                $tagsToClear['pageId_' . $pageId] = true;
             }
             // Queue delete cache for current table and record
             $tagsToClear[$table] = true;
@@ -8008,7 +8664,7 @@ class DataHandler implements LoggerAwareInterface
             $clearCacheCommands = array_unique($commands);
         }
         // Call post processing function for clear-cache:
-        $_params = ['table' => $table, 'uid' => $uid, 'uid_page' => $pageUid, 'TSConfig' => $TSConfig];
+        $_params = ['table' => $table, 'uid' => $uid, 'uid_page' => $pageUid, 'TSConfig' => $TSConfig, 'tags' => $tagsToClear];
         foreach ($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['clearCachePostProc'] ?? [] as $_funcRef) {
             GeneralUtility::callUserFunction($_funcRef, $_params, $this);
         }
@@ -8035,8 +8691,9 @@ class DataHandler implements LoggerAwareInterface
      * Imagemagick calls because the size information has
      * to be fetched again after clearing.
      * - all caches inside the cache manager that are inside the group "system"
-     * - they are only needed to build up the core system and templates,
-     *   use "temp_cached" or "system" to do that
+     * - they are only needed to build up the core system and templates.
+     *   If the group of system caches needs to be deleted explicitly, use
+     *   flushCachesInGroup('system') of CacheManager directly.
      *
      * $cacheCmd=[integer]
      * Clears cache for the page pointed to by $cacheCmd (an integer).
@@ -8063,7 +8720,7 @@ class DataHandler implements LoggerAwareInterface
         $userTsConfig = $this->BE_USER->getTSConfig();
         switch (strtolower($cacheCmd)) {
             case 'pages':
-                if ($this->admin || $userTsConfig['options.']['clearCache.']['pages'] ?? false) {
+                if ($this->admin || ($userTsConfig['options.']['clearCache.']['pages'] ?? false)) {
                     $this->getCacheManager()->flushCachesInGroup('pages');
                 }
                 break;
@@ -8071,7 +8728,7 @@ class DataHandler implements LoggerAwareInterface
                 // allow to clear all caches if the TS config option is enabled or the option is not explicitly
                 // disabled for admins (which could clear all caches by default). The latter option is useful
                 // for big production sites where it should be possible to restrict the cache clearing for some admins.
-                if ($userTsConfig['options.']['clearCache.']['all'] ?? false
+                if (($userTsConfig['options.']['clearCache.']['all'] ?? false)
                     || ($this->admin && (bool)($userTsConfig['options.']['clearCache.']['all'] ?? true))
                 ) {
                     $this->getCacheManager()->flushCaches();
@@ -8113,7 +8770,7 @@ class DataHandler implements LoggerAwareInterface
         }
 
         // Call post processing function for clear-cache:
-        $_params = ['cacheCmd' => strtolower($cacheCmd)];
+        $_params = ['cacheCmd' => strtolower($cacheCmd), 'tags' => $tagsToFlush];
         foreach ($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['clearCachePostProc'] ?? [] as $_funcRef) {
             GeneralUtility::callUserFunction($_funcRef, $_params, $this);
         }
@@ -8140,6 +8797,7 @@ class DataHandler implements LoggerAwareInterface
      * @return int Log entry UID (0 if no log entry was written or logging is disabled)
      * @see \TYPO3\CMS\Core\SysLog\Action\Database for all available values of argument $action
      * @see \TYPO3\CMS\Core\SysLog\Error for all available values of argument $error
+     * @internal should only be used from within TYPO3 Core
      */
     public function log($table, $recuid, $action, $recpid, $error, $details, $details_nr = -1, $data = [], $event_pid = -1, $NEWid = '')
     {
@@ -8167,6 +8825,7 @@ class DataHandler implements LoggerAwareInterface
      * @param int $error Error code, see log()
      * @return int Log entry UID
      * @see log()
+     * @internal should only be used from within TYPO3 Core
      */
     public function newlog($message, $error = SystemLogErrorClassification::MESSAGE)
     {
@@ -8175,6 +8834,7 @@ class DataHandler implements LoggerAwareInterface
 
     /**
      * Print log error messages from the operations of this script instance
+     * @internal should only be used from within TYPO3 Core
      */
     public function printLogErrorMessages()
     {
@@ -8217,10 +8877,11 @@ class DataHandler implements LoggerAwareInterface
      *****************************/
 
     /**
-     * Find out if the record is a get the original page
+     * Find out if the record is a localization. If so, get the uid of the default language page.
+     * Always returns the uid of the workspace live record: No explicit workspace overlay is applied.
      *
-     * @param int $pageId the page UID (can be the default page record, or a page translation record ID)
-     * @return int the page UID of the default page record
+     * @param int $pageId Page UID, can be the default page record, or a page translation record ID
+     * @return int UID of the default page record in live workspace
      */
     protected function getDefaultLanguagePageId(int $pageId): int
     {
@@ -8241,6 +8902,7 @@ class DataHandler implements LoggerAwareInterface
      * @param string $table	Table name
      * @param array $fieldArray	Field array to check
      * @return array Updated field array
+     * @internal should only be used from within TYPO3 Core
      */
     public function insertUpdateDB_preprocessBasedOnFieldType($table, $fieldArray)
     {
@@ -8262,6 +8924,7 @@ class DataHandler implements LoggerAwareInterface
      * @param string $tableName
      * @param string $uid
      * @return bool
+     * @internal should only be used from within TYPO3 Core
      */
     public function hasDeletedRecord($tableName, $uid)
     {
@@ -8276,13 +8939,14 @@ class DataHandler implements LoggerAwareInterface
      *
      * @param string $table Name of the table
      * @param int $id Uid of the record
-     * @return int
+     * @return int|null
+     * @internal should only be used from within TYPO3 Core
      */
-    public function getAutoVersionId($table, $id)
+    public function getAutoVersionId($table, $id): ?int
     {
         $result = null;
         if (isset($this->autoVersionIdMap[$table][$id])) {
-            $result = $this->autoVersionIdMap[$table][$id];
+            $result = (int)trim($this->autoVersionIdMap[$table][$id]);
         }
         return $result;
     }
@@ -8685,6 +9349,7 @@ class DataHandler implements LoggerAwareInterface
         $relationHandler->setWorkspaceId($this->BE_USER->workspace);
         $relationHandler->setUseLiveReferenceIds($isWorkspacesLoaded);
         $relationHandler->setUseLiveParentIds($isWorkspacesLoaded);
+        $relationHandler->setReferenceIndexUpdater($this->referenceIndexUpdater);
         return $relationHandler;
     }
 
@@ -8705,7 +9370,7 @@ class DataHandler implements LoggerAwareInterface
      */
     protected function getResourceFactory()
     {
-        return ResourceFactory::getInstance();
+        return GeneralUtility::makeInstance(ResourceFactory::class);
     }
 
     /**
@@ -8716,6 +9381,10 @@ class DataHandler implements LoggerAwareInterface
         return $GLOBALS['LANG'];
     }
 
+    /**
+     * @internal should only be used from within TYPO3 Core
+     * @return array
+     */
     public function getHistoryRecords(): array
     {
         return $this->historyRecords;

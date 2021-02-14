@@ -1,7 +1,5 @@
 <?php
 
-namespace TYPO3\CMS\Backend\Tests\Unit\Controller;
-
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -14,6 +12,8 @@ namespace TYPO3\CMS\Backend\Tests\Unit\Controller;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Tests\Unit\Controller;
 
 use Prophecy\Argument;
 use Prophecy\Prophecy\MethodProphecy;
@@ -241,11 +241,11 @@ class LoginControllerTest extends UnitTestCase
         $pageRendererProphecy = $this->prophesize(PageRenderer::class);
         /** @var MethodProphecy $inlineCodeProphecy */
         $inlineCodeProphecy = $pageRendererProphecy->addJsInlineCode('loginRefresh', Argument::cetera());
+        $this->loginControllerMock->_set('pageRenderer', $pageRendererProphecy->reveal());
 
         $this->loginControllerMock->_call(
             'checkRedirect',
-            $this->prophesize(ServerRequest::class)->reveal(),
-            $pageRendererProphecy->reveal()
+            $this->prophesize(ServerRequest::class)->reveal()
         );
 
         $inlineCodeProphecy->shouldHaveBeenCalledTimes(1);
@@ -284,11 +284,11 @@ class LoginControllerTest extends UnitTestCase
         $pageRendererProphecy = $this->prophesize(PageRenderer::class);
         /** @var MethodProphecy $inlineCodeProphecy */
         $inlineCodeProphecy = $pageRendererProphecy->addJsInlineCode('loginRefresh', Argument::cetera());
+        $this->loginControllerMock->_set('pageRenderer', $pageRendererProphecy->reveal());
 
         $this->loginControllerMock->_call(
             'checkRedirect',
-            $this->prophesize(ServerRequest::class)->reveal(),
-            $pageRendererProphecy->reveal()
+            $this->prophesize(ServerRequest::class)->reveal()
         );
 
         $inlineCodeProphecy->shouldHaveBeenCalledTimes(1);

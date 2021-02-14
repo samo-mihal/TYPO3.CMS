@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Unit\Log\Processor;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,11 @@ namespace TYPO3\CMS\Core\Tests\Unit\Log\Processor;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\Log\Processor;
+
+use TYPO3\CMS\Core\Log\LogLevel;
+use TYPO3\CMS\Core\Log\LogRecord;
+use TYPO3\CMS\Core\Log\Processor\MemoryPeakUsageProcessor;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -24,10 +28,10 @@ class MemoryPeakUsageProcessorTest extends UnitTestCase
     /**
      * @test
      */
-    public function memoryPeakUsagePRocessorAddsMemoryPeakUsageDataToLogRecord()
+    public function memoryPeakUsageProcessorAddsMemoryPeakUsageDataToLogRecord()
     {
-        $logRecord = new \TYPO3\CMS\Core\Log\LogRecord('test.core.log', \TYPO3\CMS\Core\Log\LogLevel::DEBUG, 'test');
-        $processor = new \TYPO3\CMS\Core\Log\Processor\MemoryPeakUsageProcessor();
+        $logRecord = new LogRecord('test.core.log', LogLevel::DEBUG, 'test');
+        $processor = new MemoryPeakUsageProcessor();
         $logRecord = $processor->processLogRecord($logRecord);
         self::assertArrayHasKey('memoryPeakUsage', $logRecord['data']);
     }

@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Routing;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Core\Routing;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Routing;
 
 use Psr\Http\Message\ServerRequestInterface;
 use Symfony\Component\Routing\Exception\NoConfigurationException;
@@ -89,7 +90,7 @@ class SiteMatcher implements SingletonInterface
      */
     public function matchRequest(ServerRequestInterface $request): RouteResultInterface
     {
-        $site = null;
+        $site = new NullSite();
         $language = null;
         $defaultLanguage = null;
 
@@ -124,7 +125,7 @@ class SiteMatcher implements SingletonInterface
             $context = new RequestContext(
                 '',
                 $request->getMethod(),
-                HttpUtility::idn_to_ascii($request->getUri()->getHost()),
+                (string)HttpUtility::idn_to_ascii($request->getUri()->getHost()),
                 $request->getUri()->getScheme(),
                 // Ports are only necessary for URL generation in Symfony which is not used by TYPO3
                 80,
@@ -201,7 +202,7 @@ class SiteMatcher implements SingletonInterface
                     ['site' => $site, 'language' => $siteLanguage, 'tail' => ''],
                     array_filter(['tail' => '.*', 'port' => (string)$uri->getPort()]),
                     ['utf8' => true],
-                    HttpUtility::idn_to_ascii($uri->getHost()) ?: '',
+                    (string)(HttpUtility::idn_to_ascii($uri->getHost()) ?: ''),
                     $uri->getScheme()
                 );
                 $identifier = 'site_' . $site->getIdentifier() . '_' . $siteLanguage->getLanguageId();

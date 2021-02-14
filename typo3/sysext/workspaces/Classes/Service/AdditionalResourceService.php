@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Workspaces\Service;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,11 @@ namespace TYPO3\CMS\Workspaces\Service;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Workspaces\Service;
+
 use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\PathUtility;
-use TYPO3\CMS\Extbase\Object\ObjectManager;
 
 /**
  * Service for additional columns in GridPanel
@@ -44,15 +44,7 @@ class AdditionalResourceService implements SingletonInterface
      */
     public static function getInstance()
     {
-        return self::getObjectManager()->get(AdditionalResourceService::class);
-    }
-
-    /**
-     * @return ObjectManager
-     */
-    public static function getObjectManager()
-    {
-        return GeneralUtility::makeInstance(ObjectManager::class);
+        return GeneralUtility::makeInstance(AdditionalResourceService::class);
     }
 
     /**

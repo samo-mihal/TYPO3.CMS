@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Unit\Resource;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\Resource;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\Resource;
 
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Resource\ResourceCompressor;
@@ -558,13 +560,23 @@ class ResourceCompressorTest extends BaseTestCase
                 'typo3temp/assets/compressed/.htaccess',
                 '../typo3temp/assets/compressed/.htaccess'
             ],
+            // Get filename using absolute path
+            [
+                Environment::getPublicPath() . '/typo3/sysext/core/Tests/Unit/Resource/ResourceCompressorTest/Fixtures/charset.css',
+                'sysext/core/Tests/Unit/Resource/ResourceCompressorTest/Fixtures/charset.css'
+            ],
+            // Get filename using docroot relative path
+            [
+                '/typo3/sysext/core/Tests/Unit/Resource/ResourceCompressorTest/Fixtures/charset.css',
+                'sysext/core/Tests/Unit/Resource/ResourceCompressorTest/Fixtures/charset.css'
+            ],
         ];
     }
 
     /**
      * @test
      * @dataProvider getFilenamesFromMainDirInBackendContextDataProvider
-     * @param string $filename input that will be fired on the extension
+     * @param string $filename
      * @param string $expected
      */
     public function getFilenamesFromMainDirInBackendContext(string $filename, string $expected)
@@ -573,6 +585,57 @@ class ResourceCompressorTest extends BaseTestCase
         // like '.../bin/phpunit' in testing context, but we want .../typo3/index.php as entry
         // script point here to fake the backend call.
         $bePath = Environment::getBackendPath();
+        Environment::initialize(
+            Environment::getContext(),
+            true,
+            false,
+            Environment::getProjectPath(),
+            Environment::getPublicPath(),
+            Environment::getVarPath(),
+            Environment::getConfigPath(),
+            $bePath . '/index.php',
+            Environment::isWindows() ? 'WINDOWS' : 'UNIX'
+        );
+        $subject = $this->getAccessibleMock(ResourceCompressor::class, ['dummy']);
+        $subject->setRootPath($bePath . '/');
+        $relativeToRootPath = $subject->_call('getFilenameFromMainDir', $filename);
+        self::assertSame($expected, $relativeToRootPath);
+    }
+
+    /**
+     * @return array
+     */
+    public function getFilenamesFromMainDirInBackendContextInSubfolderDataProvider(): array
+    {
+        $subfolderFake = basename(Environment::getPublicPath());
+        return [
+            // Get filename using absolute path
+            [
+                Environment::getPublicPath() . '/typo3/sysext/core/Tests/Unit/Resource/ResourceCompressorTest/Fixtures/charset.css',
+                'sysext/core/Tests/Unit/Resource/ResourceCompressorTest/Fixtures/charset.css'
+            ],
+            // Get filename using docroot relative path
+            [
+                '/' . $subfolderFake . '/typo3/sysext/core/Tests/Unit/Resource/ResourceCompressorTest/Fixtures/charset.css',
+                'sysext/core/Tests/Unit/Resource/ResourceCompressorTest/Fixtures/charset.css'
+            ],
+        ];
+    }
+
+    /**
+     * @test
+     * @dataProvider getFilenamesFromMainDirInBackendContextInSubfolderDataProvider
+     * @param string $filename
+     * @param string $expected
+     */
+    public function getFilenamesFromMainDirInBackendContextWithSubFolder(string $filename, string $expected): void
+    {
+        // getCurrentScript() called by PathUtility::getRelativePathTo() is usually something
+        // like '.../bin/phpunit' in testing context, but we want .../typo3/index.php as entry
+        // script point here to fake the backend call.
+        $bePath = Environment::getBackendPath();
+        $subfolderFake = basename(Environment::getPublicPath());
+        $_SERVER['ORIG_SCRIPT_NAME'] = '/' . $subfolderFake . '/typo3/index.php';
         Environment::initialize(
             Environment::getContext(),
             true,
@@ -661,5 +724,26 @@ class ResourceCompressorTest extends BaseTestCase
 
         self::assertArrayNotHasKey($concatenatedFileName, $result);
         self::assertTrue($result[$fileName]['nomodule']);
+    }
+
+    /**
+     * @test
+     */
+    public function deferJavascriptIsNotConcatenated(): void
+    {
+        $fileName = 'fooFile.js';
+        $concatenatedFileName = 'merged_' . $fileName;
+        $testFileFixture = [
+            $fileName => [
+                'file' => $fileName,
+                'defer' => true,
+                'section' => 'top',
+            ]
+        ];
+
+        $result = $this->subject->concatenateJsFiles($testFileFixture);
+
+        self::assertArrayNotHasKey($concatenatedFileName, $result);
+        self::assertTrue($result[$fileName]['defer']);
     }
 }

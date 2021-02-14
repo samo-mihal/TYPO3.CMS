@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Mvc\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,19 +13,39 @@ namespace TYPO3\CMS\Extbase\Mvc\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Mvc\Controller;
+
+use Psr\EventDispatcher\EventDispatcherInterface;
+use TYPO3\CMS\Core\Messaging\AbstractMessage;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Page\PageRenderer;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
 use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
+use TYPO3\CMS\Extbase\Event\Mvc\BeforeActionCallEvent;
+use TYPO3\CMS\Extbase\Mvc\Controller\Exception\RequiredArgumentMissingException;
+use TYPO3\CMS\Extbase\Mvc\Exception\InvalidArgumentTypeException;
+use TYPO3\CMS\Extbase\Mvc\Exception\NoSuchActionException;
 use TYPO3\CMS\Extbase\Mvc\Exception\StopActionException;
 use TYPO3\CMS\Extbase\Mvc\Exception\UnsupportedRequestTypeException;
+use TYPO3\CMS\Extbase\Mvc\Request;
+use TYPO3\CMS\Extbase\Mvc\RequestInterface;
+use TYPO3\CMS\Extbase\Mvc\ResponseInterface;
+use TYPO3\CMS\Extbase\Mvc\View\GenericViewResolver;
+use TYPO3\CMS\Extbase\Mvc\View\NotFoundView;
 use TYPO3\CMS\Extbase\Mvc\View\ViewInterface;
+use TYPO3\CMS\Extbase\Mvc\View\ViewResolverInterface;
 use TYPO3\CMS\Extbase\Mvc\Web\ReferringRequest;
-use TYPO3\CMS\Extbase\Mvc\Web\Request as WebRequest;
+use TYPO3\CMS\Extbase\Mvc\Web\Routing\UriBuilder;
+use TYPO3\CMS\Extbase\Object\ObjectManagerInterface;
+use TYPO3\CMS\Extbase\Reflection\ReflectionService;
 use TYPO3\CMS\Extbase\Security\Cryptography\HashService;
+use TYPO3\CMS\Extbase\Service\CacheService;
+use TYPO3\CMS\Extbase\SignalSlot\Dispatcher;
 use TYPO3\CMS\Extbase\Validation\Validator\ConjunctionValidator;
 use TYPO3\CMS\Extbase\Validation\Validator\ValidatorInterface;
+use TYPO3\CMS\Extbase\Validation\ValidatorResolver;
+use TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
 use TYPO3Fluid\Fluid\View\TemplateView;
 
 /**
@@ -48,6 +67,11 @@ class ActionController implements ControllerInterface
      * @var HashService
      */
     protected $hashService;
+
+    /**
+     * @var ViewResolverInterface
+     */
+    private $viewResolver;
 
     /**
      * The current view, as resolved by resolveView()
@@ -84,6 +108,11 @@ class ActionController implements ControllerInterface
     protected $mvcPropertyMappingConfigurationService;
 
     /**
+     * @var EventDispatcherInterface
+     */
+    protected $eventDispatcher;
+
+    /**
      * The current request.
      *
      * @var \TYPO3\CMS\Extbase\Mvc\Request
@@ -98,9 +127,105 @@ class ActionController implements ControllerInterface
     protected $response;
 
     /**
+     * @var \TYPO3\CMS\Extbase\SignalSlot\Dispatcher
+     */
+    protected $signalSlotDispatcher;
+
+    /**
+     * @var \TYPO3\CMS\Extbase\Object\ObjectManagerInterface
+     */
+    protected $objectManager;
+
+    /**
+     * @var \TYPO3\CMS\Extbase\Mvc\Web\Routing\UriBuilder
+     */
+    protected $uriBuilder;
+
+    /**
+     * Contains the settings of the current extension
+     *
+     * @var array
+     */
+    protected $settings;
+
+    /**
+     * @var \TYPO3\CMS\Extbase\Validation\ValidatorResolver
+     */
+    protected $validatorResolver;
+
+    /**
+     * @var \TYPO3\CMS\Extbase\Mvc\Controller\Arguments Arguments passed to the controller
+     */
+    protected $arguments;
+
+    /**
+     * An array of supported request types. By default only web requests are supported.
+     * Modify or replace this array if your specific controller supports certain
+     * (additional) request types.
+     *
+     * @var array
+     */
+    protected $supportedRequestTypes = [Request::class];
+
+    /**
+     * @var \TYPO3\CMS\Extbase\Mvc\Controller\ControllerContext
+     */
+    protected $controllerContext;
+
+    /**
+     * @var ConfigurationManagerInterface
+     */
+    protected $configurationManager;
+
+    /**
+     * @param ConfigurationManagerInterface $configurationManager
+     */
+    public function injectConfigurationManager(ConfigurationManagerInterface $configurationManager)
+    {
+        $this->configurationManager = $configurationManager;
+        $this->settings = $this->configurationManager->getConfiguration(ConfigurationManagerInterface::CONFIGURATION_TYPE_SETTINGS);
+    }
+
+    /**
+     * Injects the object manager
+     *
+     * @param \TYPO3\CMS\Extbase\Object\ObjectManagerInterface $objectManager
+     */
+    public function injectObjectManager(ObjectManagerInterface $objectManager)
+    {
+        $this->objectManager = $objectManager;
+        $this->arguments = $this->objectManager->get(Arguments::class);
+    }
+
+    /**
+     * @param \TYPO3\CMS\Extbase\SignalSlot\Dispatcher $signalSlotDispatcher
+     */
+    public function injectSignalSlotDispatcher(Dispatcher $signalSlotDispatcher)
+    {
+        $this->signalSlotDispatcher = $signalSlotDispatcher;
+    }
+
+    /**
+     * @param \TYPO3\CMS\Extbase\Validation\ValidatorResolver $validatorResolver
+     */
+    public function injectValidatorResolver(ValidatorResolver $validatorResolver)
+    {
+        $this->validatorResolver = $validatorResolver;
+    }
+
+    /**
+     * @param ViewResolverInterface $viewResolver
+     * @internal
+     */
+    public function injectViewResolver(ViewResolverInterface $viewResolver)
+    {
+        $this->viewResolver = $viewResolver;
+    }
+
+    /**
      * @param \TYPO3\CMS\Extbase\Reflection\ReflectionService $reflectionService
      */
-    public function injectReflectionService(\TYPO3\CMS\Extbase\Reflection\ReflectionService $reflectionService)
+    public function injectReflectionService(ReflectionService $reflectionService)
     {
         $this->reflectionService = $reflectionService;
     }
@@ -108,7 +233,7 @@ class ActionController implements ControllerInterface
     /**
      * @param \TYPO3\CMS\Extbase\Service\CacheService $cacheService
      */
-    public function injectCacheService(\TYPO3\CMS\Extbase\Service\CacheService $cacheService)
+    public function injectCacheService(CacheService $cacheService)
     {
         $this->cacheService = $cacheService;
     }
@@ -124,86 +249,36 @@ class ActionController implements ControllerInterface
     /**
      * @param \TYPO3\CMS\Extbase\Mvc\Controller\MvcPropertyMappingConfigurationService $mvcPropertyMappingConfigurationService
      */
-    public function injectMvcPropertyMappingConfigurationService(\TYPO3\CMS\Extbase\Mvc\Controller\MvcPropertyMappingConfigurationService $mvcPropertyMappingConfigurationService)
+    public function injectMvcPropertyMappingConfigurationService(MvcPropertyMappingConfigurationService $mvcPropertyMappingConfigurationService)
     {
         $this->mvcPropertyMappingConfigurationService = $mvcPropertyMappingConfigurationService;
     }
 
-    /**
-     * Handles a request. The result output is returned by altering the given response.
-     *
-     * @param \TYPO3\CMS\Extbase\Mvc\RequestInterface $request The request object
-     * @param \TYPO3\CMS\Extbase\Mvc\ResponseInterface $response The response, modified by this handler
-     *
-     * @throws \TYPO3\CMS\Extbase\Mvc\Exception\UnsupportedRequestTypeException
-     */
-    public function processRequest(\TYPO3\CMS\Extbase\Mvc\RequestInterface $request, \TYPO3\CMS\Extbase\Mvc\ResponseInterface $response)
+    public function injectEventDispatcher(EventDispatcherInterface $eventDispatcher): void
     {
-        if (!$this->canProcessRequest($request)) {
-            throw new \TYPO3\CMS\Extbase\Mvc\Exception\UnsupportedRequestTypeException(static::class . ' does not support requests of type "' . get_class($request) . '". Supported types are: ' . implode(' ', $this->supportedRequestTypes), 1187701131);
-        }
-
-        if ($response instanceof \TYPO3\CMS\Extbase\Mvc\Web\Response && $request instanceof WebRequest) {
-            $response->setRequest($request);
-        }
-        $this->request = $request;
-        $this->request->setDispatched(true);
-        $this->response = $response;
-        $this->uriBuilder = $this->objectManager->get(\TYPO3\CMS\Extbase\Mvc\Web\Routing\UriBuilder::class);
-        $this->uriBuilder->setRequest($request);
-        $this->actionMethodName = $this->resolveActionMethodName();
-        $this->initializeActionMethodArguments();
-        $this->initializeActionMethodValidators();
-        $this->mvcPropertyMappingConfigurationService->initializePropertyMappingConfigurationFromRequest($request, $this->arguments);
-        $this->initializeAction();
-        $actionInitializationMethodName = 'initialize' . ucfirst($this->actionMethodName);
-        if (method_exists($this, $actionInitializationMethodName)) {
-            call_user_func([$this, $actionInitializationMethodName]);
-        }
-        $this->mapRequestArgumentsToControllerArguments();
-        $this->controllerContext = $this->buildControllerContext();
-        $this->view = $this->resolveView();
-        if ($this->view !== null) {
-            $this->initializeView($this->view);
-        }
-        $this->callActionMethod();
-        $this->renderAssetsForRequest($request);
+        $this->eventDispatcher = $eventDispatcher;
     }
 
     /**
-     * Method which initializes assets that should be attached to the response
-     * for the given $request, which contains parameters that an override can
-     * use to determine which assets to add via PageRenderer.
+     * Initializes the view before invoking an action method.
      *
-     * This default implementation will attempt to render the sections "HeaderAssets"
-     * and "FooterAssets" from the template that is being rendered, inserting the
-     * rendered content into either page header or footer, as appropriate. Both
-     * sections are optional and can be used one or both in combination.
+     * Override this method to solve assign variables common for all actions
+     * or prepare the view in another way before the action is called.
      *
-     * You can add assets with this method without worrying about duplicates, if
-     * for example you do this in a plugin that gets used multiple time on a page.
-     *
-     * @param \TYPO3\CMS\Extbase\Mvc\RequestInterface $request
+     * @param ViewInterface $view The view to be initialized
      */
-    protected function renderAssetsForRequest($request)
+    protected function initializeView(ViewInterface $view)
     {
-        if (!$this->view instanceof TemplateView) {
-            // Only TemplateView (from Fluid engine, so this includes all TYPO3 Views based
-            // on TYPO3's AbstractTemplateView) supports renderSection(). The method is not
-            // declared on ViewInterface - so we must assert a specific class. We silently skip
-            // asset processing if the View doesn't match, so we don't risk breaking custom Views.
-            return;
-        }
-        $pageRenderer = GeneralUtility::makeInstance(PageRenderer::class);
-        $variables = ['request' => $request, 'arguments' => $this->arguments];
-        $headerAssets = $this->view->renderSection('HeaderAssets', $variables, true);
-        $footerAssets = $this->view->renderSection('FooterAssets', $variables, true);
-        if (!empty(trim($headerAssets))) {
-            $pageRenderer->addHeaderData($headerAssets);
-        }
-        if (!empty(trim($footerAssets))) {
-            $pageRenderer->addFooterData($footerAssets);
-        }
+    }
+
+    /**
+     * Initializes the controller before invoking an action method.
+     *
+     * Override this method to solve tasks which all actions have in
+     * common.
+     */
+    protected function initializeAction()
+    {
     }
 
     /**
@@ -229,7 +304,7 @@ class ActionController implements ControllerInterface
                 $dataType = 'array';
             }
             if ($dataType === null) {
-                throw new \TYPO3\CMS\Extbase\Mvc\Exception\InvalidArgumentTypeException('The argument type for parameter $' . $parameterName . ' of method ' . static::class . '->' . $this->actionMethodName . '() could not be detected.', 1253175643);
+                throw new InvalidArgumentTypeException('The argument type for parameter $' . $parameterName . ' of method ' . static::class . '->' . $this->actionMethodName . '() could not be detected.', 1253175643);
             }
             $defaultValue = $parameter->hasDefaultValue() ? $parameter->getDefaultValue() : null;
             $this->arguments->addNewArgument($parameterName, $dataType, !$parameter->isOptional(), $defaultValue);
@@ -292,6 +367,103 @@ class ActionController implements ControllerInterface
     }
 
     /**
+     * Collects the base validators which were defined for the data type of each
+     * controller argument and adds them to the argument's validator chain.
+     */
+    public function initializeControllerArgumentsBaseValidators()
+    {
+        /** @var \TYPO3\CMS\Extbase\Mvc\Controller\Argument $argument */
+        foreach ($this->arguments as $argument) {
+            $validator = $this->validatorResolver->getBaseValidatorConjunction($argument->getDataType());
+            if ($validator !== null) {
+                $argument->setValidator($validator);
+            }
+        }
+    }
+
+    /**
+     * Handles a request. The result output is returned by altering the given response.
+     *
+     * @param \TYPO3\CMS\Extbase\Mvc\RequestInterface $request The request object
+     * @param \TYPO3\CMS\Extbase\Mvc\ResponseInterface $response The response, modified by this handler
+     *
+     * @throws \TYPO3\CMS\Extbase\Mvc\Exception\UnsupportedRequestTypeException
+     */
+    public function processRequest(RequestInterface $request, ResponseInterface $response)
+    {
+        if (!$this->canProcessRequest($request)) {
+            throw new UnsupportedRequestTypeException(static::class . ' does not support requests of type "' . get_class($request) . '". Supported types are: ' . implode(' ', $this->supportedRequestTypes), 1187701131);
+        }
+
+        $setRequestCallable = [$response, 'setRequest'];
+        if (is_callable($setRequestCallable)) {
+            $setRequestCallable($request);
+        }
+        $this->request = $request;
+        $this->request->setDispatched(true);
+        $this->response = $response;
+        $this->uriBuilder = $this->objectManager->get(UriBuilder::class);
+        $this->uriBuilder->setRequest($request);
+        $this->actionMethodName = $this->resolveActionMethodName();
+        $this->initializeActionMethodArguments();
+        $this->initializeActionMethodValidators();
+        $this->mvcPropertyMappingConfigurationService->initializePropertyMappingConfigurationFromRequest($request, $this->arguments);
+        $this->initializeAction();
+        $actionInitializationMethodName = 'initialize' . ucfirst($this->actionMethodName);
+        /** @var callable $callable */
+        $callable = [$this, $actionInitializationMethodName];
+        if (method_exists($this, $actionInitializationMethodName)) {
+            // todo: replace method_exists with is_callable or even both
+            //       method_exists alone does not guarantee that $callable is actually callable
+            call_user_func($callable);
+        }
+        $this->mapRequestArgumentsToControllerArguments();
+        $this->controllerContext = $this->buildControllerContext();
+        $this->view = $this->resolveView();
+        if ($this->view !== null) {
+            $this->initializeView($this->view);
+        }
+        $this->callActionMethod();
+        $this->renderAssetsForRequest($request);
+    }
+
+    /**
+     * Method which initializes assets that should be attached to the response
+     * for the given $request, which contains parameters that an override can
+     * use to determine which assets to add via PageRenderer.
+     *
+     * This default implementation will attempt to render the sections "HeaderAssets"
+     * and "FooterAssets" from the template that is being rendered, inserting the
+     * rendered content into either page header or footer, as appropriate. Both
+     * sections are optional and can be used one or both in combination.
+     *
+     * You can add assets with this method without worrying about duplicates, if
+     * for example you do this in a plugin that gets used multiple time on a page.
+     *
+     * @param \TYPO3\CMS\Extbase\Mvc\RequestInterface $request
+     */
+    protected function renderAssetsForRequest($request)
+    {
+        if (!$this->view instanceof TemplateView) {
+            // Only TemplateView (from Fluid engine, so this includes all TYPO3 Views based
+            // on TYPO3's AbstractTemplateView) supports renderSection(). The method is not
+            // declared on ViewInterface - so we must assert a specific class. We silently skip
+            // asset processing if the View doesn't match, so we don't risk breaking custom Views.
+            return;
+        }
+        $pageRenderer = GeneralUtility::makeInstance(PageRenderer::class);
+        $variables = ['request' => $request, 'arguments' => $this->arguments];
+        $headerAssets = $this->view->renderSection('HeaderAssets', $variables, true);
+        $footerAssets = $this->view->renderSection('FooterAssets', $variables, true);
+        if (!empty(trim($headerAssets))) {
+            $pageRenderer->addHeaderData($headerAssets);
+        }
+        if (!empty(trim($footerAssets))) {
+            $pageRenderer->addFooterData($footerAssets);
+        }
+    }
+
+    /**
      * Resolves and checks the current action method name
      *
      * @return string Method name of the current action
@@ -301,7 +473,7 @@ class ActionController implements ControllerInterface
     {
         $actionMethodName = $this->request->getControllerActionName() . 'Action';
         if (!method_exists($this, $actionMethodName)) {
-            throw new \TYPO3\CMS\Extbase\Mvc\Exception\NoSuchActionException('An action "' . $actionMethodName . '" does not exist in controller "' . static::class . '".', 1186669086);
+            throw new NoSuchActionException('An action "' . $actionMethodName . '" does not exist in controller "' . static::class . '".', 1186669086);
         }
         return $actionMethodName;
     }
@@ -322,7 +494,7 @@ class ActionController implements ControllerInterface
         }
         $validationResult = $this->arguments->validate();
         if (!$validationResult->hasErrors()) {
-            $this->emitBeforeCallActionMethodSignal($preparedArguments);
+            $this->eventDispatcher->dispatch(new BeforeActionCallEvent(static::class, $this->actionMethodName, $preparedArguments));
             $actionResult = $this->{$this->actionMethodName}(...$preparedArguments);
         } else {
             $actionResult = $this->{$this->errorMethodName}();
@@ -344,6 +516,10 @@ class ActionController implements ControllerInterface
      */
     protected function emitBeforeCallActionMethodSignal(array $preparedArguments)
     {
+        trigger_error(
+            __METHOD__ . ' is deprecated and will be removed in version 11.0 - use PSR-14 events instead.',
+            E_USER_DEPRECATED
+        );
         $this->signalSlotDispatcher->dispatch(__CLASS__, 'beforeCallActionMethod', [static::class, $this->actionMethodName, $preparedArguments]);
     }
 
@@ -355,16 +531,29 @@ class ActionController implements ControllerInterface
      */
     protected function resolveView()
     {
-        if ($this->defaultViewObjectName != '') {
-            /** @var ViewInterface $view */
-            $view = $this->objectManager->get($this->defaultViewObjectName);
+        if ($this->viewResolver instanceof GenericViewResolver) {
+            /*
+             * This setter is not part of the ViewResolverInterface as it's only necessary to set
+             * the default view class from this point when using the generic view resolver which
+             * must respect the possibly overridden property defaultViewObjectName.
+             */
+            $this->viewResolver->setDefaultViewClass($this->defaultViewObjectName);
+        }
+
+        $view = $this->viewResolver->resolve(
+            $this->request->getControllerObjectName(),
+            $this->request->getControllerActionName(),
+            $this->request->getFormat()
+        );
+
+        if ($view instanceof ViewInterface) {
             $this->setViewConfiguration($view);
             if ($view->canRender($this->controllerContext) === false) {
-                unset($view);
+                $view = null;
             }
         }
         if (!isset($view)) {
-            $view = $this->objectManager->get(\TYPO3\CMS\Extbase\Mvc\View\NotFoundView::class);
+            $view = $this->objectManager->get(NotFoundView::class);
             $view->assign('errorMessage', 'No template was found. View could not be resolved for action "'
                 . $this->request->getControllerActionName() . '" in class "' . $this->request->getControllerObjectName() . '"');
         }
@@ -447,28 +636,6 @@ class ActionController implements ControllerInterface
     }
 
     /**
-     * Initializes the view before invoking an action method.
-     *
-     * Override this method to solve assign variables common for all actions
-     * or prepare the view in another way before the action is called.
-     *
-     * @param ViewInterface $view The view to be initialized
-     */
-    protected function initializeView(ViewInterface $view)
-    {
-    }
-
-    /**
-     * Initializes the controller before invoking an action method.
-     *
-     * Override this method to solve tasks which all actions have in
-     * common.
-     */
-    protected function initializeAction()
-    {
-    }
-
-    /**
      * A special action which is called if the originally intended action could
      * not be called, for example if the arguments were not valid.
      *
@@ -538,13 +705,18 @@ class ActionController implements ControllerInterface
     protected function forwardToReferringRequest()
     {
         $referringRequest = null;
-        $referringRequestArguments = $this->request->getInternalArguments()['__referrer']['@request'] ?? null;
-        if (is_string($referringRequestArguments)) {
+        $referringRequestArguments = $this->request->getInternalArguments()['__referrer'] ?? null;
+        if (is_string($referringRequestArguments['@request'] ?? null)) {
             $referrerArray = json_decode(
-                $this->hashService->validateAndStripHmac($referringRequestArguments),
+                $this->hashService->validateAndStripHmac($referringRequestArguments['@request']),
                 true
             );
             $arguments = [];
+            if (is_string($referringRequestArguments['arguments'] ?? null)) {
+                $arguments = unserialize(
+                    base64_decode($this->hashService->validateAndStripHmac($referringRequestArguments['arguments']))
+                );
+            }
             $referringRequest = new ReferringRequest();
             $referringRequest->setArguments(array_replace_recursive($arguments, $referrerArray));
         }
@@ -576,98 +748,11 @@ class ActionController implements ControllerInterface
     }
 
     /**
-     * @var \TYPO3\CMS\Extbase\SignalSlot\Dispatcher
-     */
-    protected $signalSlotDispatcher;
-
-    /**
-     * @var \TYPO3\CMS\Extbase\Object\ObjectManagerInterface
-     */
-    protected $objectManager;
-
-    /**
-     * @var \TYPO3\CMS\Extbase\Mvc\Web\Routing\UriBuilder
-     */
-    protected $uriBuilder;
-
-    /**
-     * Contains the settings of the current extension
-     *
-     * @var array
-     */
-    protected $settings;
-
-    /**
-     * @var \TYPO3\CMS\Extbase\Validation\ValidatorResolver
-     */
-    protected $validatorResolver;
-
-    /**
-     * @var \TYPO3\CMS\Extbase\Mvc\Controller\Arguments Arguments passed to the controller
-     */
-    protected $arguments;
-
-    /**
-     * @param \TYPO3\CMS\Extbase\SignalSlot\Dispatcher $signalSlotDispatcher
-     */
-    public function injectSignalSlotDispatcher(\TYPO3\CMS\Extbase\SignalSlot\Dispatcher $signalSlotDispatcher)
-    {
-        $this->signalSlotDispatcher = $signalSlotDispatcher;
-    }
-
-    /**
-     * @param \TYPO3\CMS\Extbase\Validation\ValidatorResolver $validatorResolver
-     */
-    public function injectValidatorResolver(\TYPO3\CMS\Extbase\Validation\ValidatorResolver $validatorResolver)
-    {
-        $this->validatorResolver = $validatorResolver;
-    }
-
-    /**
-     * An array of supported request types. By default only web requests are supported.
-     * Modify or replace this array if your specific controller supports certain
-     * (additional) request types.
-     *
-     * @var array
-     */
-    protected $supportedRequestTypes = [\TYPO3\CMS\Extbase\Mvc\Request::class];
-
-    /**
-     * @var \TYPO3\CMS\Extbase\Mvc\Controller\ControllerContext
-     */
-    protected $controllerContext;
-
-    /**
      * @return ControllerContext
      */
     public function getControllerContext()
     {
         return $this->controllerContext;
-    }
-
-    /**
-     * @var ConfigurationManagerInterface
-     */
-    protected $configurationManager;
-
-    /**
-     * @param ConfigurationManagerInterface $configurationManager
-     */
-    public function injectConfigurationManager(ConfigurationManagerInterface $configurationManager)
-    {
-        $this->configurationManager = $configurationManager;
-        $this->settings = $this->configurationManager->getConfiguration(ConfigurationManagerInterface::CONFIGURATION_TYPE_SETTINGS);
-    }
-
-    /**
-     * Injects the object manager
-     *
-     * @param \TYPO3\CMS\Extbase\Object\ObjectManagerInterface $objectManager
-     */
-    public function injectObjectManager(\TYPO3\CMS\Extbase\Object\ObjectManagerInterface $objectManager)
-    {
-        $this->objectManager = $objectManager;
-        $this->arguments = $this->objectManager->get(\TYPO3\CMS\Extbase\Mvc\Controller\Arguments::class);
     }
 
     /**
@@ -680,14 +765,14 @@ class ActionController implements ControllerInterface
      * @throws \InvalidArgumentException if the message body is no string
      * @see \TYPO3\CMS\Core\Messaging\FlashMessage
      */
-    public function addFlashMessage($messageBody, $messageTitle = '', $severity = \TYPO3\CMS\Core\Messaging\AbstractMessage::OK, $storeInSession = true)
+    public function addFlashMessage($messageBody, $messageTitle = '', $severity = AbstractMessage::OK, $storeInSession = true)
     {
         if (!is_string($messageBody)) {
             throw new \InvalidArgumentException('The message body must be of type string, "' . gettype($messageBody) . '" given.', 1243258395);
         }
         /* @var \TYPO3\CMS\Core\Messaging\FlashMessage $flashMessage */
-        $flashMessage = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(
-            \TYPO3\CMS\Core\Messaging\FlashMessage::class,
+        $flashMessage = GeneralUtility::makeInstance(
+            FlashMessage::class,
             (string)$messageBody,
             (string)$messageTitle,
             $severity,
@@ -706,7 +791,7 @@ class ActionController implements ControllerInterface
      * @param \TYPO3\CMS\Extbase\Mvc\RequestInterface $request The current request
      * @return bool TRUE if this request type is supported, otherwise FALSE
      */
-    public function canProcessRequest(\TYPO3\CMS\Extbase\Mvc\RequestInterface $request)
+    public function canProcessRequest(RequestInterface $request)
     {
         foreach ($this->supportedRequestTypes as $supportedRequestType) {
             if ($request instanceof $supportedRequestType) {
@@ -724,7 +809,7 @@ class ActionController implements ControllerInterface
     protected function buildControllerContext()
     {
         /** @var \TYPO3\CMS\Extbase\Mvc\Controller\ControllerContext $controllerContext */
-        $controllerContext = $this->objectManager->get(\TYPO3\CMS\Extbase\Mvc\Controller\ControllerContext::class);
+        $controllerContext = $this->objectManager->get(ControllerContext::class);
         $controllerContext->setRequest($this->request);
         $controllerContext->setResponse($this->response);
         if ($this->arguments !== null) {
@@ -751,15 +836,16 @@ class ActionController implements ControllerInterface
     public function forward($actionName, $controllerName = null, $extensionName = null, array $arguments = null)
     {
         $this->request->setDispatched(false);
-        if ($this->request instanceof WebRequest) {
-            $this->request->setControllerActionName($actionName);
-            if ($controllerName !== null) {
-                $this->request->setControllerName($controllerName);
-            }
-            if ($extensionName !== null) {
-                $this->request->setControllerExtensionName($extensionName);
-            }
+        $this->request->setControllerActionName($actionName);
+
+        if ($controllerName !== null) {
+            $this->request->setControllerName($controllerName);
         }
+
+        if ($extensionName !== null) {
+            $this->request->setControllerExtensionName($extensionName);
+        }
+
         if ($arguments !== null) {
             $this->request->setArguments($arguments);
         }
@@ -781,15 +867,11 @@ class ActionController implements ControllerInterface
      * @param int|null $pageUid Target page uid. If NULL, the current page uid is used
      * @param int $delay (optional) The delay in seconds. Default is no delay.
      * @param int $statusCode (optional) The HTTP status code for the redirect. Default is "303 See Other
-     * @throws UnsupportedRequestTypeException If the request is not a web request
      * @throws StopActionException
      * @see forward()
      */
     protected function redirect($actionName, $controllerName = null, $extensionName = null, array $arguments = null, $pageUid = null, $delay = 0, $statusCode = 303)
     {
-        if (!$this->request instanceof WebRequest) {
-            throw new UnsupportedRequestTypeException('redirect() only supports web requests.', 1220539734);
-        }
         if ($controllerName === null) {
             $controllerName = $this->request->getControllerName();
         }
@@ -797,7 +879,7 @@ class ActionController implements ControllerInterface
         if (MathUtility::canBeInterpretedAsInteger($pageUid)) {
             $this->uriBuilder->setTargetPageUid((int)$pageUid);
         }
-        if (\TYPO3\CMS\Core\Utility\GeneralUtility::getIndpEnv('TYPO3_SSL')) {
+        if (GeneralUtility::getIndpEnv('TYPO3_SSL')) {
             $this->uriBuilder->setAbsoluteUriScheme('https');
         }
         $uri = $this->uriBuilder->uriFor($actionName, $arguments, $controllerName, $extensionName);
@@ -812,29 +894,23 @@ class ActionController implements ControllerInterface
      * @param mixed $uri A string representation of a URI
      * @param int $delay (optional) The delay in seconds. Default is no delay.
      * @param int $statusCode (optional) The HTTP status code for the redirect. Default is "303 See Other
-     * @throws UnsupportedRequestTypeException If the request is not a web request
      * @throws StopActionException
      */
     protected function redirectToUri($uri, $delay = 0, $statusCode = 303)
     {
-        if (!$this->request instanceof WebRequest) {
-            throw new UnsupportedRequestTypeException('redirect() only supports web requests.', 1220539735);
-        }
-
-        $this->objectManager->get(\TYPO3\CMS\Extbase\Service\CacheService::class)->clearCachesOfRegisteredPageIds();
+        $this->objectManager->get(CacheService::class)->clearCachesOfRegisteredPageIds();
 
         $uri = $this->addBaseUriIfNecessary($uri);
         $escapedUri = htmlentities($uri, ENT_QUOTES, 'utf-8');
         $this->response->setContent('<html><head><meta http-equiv="refresh" content="' . (int)$delay . ';url=' . $escapedUri . '"/></head></html>');
-        if ($this->response instanceof \TYPO3\CMS\Extbase\Mvc\Web\Response) {
-            $this->response->setStatus($statusCode);
-            $this->response->setHeader('Location', (string)$uri);
-        }
+        $this->response->setStatus($statusCode);
+        $this->response->setHeader('Location', (string)$uri);
+
         // Avoid caching the plugin when we issue a redirect response
         // This means that even when an action is configured as cachable
         // we avoid the plugin to be cached, but keep the page cache untouched
         $contentObject = $this->configurationManager->getContentObject();
-        if ($contentObject->getUserObjectType() === \TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer::OBJECTTYPE_USER) {
+        if ($contentObject->getUserObjectType() === ContentObjectRenderer::OBJECTTYPE_USER) {
             $contentObject->convertToUserIntObject();
         }
 
@@ -849,7 +925,7 @@ class ActionController implements ControllerInterface
      */
     protected function addBaseUriIfNecessary($uri)
     {
-        return \TYPO3\CMS\Core\Utility\GeneralUtility::locationHeaderUrl((string)$uri);
+        return GeneralUtility::locationHeaderUrl((string)$uri);
     }
 
     /**
@@ -860,37 +936,16 @@ class ActionController implements ControllerInterface
      * @param int $statusCode The HTTP status code
      * @param string $statusMessage A custom HTTP status message
      * @param string $content Body content which further explains the status
-     * @throws UnsupportedRequestTypeException If the request is not a web request
      * @throws StopActionException
      */
     public function throwStatus($statusCode, $statusMessage = null, $content = null)
     {
-        if (!$this->request instanceof WebRequest) {
-            throw new UnsupportedRequestTypeException('throwStatus() only supports web requests.', 1220539739);
-        }
-        if ($this->response instanceof \TYPO3\CMS\Extbase\Mvc\Web\Response) {
-            $this->response->setStatus($statusCode, $statusMessage);
-            if ($content === null) {
-                $content = $this->response->getStatus();
-            }
+        $this->response->setStatus($statusCode, $statusMessage);
+        if ($content === null) {
+            $content = $this->response->getStatus();
         }
         $this->response->setContent($content);
         throw new StopActionException('throwStatus', 1476045871);
-    }
-
-    /**
-     * Collects the base validators which were defined for the data type of each
-     * controller argument and adds them to the argument's validator chain.
-     */
-    public function initializeControllerArgumentsBaseValidators()
-    {
-        /** @var \TYPO3\CMS\Extbase\Mvc\Controller\Argument $argument */
-        foreach ($this->arguments as $argument) {
-            $validator = $this->validatorResolver->getBaseValidatorConjunction($argument->getDataType());
-            if ($validator !== null) {
-                $argument->setValidator($validator);
-            }
-        }
     }
 
     /**
@@ -906,7 +961,7 @@ class ActionController implements ControllerInterface
             if ($this->request->hasArgument($argumentName)) {
                 $argument->setValue($this->request->getArgument($argumentName));
             } elseif ($argument->isRequired()) {
-                throw new \TYPO3\CMS\Extbase\Mvc\Controller\Exception\RequiredArgumentMissingException('Required argument "' . $argumentName . '" is not set for ' . $this->request->getControllerObjectName() . '->' . $this->request->getControllerActionName() . '.', 1298012500);
+                throw new RequiredArgumentMissingException('Required argument "' . $argumentName . '" is not set for ' . $this->request->getControllerObjectName() . '->' . $this->request->getControllerActionName() . '.', 1298012500);
             }
         }
     }

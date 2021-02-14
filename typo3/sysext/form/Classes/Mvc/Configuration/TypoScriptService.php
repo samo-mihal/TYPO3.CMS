@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\Mvc\Configuration;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Form\Mvc\Configuration;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Form\Mvc\Configuration;
 
 use TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController;
 
@@ -78,7 +80,8 @@ class TypoScriptService
             if (isset($configuration[$keyWithoutDot]) && isset($configuration[$keyWithoutDot . '.'])) {
                 $value = $this->getTypoScriptFrontendController()->cObj->cObjGetSingle(
                     $configuration[$keyWithoutDot],
-                    $configuration[$keyWithoutDot . '.']
+                    $configuration[$keyWithoutDot . '.'],
+                    $keyWithoutDot
                 );
                 $configuration[$keyWithoutDot] = $value;
             } elseif (!isset($configuration[$keyWithoutDot]) && isset($configuration[$keyWithoutDot . '.'])) {

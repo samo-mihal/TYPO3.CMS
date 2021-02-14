@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Http;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,11 @@ namespace TYPO3\CMS\Core\Http;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Http;
+
 use Psr\Http\Message\StreamInterface;
 use Psr\Http\Message\UploadedFileInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Core\Utility\PathUtility;
 
 /**
  * Class UploadedFile which represents one uploaded file, usually coming
@@ -134,7 +134,7 @@ class UploadedFile implements UploadedFileInterface
             return $this->stream;
         }
 
-        $this->stream = new Stream($this->file);
+        $this->stream = new Stream((string)$this->file);
         return $this->stream;
     }
 
@@ -163,8 +163,8 @@ class UploadedFile implements UploadedFileInterface
      * If you wish to move to a stream, use getStream(), as SAPI operations
      * cannot guarantee writing to stream destinations.
      *
-     * @see http://php.net/is_uploaded_file
-     * @see http://php.net/move_uploaded_file
+     * @see https://php.net/is_uploaded_file
+     * @see https://php.net/move_uploaded_file
      * @param string $targetPath Path to which to move the uploaded file.
      * @throws \InvalidArgumentException if the $path specified is invalid.
      * @throws \RuntimeException on any error during the move operation, or on the second or subsequent call to the method.
@@ -186,7 +186,7 @@ class UploadedFile implements UploadedFileInterface
         }
 
         if (!empty($this->file) && is_uploaded_file($this->file)) {
-            if (GeneralUtility::upload_copy_move($this->file, $targetPath . PathUtility::basename($this->file)) === false) {
+            if (GeneralUtility::upload_copy_move($this->file, $targetPath) === false) {
                 throw new \RuntimeException('An error occurred while moving uploaded file', 1436717310);
             }
         } elseif ($this->stream) {
@@ -229,7 +229,7 @@ class UploadedFile implements UploadedFileInterface
      * If the file was uploaded successfully, this method MUST return
      * UPLOAD_ERR_OK.
      *
-     * @see http://php.net/manual/en/features.file-upload.errors.php
+     * @see https://php.net/manual/en/features.file-upload.errors.php
      * @return int One of PHP's UPLOAD_ERR_XXX constants.
      */
     public function getError()

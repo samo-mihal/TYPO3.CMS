@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Install\Updates;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,6 +15,8 @@ namespace TYPO3\CMS\Install\Updates;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Install\Updates;
+
 /**
  * Model for extensions installed by upgrade wizards
  *
@@ -23,10 +24,29 @@ namespace TYPO3\CMS\Install\Updates;
  */
 class ExtensionModel
 {
+    /**
+     * @var string
+     */
     protected $key = '';
+
+    /**
+     * @var string
+     */
     protected $title = '';
+
+    /**
+     * @var string
+     */
     protected $versionString = '';
+
+    /**
+     * @var string
+     */
     protected $composerName = '';
+
+    /**
+     * @var string
+     */
     protected $description = '';
 
     public function __construct(

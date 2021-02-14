@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Acceptance\Backend\Login;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Acceptance\Backend\Login;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Acceptance\Backend\Login;
 
 use TYPO3\CMS\Core\Tests\Acceptance\Support\BackendTester;
 use TYPO3\TestingFramework\Core\Acceptance\Helper\Topbar;
@@ -39,13 +41,13 @@ class BackendLoginCest
         // Make sure mouse is not over submit button from a previous test
         $I->moveMouseOver('#t3-username');
         $bs = $I->executeInSelenium(function (\Facebook\WebDriver\Remote\RemoteWebDriver $webdriver) {
-            return $webdriver->findElement(\WebDriverBy::cssSelector('#t3-login-submit'))->getCSSValue('box-shadow');
+            return $webdriver->findElement(\Facebook\WebDriver\WebDriverBy::cssSelector('#t3-login-submit'))->getCSSValue('box-shadow');
         });
 
         $I->moveMouseOver('#t3-login-submit');
         $I->wait(1);
         $bsmo = $I->executeInSelenium(function (\Facebook\WebDriver\Remote\RemoteWebDriver $webdriver) {
-            return $webdriver->findElement(\WebDriverBy::cssSelector('#t3-login-submit'))->getCSSValue('box-shadow');
+            return $webdriver->findElement(\Facebook\WebDriver\WebDriverBy::cssSelector('#t3-login-submit'))->getCSSValue('box-shadow');
         });
         $I->assertFalse($bs === $bsmo);
     }
@@ -64,12 +66,12 @@ class BackendLoginCest
 
         $I->wantTo('check empty credentials');
         $required = $I->executeInSelenium(function (\Facebook\WebDriver\Remote\RemoteWebDriver $webdriver) {
-            return $webdriver->findElement(\WebDriverBy::cssSelector('#t3-username'))->getAttribute('required');
+            return $webdriver->findElement(\Facebook\WebDriver\WebDriverBy::cssSelector('#t3-username'))->getAttribute('required');
         });
         $I->assertEquals('true', $required, '#t3-username');
 
         $required = $I->executeInSelenium(function (\Facebook\WebDriver\Remote\RemoteWebDriver $webdriver) {
-            return $webdriver->findElement(\WebDriverBy::cssSelector('#t3-password'))->getAttribute('required');
+            return $webdriver->findElement(\Facebook\WebDriver\WebDriverBy::cssSelector('#t3-password'))->getAttribute('required');
         });
         $I->assertEquals('true', $required, '#t3-password');
 
@@ -108,7 +110,7 @@ class BackendLoginCest
         $this->login($I, 'editor', 'password');
 
         // user is redirected to 'about modules' after login, but must not see the 'admin tools' section
-        $I->cantSee('Admin tools', '#menu');
+        $I->cantSee('Admin tools', '#modulemenu');
 
         $topBarItemSelector = Topbar::$containerSelector . ' ' . Topbar::$dropdownToggleSelector . ' *';
 
@@ -138,9 +140,11 @@ class BackendLoginCest
         $I->fillField('#t3-password', $password);
         $I->click('#t3-login-submit-section > button');
         // wait for the next to element to indicate if the backend was loaded successful
-        $I->waitForElement('.nav', 30);
+        if ($username !== 'editor') {
+            // "editor" doesn't have any modules available in this setup
+            $I->waitForElement('.scaffold-modulemenu', 30);
+        }
         $I->waitForElement('.scaffold-content iframe', 30);
-        $I->seeCookie('be_lastLoginProvider');
         $I->seeCookie('be_typo_user');
     }
 

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\ViewHelpers\Debug;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Fluid\ViewHelpers\Debug;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Fluid\ViewHelpers\Debug;
 
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Utility\PathUtility;
@@ -70,10 +71,11 @@ class RenderViewHelper extends AbstractViewHelper
         }
 
         $content = '';
+        $viewHelperVariableContainer = $this->renderingContext->getViewHelperVariableContainer();
         if ($partial !== null) {
-            $content = $this->viewHelperVariableContainer->getView()->renderPartial($partial, $section, $arguments, $optional);
+            $content = $viewHelperVariableContainer->getView()->renderPartial($partial, $section, $arguments, $optional);
         } elseif ($section !== null) {
-            $content = $this->viewHelperVariableContainer->getView()->renderSection($section, $arguments, $optional);
+            $content = $viewHelperVariableContainer->getView()->renderSection($section, $arguments, $optional);
         }
         // Replace empty content with default value. If default is
         // not set, NULL is returned and cast to a new, empty string

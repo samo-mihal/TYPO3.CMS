@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Tests\Unit\DataHandling;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\DataHandling;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\DataHandling;
 
 use TYPO3\CMS\Core\DataHandling\SlugHelper;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
@@ -505,10 +506,10 @@ class SlugHelperTest extends UnitTestCase
                 $options
             ]
         );
-        $subject->expects(self::at(0))
-            ->method('resolveParentPageRecord')->with(13)->willReturn($parentPage);
-        $subject->expects(self::at(1))
-            ->method('resolveParentPageRecord')->with(10)->willReturn(null);
+        $subject->expects(self::atLeast(2))
+            ->method('resolveParentPageRecord')
+            ->withConsecutive([13], [10])
+            ->willReturn($parentPage, null);
         self::assertEquals(
             $expected,
             $subject->generate(['title' => $input, 'uid' => 13], 13)

@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Routing\Aspect;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,13 +15,21 @@ namespace TYPO3\CMS\Core\Routing\Aspect;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Routing\Aspect;
+
+use Doctrine\DBAL\Connection;
 use TYPO3\CMS\Core\Context\Context;
+use TYPO3\CMS\Core\Context\ContextAwareInterface;
+use TYPO3\CMS\Core\Context\ContextAwareTrait;
 use TYPO3\CMS\Core\Context\LanguageAspectFactory;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
+use TYPO3\CMS\Core\Database\Query\Restriction\FrontendGroupRestriction;
+use TYPO3\CMS\Core\Database\Query\Restriction\FrontendRestrictionContainer;
 use TYPO3\CMS\Core\Domain\Repository\PageRepository;
+use TYPO3\CMS\Core\Routing\Legacy\PersistedAliasMapperLegacyTrait;
+use TYPO3\CMS\Core\Site\SiteAwareInterface;
 use TYPO3\CMS\Core\Site\SiteLanguageAwareInterface;
-use TYPO3\CMS\Core\Site\SiteLanguageAwareTrait;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -44,9 +51,13 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  *           routeFieldName: 'path_segment'
  *           routeValuePrefix: '/'
  */
-class PersistedAliasMapper implements PersistedMappableAspectInterface, StaticMappableAspectInterface, SiteLanguageAwareInterface
+class PersistedAliasMapper implements PersistedMappableAspectInterface, StaticMappableAspectInterface, ContextAwareInterface, SiteLanguageAwareInterface, SiteAwareInterface
 {
-    use SiteLanguageAwareTrait;
+    use AspectTrait;
+    use SiteLanguageAccessorTrait;
+    use SiteAccessorTrait;
+    use ContextAwareTrait;
+    use PersistedAliasMapperLegacyTrait;
 
     /**
      * @var array
@@ -69,11 +80,6 @@ class PersistedAliasMapper implements PersistedMappableAspectInterface, StaticMa
     protected $routeValuePrefix;
 
     /**
-     * @var PersistenceDelegate
-     */
-    protected $persistenceDelegate;
-
-    /**
      * @var string[]
      */
     protected $persistenceFieldNames;
@@ -81,7 +87,17 @@ class PersistedAliasMapper implements PersistedMappableAspectInterface, StaticMa
     /**
      * @var string|null
      */
+    protected $languageFieldName;
+
+    /**
+     * @var string|null
+     */
     protected $languageParentFieldName;
+
+    /**
+     * @var bool
+     */
+    protected $slugUniqueInSite;
 
     /**
      * @param array $settings
@@ -116,8 +132,10 @@ class PersistedAliasMapper implements PersistedMappableAspectInterface, StaticMa
         $this->tableName = $tableName;
         $this->routeFieldName = $routeFieldName;
         $this->routeValuePrefix = $routeValuePrefix;
-        $this->persistenceFieldNames = $this->buildPersistenceFieldNames();
+        $this->languageFieldName = $GLOBALS['TCA'][$this->tableName]['ctrl']['languageField'] ?? null;
         $this->languageParentFieldName = $GLOBALS['TCA'][$this->tableName]['ctrl']['transOrigPointerField'] ?? null;
+        $this->persistenceFieldNames = $this->buildPersistenceFieldNames();
+        $this->slugUniqueInSite = $this->isSlugUniqueInSite($this->tableName, $this->routeFieldName);
     }
 
     /**
@@ -125,9 +143,7 @@ class PersistedAliasMapper implements PersistedMappableAspectInterface, StaticMa
      */
     public function generate(string $value): ?string
     {
-        $result = $this->getPersistenceDelegate()->generate([
-            'uid' => $value
-        ]);
+        $result = $this->findByIdentifier($value);
         $result = $this->resolveOverlay($result);
         if (!isset($result[$this->routeFieldName])) {
             return null;
@@ -143,9 +159,7 @@ class PersistedAliasMapper implements PersistedMappableAspectInterface, StaticMa
     public function resolve(string $value): ?string
     {
         $value = $this->routeValuePrefix . $this->purgeRouteValuePrefix($value);
-        $result = $this->getPersistenceDelegate()->resolve([
-            $this->routeFieldName => $value
-        ]);
+        $result = $this->findByRouteFieldValue($value);
         if ($result[$this->languageParentFieldName] ?? null > 0) {
             return (string)$result[$this->languageParentFieldName];
         }
@@ -164,8 +178,8 @@ class PersistedAliasMapper implements PersistedMappableAspectInterface, StaticMa
             'uid',
             'pid',
             $this->routeFieldName,
-            $GLOBALS['TCA'][$this->tableName]['ctrl']['languageField'] ?? null,
-            $GLOBALS['TCA'][$this->tableName]['ctrl']['transOrigPointerField'] ?? null,
+            $this->languageFieldName,
+            $this->languageParentFieldName,
         ]);
     }
 
@@ -181,55 +195,71 @@ class PersistedAliasMapper implements PersistedMappableAspectInterface, StaticMa
         return ltrim($value, $this->routeValuePrefix);
     }
 
-    /**
-     * @return PersistenceDelegate
-     */
-    protected function getPersistenceDelegate(): PersistenceDelegate
+    protected function findByIdentifier(string $value): ?array
     {
-        if ($this->persistenceDelegate !== null) {
-            return $this->persistenceDelegate;
+        $queryBuilder = $this->createQueryBuilder();
+        $result = $queryBuilder
+            ->select(...$this->persistenceFieldNames)
+            ->where($queryBuilder->expr()->eq(
+                'uid',
+                $queryBuilder->createNamedParameter($value, \PDO::PARAM_INT)
+            ))
+            ->execute()
+            ->fetch();
+        return $result !== false ? $result : null;
+    }
+
+    protected function findByRouteFieldValue(string $value): ?array
+    {
+        $languageAware = $this->languageFieldName !== null && $this->languageParentFieldName !== null;
+
+        $queryBuilder = $this->createQueryBuilder();
+        $constraints = [
+            $queryBuilder->expr()->eq(
+                $this->routeFieldName,
+                $queryBuilder->createNamedParameter($value, \PDO::PARAM_STR)
+            ),
+        ];
+
+        $languageIds = null;
+        if ($languageAware) {
+            $languageIds = $this->resolveAllRelevantLanguageIds();
+            $constraints[] = $queryBuilder->expr()->in(
+                $this->languageFieldName,
+                $queryBuilder->createNamedParameter($languageIds, Connection::PARAM_INT_ARRAY)
+            );
         }
+
+        $results = $queryBuilder
+            ->select(...$this->persistenceFieldNames)
+            ->where(...$constraints)
+            ->execute()
+            ->fetchAll();
+        // limit results to be contained in rootPageId of current Site
+        // (which is defining the route configuration currently being processed)
+        if ($this->slugUniqueInSite) {
+            $results = array_values($this->filterContainedInSite($results));
+        }
+        // return first result record in case table is not language aware
+        if (!$languageAware) {
+            return $results[0] ?? null;
+        }
+        // post-process language fallbacks
+        return $this->resolveLanguageFallback($results, $this->languageFieldName, $languageIds);
+    }
+
+    protected function createQueryBuilder(): QueryBuilder
+    {
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
             ->getQueryBuilderForTable($this->tableName)
             ->from($this->tableName);
-        // @todo Restrictions (Hidden? Workspace?)
-
-        $resolveModifier = function (QueryBuilder $queryBuilder, array $values) {
-            return $queryBuilder->select(...$this->persistenceFieldNames)->where(
-                ...$this->createFieldConstraints($queryBuilder, $values)
-            );
-        };
-        $generateModifier = function (QueryBuilder $queryBuilder, array $values) {
-            return $queryBuilder->select(...$this->persistenceFieldNames)->where(
-                ...$this->createFieldConstraints($queryBuilder, $values)
-            );
-        };
-
-        return $this->persistenceDelegate = new PersistenceDelegate(
-            $queryBuilder,
-            $resolveModifier,
-            $generateModifier
+        $queryBuilder->setRestrictions(
+            GeneralUtility::makeInstance(FrontendRestrictionContainer::class, $this->context)
         );
-    }
-
-    /**
-     * @param QueryBuilder $queryBuilder
-     * @param array $values
-     * @return array
-     */
-    protected function createFieldConstraints(QueryBuilder $queryBuilder, array $values): array
-    {
-        $constraints = [];
-        foreach ($values as $fieldName => $fieldValue) {
-            $constraints[] = $queryBuilder->expr()->eq(
-                $fieldName,
-                $queryBuilder->createNamedParameter(
-                    $fieldValue,
-                    \PDO::PARAM_STR
-                )
-            );
-        }
-        return $constraints;
+        // Frontend Groups are not available at this time (initialized via TSFE->determineId)
+        // So this must be excluded to allow access restricted records
+        $queryBuilder->getRestrictions()->removeByType(FrontendGroupRestriction::class);
+        return $queryBuilder;
     }
 
     /**

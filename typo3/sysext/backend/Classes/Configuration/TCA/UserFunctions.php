@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Backend\Configuration\TCA;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Backend\Configuration\TCA;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Configuration\TCA;
 
 use TYPO3\CMS\Core\Localization\LanguageService;
 
@@ -32,9 +34,10 @@ class UserFunctions
     {
         $record = $parameters['row'];
         $parameters['title'] = sprintf(
-            '%s %s (%s) Base: %s',
+            '%s %s [%d] (%s) Base: %s',
             $record['enabled'] ? '' : '[' . $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_common.xlf:disabled') . ']',
             $record['title'],
+            $record['languageId'][0],
             $record['locale'],
             $record['base']
         );

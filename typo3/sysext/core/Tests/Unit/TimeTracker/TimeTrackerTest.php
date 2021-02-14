@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Unit\TimeTracker;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\TimeTracker;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\TimeTracker;
 
 use TYPO3\CMS\Core\TimeTracker\TimeTracker;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
@@ -41,6 +43,6 @@ class TimeTrackerTest extends UnitTestCase
         $subject->start();
         sleep(1);
         $subject->finish();
-        self::assertLessThan(1010, $subject->getParseTime());
+        self::assertLessThan(1040, $subject->getParseTime());
     }
 }

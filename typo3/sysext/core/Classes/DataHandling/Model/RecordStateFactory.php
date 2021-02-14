@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\DataHandling\Model;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Core\DataHandling\Model;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\DataHandling\Model;
 
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -52,7 +53,7 @@ class RecordStateFactory
      * @param array $data
      * @param int|string|null $pageId
      * @param int|string|null $recordId
-     * @return object|RecordState
+     * @return RecordState
      */
     public function fromArray(array $data, $pageId = null, $recordId = null): RecordState
     {
@@ -113,6 +114,8 @@ class RecordStateFactory
      */
     protected function resolveLanguageLink(array $aspectFieldNames): ?EntityPointerLink
     {
+        $languageSourceLink = null;
+        $languageParentLink = null;
         if (!empty($aspectFieldNames['languageSource'])) {
             $languageSourceLink = GeneralUtility::makeInstance(
                 EntityPointerLink::class,

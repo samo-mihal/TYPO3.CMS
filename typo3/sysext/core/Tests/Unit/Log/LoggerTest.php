@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Unit\Log;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,11 +13,14 @@ namespace TYPO3\CMS\Core\Tests\Unit\Log;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\Log;
+
 use TYPO3\CMS\Core\Log\Logger;
 use TYPO3\CMS\Core\Log\LogLevel;
 use TYPO3\CMS\Core\Log\LogRecord;
 use TYPO3\CMS\Core\Log\Processor\NullProcessor;
 use TYPO3\CMS\Core\Log\Writer\NullWriter;
+use TYPO3\CMS\Core\Tests\Unit\Log\Fixtures\WriterFixture;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -41,7 +43,7 @@ class LoggerTest extends UnitTestCase
     public function loggerDoesNotLogRecordsLessCriticalThanLogLevel()
     {
         $logger = new Logger('test.core.log');
-        $writer = new Fixtures\WriterFixture();
+        $writer = new WriterFixture();
         $logger->addWriter(LogLevel::ERROR, $writer);
         // warning < error, thus must not be logged
         $logger->log(LogLevel::WARNING, 'test message');
@@ -54,7 +56,7 @@ class LoggerTest extends UnitTestCase
     public function loggerReturnsItselfAfterLogging()
     {
         $logger = new Logger('test.core.log');
-        $writer = new Fixtures\WriterFixture();
+        $writer = new WriterFixture();
         $logger->addWriter(LogLevel::DEBUG, $writer);
         $returnValue = $logger->log(LogLevel::WARNING, 'test message');
         self::assertInstanceOf(Logger::class, $returnValue);
@@ -76,7 +78,7 @@ class LoggerTest extends UnitTestCase
     public function loggerReturnsItselfAfterLoggingLessCritical()
     {
         $logger = new Logger('test.core.log');
-        $writer = new Fixtures\WriterFixture();
+        $writer = new WriterFixture();
         $logger->addWriter(LogLevel::EMERGENCY, $writer);
         $returnValue = $logger->log(LogLevel::WARNING, 'test message');
         self::assertInstanceOf(Logger::class, $returnValue);
@@ -123,7 +125,7 @@ class LoggerTest extends UnitTestCase
     public function loggerLogsRecordsAtLeastAsCriticalAsLogLevel()
     {
         $logger = new Logger('test.core.log');
-        $writer = new Fixtures\WriterFixture();
+        $writer = new WriterFixture();
         $logger->addWriter(LogLevel::NOTICE, $writer);
         // notice == notice, thus must be logged
         $logger->log(LogLevel::NOTICE, 'test message');
@@ -155,7 +157,7 @@ class LoggerTest extends UnitTestCase
     public function loggerLogsRecordsThroughShorthandMethod($shorthandMethod)
     {
         $logger = new Logger('test.core.log');
-        $writer = new Fixtures\WriterFixture();
+        $writer = new WriterFixture();
         $logger->addWriter(LogLevel::DEBUG, $writer);
         call_user_func([$logger, $shorthandMethod], 'test message');
         self::assertNotEmpty($writer->getRecords());
@@ -167,7 +169,7 @@ class LoggerTest extends UnitTestCase
     public function loggerLogsRecordsMoreCriticalThanLogLevel()
     {
         $logger = new Logger('test.core.log');
-        $writer = new Fixtures\WriterFixture();
+        $writer = new WriterFixture();
         $logger->addWriter(LogLevel::NOTICE, $writer);
         // warning > notice, thus must be logged
         $logger->log(LogLevel::WARNING, 'test message');
@@ -180,7 +182,7 @@ class LoggerTest extends UnitTestCase
     public function addWriterAddsWriterToTheSpecifiedLevel()
     {
         $logger = new Logger('test.core.log');
-        $writer = new Fixtures\WriterFixture();
+        $writer = new WriterFixture();
         $logger->addWriter(LogLevel::NOTICE, $writer);
         $writers = $logger->getWriters();
         self::assertContains($writer, $writers[LogLevel::NOTICE]);
@@ -192,7 +194,7 @@ class LoggerTest extends UnitTestCase
     public function addWriterAddsWriterAlsoToHigherLevelsThanSpecified()
     {
         $logger = new Logger('test.core.log');
-        $writer = new Fixtures\WriterFixture();
+        $writer = new WriterFixture();
         $logger->addWriter(LogLevel::NOTICE, $writer);
         $writers = $logger->getWriters();
         self::assertContains($writer, $writers[LogLevel::EMERGENCY]);

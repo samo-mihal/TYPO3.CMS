@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Functional\DataHandling\FAL\Modify;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,7 +13,11 @@ namespace TYPO3\CMS\Core\Tests\Functional\DataHandling\FAL\Modify;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Functional\DataHandling\FAL\Modify;
+
 use TYPO3\CMS\Core\Tests\Functional\DataHandling\FAL\AbstractActionTestCase;
+use TYPO3\TestingFramework\Core\Functional\Framework\Frontend\InternalRequest;
+use TYPO3\TestingFramework\Core\Functional\Framework\Frontend\ResponseContent;
 
 /**
  * Functional test for the DataHandler
@@ -27,8 +30,13 @@ class ActionTest extends AbstractActionTestCase
     protected $assertionDataSetDirectory = 'typo3/sysext/core/Tests/Functional/DataHandling/FAL/Modify/DataSet/';
 
     /**
-     * Content records
+     * @test
      */
+    public function verifyCleanReferenceIndex()
+    {
+        // The test verifies the imported data set has a clean reference index by the check in tearDown()
+        self::assertTrue(true);
+    }
 
     /**
      * @test
@@ -39,7 +47,8 @@ class ActionTest extends AbstractActionTestCase
         parent::modifyContent();
         $this->assertAssertionDataSet('modifyContent');
 
-        $responseSections = $this->getFrontendResponse(self::VALUE_PageId)->getResponseSections();
+        $response = $this->executeFrontendRequest((new InternalRequest())->withPageId(self::VALUE_PageId));
+        $responseSections = ResponseContent::fromString((string)$response->getBody())->getSections();
         self::assertThat($responseSections, $this->getRequestSectionHasRecordConstraint()
             ->setTable(self::TABLE_Content)->setField('header')->setValues('Testing #1'));
         self::assertThat($responseSections, $this->getRequestSectionStructureHasRecordConstraint()
@@ -56,7 +65,8 @@ class ActionTest extends AbstractActionTestCase
         parent::deleteContent();
         $this->assertAssertionDataSet('deleteContent');
 
-        $responseSections = $this->getFrontendResponse(self::VALUE_PageId)->getResponseSections();
+        $response = $this->executeFrontendRequest((new InternalRequest())->withPageId(self::VALUE_PageId));
+        $responseSections = ResponseContent::fromString((string)$response->getBody())->getSections();
         self::assertThat($responseSections, $this->getRequestSectionHasRecordConstraint()
             ->setTable(self::TABLE_Content)->setField('header')->setValues('Regular Element #1'));
         self::assertThat($responseSections, $this->getRequestSectionDoesNotHaveRecordConstraint()
@@ -72,7 +82,8 @@ class ActionTest extends AbstractActionTestCase
         parent::copyContent();
         $this->assertAssertionDataSet('copyContent');
 
-        $responseSections = $this->getFrontendResponse(self::VALUE_PageId)->getResponseSections();
+        $response = $this->executeFrontendRequest((new InternalRequest())->withPageId(self::VALUE_PageId));
+        $responseSections = ResponseContent::fromString((string)$response->getBody())->getSections();
         self::assertThat($responseSections, $this->getRequestSectionHasRecordConstraint()
             ->setTable(self::TABLE_Content)->setField('header')->setValues('Regular Element #2 (copy 1)'));
         self::assertThat($responseSections, $this->getRequestSectionStructureHasRecordConstraint()
@@ -94,7 +105,8 @@ class ActionTest extends AbstractActionTestCase
         $languageConfiguration = $this->siteLanguageConfiguration;
         $languageConfiguration[1]['fallbackType'] = 'free';
         $this->setUpFrontendSite(1, $languageConfiguration);
-        $responseSections = $this->getFrontendResponse(self::VALUE_PageId, self::VALUE_LanguageId)->getResponseSections();
+        $response = $this->executeFrontendRequest((new InternalRequest())->withPageId(self::VALUE_PageId)->withLanguageId(self::VALUE_LanguageId));
+        $responseSections = ResponseContent::fromString((string)$response->getBody())->getSections();
         self::assertThat($responseSections, $this->getRequestSectionHasRecordConstraint()
             ->setTable(self::TABLE_Content)->setField('header')->setValues('[Translate to Dansk:] Regular Element #2'));
 
@@ -114,7 +126,8 @@ class ActionTest extends AbstractActionTestCase
         parent::localizeContent();
         $this->assertAssertionDataSet('localizeContent');
 
-        $responseSections = $this->getFrontendResponse(self::VALUE_PageId, self::VALUE_LanguageId)->getResponseSections();
+        $response = $this->executeFrontendRequest((new InternalRequest())->withPageId(self::VALUE_PageId)->withLanguageId(self::VALUE_LanguageId));
+        $responseSections = ResponseContent::fromString((string)$response->getBody())->getSections();
         self::assertThat($responseSections, $this->getRequestSectionHasRecordConstraint()
             ->setTable(self::TABLE_Content)->setField('header')->setValues('Regular Element #1', '[Translate to Dansk:] Regular Element #2'));
 
@@ -132,7 +145,8 @@ class ActionTest extends AbstractActionTestCase
         parent::changeContentSorting();
         $this->assertAssertionDataSet('changeContentSorting');
 
-        $responseSections = $this->getFrontendResponse(self::VALUE_PageId)->getResponseSections();
+        $response = $this->executeFrontendRequest((new InternalRequest())->withPageId(self::VALUE_PageId));
+        $responseSections = ResponseContent::fromString((string)$response->getBody())->getSections();
         self::assertThat($responseSections, $this->getRequestSectionHasRecordConstraint()
             ->setTable(self::TABLE_Content)->setField('header')->setValues('Regular Element #1', 'Regular Element #2'));
         self::assertThat($responseSections, $this->getRequestSectionStructureHasRecordConstraint()
@@ -152,13 +166,15 @@ class ActionTest extends AbstractActionTestCase
         parent::moveContentToDifferentPage();
         $this->assertAssertionDataSet('moveContentToDifferentPage');
 
-        $responseSectionsSource = $this->getFrontendResponse(self::VALUE_PageId)->getResponseSections();
+        $response = $this->executeFrontendRequest((new InternalRequest())->withPageId(self::VALUE_PageId));
+        $responseSectionsSource = ResponseContent::fromString((string)$response->getBody())->getSections();
         self::assertThat($responseSectionsSource, $this->getRequestSectionHasRecordConstraint()
             ->setTable(self::TABLE_Content)->setField('header')->setValues('Regular Element #1'));
         self::assertThat($responseSectionsSource, $this->getRequestSectionStructureHasRecordConstraint()
             ->setRecordIdentifier(self::TABLE_Content . ':' . self::VALUE_ContentIdFirst)->setRecordField(self::FIELD_ContentImage)
             ->setTable(self::TABLE_FileReference)->setField('title')->setValues('Kasper', 'T3BOARD'));
-        $responseSectionsTarget = $this->getFrontendResponse(self::VALUE_PageIdTarget)->getResponseSections();
+        $response = $this->executeFrontendRequest((new InternalRequest())->withPageId(self::VALUE_PageIdTarget));
+        $responseSectionsTarget = ResponseContent::fromString((string)$response->getBody())->getSections();
         self::assertThat($responseSectionsTarget, $this->getRequestSectionHasRecordConstraint()
             ->setTable(self::TABLE_Content)->setField('header')->setValues('Regular Element #2'));
         self::assertThat($responseSectionsTarget, $this->getRequestSectionStructureHasRecordConstraint()
@@ -175,7 +191,8 @@ class ActionTest extends AbstractActionTestCase
         parent::moveContentToDifferentPageAndChangeSorting();
         $this->assertAssertionDataSet('moveContentToDifferentPageNChangeSorting');
 
-        $responseSections = $this->getFrontendResponse(self::VALUE_PageIdTarget)->getResponseSections();
+        $response = $this->executeFrontendRequest((new InternalRequest())->withPageId(self::VALUE_PageIdTarget));
+        $responseSections = ResponseContent::fromString((string)$response->getBody())->getSections();
         self::assertThat($responseSections, $this->getRequestSectionHasRecordConstraint()
             ->setTable(self::TABLE_Content)->setField('header')->setValues('Regular Element #1', 'Regular Element #2'));
         self::assertThat($responseSections, $this->getRequestSectionStructureHasRecordConstraint()
@@ -199,7 +216,8 @@ class ActionTest extends AbstractActionTestCase
         parent::createContentWithFileReference();
         $this->assertAssertionDataSet('createContentWFileReference');
 
-        $responseSections = $this->getFrontendResponse(self::VALUE_PageId)->getResponseSections();
+        $response = $this->executeFrontendRequest((new InternalRequest())->withPageId(self::VALUE_PageId));
+        $responseSections = ResponseContent::fromString((string)$response->getBody())->getSections();
         self::assertThat($responseSections, $this->getRequestSectionHasRecordConstraint()
             ->setTable(self::TABLE_Content)->setField('header')->setValues('Testing #1'));
         self::assertThat($responseSections, $this->getRequestSectionStructureHasRecordConstraint()
@@ -216,7 +234,8 @@ class ActionTest extends AbstractActionTestCase
         parent::modifyContentWithFileReference();
         $this->assertAssertionDataSet('modifyContentWFileReference');
 
-        $responseSections = $this->getFrontendResponse(self::VALUE_PageId)->getResponseSections();
+        $response = $this->executeFrontendRequest((new InternalRequest())->withPageId(self::VALUE_PageId));
+        $responseSections = ResponseContent::fromString((string)$response->getBody())->getSections();
         self::assertThat($responseSections, $this->getRequestSectionHasRecordConstraint()
             ->setTable(self::TABLE_Content)->setField('header')->setValues('Testing #1'));
         self::assertThat($responseSections, $this->getRequestSectionStructureHasRecordConstraint()
@@ -233,7 +252,8 @@ class ActionTest extends AbstractActionTestCase
         parent::modifyContentAndAddFileReference();
         $this->assertAssertionDataSet('modifyContentNAddFileReference');
 
-        $responseSections = $this->getFrontendResponse(self::VALUE_PageId)->getResponseSections();
+        $response = $this->executeFrontendRequest((new InternalRequest())->withPageId(self::VALUE_PageId));
+        $responseSections = ResponseContent::fromString((string)$response->getBody())->getSections();
         self::assertThat($responseSections, $this->getRequestSectionStructureHasRecordConstraint()
             ->setRecordIdentifier(self::TABLE_Content . ':' . self::VALUE_ContentIdLast)->setRecordField(self::FIELD_ContentImage)
             ->setTable(self::TABLE_FileReference)->setField('title')->setValues('Taken at T3BOARD', 'This is Kasper', 'Image #3'));
@@ -248,7 +268,8 @@ class ActionTest extends AbstractActionTestCase
         parent::modifyContentAndDeleteFileReference();
         $this->assertAssertionDataSet('modifyContentNDeleteFileReference');
 
-        $responseSections = $this->getFrontendResponse(self::VALUE_PageId)->getResponseSections();
+        $response = $this->executeFrontendRequest((new InternalRequest())->withPageId(self::VALUE_PageId));
+        $responseSections = ResponseContent::fromString((string)$response->getBody())->getSections();
         self::assertThat($responseSections, $this->getRequestSectionStructureHasRecordConstraint()
             ->setRecordIdentifier(self::TABLE_Content . ':' . self::VALUE_ContentIdLast)->setRecordField(self::FIELD_ContentImage)
             ->setTable(self::TABLE_FileReference)->setField('title')->setValues('This is Kasper'));
@@ -266,9 +287,20 @@ class ActionTest extends AbstractActionTestCase
         parent::modifyContentAndDeleteAllFileReference();
         $this->assertAssertionDataSet('modifyContentNDeleteAllFileReference');
 
-        $responseSections = $this->getFrontendResponse(self::VALUE_PageId)->getResponseSections();
+        $response = $this->executeFrontendRequest((new InternalRequest())->withPageId(self::VALUE_PageId));
+        $responseSections = ResponseContent::fromString((string)$response->getBody())->getSections();
         self::assertThat($responseSections, $this->getRequestSectionStructureDoesNotHaveRecordConstraint()
             ->setRecordIdentifier(self::TABLE_Content . ':' . self::VALUE_ContentIdLast)->setRecordField(self::FIELD_ContentImage)
             ->setTable(self::TABLE_FileReference)->setField('title')->setValues('Taken at T3BOARD', 'This is Kasper'));
+    }
+
+    /**
+     * @test
+     */
+    public function createContentWithFileReferenceAndDeleteFileReference()
+    {
+        parent::createContentWithFileReferenceAndDeleteFileReference();
+        $this->assertAssertionDataSet('createContentWFileReferenceNDeleteFileReference');
+        // No FE test: Create and delete scenarios have FE coverage, this test is only about DB state.
     }
 }

@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Extbase\Tests\Unit\Mvc\Web\Routing;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,7 +15,8 @@ namespace TYPO3\CMS\Extbase\Tests\Unit\Mvc\Web\Routing;
  * The TYPO3 project - inspiring people to share!
  */
 
-use PHPUnit\Framework\Error\Warning;
+namespace TYPO3\CMS\Extbase\Tests\Unit\Mvc\Web\Routing;
+
 use TYPO3\CMS\Backend\Routing\Route;
 use TYPO3\CMS\Backend\Routing\Router;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -416,7 +417,7 @@ class UriBuilderTest extends UnitTestCase
     public function buildBackendUriHandlesRemovedMethods(string $method, string $expectedMessage, string $expectedResult): void
     {
         $_GET = ['common' => 'GET', 'get' => 'GET', 'route' => '/test/Path'];
-        $this->expectException(Warning::class);
+        $this->expectWarning();
         $this->expectExceptionMessage($expectedMessage);
         $this->uriBuilder->setAddQueryStringMethod($method);
         self::assertSame($expectedResult, $this->uriBuilder->buildFrontendUri());
@@ -767,7 +768,7 @@ class UriBuilderTest extends UnitTestCase
     /**
      * @test
      */
-    public function conversionOfTansientObjectsIsInvoked()
+    public function conversionOfTransientObjectsIsInvoked()
     {
         $mockValueObject = new ValueObjectFixture();
         $mockValueObject->name = 'foo';
@@ -782,7 +783,7 @@ class UriBuilderTest extends UnitTestCase
     /**
      * @test
      */
-    public function conversionOfTansientObjectsThrowsExceptionForOtherThanValueObjects()
+    public function conversionOfTransientObjectsThrowsExceptionForOtherThanValueObjects()
     {
         $this->expectException(InvalidArgumentValueException::class);
         $this->expectExceptionCode(1260881688);
@@ -796,7 +797,7 @@ class UriBuilderTest extends UnitTestCase
     /**
      * @test
      */
-    public function tansientObjectsAreConvertedToAnArrayOfProperties()
+    public function transientObjectsAreConvertedToAnArrayOfProperties()
     {
         $mockValueObject = new ValueObjectFixture();
         $mockValueObject->name = 'foo';
@@ -809,7 +810,7 @@ class UriBuilderTest extends UnitTestCase
     /**
      * @test
      */
-    public function tansientObjectsWithObjectStorageAreConvertedToAnArrayOfProperties()
+    public function transientObjectsWithObjectStorageAreConvertedToAnArrayOfProperties()
     {
         $mockValueObject = new ValueObjectFixture();
         $objectStorage = new ObjectStorage();
@@ -839,7 +840,7 @@ class UriBuilderTest extends UnitTestCase
     /**
      * @test
      */
-    public function tansientObjectsAreRecursivelyConverted()
+    public function transientObjectsAreRecursivelyConverted()
     {
         $mockInnerValueObject2 = new ValueObjectFixture();
         $mockInnerValueObject2->name = 'foo';
@@ -867,7 +868,7 @@ class UriBuilderTest extends UnitTestCase
     /**
      * @test
      */
-    public function removeDefaultControllerAndActionDoesNotModifyArgumentsifSpecifiedControlerAndActionIsNotEqualToDefaults()
+    public function removeDefaultControllerAndActionDoesNotModifyArgumentsIfSpecifiedControllerAndActionIsNotEqualToDefaults()
     {
         $this->mockExtensionService->expects(self::atLeastOnce())->method('getDefaultControllerNameByPlugin')->with('ExtensionName', 'PluginName')->willReturn('DefaultController');
         $this->mockExtensionService->expects(self::atLeastOnce())->method('getDefaultActionNameByPluginAndController')->with('ExtensionName', 'PluginName', 'SomeController')->willReturn('defaultAction');

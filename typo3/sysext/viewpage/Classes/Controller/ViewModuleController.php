@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Viewpage\Controller;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,8 +15,11 @@ namespace TYPO3\CMS\Viewpage\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Viewpage\Controller;
+
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Template\Components\ButtonBar;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
@@ -31,11 +34,8 @@ use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Messaging\FlashMessageService;
 use TYPO3\CMS\Core\Page\PageRenderer;
-use TYPO3\CMS\Core\Routing\InvalidRouteArgumentsException;
-use TYPO3\CMS\Core\Site\Entity\NullSite;
-use TYPO3\CMS\Core\Site\Entity\Site;
+use TYPO3\CMS\Core\Routing\UnableToLinkToPageException;
 use TYPO3\CMS\Core\Site\SiteFinder;
-use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Mvc\View\ViewInterface;
 use TYPO3\CMS\Fluid\View\StandaloneView;
@@ -100,7 +100,7 @@ class ViewModuleController
             $languageMenu = $this->moduleTemplate->getDocHeaderComponent()->getMenuRegistry()->makeMenu();
             $languageMenu->setIdentifier('_langSelector');
             /** @var \TYPO3\CMS\Backend\Routing\UriBuilder $uriBuilder */
-            $uriBuilder = GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Routing\UriBuilder::class);
+            $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
             foreach ($languages as $value => $label) {
                 $href = (string)$uriBuilder->buildUriFromRoute(
                     'web_ViewpageView',
@@ -169,107 +169,68 @@ class ViewModuleController
                 '',
                 FlashMessage::INFO
             );
-            $flashMessageService = GeneralUtility::makeInstance(FlashMessageService::class);
-            $defaultFlashMessageQueue = $flashMessageService->getMessageQueueByIdentifier();
-            $defaultFlashMessageQueue->enqueue($flashMessage);
-        } else {
-            $languageId = $this->getCurrentLanguage($pageId, $request->getParsedBody()['language'] ?? $request->getQueryParams()['language'] ?? null);
-            $targetUrl = $this->getTargetUrl($pageId, $languageId);
-            $this->registerDocHeader($pageId, $languageId, $targetUrl);
-
-            $iconFactory = GeneralUtility::makeInstance(IconFactory::class);
-            $icons = [];
-            $icons['orientation'] = $iconFactory->getIcon('actions-device-orientation-change', Icon::SIZE_SMALL)->render('inline');
-            $icons['fullscreen'] = $iconFactory->getIcon('actions-fullscreen', Icon::SIZE_SMALL)->render('inline');
-            $icons['expand'] = $iconFactory->getIcon('actions-expand', Icon::SIZE_SMALL)->render('inline');
-            $icons['desktop'] = $iconFactory->getIcon('actions-device-desktop', Icon::SIZE_SMALL)->render('inline');
-            $icons['tablet'] = $iconFactory->getIcon('actions-device-tablet', Icon::SIZE_SMALL)->render('inline');
-            $icons['mobile'] = $iconFactory->getIcon('actions-device-mobile', Icon::SIZE_SMALL)->render('inline');
-            $icons['unidentified'] = $iconFactory->getIcon('actions-device-unidentified', Icon::SIZE_SMALL)->render('inline');
-
-            $current = ($this->getBackendUser()->uc['moduleData']['web_view']['States']['current'] ?: []);
-            $current['label'] = ($current['label'] ?? $this->getLanguageService()->sL('LLL:EXT:viewpage/Resources/Private/Language/locallang.xlf:custom'));
-            $current['width'] = (isset($current['width']) && (int)$current['width'] >= 300 ? (int)$current['width'] : 320);
-            $current['height'] = (isset($current['height']) && (int)$current['height'] >= 300 ? (int)$current['height'] : 480);
-
-            $custom = ($this->getBackendUser()->uc['moduleData']['web_view']['States']['custom'] ?: []);
-            $custom['width'] = (isset($current['custom']) && (int)$current['custom'] >= 300 ? (int)$current['custom'] : 320);
-            $custom['height'] = (isset($current['custom']) && (int)$current['custom'] >= 300 ? (int)$current['custom'] : 480);
-
-            $this->view->assign('icons', $icons);
-            $this->view->assign('current', $current);
-            $this->view->assign('custom', $custom);
-            $this->view->assign('presetGroups', $this->getPreviewPresets($pageId));
-            $this->view->assign('url', $targetUrl);
+            return $this->renderFlashMessage($flashMessage);
         }
+
+        $languageId = $this->getCurrentLanguage($pageId, $request->getParsedBody()['language'] ?? $request->getQueryParams()['language'] ?? null);
+        try {
+            $targetUrl = BackendUtility::getPreviewUrl(
+                $pageId,
+                '',
+                null,
+                '',
+                '',
+                $this->getTypeParameterIfSet($pageId) . '&L=' . $languageId
+            );
+        } catch (UnableToLinkToPageException $e) {
+            $flashMessage = GeneralUtility::makeInstance(
+                FlashMessage::class,
+                $this->getLanguageService()->getLL('noSiteConfiguration'),
+                '',
+                FlashMessage::WARNING
+            );
+            return $this->renderFlashMessage($flashMessage);
+        }
+
+        $this->registerDocHeader($pageId, $languageId, $targetUrl);
+
+        $iconFactory = GeneralUtility::makeInstance(IconFactory::class);
+        $icons = [];
+        $icons['orientation'] = $iconFactory->getIcon('actions-device-orientation-change', Icon::SIZE_SMALL)->render('inline');
+        $icons['fullscreen'] = $iconFactory->getIcon('actions-fullscreen', Icon::SIZE_SMALL)->render('inline');
+        $icons['expand'] = $iconFactory->getIcon('actions-expand', Icon::SIZE_SMALL)->render('inline');
+        $icons['desktop'] = $iconFactory->getIcon('actions-device-desktop', Icon::SIZE_SMALL)->render('inline');
+        $icons['tablet'] = $iconFactory->getIcon('actions-device-tablet', Icon::SIZE_SMALL)->render('inline');
+        $icons['mobile'] = $iconFactory->getIcon('actions-device-mobile', Icon::SIZE_SMALL)->render('inline');
+        $icons['unidentified'] = $iconFactory->getIcon('actions-device-unidentified', Icon::SIZE_SMALL)->render('inline');
+
+        $current = ($this->getBackendUser()->uc['moduleData']['web_view']['States']['current'] ?: []);
+        $current['label'] = ($current['label'] ?? $this->getLanguageService()->sL('LLL:EXT:viewpage/Resources/Private/Language/locallang.xlf:custom'));
+        $current['width'] = (isset($current['width']) && (int)$current['width'] >= 300 ? (int)$current['width'] : 320);
+        $current['height'] = (isset($current['height']) && (int)$current['height'] >= 300 ? (int)$current['height'] : 480);
+
+        $custom = ($this->getBackendUser()->uc['moduleData']['web_view']['States']['custom'] ?: []);
+        $custom['width'] = (isset($current['custom']) && (int)$current['custom'] >= 300 ? (int)$current['custom'] : 320);
+        $custom['height'] = (isset($current['custom']) && (int)$current['custom'] >= 300 ? (int)$current['custom'] : 480);
+
+        $this->view->assign('icons', $icons);
+        $this->view->assign('current', $current);
+        $this->view->assign('custom', $custom);
+        $this->view->assign('presetGroups', $this->getPreviewPresets($pageId));
+        $this->view->assign('url', $targetUrl);
 
         $this->moduleTemplate->setContent($this->view->render());
         return new HtmlResponse($this->moduleTemplate->renderContent());
     }
 
-    /**
-     * Determine the url to view
-     *
-     * @param int $pageId
-     * @param int $languageId
-     * @return string
-     */
-    protected function getTargetUrl(int $pageId, int $languageId): string
+    protected function renderFlashMessage(FlashMessage $flashMessage): HtmlResponse
     {
-        $permissionClause = $this->getBackendUser()->getPagePermsClause(Permission::PAGE_SHOW);
-        $pageRecord = BackendUtility::readPageAccess($pageId, $permissionClause);
-        if ($pageRecord) {
-            $this->moduleTemplate->getDocHeaderComponent()->setMetaInformation($pageRecord);
-            $rootLine = BackendUtility::BEgetRootLine($pageId);
-            // Mount point overlay: Set new target page id and mp parameter
-            $pageRepository = GeneralUtility::makeInstance(PageRepository::class);
-            $additionalGetVars = $this->getAdminCommand($pageId);
-            $siteFinder = GeneralUtility::makeInstance(SiteFinder::class);
-            try {
-                $site = $siteFinder->getSiteByPageId($pageId, $rootLine);
-            } catch (SiteNotFoundException $e) {
-                $site = new NullSite();
-            }
-            $finalPageIdToShow = $pageId;
-            $mountPointInformation = $pageRepository->getMountPointInfo($pageId);
-            if ($mountPointInformation && $mountPointInformation['overlay']) {
-                // New page id
-                $finalPageIdToShow = $mountPointInformation['mount_pid'];
-                $additionalGetVars .= '&MP=' . $mountPointInformation['MPvar'];
-            }
-            $additionalGetVars .= $this->getTypeParameterIfSet($finalPageIdToShow);
-            if ($site instanceof Site) {
-                $additionalQueryParams = [];
-                parse_str($additionalGetVars, $additionalQueryParams);
-                $additionalQueryParams['_language'] = $site->getLanguageById($languageId);
-                try {
-                    $uri = (string)$site->getRouter()->generateUri($finalPageIdToShow, $additionalQueryParams);
-                } catch (InvalidRouteArgumentsException $e) {
-                    return '#';
-                }
-            } else {
-                $uri = BackendUtility::getPreviewUrl($finalPageIdToShow, '', $rootLine, '', '', $additionalGetVars);
-            }
-            return $uri;
-        }
-        return '#';
-    }
+        $flashMessageService = GeneralUtility::makeInstance(FlashMessageService::class);
+        $defaultFlashMessageQueue = $flashMessageService->getMessageQueueByIdentifier();
+        $defaultFlashMessageQueue->enqueue($flashMessage);
 
-    /**
-     * Get admin command
-     *
-     * @param int $pageId
-     * @return string
-     */
-    protected function getAdminCommand(int $pageId): string
-    {
-        // The page will show only if there is a valid page and if this page may be viewed by the user
-        $pageinfo = BackendUtility::readPageAccess($pageId, $this->getBackendUser()->getPagePermsClause(Permission::PAGE_SHOW));
-        $addCommand = '';
-        if (is_array($pageinfo)) {
-            $addCommand = '&ADMCMD_editIcons=1' . BackendUtility::ADMCMD_previewCmds($pageinfo);
-        }
-        return $addCommand;
+        $this->moduleTemplate->setContent($this->view->render());
+        return new HtmlResponse($this->moduleTemplate->renderContent());
     }
 
     /**
@@ -402,12 +363,14 @@ class ViewModuleController
         }
 
         $page = BackendUtility::getRecord('pages', $pageId);
-        $pageType = (int)$page['doktype'] ?? 0;
+        $pageType = (int)($page['doktype'] ?? 0);
 
-        return $page !== null
-            && $pageType !== PageRepository::DOKTYPE_SPACER
-            && $pageType !== PageRepository::DOKTYPE_SYSFOLDER
-            && $pageType !== PageRepository::DOKTYPE_RECYCLER;
+        return $pageType !== 0
+            && !in_array($pageType, [
+                PageRepository::DOKTYPE_SPACER,
+                PageRepository::DOKTYPE_SYSFOLDER,
+                PageRepository::DOKTYPE_RECYCLER
+            ], true);
     }
 
     /**

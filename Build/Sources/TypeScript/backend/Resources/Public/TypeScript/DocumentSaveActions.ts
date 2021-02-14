@@ -11,7 +11,7 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import * as $ from 'jquery';
+import $ from 'jquery';
 import Icons = require('./Icons');
 
 class DocumentSaveActions {
@@ -98,7 +98,7 @@ class DocumentSaveActions {
             $affectedButton = $me;
           }
 
-          Icons.getIcon('spinner-circle-dark', Icons.sizes.small).done((markup: string): void => {
+          Icons.getIcon('spinner-circle-dark', Icons.sizes.small).then((markup: string): void => {
             $affectedButton.find('.t3js-icon').replaceWith(markup);
           });
 

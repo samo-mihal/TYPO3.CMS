@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extensionmanager\Report;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,9 +13,12 @@ namespace TYPO3\CMS\Extensionmanager\Report;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extensionmanager\Report;
+
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Object\ObjectManager;
+use TYPO3\CMS\Extensionmanager\Domain\Model\Extension;
 use TYPO3\CMS\Extensionmanager\Domain\Repository\RepositoryRepository;
 use TYPO3\CMS\Extensionmanager\Utility\ListUtility;
 use TYPO3\CMS\Reports\Status;
@@ -145,7 +147,7 @@ class ExtensionStatus implements StatusProviderInterface
         foreach ($extensionInformation as $extensionKey => $information) {
             if (
                 array_key_exists('terObject', $information)
-                && $information['terObject'] instanceof \TYPO3\CMS\Extensionmanager\Domain\Model\Extension
+                && $information['terObject'] instanceof Extension
             ) {
                 /** @var \TYPO3\CMS\Extensionmanager\Domain\Model\Extension $terObject */
                 $terObject = $information['terObject'];

@@ -114,12 +114,15 @@ Hreflang Tags
 The generation of the :html:`<link rel="alternate" hreflang="" href="" />`
 tags is done automatically if the page is available in other languages.
 This feature should work correctly in almost all cases.
-If you have a specific edge case, and you don't want TYPO3 to render those tags, you can disable rendering of the those tags completely.
-You just have to put this line in the :file:`ext_localconf.php` of an extension and make sure your extension is loaded after EXT:seo.
 
-.. code-block:: php
+TYPO3 is using PSR-14 events to handle the generation of those hreflang tags.
+If, for some reason, you would like to alter or remove the automatically generated
+tags, you can register your own EventListener. This EventListener should listen
+to the :php:`TYPO3\CMS\Frontend\Event\ModifyHrefLangTagsEvent` event. Just make
+sure your EventListener is ordered after the :php:`TYPO3\CMS\Seo\HrefLang\HrefLangGenerator`
+listener.
 
-   unset($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['TYPO3\CMS\Frontend\Page\PageGenerator']['generateMetaTags']['hreflang']);
+More information how to work with EventListeners can be found in the documentation of :ref:`t3coreapi:EventDispatcher`
 
 .. _config-canonical-tag:
 
@@ -156,13 +159,25 @@ If you want to have a fallback og:image or twitter:image, you can use this littl
 
    page {
      meta {
-       og:image.stdWrap.cObject = IMG_RESOURCE
+       og:image.stdWrap.cObject = TEXT
        og:image.stdWrap.cObject {
-         file = EXT:your_extension/Resources/Public/Backend/OgImage.svg
+         if.isFalse.field = og_image
+         stdWrap.typolink {
+           parameter.stdWrap.cObject = IMG_RESOURCE
+           parameter.stdWrap.cObject.file = EXT:your_extension/Resources/Public/Backend/OgImage.svg
+           returnLast = url
+           forceAbsoluteUrl = 1
+         }
        }
-       twitter:image.stdWrap.cObject = IMG_RESOURCE
+       twitter:image.stdWrap.cObject = TEXT
        twitter:image.stdWrap.cObject {
-         file = EXT:your_extension/Resources/Public/Backend/TwitterCardImage.svg
+         if.isFalse.field = twitter_image
+         stdWrap.typolink {
+           parameter.stdWrap.cObject = IMG_RESOURCE
+           parameter.stdWrap.cObject.file = EXT:your_extension/Resources/Public/Backend/TwitterCardImage.svg
+           returnLast = url
+           forceAbsoluteUrl = 1
+         }
        }
      }
    }

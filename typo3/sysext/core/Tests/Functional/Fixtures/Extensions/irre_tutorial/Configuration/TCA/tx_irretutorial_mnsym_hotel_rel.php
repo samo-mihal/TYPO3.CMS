@@ -1,4 +1,5 @@
 <?php
+
 return [
     'ctrl' => [
         'title' => 'LLL:EXT:irre_tutorial/locallang_db.xml:tx_irretutorial_mnsym_hotel_rel',
@@ -16,11 +17,8 @@ return [
         'iconfile' => 'EXT:irre_tutorial/Resources/Public/Icons/icon_tx_irretutorial_hotel_rel.gif',
         'versioningWS' => true,
         'origUid' => 't3_origuid',
-        // @see http://forge.typo3.org/issues/29278 which solves it implicitly in the Core
+        // @see https://forge.typo3.org/issues/29278 which solves it implicitly in the Core
         // 'shadowColumnsForNewPlaceholders' => 'hotelid',
-    ],
-    'interface' => [
-        'showRecordFieldList' => 'sys_language_uid,l18n_parent,l18n_diffsource,hidden,title,hotelid,offerid,hotelsort,offersort'
     ],
     'columns' => [
         'sys_language_uid' => [
@@ -39,7 +37,6 @@ return [
         ],
         'l18n_parent' => [
             'displayCond' => 'FIELD:sys_language_uid:>:0',
-            'exclude' => true,
             'label' => 'LLL:EXT:core/Resources/Private/Language/locallang_general.xlf:LGL.l18n_parent',
             'config' => [
                 'type' => 'select',

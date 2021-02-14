@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Resource\Driver;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Resource\Driver;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Resource\Driver;
 
 /**
  * An interface Drivers have to implement to fulfil the needs
@@ -42,7 +43,7 @@ interface DriverInterface
      * Returns the capabilities of this driver.
      *
      * @return int
-     * @see Storage::CAPABILITY_* constants
+     * @see ResourceStorageInterface::CAPABILITY_ constants
      */
     public function getCapabilities();
 
@@ -182,8 +183,8 @@ interface DriverInterface
     /**
      * Adds a file from the local server hard disk to a given path in TYPO3s
      * virtual file system. This assumes that the local file exists, so no
-     * further check is done here! After a successful the original file must
-     * not exist anymore.
+     * further check is done here! After a successful operation the original
+     * file must not exist anymore.
      *
      * @param string $localFilePath within public web path
      * @param string $targetFolderIdentifier

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extensionmanager\Domain\Model;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Extensionmanager\Domain\Model;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Extensionmanager\Domain\Model;
 
 use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 
@@ -75,7 +76,7 @@ class Mirrors extends AbstractEntity
         $sumMirrors = count($this->mirrors);
         if ($sumMirrors > 0) {
             if (!is_int($this->currentMirror)) {
-                $this->currentMirror = rand(0, $sumMirrors - 1);
+                $this->currentMirror = random_int(0, $sumMirrors - 1);
             }
             return $this->mirrors[$this->currentMirror];
         }

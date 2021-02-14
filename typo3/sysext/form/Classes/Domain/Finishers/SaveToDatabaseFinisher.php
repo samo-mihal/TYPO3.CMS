@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\Domain\Finishers;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Form\Domain\Finishers;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Form\Domain\Finishers;
 
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -196,6 +198,7 @@ class SaveToDatabaseFinisher extends AbstractFinisher
      */
     protected function executeInternal()
     {
+        $options = [];
         if (isset($this->options['table'])) {
             $options[] = $this->options;
         } else {
@@ -213,7 +216,7 @@ class SaveToDatabaseFinisher extends AbstractFinisher
      *
      * @param array $elementsConfiguration
      * @param array $databaseData
-     * @return mixed
+     * @return array
      */
     protected function prepareData(array $elementsConfiguration, array $databaseData)
     {
@@ -270,7 +273,9 @@ class SaveToDatabaseFinisher extends AbstractFinisher
         $this->throwExceptionOnInconsistentConfiguration();
 
         $table = $this->parseOption('table');
+        $table = is_string($table) ? $table : '';
         $elementsConfiguration = $this->parseOption('elements');
+        $elementsConfiguration = is_array($elementsConfiguration) ? $elementsConfiguration : [];
         $databaseColumnMappingsConfiguration = $this->parseOption('databaseColumnMappings');
 
         $this->databaseConnection = GeneralUtility::makeInstance(ConnectionPool::class)->getConnectionForTable($table);

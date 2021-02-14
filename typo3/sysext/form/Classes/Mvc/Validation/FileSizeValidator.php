@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\Mvc\Validation;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Form\Mvc\Validation;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Form\Mvc\Validation;
 
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -52,7 +54,7 @@ class FileSizeValidator extends AbstractValidator
                 $this->translateErrorMessage(
                     'validation.error.1505303626',
                     'form'
-                ),
+                ) ?? '',
                 1505303626
             );
             return;
@@ -69,7 +71,7 @@ class FileSizeValidator extends AbstractValidator
                     'validation.error.1505305752',
                     'form',
                     [GeneralUtility::formatSize($minFileSize, $labels)]
-                ),
+                ) ?? '',
                 1505305752,
                 [GeneralUtility::formatSize($minFileSize, $labels)]
             );
@@ -80,7 +82,7 @@ class FileSizeValidator extends AbstractValidator
                     'validation.error.1505305753',
                     'form',
                     [GeneralUtility::formatSize($maxFileSize, $labels)]
-                ),
+                ) ?? '',
                 1505305753,
                 [GeneralUtility::formatSize($maxFileSize, $labels)]
             );

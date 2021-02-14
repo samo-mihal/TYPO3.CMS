@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Acceptance\Backend\Page;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Acceptance\Backend\Page;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Acceptance\Backend\Page;
 
 use PHPUnit\Framework\SkippedTestError;
 use TYPO3\CMS\Core\Tests\Acceptance\Support\BackendTester;
@@ -81,7 +83,7 @@ class AddPageInPageModuleCest
         $classString = $I->executeInSelenium(function (\Facebook\WebDriver\Remote\RemoteWebDriver $webdriver) use (
             $generalTab
         ) {
-            return $webdriver->findElement(\WebDriverBy::cssSelector($generalTab))->getAttribute('class');
+            return $webdriver->findElement(\Facebook\WebDriver\WebDriverBy::cssSelector($generalTab))->getAttribute('class');
         });
         $I->assertContains('has-validation-error', $classString);
 

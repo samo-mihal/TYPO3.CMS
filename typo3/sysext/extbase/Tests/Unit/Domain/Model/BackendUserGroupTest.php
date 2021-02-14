@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Tests\Unit\Domain\Model;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,10 @@ namespace TYPO3\CMS\Extbase\Tests\Unit\Domain\Model;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Tests\Unit\Domain\Model;
+
+use TYPO3\CMS\Extbase\Domain\Model\BackendUserGroup;
+use TYPO3\CMS\Extbase\Persistence\ObjectStorage;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -29,7 +32,7 @@ class BackendUserGroupTest extends UnitTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->subject = new \TYPO3\CMS\Extbase\Domain\Model\BackendUserGroup();
+        $this->subject = new BackendUserGroup();
     }
 
     /**
@@ -73,7 +76,7 @@ class BackendUserGroupTest extends UnitTestCase
      */
     public function setSubGroupsSetsSubgroups()
     {
-        $subGroups = new \TYPO3\CMS\Extbase\Persistence\ObjectStorage();
+        $subGroups = new ObjectStorage();
         $this->subject->setSubGroups($subGroups);
         self::assertSame($subGroups, $this->subject->getSubGroups());
     }
@@ -83,9 +86,9 @@ class BackendUserGroupTest extends UnitTestCase
      */
     public function anSubGroupCanBeRemoved()
     {
-        $group1 = new \TYPO3\CMS\Extbase\Domain\Model\BackendUserGroup();
+        $group1 = new BackendUserGroup();
         $group1->setTitle('foo');
-        $group2 = new \TYPO3\CMS\Extbase\Domain\Model\BackendUserGroup();
+        $group2 = new BackendUserGroup();
         $group2->setTitle('bar');
         $this->subject->addSubGroup($group1);
         $this->subject->addSubGroup($group2);
@@ -101,9 +104,9 @@ class BackendUserGroupTest extends UnitTestCase
      */
     public function allSubGroupsCanBeRemoved()
     {
-        $group1 = new \TYPO3\CMS\Extbase\Domain\Model\BackendUserGroup();
+        $group1 = new BackendUserGroup();
         $group1->setTitle('foo');
-        $group2 = new \TYPO3\CMS\Extbase\Domain\Model\BackendUserGroup();
+        $group2 = new BackendUserGroup();
         $group2->setTitle('bar');
         $this->subject->addSubGroup($group1);
         $this->subject->addSubGroup($group2);

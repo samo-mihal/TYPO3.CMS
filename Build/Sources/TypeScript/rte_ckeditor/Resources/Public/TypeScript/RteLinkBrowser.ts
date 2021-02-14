@@ -11,7 +11,7 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import * as $ from 'jquery';
+import $ from 'jquery';
 import LinkBrowser = require('TYPO3/CMS/Recordlist/LinkBrowser');
 import 'ckeditor';
 import Modal = require('TYPO3/CMS/Backend/Modal');
@@ -23,6 +23,7 @@ import Modal = require('TYPO3/CMS/Backend/Modal');
 class RteLinkBrowser {
   protected plugin: any = null;
   protected CKEditor: CKEDITOR.editor = null;
+  protected ranges: CKEDITOR.dom.range[] = [];
   protected siteUrl: string = '';
 
   /**
@@ -46,6 +47,13 @@ class RteLinkBrowser {
         }
       });
     }
+
+    window.addEventListener('beforeunload', (): void => {
+      this.CKEditor.getSelection().selectRanges(this.ranges);
+    });
+
+    // Backup all ranges that are active when the Link Browser is requested
+    this.ranges = this.CKEditor.getSelection().getRanges();
 
     // siteUrl etc are added as data attributes to the body tag
     $.extend(RteLinkBrowser, $('body').data());
@@ -111,6 +119,7 @@ class RteLinkBrowser {
     linkElement.setAttribute('href', link);
 
     const selection = this.CKEditor.getSelection();
+    selection.selectRanges(this.ranges);
     if (selection && selection.getSelectedText() === '') {
       selection.selectElement(selection.getStartElement());
     }
@@ -119,6 +128,7 @@ class RteLinkBrowser {
     } else {
       linkElement.setText(linkElement.getAttribute('href'));
     }
+
     this.CKEditor.insertElement(linkElement);
 
     Modal.dismiss();

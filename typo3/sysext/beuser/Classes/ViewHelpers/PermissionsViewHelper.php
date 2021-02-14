@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Beuser\ViewHelpers;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Beuser\ViewHelpers;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Beuser\ViewHelpers;
 
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
@@ -85,15 +86,16 @@ class PermissionsViewHelper extends AbstractViewHelper
             }
 
             $label = static::$permissionLabels[$mask];
-            $icon .= '<span style="cursor:pointer"'
+            $icon .= '<button'
+                . ' aria-label="' . htmlspecialchars($label) . ', ' . htmlspecialchars($mode) . ', ' . htmlspecialchars($arguments['scope']) . '"'
                 . ' title="' . htmlspecialchars($label) . '"'
                 . ' data-toggle="tooltip"'
                 . ' data-page="' . htmlspecialchars($arguments['pageId']) . '"'
                 . ' data-permissions="' . htmlspecialchars($arguments['permission']) . '"'
                 . ' data-who="' . htmlspecialchars($arguments['scope']) . '"'
-                . ' data-bits="' . htmlspecialchars($mask) . '"'
+                . ' data-bits="' . htmlspecialchars((string)$mask) . '"'
                 . ' data-mode="' . htmlspecialchars($mode) . '"'
-                . ' class="t3-icon change-permission fa ' . htmlspecialchars($permissionClass) . '"></span>';
+                . ' class="t3-icon btn-clear change-permission fa ' . htmlspecialchars($permissionClass) . '"></button>';
         }
 
         return '<span id="' . htmlspecialchars($arguments['pageId'] . '_' . $arguments['scope']) . '">' . $icon . '</span>';

@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Extbase\Configuration;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,6 +15,13 @@ namespace TYPO3\CMS\Extbase\Configuration;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Configuration;
+
+use TYPO3\CMS\Extbase\Configuration\Exception\InvalidConfigurationTypeException;
+use TYPO3\CMS\Extbase\Object\ObjectManagerInterface;
+use TYPO3\CMS\Extbase\Service\EnvironmentService;
+use TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
+
 /**
  * A configuration manager following the strategy pattern (GoF315). It hides the concrete
  * implementation of the configuration manager and provides a unified access point.
@@ -23,7 +29,7 @@ namespace TYPO3\CMS\Extbase\Configuration;
  * Use the shutdown() method to drop the concrete implementation.
  * @internal only to be used within Extbase, not part of TYPO3 Core API.
  */
-class ConfigurationManager implements \TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface
+class ConfigurationManager implements ConfigurationManagerInterface
 {
     /**
      * @var \TYPO3\CMS\Extbase\Object\ObjectManagerInterface
@@ -45,8 +51,8 @@ class ConfigurationManager implements \TYPO3\CMS\Extbase\Configuration\Configura
      * @param \TYPO3\CMS\Extbase\Service\EnvironmentService $environmentService
      */
     public function __construct(
-        \TYPO3\CMS\Extbase\Object\ObjectManagerInterface $objectManager,
-        \TYPO3\CMS\Extbase\Service\EnvironmentService $environmentService
+        ObjectManagerInterface $objectManager,
+        EnvironmentService $environmentService
     ) {
         $this->objectManager = $objectManager;
         $this->environmentService = $environmentService;
@@ -57,16 +63,16 @@ class ConfigurationManager implements \TYPO3\CMS\Extbase\Configuration\Configura
     protected function initializeConcreteConfigurationManager(): void
     {
         if ($this->environmentService->isEnvironmentInFrontendMode()) {
-            $this->concreteConfigurationManager = $this->objectManager->get(\TYPO3\CMS\Extbase\Configuration\FrontendConfigurationManager::class);
+            $this->concreteConfigurationManager = $this->objectManager->get(FrontendConfigurationManager::class);
         } else {
-            $this->concreteConfigurationManager = $this->objectManager->get(\TYPO3\CMS\Extbase\Configuration\BackendConfigurationManager::class);
+            $this->concreteConfigurationManager = $this->objectManager->get(BackendConfigurationManager::class);
         }
     }
 
     /**
      * @param \TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer $contentObject
      */
-    public function setContentObject(\TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer $contentObject): void
+    public function setContentObject(ContentObjectRenderer $contentObject): void
     {
         $this->concreteConfigurationManager->setContentObject($contentObject);
     }
@@ -74,7 +80,7 @@ class ConfigurationManager implements \TYPO3\CMS\Extbase\Configuration\Configura
     /**
      * @return \TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer|null
      */
-    public function getContentObject(): ?\TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer
+    public function getContentObject(): ?ContentObjectRenderer
     {
         return $this->concreteConfigurationManager->getContentObject();
     }
@@ -118,7 +124,7 @@ class ConfigurationManager implements \TYPO3\CMS\Extbase\Configuration\Configura
             case self::CONFIGURATION_TYPE_FULL_TYPOSCRIPT:
                 return $this->concreteConfigurationManager->getTypoScriptSetup();
             default:
-                throw new \TYPO3\CMS\Extbase\Configuration\Exception\InvalidConfigurationTypeException('Invalid configuration type "' . $configurationType . '"', 1206031879);
+                throw new InvalidConfigurationTypeException('Invalid configuration type "' . $configurationType . '"', 1206031879);
         }
     }
 

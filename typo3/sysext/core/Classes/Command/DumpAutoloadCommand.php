@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Command;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Command;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Command;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -60,5 +62,6 @@ class DumpAutoloadCommand extends Command
         $io = new SymfonyStyle($input, $output);
         ClassLoadingInformation::dumpClassLoadingInformation();
         $io->success('Class loading information has been updated.');
+        return 0;
     }
 }

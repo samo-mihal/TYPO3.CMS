@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Lowlevel\Command;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Lowlevel\Command;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Lowlevel\Command;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -67,6 +69,7 @@ class CleanFlexFormsCommand extends Command
      *
      * @param InputInterface $input
      * @param OutputInterface $output
+     * @return int
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
@@ -110,6 +113,7 @@ class CleanFlexFormsCommand extends Command
         } else {
             $io->success('Nothing to do - You\'re all set!');
         }
+        return 0;
     }
 
     /**
@@ -232,7 +236,7 @@ class CleanFlexFormsCommand extends Command
                 if ($fullRecord[$columnName]) {
                     // Clean XML and check against the record fetched from the database
                     $newXML = $flexObj->cleanFlexFormXML($tableName, $columnName, $fullRecord);
-                    if (md5($fullRecord[$columnName]) !== md5($newXML)) {
+                    if (!hash_equals(md5($fullRecord[$columnName]), md5($newXML))) {
                         $dirtyFlexFormFields[$tableName . ':' . $uid . ':' . $columnName] = $fullRecord;
                     }
                 }
@@ -261,7 +265,7 @@ class CleanFlexFormsCommand extends Command
 
         // Loop through all tables and their records
         foreach ($records as $recordIdentifier => $fullRecord) {
-            list($table, $uid, $field) = explode(':', $recordIdentifier);
+            [$table, $uid, $field] = explode(':', $recordIdentifier);
             if ($io->isVerbose()) {
                 $io->writeln('Cleaning FlexForm XML in "' . $recordIdentifier . '"');
             }

@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Felogin\Updates;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Felogin\Updates;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Felogin\Updates;
 
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Expression\CompositeExpression;
@@ -53,6 +54,7 @@ final class MigrateFeloginPlugins implements UpgradeWizardInterface
         'status_message',
         'logout_header',
         'logout_message',
+        'forgot_header',
         'forgot_reset_message'
     ];
 

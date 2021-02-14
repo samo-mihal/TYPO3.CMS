@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Linkvalidator\EventListener;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Linkvalidator\EventListener;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Linkvalidator\EventListener;
 
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Html\Event\BrokenLinkAnalysisEvent;
@@ -43,10 +45,9 @@ final class CheckBrokenRteLinkEventListener
         if ($event->getLinkType() !== LinkService::TYPE_URL) {
             return;
         }
-        $url = (string)$event->getLinkData()['url'] ?? '';
+        $url = (string)($event->getLinkData()['url'] ?? '');
         if (!empty($url)) {
-            $count = $this->brokenLinkRepository->getNumberOfBrokenLinks($url);
-            if ($count) {
+            if ($this->brokenLinkRepository->isLinkTargetBrokenLink($url)) {
                 $event->markAsBrokenLink('External link is broken');
             }
         }
@@ -88,8 +89,7 @@ final class CheckBrokenRteLinkEventListener
             return;
         }
 
-        $count = $this->brokenLinkRepository->getNumberOfBrokenLinks('file:' . $file->getProperty('uid'));
-        if ($count) {
+        if ($this->brokenLinkRepository->isLinkTargetBrokenLink('file:' . $file->getProperty('uid'))) {
             $event->markAsBrokenLink('File with ID ' . $file->getProperty('uid') . ' not found');
         }
     }

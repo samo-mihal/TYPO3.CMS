@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Validation\Validator;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,10 @@ namespace TYPO3\CMS\Extbase\Validation\Validator;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Extbase\Validation\Validator;
+
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Validator for email addresses
@@ -31,7 +34,7 @@ class EmailAddressValidator extends AbstractValidator
                 $this->translateErrorMessage(
                     'validator.emailaddress.notvalid',
                     'extbase'
-                ),
+                ) ?? '',
                 1221559976
             );
         }
@@ -45,6 +48,6 @@ class EmailAddressValidator extends AbstractValidator
      */
     protected function validEmail($emailAddress)
     {
-        return \TYPO3\CMS\Core\Utility\GeneralUtility::validEmail($emailAddress);
+        return GeneralUtility::validEmail($emailAddress);
     }
 }

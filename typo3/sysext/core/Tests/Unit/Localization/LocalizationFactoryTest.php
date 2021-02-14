@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Unit\Localization;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,12 +13,13 @@ namespace TYPO3\CMS\Core\Tests\Unit\Localization;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\Localization;
+
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Cache\Frontend\VariableFrontend;
 use TYPO3\CMS\Core\Localization\Exception\FileNotFoundException;
 use TYPO3\CMS\Core\Localization\LanguageStore;
 use TYPO3\CMS\Core\Localization\LocalizationFactory;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -27,39 +27,30 @@ use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
  */
 class LocalizationFactoryTest extends UnitTestCase
 {
-    public function tearDown(): void
-    {
-        // Drop created singletons again
-        GeneralUtility::purgeInstances();
-        parent::tearDown();
-    }
-
     /**
      * @test
      */
     public function getParsedDataCallsLocalizationOverrideIfFileNotFoundExceptionIsThrown()
     {
-        $cacheManagerProphecy = $this->prophesize(CacheManager::class);
-        GeneralUtility::setSingletonInstance(CacheManager::class, $cacheManagerProphecy->reveal());
-
-        /** @var $subject LocalizationFactory */
-        $localizationFactory = $this->getAccessibleMock(LocalizationFactory::class, ['localizationOverride']);
         $languageStore = $this->getMockBuilder(LanguageStore::class)
-            ->setMethods(['hasData', 'setConfiguration', 'getData', 'setData'])
+            ->onlyMethods(['hasData', 'setConfiguration', 'getData', 'setData'])
             ->getMock();
         $cacheInstance = $this->getMockBuilder(VariableFrontend::class)
-            ->setMethods(['get', 'set'])
+            ->onlyMethods(['get', 'set'])
             ->disableOriginalConstructor()
             ->getMock();
-        $localizationFactory->_set('store', $languageStore);
-        $localizationFactory->_set('cacheInstance', $cacheInstance);
+
         $languageStore->method('hasData')->willReturn(false);
         $languageStore->method('getData')->willReturn(['default' => []]);
         $languageStore->method('setConfiguration')->willThrowException(new FileNotFoundException('testing', 1476049512));
         $cacheInstance->method('get')->willReturn(false);
+        $cacheManagerProphecy = $this->prophesize(CacheManager::class);
+        $cacheManagerProphecy->getCache('l10n')->willReturn($cacheInstance);
+
+        /** @var $localizationFactory LocalizationFactory */
+        $localizationFactory = $this->getAccessibleMock(LocalizationFactory::class, ['localizationOverride'], [$languageStore, $cacheManagerProphecy->reveal()]);
         $GLOBALS['TYPO3_CONF_VARS']['SYS']['locallangXMLOverride'] = ['foo' => 'bar'];
 
-        $localizationFactory->expects(self::once())->method('localizationOverride');
         $localizationFactory->getParsedData('EXT:backend/Resources/Private/Language/locallang_layout.xlf', 'default');
     }
 }

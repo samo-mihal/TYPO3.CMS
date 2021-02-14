@@ -50,6 +50,9 @@ $GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['adminpanel']['modules'] = [
             ],
             'pageTitle' => [
                 'module' => \TYPO3\CMS\Adminpanel\Modules\Debug\PageTitle::class,
+            ],
+            'events' => [
+                'module' => \TYPO3\CMS\Adminpanel\Modules\Debug\Events::class,
             ]
         ],
     ],
@@ -58,8 +61,11 @@ $GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['adminpanel']['modules'] = [
 $GLOBALS['TYPO3_CONF_VARS']['FE']['eID_include']['adminPanel_save']
     = \TYPO3\CMS\Adminpanel\Controller\AjaxController::class . '::saveDataAction';
 
-$GLOBALS['TYPO3_CONF_VARS']['LOG']['writerConfiguration'][\TYPO3\CMS\Core\Log\LogLevel::DEBUG][\TYPO3\CMS\Adminpanel\Log\InMemoryLogWriter::class] = [];
+// Only write to InMemoryLog if in frontend and not in CLI mode
+if (TYPO3_MODE === 'FE' && !\TYPO3\CMS\Core\Core\Environment::isCli()) {
+    $GLOBALS['TYPO3_CONF_VARS']['LOG']['writerConfiguration'][\TYPO3\CMS\Core\Log\LogLevel::DEBUG][\TYPO3\CMS\Adminpanel\Log\InMemoryLogWriter::class] = [];
+}
 
-if (!is_array($GLOBALS['TYPO3_CONF_VARS']['SYS']['caching']['cacheConfigurations']['adminpanel_requestcache'])) {
+if (!is_array($GLOBALS['TYPO3_CONF_VARS']['SYS']['caching']['cacheConfigurations']['adminpanel_requestcache'] ?? null)) {
     $GLOBALS['TYPO3_CONF_VARS']['SYS']['caching']['cacheConfigurations']['adminpanel_requestcache'] = [];
 }

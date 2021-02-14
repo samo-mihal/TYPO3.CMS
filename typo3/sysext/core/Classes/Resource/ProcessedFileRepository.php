@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Resource;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,9 +13,13 @@ namespace TYPO3\CMS\Core\Resource;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Resource;
+
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
+use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Imaging\ImageManipulation\Area;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -87,7 +90,16 @@ class ProcessedFileRepository extends AbstractRepository implements LoggerAwareI
         $originalFile = $this->factory->getFileObject((int)$databaseRow['original']);
         $originalFile->setStorage($this->factory->getStorageObject($originalFile->getProperty('storage')));
         $taskType = $databaseRow['task_type'];
-        $configuration = unserialize($databaseRow['configuration']);
+        // Allow deserialization of Area class, since Area objects get serialized in configuration
+        // TODO: This should be changed to json encode and decode at some point
+        $configuration = unserialize(
+            $databaseRow['configuration'],
+            [
+                'allowed_classes' => [
+                    Area::class,
+                ],
+            ]
+        );
 
         return GeneralUtility::makeInstance(
             $this->objectType,
@@ -174,7 +186,8 @@ class ProcessedFileRepository extends AbstractRepository implements LoggerAwareI
 
             $connection->insert(
                 $this->table,
-                $insertFields
+                $insertFields,
+                ['configuration' => Connection::PARAM_LOB]
             );
 
             $uid = $connection->lastInsertId($this->table);
@@ -200,19 +213,20 @@ class ProcessedFileRepository extends AbstractRepository implements LoggerAwareI
                 $updateFields,
                 [
                     'uid' => (int)$uid
-                ]
+                ],
+                ['configuration' => Connection::PARAM_LOB]
             );
         }
     }
 
     /**
-     * @param \TYPO3\CMS\Core\Resource\File|\TYPO3\CMS\Core\Resource\FileInterface $file
+     * @param \TYPO3\CMS\Core\Resource\File $file
      * @param string $taskType The task that should be executed on the file
      * @param array $configuration
      *
      * @return ProcessedFile
      */
-    public function findOneByOriginalFileAndTaskTypeAndConfiguration(FileInterface $file, $taskType, array $configuration)
+    public function findOneByOriginalFileAndTaskTypeAndConfiguration(File $file, $taskType, array $configuration)
     {
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($this->table);
 

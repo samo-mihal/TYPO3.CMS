@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\Tests\Unit\Domain\FormElements;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Form\Tests\Unit\Domain\FormElements;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Form\Tests\Unit\Domain\FormElements;
 
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Form\Domain\Exception\IdentifierNotValidException;
@@ -149,7 +151,7 @@ class AbstractFormElementTest extends UnitTestCase
      */
     public function constructMustNotThrowExceptionWhenIdentifierIsNonEmptyString(): void
     {
-        $mock = $this->getAccessibleMockForAbstractClass(
+        $mock = $this->getMockForAbstractClass(
             AbstractFormElement::class,
             ['is_in', 'a_type'],
             '',
@@ -167,7 +169,7 @@ class AbstractFormElementTest extends UnitTestCase
     public function initializeFormElementExpectedCallInitializeFormObjectHooks(): void
     {
         /** @var \PHPUnit\Framework\MockObject\MockObject|\TYPO3\TestingFramework\Core\AccessibleObjectInterface|AbstractFormElement $abstractFormElementMock */
-        $abstractFormElementMock = $this->getAccessibleMockForAbstractClass(
+        $abstractFormElementMock = $this->getMockForAbstractClass(
             AbstractFormElement::class,
             [],
             '',
@@ -177,7 +179,7 @@ class AbstractFormElementTest extends UnitTestCase
             []
         );
         /** @var \PHPUnit\Framework\MockObject\MockObject|\TYPO3\TestingFramework\Core\AccessibleObjectInterface|AbstractFormElement $secondMock */
-        $secondMock = $this->getAccessibleMockForAbstractClass(
+        $secondMock = $this->getMockForAbstractClass(
             AbstractFormElement::class,
             [],
             '',
@@ -209,7 +211,7 @@ class AbstractFormElementTest extends UnitTestCase
     public function getUniqueIdentifierExpectedUnique(): void
     {
         /** @var \PHPUnit\Framework\MockObject\MockObject|\TYPO3\TestingFramework\Core\AccessibleObjectInterface|AbstractFormElement $abstractFormElementMock1 */
-        $abstractFormElementMock1 = $this->getAccessibleMockForAbstractClass(
+        $abstractFormElementMock1 = $this->getMockForAbstractClass(
             AbstractFormElement::class,
             [],
             '',
@@ -222,7 +224,7 @@ class AbstractFormElementTest extends UnitTestCase
         );
 
         /** @var \PHPUnit\Framework\MockObject\MockObject|\TYPO3\TestingFramework\Core\AccessibleObjectInterface|AbstractFormElement $abstractFormElementMock2 */
-        $abstractFormElementMock2 = $this->getAccessibleMockForAbstractClass(
+        $abstractFormElementMock2 = $this->getMockForAbstractClass(
             AbstractFormElement::class,
             [],
             '',
@@ -267,7 +269,7 @@ class AbstractFormElementTest extends UnitTestCase
             'dummy'
         ], [], '', false);
 
-        $abstractFormElementMock = $this->getAccessibleMockForAbstractClass(
+        $abstractFormElementMock = $this->getMockForAbstractClass(
             AbstractFormElement::class,
             ['is_in', 'a_type'],
             '',
@@ -298,7 +300,7 @@ class AbstractFormElementTest extends UnitTestCase
             'dummy'
         ], [], '', false);
 
-        $abstractFormElementMock = $this->getAccessibleMockForAbstractClass(
+        $abstractFormElementMock = $this->getMockForAbstractClass(
             AbstractFormElement::class,
             ['is_in', 'a_type'],
             '',
@@ -329,7 +331,7 @@ class AbstractFormElementTest extends UnitTestCase
             'dummy'
         ], [], '', false);
 
-        $abstractFormElementMock = $this->getAccessibleMockForAbstractClass(
+        $abstractFormElementMock = $this->getMockForAbstractClass(
             AbstractFormElement::class,
             ['is_in', 'a_type'],
             '',
@@ -383,7 +385,7 @@ class AbstractFormElementTest extends UnitTestCase
             'dummy'
         ], [], '', false);
 
-        $abstractFormElementMock = $this->getAccessibleMockForAbstractClass(
+        $abstractFormElementMock = $this->getMockForAbstractClass(
             AbstractFormElement::class,
             ['is_in', 'a_type'],
             '',

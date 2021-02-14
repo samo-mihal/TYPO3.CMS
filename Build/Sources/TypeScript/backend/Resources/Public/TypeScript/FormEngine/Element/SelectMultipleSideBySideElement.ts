@@ -12,7 +12,7 @@
  */
 
 import {AbstractSortableSelectItems} from './AbstractSortableSelectItems';
-import * as $ from 'jquery';
+import $ from 'jquery';
 import FormEngine = require('TYPO3/CMS/Backend/FormEngine');
 import SelectBoxFilter = require('./Extra/SelectBoxFilter');
 
@@ -24,8 +24,8 @@ class SelectMultipleSideBySideElement extends AbstractSortableSelectItems {
     super();
 
     $((): void => {
-      this.selectedOptionsElement = <HTMLSelectElement>document.querySelector('#' + selectedOptionsElementId);
-      this.availableOptionsElement = <HTMLSelectElement>document.querySelector('#' + availableOptionsElementId);
+      this.selectedOptionsElement = <HTMLSelectElement>document.getElementById(selectedOptionsElementId);
+      this.availableOptionsElement = <HTMLSelectElement>document.getElementById(availableOptionsElementId);
       this.registerEventHandler();
     });
   }
@@ -37,7 +37,7 @@ class SelectMultipleSideBySideElement extends AbstractSortableSelectItems {
       const el = <HTMLSelectElement>e.currentTarget;
       const fieldName = el.dataset.relatedfieldname;
       if (fieldName) {
-        const exclusiveValues = el.dataset.exclusiveValues;
+        const exclusiveValues = el.dataset.exclusivevalues;
         const selectedOptions = el.querySelectorAll('option:checked'); // Yep, :checked finds selected options
         if (selectedOptions.length > 0) {
           selectedOptions.forEach((optionElement: HTMLOptionElement): void => {

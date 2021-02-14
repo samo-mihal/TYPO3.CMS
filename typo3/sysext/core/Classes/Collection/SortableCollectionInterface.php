@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Collection;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Collection;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Collection;
 
 /**
  * Interface for collection class being sortable
@@ -31,7 +32,7 @@ interface SortableCollectionInterface
      * The comparison function given as must return an integer less than, equal to, or greater than
      * zero if the first argument is considered to be respectively less than, equal to, or greater than the second.
      *
-     * @param $callbackFunction
+     * @param callable $callbackFunction
      * @see http://www.php.net/manual/en/function.usort.php
      */
     public function usort($callbackFunction);

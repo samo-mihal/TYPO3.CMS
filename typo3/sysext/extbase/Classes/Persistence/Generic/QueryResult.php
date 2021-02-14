@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Persistence\Generic;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,8 +13,14 @@ namespace TYPO3\CMS\Extbase\Persistence\Generic;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Persistence\Generic;
+
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Extbase\Object\ObjectManager;
 use TYPO3\CMS\Extbase\Object\ObjectManagerInterface;
 use TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapper;
+use TYPO3\CMS\Extbase\Persistence\PersistenceManagerInterface;
+use TYPO3\CMS\Extbase\Persistence\QueryInterface;
 use TYPO3\CMS\Extbase\Persistence\QueryResultInterface;
 
 /**
@@ -64,7 +69,7 @@ class QueryResult implements QueryResultInterface
     /**
      * @param \TYPO3\CMS\Extbase\Persistence\PersistenceManagerInterface $persistenceManager
      */
-    public function injectPersistenceManager(\TYPO3\CMS\Extbase\Persistence\PersistenceManagerInterface $persistenceManager)
+    public function injectPersistenceManager(PersistenceManagerInterface $persistenceManager)
     {
         $this->persistenceManager = $persistenceManager;
     }
@@ -74,7 +79,7 @@ class QueryResult implements QueryResultInterface
      *
      * @param \TYPO3\CMS\Extbase\Persistence\QueryInterface $query
      */
-    public function __construct(\TYPO3\CMS\Extbase\Persistence\QueryInterface $query)
+    public function __construct(QueryInterface $query)
     {
         $this->query = $query;
     }
@@ -193,6 +198,7 @@ class QueryResult implements QueryResultInterface
     public function offsetSet($offset, $value)
     {
         $this->initialize();
+        $this->numberOfResults = null;
         $this->queryResult[$offset] = $value;
     }
 
@@ -205,6 +211,7 @@ class QueryResult implements QueryResultInterface
     public function offsetUnset($offset)
     {
         $this->initialize();
+        $this->numberOfResults = null;
         unset($this->queryResult[$offset]);
     }
 
@@ -263,8 +270,8 @@ class QueryResult implements QueryResultInterface
      */
     public function __wakeup()
     {
-        $objectManager = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Extbase\Object\ObjectManager::class);
-        $this->persistenceManager = $objectManager->get(\TYPO3\CMS\Extbase\Persistence\PersistenceManagerInterface::class);
+        $objectManager = GeneralUtility::makeInstance(ObjectManager::class);
+        $this->persistenceManager = $objectManager->get(PersistenceManagerInterface::class);
         $this->dataMapper = $objectManager->get(DataMapper::class);
     }
 

@@ -9,13 +9,19 @@
 		"email": "typo3cms@typo3.org",
 		"role": "Developer"
 	}],
+	"support": {
+		"chat": "https://typo3.org/help",
+		"docs": "https://docs.typo3.org",
+		"issues": "https://forge.typo3.org",
+		"source": "https://github.com/TYPO3/TYPO3.CMS"
+	},
 	"config": {
 		"sort-packages": true
 	},
 	"require": {
 		"psr/event-dispatcher": "^1.0",
-		"typo3/cms-core": "10.2.*@dev",
-		"typo3/cms-recordlist": "10.2.*@dev"
+		"typo3/cms-core": "10.4.*@dev",
+		"typo3/cms-recordlist": "10.4.*@dev"
 	},
 	"suggest": {
 		"typo3/cms-install": "To generate url to install tool in environment toolbar"
@@ -31,6 +37,9 @@
 		"typo3/cms-wizard-sortpages": "*"
 	},
 	"extra": {
+		"branch-alias": {
+			"dev-master": "10.4.x-dev"
+		},
 		"typo3/cms": {
 			"Package": {
 				"serviceProvider": "TYPO3\\CMS\\Backend\\ServiceProvider",
@@ -39,6 +48,11 @@
 				"partOfMinimalUsableSystem": true
 			},
 			"extension-key": "backend"
+		},
+		"typo3/class-alias-loader": {
+			"class-alias-maps": [
+				"Migrations/Code/ClassAliasMap.php"
+			]
 		}
 	},
 	"autoload": {

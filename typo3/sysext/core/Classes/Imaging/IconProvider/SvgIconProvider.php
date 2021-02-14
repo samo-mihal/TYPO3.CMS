@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Imaging\IconProvider;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Core\Imaging\IconProvider;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Imaging\IconProvider;
+
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconProviderInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -22,27 +23,15 @@ use TYPO3\CMS\Core\Utility\PathUtility;
 /**
  * Class SvgIconProvider provides icons that are classic <img> tags using vectors as source
  */
-class SvgIconProvider implements IconProviderInterface
+class SvgIconProvider extends AbstractSvgIconProvider implements IconProviderInterface
 {
-    const MARKUP_IDENTIFIER_INLINE = 'inline';
-
-    /**
-     * @param Icon $icon
-     * @param array $options
-     */
-    public function prepareIconMarkup(Icon $icon, array $options = [])
-    {
-        $icon->setMarkup($this->generateMarkup($icon, $options));
-        $icon->setAlternativeMarkup(self::MARKUP_IDENTIFIER_INLINE, $this->generateInlineMarkup($icon, $options));
-    }
-
     /**
      * @param Icon $icon
      * @param array $options
      * @return string
      * @throws \InvalidArgumentException
      */
-    protected function generateMarkup(Icon $icon, array $options)
+    protected function generateMarkup(Icon $icon, array $options): string
     {
         if (empty($options['source'])) {
             throw new \InvalidArgumentException('[' . $icon->getIdentifier() . '] The option "source" is required and must not be empty', 1460976566);
@@ -59,12 +48,11 @@ class SvgIconProvider implements IconProviderInterface
     }
 
     /**
-     * @param Icon $icon
      * @param array $options
      * @return string
      * @throws \InvalidArgumentException
      */
-    protected function generateInlineMarkup(Icon $icon, array $options)
+    protected function generateInlineMarkup(array $options): string
     {
         if (empty($options['source'])) {
             throw new \InvalidArgumentException('The option "source" is required and must not be empty', 1460976610);
@@ -77,28 +65,5 @@ class SvgIconProvider implements IconProviderInterface
         }
 
         return $this->getInlineSvg($source);
-    }
-
-    /**
-     * @param string $source
-     *
-     * @return string
-     */
-    protected function getInlineSvg($source)
-    {
-        if (!file_exists($source)) {
-            return '';
-        }
-
-        $svgContent = file_get_contents($source);
-        $svgContent = preg_replace('/<script[\s\S]*?>[\s\S]*?<\/script>/i', '', $svgContent);
-        // Disables the functionality to allow external entities to be loaded when parsing the XML, must be kept
-        $previousValueOfEntityLoader = libxml_disable_entity_loader(true);
-        $svgElement = simplexml_load_string($svgContent);
-        libxml_disable_entity_loader($previousValueOfEntityLoader);
-
-        // remove xml version tag
-        $domXml = dom_import_simplexml($svgElement);
-        return $domXml->ownerDocument->saveXML($domXml->ownerDocument->documentElement);
     }
 }

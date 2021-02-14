@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Error\Http;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,10 @@ namespace TYPO3\CMS\Core\Error\Http;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Error\Http;
+
+use TYPO3\CMS\Core\Utility\HttpUtility;
+
 /**
  * Exception for Error 401 - Unauthorized
  */
@@ -22,7 +25,7 @@ class UnauthorizedException extends AbstractClientErrorException
     /**
      * @var array HTTP Status Header lines
      */
-    protected $statusHeaders = [\TYPO3\CMS\Core\Utility\HttpUtility::HTTP_STATUS_401];
+    protected $statusHeaders = [HttpUtility::HTTP_STATUS_401];
 
     /**
      * @var string Title of the message

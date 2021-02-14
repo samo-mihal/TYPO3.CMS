@@ -1,4 +1,5 @@
 <?php
+
 defined('TYPO3_MODE') or die();
 
 // register plugin
@@ -10,7 +11,7 @@ defined('TYPO3_MODE') or die();
 );
 
 // Attach to hooks:
-$GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['tslib/class.tslib_fe.php']['pageIndexing'][] = \TYPO3\CMS\IndexedSearch\Indexer::class;
+$GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['tslib/class.tslib_fe.php']['contentPostProc-cached']['indexed_search'] = \TYPO3\CMS\IndexedSearch\Hook\TypoScriptFrontendHook::class . '->indexPageContent';
 $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['tslib/class.tslib_fe.php']['headerNoCache']['tx_indexedsearch'] = \TYPO3\CMS\IndexedSearch\Hook\TypoScriptFrontendHook::class . '->headerNoCache';
 // Register with "crawler" extension:
 $GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['crawler']['procInstructions']['indexed_search'] = [

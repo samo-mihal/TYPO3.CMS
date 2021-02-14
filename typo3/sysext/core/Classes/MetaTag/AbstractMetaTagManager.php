@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\MetaTag;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Core\MetaTag;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\MetaTag;
 
 abstract class AbstractMetaTagManager implements MetaTagManagerInterface
 {
@@ -294,7 +295,7 @@ abstract class AbstractMetaTagManager implements MetaTagManagerInterface
         }
 
         foreach ($this->handledProperties as $handledProperty => $handledPropertyConfig) {
-            foreach ((array)$handledPropertyConfig['allowedSubProperties'] as $allowedSubProperty => $allowedSubPropertyConfig) {
+            foreach ((array)($handledPropertyConfig['allowedSubProperties'] ?? []) as $allowedSubProperty => $allowedSubPropertyConfig) {
                 $propertyKey = is_array($allowedSubPropertyConfig) ? $allowedSubProperty : $allowedSubPropertyConfig;
                 if ($property === $handledProperty . $this->subPropertySeparator . $propertyKey) {
                     return true;

@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Acceptance\Install\Mysql;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Acceptance\Install\Mysql;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Acceptance\Install\Mysql;
 
 use Codeception\Scenario;
 use TYPO3\CMS\Core\Tests\Acceptance\Install\AbstractIntroductionPackage;
@@ -39,14 +41,14 @@ class IntroductionPackageCest extends AbstractIntroductionPackage
         $I->click('No problems detected, continue with installation');
 
         // DatabaseConnection step
-        $I->waitForText('Select database');
+        $I->waitForText('Select database', 30);
         $I->fillField('#t3-install-step-mysqliManualConfiguration-username', $scenario->current('typo3InstallMysqlDatabaseUsername'));
         $I->fillField('#t3-install-step-mysqliManualConfiguration-password', $scenario->current('typo3InstallMysqlDatabasePassword'));
         $I->fillField('#t3-install-step-mysqliManualConfiguration-host', $scenario->current('typo3InstallMysqlDatabaseHost'));
         $I->click('Continue');
 
         // DatabaseSelect step
-        $I->waitForText('Select a database');
+        $I->waitForText('Select a database', 30);
         $I->click('#t3-install-form-db-select-type-new');
         $I->fillField('#t3-install-step-database-new', $scenario->current('typo3InstallMysqlDatabaseName'));
         $I->click('Continue');
@@ -58,7 +60,7 @@ class IntroductionPackageCest extends AbstractIntroductionPackage
         $I->click('Continue');
 
         // DefaultConfiguration step - Create empty page
-        $I->waitForText('Installation Complete');
+        $I->waitForText('Installation Complete', 30);
         $I->click('#load-distributions');
         $I->click('Open the TYPO3 Backend');
 
@@ -67,9 +69,8 @@ class IntroductionPackageCest extends AbstractIntroductionPackage
         $I->fillField('#t3-username', 'admin');
         $I->fillField('#t3-password', 'password');
         $I->click('#t3-login-submit-section > button');
-        $I->waitForElement('.nav', 30);
+        $I->waitForElement('.modulemenu', 30);
         $I->waitForElement('.scaffold-content iframe', 30);
-        $I->seeCookie('be_lastLoginProvider');
         $I->seeCookie('be_typo_user');
 
         // Loading might take some time

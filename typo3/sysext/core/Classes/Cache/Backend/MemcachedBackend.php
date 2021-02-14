@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Cache\Backend;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Cache\Backend;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Cache\Backend;
 
 use TYPO3\CMS\Core\Cache\Exception;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
@@ -157,7 +158,7 @@ class MemcachedBackend extends AbstractBackend implements TaggableBackendInterfa
             throw new Exception('No servers were given to Memcache', 1213115903);
         }
         $memcachedPlugin = '\\' . ucfirst($this->usedPeclModule);
-        $this->memcache = new $memcachedPlugin;
+        $this->memcache = new $memcachedPlugin();
         $defaultPort = $this->usedPeclModule === 'memcache' ? ini_get('memcache.default_port') : 11211;
         foreach ($this->servers as $server) {
             if (strpos($server, 'unix://') === 0) {
@@ -168,7 +169,7 @@ class MemcachedBackend extends AbstractBackend implements TaggableBackendInterfa
                     $server = substr($server, 6);
                 }
                 if (strpos($server, ':') !== false) {
-                    list($host, $port) = explode(':', $server, 2);
+                    [$host, $port] = explode(':', $server, 2);
                 } else {
                     $host = $server;
                     $port = $defaultPort;
@@ -284,7 +285,7 @@ class MemcachedBackend extends AbstractBackend implements TaggableBackendInterfa
     {
         $value = $this->memcache->get($this->identifierPrefix . $entryIdentifier);
         if (is_string($value) && strpos($value, 'TYPO3*chunked:') === 0) {
-            list(, $chunkCount) = explode(':', $value);
+            [, $chunkCount] = explode(':', $value);
             $value = '';
             for ($chunkNumber = 1; $chunkNumber < $chunkCount; $chunkNumber++) {
                 $value .= $this->memcache->get($this->identifierPrefix . $entryIdentifier . '_chunk_' . $chunkNumber);

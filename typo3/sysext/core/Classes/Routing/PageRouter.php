@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Routing;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,15 +15,17 @@ namespace TYPO3\CMS\Core\Routing;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Routing;
+
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\UriInterface;
 use Symfony\Component\Routing\Exception\MissingMandatoryParametersException;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
-use Symfony\Component\Routing\Generator\UrlGenerator;
 use Symfony\Component\Routing\RequestContext;
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Context\LanguageAspectFactory;
 use TYPO3\CMS\Core\Domain\Repository\PageRepository;
+use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Http\NormalizedParams;
 use TYPO3\CMS\Core\Http\Uri;
 use TYPO3\CMS\Core\Routing\Aspect\AspectFactory;
@@ -89,14 +90,22 @@ class PageRouter implements RouterInterface
     protected $cacheHashCalculator;
 
     /**
-     * A page router is always bound to a specific site.
-     * @param Site $site
+     * @var \TYPO3\CMS\Core\Context\Context
      */
-    public function __construct(Site $site)
+    protected $context;
+
+    /**
+     * A page router is always bound to a specific site.
+     *
+     * @param Site $site
+     * @param \TYPO3\CMS\Core\Context\Context|null $context
+     */
+    public function __construct(Site $site, Context $context = null)
     {
         $this->site = $site;
+        $this->context = $context ?? GeneralUtility::makeInstance(Context::class);
         $this->enhancerFactory = GeneralUtility::makeInstance(EnhancerFactory::class);
-        $this->aspectFactory = GeneralUtility::makeInstance(AspectFactory::class);
+        $this->aspectFactory = GeneralUtility::makeInstance(AspectFactory::class, $this->context);
         $this->cacheHashCalculator = GeneralUtility::makeInstance(CacheHashCalculator::class);
     }
 
@@ -114,14 +123,14 @@ class PageRouter implements RouterInterface
             throw new RouteNotFoundException('No previous result given. Cannot find a page for an empty route part', 1555303496);
         }
 
-        $candidateProvider = $this->getSlugCandidateProvider(GeneralUtility::makeInstance(Context::class));
+        $candidateProvider = $this->getSlugCandidateProvider($this->context);
 
         // Legacy URIs (?id=12345) takes precedence, no matter if a route is given
         $requestId = (int)($request->getQueryParams()['id'] ?? 0);
         if ($requestId > 0) {
             if (!empty($pageId = $candidateProvider->getRealPageIdForPageIdAsPossibleCandidate($requestId))) {
                 return new PageArguments(
-                    $pageId,
+                    (int)$pageId,
                     (string)($request->getQueryParams()['type'] ?? '0'),
                     [],
                     [],
@@ -177,8 +186,16 @@ class PageRouter implements RouterInterface
                 }
             }
 
-            $pageCollection->addNamePrefix('page_' . $page['uid'] . '_');
+            $collectionPrefix = 'page_' . $page['uid'];
+            // Pages with a MountPoint Parameter means that they have a different context, and should be treated
+            // as a separate instance
+            if (isset($page['MPvar'])) {
+                $collectionPrefix .= '_MP_' . str_replace(',', '', $page['MPvar']);
+            }
+            $pageCollection->addNamePrefix($collectionPrefix . '_');
             $fullCollection->addCollection($pageCollection);
+            // set default route flag after all routes have been processed
+            $defaultRouteForPage->setOption('_isDefault', true);
         }
 
         $matcher = new PageUriMatcher($fullCollection);
@@ -225,15 +242,40 @@ class PageRouter implements RouterInterface
             $pageId = (int)$route;
         }
 
-        $context = clone GeneralUtility::makeInstance(Context::class);
+        $context = clone $this->context;
         $context->setAspect('language', LanguageAspectFactory::createFromSiteLanguage($language));
         $pageRepository = GeneralUtility::makeInstance(PageRepository::class, $context);
         $page = $pageRepository->getPage($pageId, true);
-        $pagePath = ltrim($page['slug'] ?? '', '/');
+        $pagePath = $page['slug'] ?? '';
+
+        if ($parameters['MP'] ?? '') {
+            $mountPointPairs = explode(',', $parameters['MP']);
+            $pagePath = $this->resolveMountPointParameterIntoPageSlug(
+                $pageId,
+                $pagePath,
+                $mountPointPairs,
+                $pageRepository
+            );
+            // If the MountPoint page has a different site, the link needs to be generated
+            // with the base of the MountPoint page, this is especially relevant for cross-domain linking
+            // Because the language contains the full base, it is retrieved in this case.
+            try {
+                [, $mountPointPage] = explode('-', (string)reset($mountPointPairs));
+                $site = GeneralUtility::makeInstance(SiteMatcher::class)
+                    ->matchByPageId((int)$mountPointPage);
+                $language = $site->getLanguageById($language->getLanguageId());
+            } catch (SiteNotFoundException $e) {
+                // No alternative site found, use the existing one
+            }
+            // Store the MP parameter in the page record, so it could be used for any enhancers
+            $page['MPvar'] = $parameters['MP'];
+            unset($parameters['MP']);
+        }
+
         $originalParameters = $parameters;
         $collection = new RouteCollection();
         $defaultRouteForPage = new Route(
-            '/' . $pagePath,
+            '/' . ltrim($pagePath, '/'),
             [],
             [],
             ['utf8' => true, '_page' => $page]
@@ -266,8 +308,14 @@ class PageRouter implements RouterInterface
             $scheme === 'https' ? $language->getBase()->getPort() ?? 443 : 443
         );
         $generator = new UrlGenerator($collection, $context);
-        $allRoutes = $collection->all();
-        $allRoutes = array_reverse($allRoutes, true);
+        $generator->injectMappableProcessor($mappableProcessor);
+        // set default route flag after all routes have been processed
+        $defaultRouteForPage->setOption('_isDefault', true);
+        $allRoutes = GeneralUtility::makeInstance(RouteSorter::class)
+            ->withRoutes($collection->all())
+            ->withOriginalParameters($originalParameters)
+            ->sortRoutesForGeneration()
+            ->getRoutes();
         $matchedRoute = null;
         $pageRouteResult = null;
         $uri = null;
@@ -289,12 +337,15 @@ class PageRouter implements RouterInterface
                 $uri = new Uri($urlAsString);
                 /** @var Route $matchedRoute */
                 $matchedRoute = $collection->get($routeName);
+                // fetch potential applied defaults for later cHash generation
+                // (even if not applied in route, it will be exposed during resolving)
+                $appliedDefaults = $matchedRoute->getOption('_appliedDefaults') ?? [];
                 parse_str($uri->getQuery() ?? '', $remainingQueryParameters);
                 $enhancer = $route->getEnhancer();
                 if ($enhancer instanceof InflatableEnhancerInterface) {
                     $remainingQueryParameters = $enhancer->inflateParameters($remainingQueryParameters);
                 }
-                $pageRouteResult = $this->buildPageArguments($route, $parameters, $remainingQueryParameters);
+                $pageRouteResult = $this->buildPageArguments($route, array_merge($appliedDefaults, $parameters), $remainingQueryParameters);
                 break;
             } catch (MissingMandatoryParametersException $e) {
                 // no match
@@ -314,16 +365,75 @@ class PageRouter implements RouterInterface
         if ($matchedRoute && $pageRouteResult && !empty($pageRouteResult->getDynamicArguments())) {
             $cacheHash = $this->generateCacheHash($pageId, $pageRouteResult);
 
+            $queryArguments = $pageRouteResult->getQueryArguments();
             if (!empty($cacheHash)) {
-                $queryArguments = $pageRouteResult->getQueryArguments();
                 $queryArguments['cHash'] = $cacheHash;
-                $uri = $uri->withQuery(http_build_query($queryArguments, '', '&', PHP_QUERY_RFC3986));
             }
+            $uri = $uri->withQuery(http_build_query($queryArguments, '', '&', PHP_QUERY_RFC3986));
         }
         if ($fragment) {
             $uri = $uri->withFragment($fragment);
         }
         return $uri;
+    }
+
+    /**
+     * When a MP parameter is given, the mount point parameter is resolved, and the slug of the new page
+     * is added while the same parts of the original pagePath is removed (before).
+     * This way, the subpage to a mounted page has now a different "base" (= prefixed with the slug of the
+     * mount point).
+     *
+     * This is done recursively when multiple mount point parameter pairs
+     *
+     * @param int $pageId
+     * @param string $pagePath the original path of the page
+     * @param array $mountPointPairs an array with MP pairs (like ['13-3', '4-2'] for recursive mount points)
+     * @param PageRepository $pageRepository
+     * @return string
+     */
+    protected function resolveMountPointParameterIntoPageSlug(
+        int $pageId,
+        string $pagePath,
+        array $mountPointPairs,
+        PageRepository $pageRepository
+    ): string {
+        // Handle recursive mount points
+        $prefixesToRemove = [];
+        $slugPrefixesToAdd = [];
+        foreach ($mountPointPairs as $mountPointPair) {
+            [$mountRoot, $mountedPage] = GeneralUtility::intExplode('-', $mountPointPair);
+            $mountPageInformation = $pageRepository->getMountPointInfo($mountedPage);
+            if ($mountPageInformation) {
+                if ($pageId === $mountedPage) {
+                    continue;
+                }
+                // Get slugs in the translated page
+                $mountedPage = $pageRepository->getPage($mountedPage);
+                $mountRoot = $pageRepository->getPage($mountRoot);
+                $slugPrefix = $mountedPage['slug'] ?? '';
+                if ($slugPrefix === '/') {
+                    $slugPrefix = '';
+                }
+                $prefixToRemove = $mountRoot['slug'] ?? '';
+                if ($prefixToRemove === '/') {
+                    $prefixToRemove = '';
+                }
+                $prefixesToRemove[] = $prefixToRemove;
+                $slugPrefixesToAdd[] = $slugPrefix;
+            }
+        }
+        $slugPrefixesToAdd = array_reverse($slugPrefixesToAdd);
+        $prefixesToRemove = array_reverse($prefixesToRemove);
+        foreach ($prefixesToRemove as $prefixToRemove) {
+            // Slug prefixes are taken from the beginning of the array, where as the parts to be removed
+            // Are taken from the end.
+            $replacement = array_shift($slugPrefixesToAdd);
+            if ($prefixToRemove !== '' && strpos($pagePath, $prefixToRemove) === 0) {
+                $pagePath = substr($pagePath, strlen($prefixToRemove));
+            }
+            $pagePath = $replacement . ($pagePath !== '/' ? '/' . ltrim($pagePath, '/') : '');
+        }
+        return $pagePath;
     }
 
     /**
@@ -347,7 +457,8 @@ class PageRouter implements RouterInterface
             if (!empty($enhancerConfiguration['aspects'] ?? null)) {
                 $aspects = $this->aspectFactory->createAspects(
                     $enhancerConfiguration['aspects'],
-                    $language
+                    $language,
+                    $this->site
                 );
                 $enhancer->setAspects($aspects);
             }
@@ -414,6 +525,10 @@ class PageRouter implements RouterInterface
         $page = $route->getOption('_page');
         $pageId = (int)($page['l10n_parent'] > 0 ? $page['l10n_parent'] : $page['uid']);
         $type = $this->resolveType($route, $remainingQueryParameters);
+        // See PageSlugCandidateProvider where this is added.
+        if ($page['MPvar'] ?? '') {
+            $routeArguments['MP'] = $page['MPvar'];
+        }
         return new PageArguments($pageId, $type, $routeArguments, [], $remainingQueryParameters);
     }
 
@@ -450,6 +565,10 @@ class PageRouter implements RouterInterface
      */
     protected function assertMaximumStaticMappableAmount(Route $route, array $variableNames = [])
     {
+        // empty when only values of route defaults where used
+        if (empty($variableNames)) {
+            return;
+        }
         $mappers = $route->filterAspects(
             [StaticMappableAspectInterface::class, \Countable::class],
             $variableNames

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
 
 use TYPO3\CMS\Backend\Form\FormDataProvider\TcaColumnsProcessFieldLabels;
 use TYPO3\CMS\Core\Localization\LanguageService;
@@ -44,7 +45,7 @@ class TcaColumnsProcessFieldLabelsTest extends UnitTestCase
         $GLOBALS['LANG'] = $languageServiceProphecy->reveal();
 
         $expected = $input;
-        self::assertSame($expected, (new TcaColumnsProcessFieldLabels)->addData($input));
+        self::assertSame($expected, (new TcaColumnsProcessFieldLabels())->addData($input));
     }
 
     /**
@@ -74,7 +75,7 @@ class TcaColumnsProcessFieldLabelsTest extends UnitTestCase
 
         $expected = $input;
         $expected['processedTca']['columns']['aField']['label'] = 'aLabelOverride';
-        self::assertSame($expected, (new TcaColumnsProcessFieldLabels)->addData($input));
+        self::assertSame($expected, (new TcaColumnsProcessFieldLabels())->addData($input));
     }
 
     /**
@@ -109,7 +110,7 @@ class TcaColumnsProcessFieldLabelsTest extends UnitTestCase
 
         $expected = $input;
         $expected['processedTca']['columns']['aField']['label'] = 'aLabelOverride';
-        self::assertSame($expected, (new TcaColumnsProcessFieldLabels)->addData($input));
+        self::assertSame($expected, (new TcaColumnsProcessFieldLabels())->addData($input));
     }
 
     /**
@@ -143,7 +144,7 @@ class TcaColumnsProcessFieldLabelsTest extends UnitTestCase
 
         $expected = $input;
         $expected['processedTca']['columns']['aField']['label'] = 'aLabelOverride';
-        self::assertSame($expected, (new TcaColumnsProcessFieldLabels)->addData($input));
+        self::assertSame($expected, (new TcaColumnsProcessFieldLabels())->addData($input));
     }
 
     /**
@@ -180,6 +181,6 @@ class TcaColumnsProcessFieldLabelsTest extends UnitTestCase
 
         $expected = $input;
         $expected['processedTca']['columns']['aField']['label'] = 'aLabelOverride';
-        self::assertSame($expected, (new TcaColumnsProcessFieldLabels)->addData($input));
+        self::assertSame($expected, (new TcaColumnsProcessFieldLabels())->addData($input));
     }
 }

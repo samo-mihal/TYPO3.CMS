@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Frontend\Middleware;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Frontend\Middleware;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Frontend\Middleware;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -97,16 +99,16 @@ class FrontendUserAuthenticator implements MiddlewareInterface
         ServerRequestInterface $request,
         string $frontendSessionKey
     ): ServerRequestInterface {
-        list($sessionId, $hash) = explode('-', $frontendSessionKey);
+        [$sessionId, $hash] = explode('-', $frontendSessionKey);
         // If the session key hash check is OK, set the cookie
-        if (md5($sessionId . '/' . $GLOBALS['TYPO3_CONF_VARS']['SYS']['encryptionKey']) === (string)$hash) {
+        if (hash_equals(md5($sessionId . '/' . $GLOBALS['TYPO3_CONF_VARS']['SYS']['encryptionKey']), (string)$hash)) {
             $cookieName = FrontendUserAuthentication::getCookieName();
 
             // keep the global cookie overwriting for now, as long as FrontendUserAuthentication does not
             // use the request object for fetching the cookie information.
             $_COOKIE[$cookieName] = $sessionId;
             if (isset($_SERVER['HTTP_COOKIE'])) {
-                // See http://forge.typo3.org/issues/27740
+                // See https://forge.typo3.org/issues/27740
                 $_SERVER['HTTP_COOKIE'] .= ';' . $cookieName . '=' . $sessionId;
             }
             // Add the cookie to the Server Request object

@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Unit\Localization\Parser;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\Localization\Parser;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\Localization\Parser;
 
 use Prophecy\Argument;
 use TYPO3\CMS\Core\Cache\CacheManager;
@@ -31,6 +33,11 @@ use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 class LocallangXmlParserTest extends UnitTestCase
 {
     /**
+     * @var ObjectProphecy|CacheManager
+     */
+    protected $cacheManagerProphecy;
+
+    /**
      * Prepares the environment before running a test.
      */
     protected function setUp(): void
@@ -39,10 +46,9 @@ class LocallangXmlParserTest extends UnitTestCase
         $GLOBALS['TYPO3_CONF_VARS']['SYS']['lang']['format']['priority'] = 'xml';
         $GLOBALS['TYPO3_CONF_VARS']['SYS']['lang']['parser']['xml'] = \TYPO3\CMS\Core\Localization\Parser\LocallangXmlParser::class;
 
-        $cacheManagerProphecy = $this->prophesize(CacheManager::class);
-        GeneralUtility::setSingletonInstance(CacheManager::class, $cacheManagerProphecy->reveal());
+        $this->cacheManagerProphecy = $this->prophesize(CacheManager::class);
         $cacheFrontendProphecy = $this->prophesize(FrontendInterface::class);
-        $cacheManagerProphecy->getCache('l10n')->willReturn($cacheFrontendProphecy->reveal());
+        $this->cacheManagerProphecy->getCache('l10n')->willReturn($cacheFrontendProphecy->reveal());
         $cacheFrontendProphecy->get(Argument::cetera())->willReturn(false);
         $cacheFrontendProphecy->set(Argument::cetera())->willReturn(null);
 
@@ -68,7 +74,7 @@ class LocallangXmlParserTest extends UnitTestCase
      */
     public function canParseLlxmlInEnglish()
     {
-        $LOCAL_LANG = (new LocallangXmlParser)->getParsedData(self::getFixtureFilePath('locallang.xml'), 'default');
+        $LOCAL_LANG = (new LocallangXmlParser())->getParsedData(self::getFixtureFilePath('locallang.xml'), 'default');
         self::assertArrayHasKey('default', $LOCAL_LANG, 'default key not found in $LOCAL_LANG');
         $expectedLabels = [
             'label1' => 'This is label #1',
@@ -85,7 +91,7 @@ class LocallangXmlParserTest extends UnitTestCase
      */
     public function canParseLlxmlInMd5Code()
     {
-        $LOCAL_LANG = (new LocallangXmlParser)->getParsedData(self::getFixtureFilePath('locallang.xml'), 'md5');
+        $LOCAL_LANG = (new LocallangXmlParser())->getParsedData(self::getFixtureFilePath('locallang.xml'), 'md5');
         self::assertArrayHasKey('md5', $LOCAL_LANG, 'md5 key not found in $LOCAL_LANG');
         $expectedLabels = [
             'label1' => '409a6edbc70dbeeccbfe5f1e569d6717',
@@ -102,7 +108,7 @@ class LocallangXmlParserTest extends UnitTestCase
      */
     public function canParseLlxmlInFrenchAndReturnsNullLabelsIfNoTranslationIsFound()
     {
-        $localLang = (new LocallangXmlParser)->getParsedData(
+        $localLang = (new LocallangXmlParser())->getParsedData(
             self::getFixtureFilePath('locallangOnlyDefaultLanguage.xml'),
             'fr'
         );
@@ -120,7 +126,7 @@ class LocallangXmlParserTest extends UnitTestCase
     public function canOverrideLlxml()
     {
         /** @var $factory LocalizationFactory */
-        $factory = new LocalizationFactory;
+        $factory = new LocalizationFactory(new LanguageStore(), $this->cacheManagerProphecy->reveal());
 
         $GLOBALS['TYPO3_CONF_VARS']['SYS']['locallangXMLOverride'][self::getFixtureFilePath('locallang.xml')][] = self::getFixtureFilePath('locallang_override.xml');
         $LOCAL_LANG = array_merge(
@@ -181,7 +187,7 @@ class LocallangXmlParserTest extends UnitTestCase
     public function canTranslateNumericKeys($key, $expectedResult)
     {
         /** @var $factory LocalizationFactory */
-        $factory = new LocalizationFactory;
+        $factory = new LocalizationFactory(new LanguageStore(), $this->cacheManagerProphecy->reveal());
 
         $LOCAL_LANG = $factory->getParsedData(self::getFixtureFilePath('locallangNumericKeys.xml'), 'fr');
 

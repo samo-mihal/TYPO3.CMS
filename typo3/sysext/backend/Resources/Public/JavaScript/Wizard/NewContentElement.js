@@ -10,4 +10,4 @@
  *
  * The TYPO3 project - inspiring people to share!
  */
-define(["require","exports","../Enum/Severity","../Modal"],function(e,t,i,n){"use strict";return class{static wizard(e,t){n.advanced({callback:e=>{e.find(".t3js-modal-body").addClass("t3-new-content-element-wizard-window")},content:e,severity:i.SeverityEnum.notice,size:n.sizes.medium,title:t,type:n.types.ajax})}}});
+var __importDefault=this&&this.__importDefault||function(e){return e&&e.__esModule?e:{default:e}};define(["require","exports","../Enum/Severity","../Modal","TYPO3/CMS/Backend/NewContentElementWizard"],(function(e,t,n,a,o){"use strict";o=__importDefault(o);return class{static wizard(e,t){const d=a.advanced({callback:e=>{e.find(".t3js-modal-body").addClass("t3-new-content-element-wizard-window")},content:e,severity:n.SeverityEnum.notice,size:a.sizes.medium,title:t,type:a.types.ajax}).on("modal-loaded",()=>{d.on("shown.bs.modal",()=>{new o.default(d).focusSearchField()})}).on("shown.bs.modal",()=>{d.on("modal-loaded",()=>{new o.default(d).focusSearchField()})})}}}));

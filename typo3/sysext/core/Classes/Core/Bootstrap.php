@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Core;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,11 +13,14 @@ namespace TYPO3\CMS\Core\Core;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Core;
+
 use Composer\Autoload\ClassLoader;
 use Doctrine\Common\Annotations\AnnotationReader;
 use Doctrine\Common\Annotations\AnnotationRegistry;
 use Psr\Container\ContainerInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
+use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Cache\Backend\BackendInterface;
 use TYPO3\CMS\Core\Cache\Backend\NullBackend;
 use TYPO3\CMS\Core\Cache\Backend\Typo3DatabaseBackend;
@@ -26,18 +28,26 @@ use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Cache\Exception\InvalidBackendException;
 use TYPO3\CMS\Core\Cache\Exception\InvalidCacheException;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
+use TYPO3\CMS\Core\Cache\Frontend\PhpFrontend;
 use TYPO3\CMS\Core\Cache\Frontend\VariableFrontend;
 use TYPO3\CMS\Core\Configuration\ConfigurationManager;
+use TYPO3\CMS\Core\Database\TableConfigurationPostProcessingHookInterface;
+use TYPO3\CMS\Core\DependencyInjection\Cache\ContainerBackend;
 use TYPO3\CMS\Core\DependencyInjection\ContainerBuilder;
 use TYPO3\CMS\Core\Imaging\IconRegistry;
 use TYPO3\CMS\Core\IO\PharStreamWrapperInterceptor;
+use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\Package\FailsafePackageManager;
 use TYPO3\CMS\Core\Package\PackageManager;
 use TYPO3\CMS\Core\Page\PageRenderer;
+use TYPO3\CMS\Core\Service\DependencyOrderingService;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\PharStreamWrapper\Behavior;
+use TYPO3\PharStreamWrapper\Interceptor\ConjunctionInterceptor;
+use TYPO3\PharStreamWrapper\Interceptor\PharMetaDataInterceptor;
 use TYPO3\PharStreamWrapper\Manager;
 use TYPO3\PharStreamWrapper\PharStreamWrapper;
 
@@ -66,7 +76,7 @@ class Bootstrap
         ClassLoader $classLoader,
         bool $failsafe = false
     ): ContainerInterface {
-        $requestId = substr(md5(uniqid('', true)), 0, 13);
+        $requestId = substr(md5(StringUtility::getUniqueId()), 0, 13);
 
         static::initializeClassLoader($classLoader);
         if (!Environment::isComposerMode() && ClassLoadingInformation::isClassLoadingInformationAvailable()) {
@@ -108,8 +118,9 @@ class Bootstrap
         static::setMemoryLimit();
 
         $assetsCache = static::createCache('assets', $disableCaching);
+        $dependencyInjectionContainerCache = static::createCache('di');
 
-        $bootState = new \stdClass;
+        $bootState = new \stdClass();
         $bootState->done = false;
         $bootState->cacheDisabled = $disableCaching;
 
@@ -118,6 +129,7 @@ class Bootstrap
             ApplicationContext::class => Environment::getContext(),
             ConfigurationManager::class => $configurationManager,
             LogManager::class => $logManager,
+            'cache.di' => $dependencyInjectionContainerCache,
             'cache.core' => $coreCache,
             'cache.assets' => $assetsCache,
             PackageManager::class => $packageManager,
@@ -126,7 +138,7 @@ class Bootstrap
             'boot.state' => $bootState,
         ]);
 
-        $container = $builder->createDependencyInjectionContainer($packageManager, $coreCache, $failsafe);
+        $container = $builder->createDependencyInjectionContainer($packageManager, $dependencyInjectionContainerCache, $failsafe);
 
         // Push the container to GeneralUtility as we want to make sure its
         // makeInstance() method creates classes using the container from now on.
@@ -230,7 +242,7 @@ class Bootstrap
      */
     public static function createPackageManager($packageManagerClassName, FrontendInterface $coreCache): PackageManager
     {
-        $dependencyOrderingService = GeneralUtility::makeInstance(\TYPO3\CMS\Core\Service\DependencyOrderingService::class);
+        $dependencyOrderingService = GeneralUtility::makeInstance(DependencyOrderingService::class);
         /** @var \TYPO3\CMS\Core\Package\PackageManager $packageManager */
         $packageManager = new $packageManagerClassName($dependencyOrderingService);
         $packageManager->injectCoreCache($coreCache);
@@ -249,6 +261,7 @@ class Bootstrap
     {
         $packages = $GLOBALS['TYPO3_CONF_VARS']['EXT']['runtimeActivatedPackages'] ?? [];
         if (!empty($packages)) {
+            trigger_error('Support for runtime activated packages will be removed in TYPO3 v11.0.', E_USER_DEPRECATED);
             foreach ($packages as $runtimeAddedPackageKey) {
                 $packageManager->activatePackageDuringRuntime($runtimeAddedPackageKey);
             }
@@ -307,7 +320,11 @@ class Bootstrap
      */
     public static function createCache(string $identifier, bool $disableCaching = false): FrontendInterface
     {
-        $configuration = $GLOBALS['TYPO3_CONF_VARS']['SYS']['caching']['cacheConfigurations'][$identifier] ?? [];
+        $cacheConfigurations = $GLOBALS['TYPO3_CONF_VARS']['SYS']['caching']['cacheConfigurations'] ?? [];
+        $cacheConfigurations['di']['frontend'] = PhpFrontend::class;
+        $cacheConfigurations['di']['backend'] = ContainerBackend::class;
+        $cacheConfigurations['di']['options'] = [];
+        $configuration = $cacheConfigurations[$identifier] ?? [];
 
         $frontend = $configuration['frontend'] ?? VariableFrontend::class;
         $backend = $configuration['backend'] ?? Typo3DatabaseBackend::class;
@@ -363,11 +380,14 @@ class Bootstrap
      */
     protected static function initializeErrorHandling()
     {
+        static::initializeBasicErrorReporting();
+        $displayErrors = 0;
+        $exceptionHandlerClassName = null;
         $productionExceptionHandlerClassName = $GLOBALS['TYPO3_CONF_VARS']['SYS']['productionExceptionHandler'];
         $debugExceptionHandlerClassName = $GLOBALS['TYPO3_CONF_VARS']['SYS']['debugExceptionHandler'];
 
         $errorHandlerClassName = $GLOBALS['TYPO3_CONF_VARS']['SYS']['errorHandler'];
-        $errorHandlerErrors = $GLOBALS['TYPO3_CONF_VARS']['SYS']['errorHandlerErrors'];
+        $errorHandlerErrors = $GLOBALS['TYPO3_CONF_VARS']['SYS']['errorHandlerErrors'] | E_USER_DEPRECATED;
         $exceptionalErrors = $GLOBALS['TYPO3_CONF_VARS']['SYS']['exceptionalErrors'];
 
         $displayErrorsSetting = (int)$GLOBALS['TYPO3_CONF_VARS']['SYS']['displayErrors'];
@@ -412,6 +432,25 @@ class Bootstrap
     }
 
     /**
+     * Initialize basic error reporting.
+     *
+     * There are a lot of extensions that have no strict / notice / deprecated free
+     * ext_localconf or ext_tables. Since the final error reporting must be set up
+     * after those extension files are read, a default configuration is needed to
+     * suppress error reporting meanwhile during further bootstrap.
+     *
+     * Please note: if you comment out this code, TYPO3 would never set any error reporting
+     * which would need to have TYPO3 Core and ALL used extensions to be notice free and deprecation
+     * free. However, commenting this out and running functional and acceptance tests shows what
+     * needs to be done to make TYPO3 Core mostly notice-free (unit tests do not execute this code here).
+     */
+    protected static function initializeBasicErrorReporting(): void
+    {
+        // Core should be notice free at least until this point ...
+        error_reporting(E_ALL & ~(E_STRICT | E_NOTICE | E_DEPRECATED));
+    }
+
+    /**
      * Initializes IO and stream wrapper related behavior.
      */
     protected static function initializeIO()
@@ -421,7 +460,10 @@ class Bootstrap
             Manager::destroy();
             Manager::initialize(
                 (new Behavior())
-                    ->withAssertion(new PharStreamWrapperInterceptor())
+                    ->withAssertion(new ConjunctionInterceptor([
+                        new PharStreamWrapperInterceptor(),
+                        new PharMetaDataInterceptor()
+                    ]))
             );
 
             stream_wrapper_unregister('phar');
@@ -514,7 +556,7 @@ class Bootstrap
         foreach ($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['GLOBAL']['extTablesInclusion-PostProcessing'] ?? [] as $className) {
             /** @var \TYPO3\CMS\Core\Database\TableConfigurationPostProcessingHookInterface $hookObject */
             $hookObject = GeneralUtility::makeInstance($className);
-            if (!$hookObject instanceof \TYPO3\CMS\Core\Database\TableConfigurationPostProcessingHookInterface) {
+            if (!$hookObject instanceof TableConfigurationPostProcessingHookInterface) {
                 throw new \UnexpectedValueException(
                     '$hookObject "' . $className . '" must implement interface TYPO3\\CMS\\Core\\Database\\TableConfigurationPostProcessingHookInterface',
                     1320585902
@@ -529,55 +571,12 @@ class Bootstrap
      * Loads all routes registered inside all packages and stores them inside the Router
      *
      * @internal This is not a public API method, do not use in own extensions
+     * @deprecated this does not do anything anymore, as TYPO3's dependency injection already loads the routes on demand.
      */
     public static function initializeBackendRouter()
     {
-        // See if the Routes.php from all active packages have been built together already
-        $cacheIdentifier = 'BackendRoutesFromPackages_' . sha1(TYPO3_version . Environment::getProjectPath() . 'BackendRoutesFromPackages');
-
-        /** @var \TYPO3\CMS\Core\Cache\Frontend\FrontendInterface $codeCache */
-        $codeCache = GeneralUtility::makeInstance(\TYPO3\CMS\Core\Cache\CacheManager::class)->getCache('core');
-        $routesFromPackages = [];
-        if ($codeCache->has($cacheIdentifier)) {
-            // substr is necessary, because the php frontend wraps php code around the cache value
-            $routesFromPackages = unserialize(substr($codeCache->get($cacheIdentifier), 6, -2));
-        } else {
-            // Loop over all packages and check for a Configuration/Backend/Routes.php file
-            $packageManager = GeneralUtility::makeInstance(\TYPO3\CMS\Core\Package\PackageManager::class);
-            $packages = $packageManager->getActivePackages();
-            foreach ($packages as $package) {
-                $routesFileNameForPackage = $package->getPackagePath() . 'Configuration/Backend/Routes.php';
-                if (file_exists($routesFileNameForPackage)) {
-                    $definedRoutesInPackage = require $routesFileNameForPackage;
-                    if (is_array($definedRoutesInPackage)) {
-                        $routesFromPackages = array_merge($routesFromPackages, $definedRoutesInPackage);
-                    }
-                }
-                $routesFileNameForPackage = $package->getPackagePath() . 'Configuration/Backend/AjaxRoutes.php';
-                if (file_exists($routesFileNameForPackage)) {
-                    $definedRoutesInPackage = require $routesFileNameForPackage;
-                    if (is_array($definedRoutesInPackage)) {
-                        foreach ($definedRoutesInPackage as $routeIdentifier => $routeOptions) {
-                            // prefix the route with "ajax_" as "namespace"
-                            $routeOptions['path'] = '/ajax' . $routeOptions['path'];
-                            $routesFromPackages['ajax_' . $routeIdentifier] = $routeOptions;
-                            $routesFromPackages['ajax_' . $routeIdentifier]['ajax'] = true;
-                        }
-                    }
-                }
-            }
-            // Store the data from all packages in the cache
-            $codeCache->set($cacheIdentifier, serialize($routesFromPackages));
-        }
-
-        // Build Route objects from the data
-        $router = GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Routing\Router::class);
-        foreach ($routesFromPackages as $name => $options) {
-            $path = $options['path'];
-            unset($options['path']);
-            $route = GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Routing\Route::class, $path, $options);
-            $router->addRoute($name, $route);
-        }
+        // TODO: Once typo3/testing-framework is adapted, this code can be dropped / deprecated. As DI is already
+        // loading all routes on demand, this method is not needed anymore.
     }
 
     /**
@@ -586,7 +585,7 @@ class Bootstrap
      * @param string $className usually \TYPO3\CMS\Core\Authentication\BackendUserAuthentication::class but can be used for CLI
      * @internal This is not a public API method, do not use in own extensions
      */
-    public static function initializeBackendUser($className = \TYPO3\CMS\Core\Authentication\BackendUserAuthentication::class)
+    public static function initializeBackendUser($className = BackendUserAuthentication::class)
     {
         /** @var \TYPO3\CMS\Core\Authentication\BackendUserAuthentication $backendUser */
         $backendUser = GeneralUtility::makeInstance($className);
@@ -614,8 +613,7 @@ class Bootstrap
      */
     public static function initializeLanguageObject()
     {
-        /** @var $GLOBALS['LANG'] \TYPO3\CMS\Core\Localization\LanguageService */
-        $GLOBALS['LANG'] = GeneralUtility::makeInstance(\TYPO3\CMS\Core\Localization\LanguageService::class);
-        $GLOBALS['LANG']->init($GLOBALS['BE_USER']->uc['lang']);
+        /** @var \TYPO3\CMS\Core\Localization\LanguageService $GLOBALS['LANG'] */
+        $GLOBALS['LANG'] = LanguageService::createFromUserPreferences($GLOBALS['BE_USER']);
     }
 }

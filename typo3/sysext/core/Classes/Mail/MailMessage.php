@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Mail;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,9 +13,10 @@ namespace TYPO3\CMS\Core\Mail;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Mail;
+
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
-use TYPO3\CMS\Core\Exception\InvalidArgumentException;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -241,7 +241,7 @@ class MailMessage extends Email
     /**
      * Converts address from [email, name] into Address objects.
      *
-     * @param string|array $args
+     * @param mixed ...$args
      * @return Address[]
      */
     protected function convertNamedAddress(...$args): array
@@ -310,7 +310,7 @@ class MailMessage extends Email
     protected function checkArguments($addresses, string $name = null): void
     {
         if ($name !== null && !is_string($addresses)) {
-            throw new InvalidArgumentException('The combination of a name and an array of addresses is invalid.', 1570543657);
+            throw new \InvalidArgumentException('The combination of a name and an array of addresses is invalid.', 1570543657);
         }
     }
 }

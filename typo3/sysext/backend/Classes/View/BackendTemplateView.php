@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\View;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\View;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\View;
 
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Extbase\Mvc\Controller\ControllerContext;
@@ -80,7 +81,7 @@ class BackendTemplateView implements ViewInterface
      *
      * @param \TYPO3\CMS\Extbase\Mvc\Controller\ControllerContext $controllerContext Controller context which is available inside the view
      */
-    public function setControllerContext(\TYPO3\CMS\Extbase\Mvc\Controller\ControllerContext $controllerContext)
+    public function setControllerContext(ControllerContext $controllerContext)
     {
         $this->templateView->setControllerContext($controllerContext);
     }

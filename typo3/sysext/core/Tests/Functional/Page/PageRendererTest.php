@@ -1,7 +1,5 @@
 <?php
 
-namespace TYPO3\CMS\Core\Tests\Functional\Page;
-
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -15,12 +13,20 @@ namespace TYPO3\CMS\Core\Tests\Functional\Page;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Functional\Page;
+
+use Psr\Log\NullLogger;
+use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
+use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Page\PageRenderer;
+use TYPO3\CMS\Core\Session\Backend\DatabaseSessionBackend;
+use TYPO3\CMS\Core\Utility\StringUtility;
+use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
 /**
  * Test case
  */
-class PageRendererTest extends \TYPO3\TestingFramework\Core\Functional\FunctionalTestCase
+class PageRendererTest extends FunctionalTestCase
 {
     /**
      * @test
@@ -34,7 +40,7 @@ class PageRendererTest extends \TYPO3\TestingFramework\Core\Functional\Functiona
         $prologueString = $expectedPrologueString = '<?xml version="1.0" encoding="utf-8" ?>';
         $subject->setXmlPrologAndDocType($prologueString);
 
-        $title = $this->getUniqueId('aTitle-');
+        $title = StringUtility::getUniqueId('aTitle-');
         $subject->setTitle($title);
         $expectedTitleString = '<title>' . $title . '</title>';
 
@@ -62,7 +68,7 @@ class PageRendererTest extends \TYPO3\TestingFramework\Core\Functional\Functiona
         $subject->setMetaTag('NaMe', 'randomTag', 'foobar');
         $subject->removeMetaTag('name', 'RanDoMtAg');
 
-        $inlineComment = $this->getUniqueId('comment');
+        $inlineComment = StringUtility::getUniqueId('comment');
         $subject->addInlineComment($inlineComment);
         $expectedInlineCommentString = '<!-- ' . LF . $inlineComment . '-->';
 
@@ -87,10 +93,10 @@ class PageRendererTest extends \TYPO3\TestingFramework\Core\Functional\Functiona
         $subject->addJsFile('fileadmin/test-plain.js', '', false, false, 'wrapBeforeXwrapAfter', false, 'X');
         $expectedJsFileWithoutTypeRegExp = '#wrapBefore<script src="fileadmin/test-plain\\.(js|\\d+\\.js|js\\?\\d+)"></script>wrapAfter#';
 
-        $jsInlineCode = $expectedJsInlineCodeString = 'var x = "' . $this->getUniqueId('jsInline-') . '"';
-        $subject->addJsInlineCode($this->getUniqueId(), $jsInlineCode);
+        $jsInlineCode = $expectedJsInlineCodeString = 'var x = "' . StringUtility::getUniqueId('jsInline-') . '"';
+        $subject->addJsInlineCode(StringUtility::getUniqueId(), $jsInlineCode);
 
-        $cssFile = $this->getUniqueId('cssFile-');
+        $cssFile = StringUtility::getUniqueId('cssFile-');
         $expectedCssFileString = 'wrapBefore<link rel="stylesheet" type="text/css" href="' . $cssFile . '" media="print" />wrapAfter';
         $subject->addCssFile($cssFile, 'stylesheet', 'print', '', true, false, 'wrapBeforeXwrapAfter', false, 'X');
 
@@ -98,7 +104,7 @@ class PageRendererTest extends \TYPO3\TestingFramework\Core\Functional\Functiona
         $subject->addCssInlineBlock('general2', 'body {margin:20px;}');
         $subject->addCssInlineBlock('general3', 'h1 {margin:20px;}', null, true);
 
-        $expectedBodyContent = $this->getUniqueId('ABCDE-');
+        $expectedBodyContent = StringUtility::getUniqueId('ABCDE-');
         $subject->setBodyContent($expectedBodyContent);
 
         $renderedString = $subject->render();
@@ -165,8 +171,8 @@ class PageRendererTest extends \TYPO3\TestingFramework\Core\Functional\Functiona
             'X'
         );
 
-        $jsFooterInlineCode = $expectedJsFooterInlineCodeString = 'var x = "' . $this->getUniqueId('jsFooterInline-') . '"';
-        $subject->addJsFooterInlineCode($this->getUniqueId(), $jsFooterInlineCode);
+        $jsFooterInlineCode = $expectedJsFooterInlineCodeString = 'var x = "' . StringUtility::getUniqueId('jsFooterInline-') . '"';
+        $subject->addJsFooterInlineCode(StringUtility::getUniqueId(), $jsFooterInlineCode);
 
         // Bunch of label tests
         $subject->addInlineLanguageLabel('myKey', 'myValue');
@@ -287,5 +293,54 @@ class PageRendererTest extends \TYPO3\TestingFramework\Core\Functional\Functiona
         self::assertStringContainsString($expectedJsLibrary, $renderedString);
         self::assertStringContainsString($expectedJsFile, $renderedString);
         self::assertStringContainsString($expectedJsFooter, $renderedString);
+    }
+
+    /**
+     * @test
+     */
+    public function pageRendererMergesRequireJsPackagesOnConsecutiveCalls(): void
+    {
+        $GLOBALS['TYPO3_CONF_VARS']['SYS']['session']['BE'] = [
+            'backend'  => DatabaseSessionBackend::class,
+            'options' => [
+                'table' => 'be_sessions',
+            ],
+        ];
+        $GLOBALS['BE_USER'] = new BackendUserAuthentication();
+        $GLOBALS['BE_USER']->id = md5('abc');
+        $GLOBALS['BE_USER']->user = ['uid' => 1];
+        $GLOBALS['BE_USER']->setLogger(new NullLogger());
+
+        $GLOBALS['LANG'] = LanguageService::createFromUserPreferences($GLOBALS['BE_USER']);
+
+        $subject = new PageRenderer();
+        $subject->setCharSet('utf-8');
+        $subject->setLanguage('default');
+
+        $packages = [
+            [
+                'name' => 'foo',
+                'location' => '/typo3conf/ext/foo/Resources/Public/JavaScript/Contrib/foo',
+                'main' => 'lib/foo'
+            ],
+            [
+                'name' => 'bar',
+                'location' => '/typo3conf/ext/bar/Resources/Public/JavaScript/Contrib/bar',
+                'main' => 'lib/bar'
+            ]
+        ];
+
+        foreach ($packages as $package) {
+            $subject->addRequireJsConfiguration([
+                'packages' => [$package]
+            ]);
+        }
+
+        $expectedConfiguration = json_encode(['packages' => $packages]);
+        // Remove surrounding brackets as the expectation is a substring of a larger JSON string
+        $expectedConfiguration = trim($expectedConfiguration, '{}');
+
+        $renderedString = $subject->render();
+        self::assertStringContainsString($expectedConfiguration, $renderedString);
     }
 }

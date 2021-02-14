@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Impexp\Domain\Repository;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,9 @@ namespace TYPO3\CMS\Impexp\Domain\Repository;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Impexp\Domain\Repository;
+
+use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
@@ -108,6 +110,8 @@ class PresetRepository
     {
         $connection = GeneralUtility::makeInstance(ConnectionPool::class)->getConnectionForTable('tx_impexp_presets');
         $presetData = GeneralUtility::_GP('preset');
+        $context = GeneralUtility::makeInstance(Context::class);
+        $currentTimestamp = $context->getPropertyFromAspect('date', 'timestamp');
         $err = false;
         $msg = '';
         // Save preset
@@ -125,7 +129,8 @@ class PresetRepository
                             'public' => $inData['preset']['public'],
                             'title' => $inData['preset']['title'],
                             'item_uid' => $inData['pagetree']['id'],
-                            'preset_data' => serialize($inData)
+                            'preset_data' => serialize($inData),
+                            'tstamp' => $currentTimestamp
                         ],
                         ['uid' => (int)$preset['uid']],
                         ['preset_data' => Connection::PARAM_LOB]
@@ -145,7 +150,9 @@ class PresetRepository
                         'public' => $inData['preset']['public'],
                         'title' => $inData['preset']['title'],
                         'item_uid' => (int)$inData['pagetree']['id'],
-                        'preset_data' => serialize($inData)
+                        'preset_data' => serialize($inData),
+                        'tstamp' => $currentTimestamp,
+                        'crdate' => $currentTimestamp
                     ],
                     ['preset_data' => Connection::PARAM_LOB]
                 );
@@ -195,7 +202,7 @@ class PresetRepository
                         $inData = $inData_temp;
                     }
                 } else {
-                    $msg = 'ERROR: No configuratio data found in preset record!';
+                    $msg = 'ERROR: No configuration data found in preset record!';
                     $err = true;
                 }
             } else {

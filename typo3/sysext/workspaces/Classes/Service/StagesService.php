@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Workspaces\Service;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Workspaces\Service;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Workspaces\Service;
 
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
@@ -36,9 +37,6 @@ class StagesService implements SingletonInterface
     // ready to publish stage
     const STAGE_PUBLISH_ID = -10;
     const STAGE_EDIT_ID = 0;
-    const MODE_NOTIFY_SOMEONE = 0;
-    const MODE_NOTIFY_ALL = 1;
-    const MODE_NOTIFY_ALL_STRICT = 2;
 
     /**
      * Path to the locallang file
@@ -556,7 +554,7 @@ class StagesService implements SingletonInterface
     }
 
     /**
-     * @param $grList
+     * @param string $grList
      * @param string $idList
      * @return array
      */
@@ -602,7 +600,7 @@ class StagesService implements SingletonInterface
     /**
      * Fetches particular groups recursively.
      *
-     * @param $grList
+     * @param string $grList
      * @param string $idList
      * @return array
      */
@@ -619,7 +617,7 @@ class StagesService implements SingletonInterface
             // traversing list
             // Get row:
             $row = $this->userGroups[$uid];
-            if (is_array($row) && !GeneralUtility::inList($idList, $uid)) {
+            if (is_array($row) && !GeneralUtility::inList($idList, (string)$uid)) {
                 // Must be an array and $uid should not be in the idList, because then it is somewhere previously in the grouplist
                 // If the localconf.php option isset the user of the sub- sub- groups will also be used
                 if ($GLOBALS['TYPO3_CONF_VARS']['BE']['customStageShowRecipientRecursive'] == 1) {
@@ -738,7 +736,7 @@ class StagesService implements SingletonInterface
     }
 
     /**
-     * @param $stageId
+     * @param int $stageId
      * @return bool
      */
     protected function isStageAllowedForUser($stageId)

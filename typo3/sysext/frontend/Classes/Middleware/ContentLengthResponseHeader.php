@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Frontend\Middleware;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Frontend\Middleware;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Frontend\Middleware;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -46,7 +48,7 @@ class ContentLengthResponseHeader implements MiddlewareInterface
         if (
             !($response instanceof NullResponse)
             && $GLOBALS['TSFE'] instanceof TypoScriptFrontendController
-            && $GLOBALS['TSFE']->isOutputting()) {
+            && $GLOBALS['TSFE']->isOutputting(true)) {
             if (
                     (!isset($GLOBALS['TSFE']->config['config']['enableContentLengthHeader']) || $GLOBALS['TSFE']->config['config']['enableContentLengthHeader'])
                     && !$GLOBALS['TSFE']->isBackendUserLoggedIn() && !$GLOBALS['TYPO3_CONF_VARS']['FE']['debug']

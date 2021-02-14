@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Form\Element;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Form\Element;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Form\Element;
 
 use TYPO3\CMS\Backend\Form\AbstractNode;
 use TYPO3\CMS\Backend\Form\NodeFactory;
@@ -198,12 +199,12 @@ abstract class AbstractFormElement extends AbstractNode
                     $option = isset($formatOptions['option']) ? trim($formatOptions['option']) : '';
                     if ($option) {
                         if (isset($formatOptions['strftime']) && $formatOptions['strftime']) {
-                            $value = strftime($option, $itemValue);
+                            $value = strftime($option, (int)$itemValue);
                         } else {
-                            $value = date($option, $itemValue);
+                            $value = date($option, (int)$itemValue);
                         }
                     } else {
-                        $value = date('d-m-Y', $itemValue);
+                        $value = date('d-m-Y', (int)$itemValue);
                     }
                 } else {
                     $value = '';
@@ -335,7 +336,7 @@ abstract class AbstractFormElement extends AbstractNode
      * Calculates the bootstrap grid classes based on the amount of columns
      * defined in the checkbox item TCA
      *
-     * @param $cols
+     * @param int $cols
      * @return array
      * @internal
      */
@@ -376,7 +377,7 @@ abstract class AbstractFormElement extends AbstractNode
      *
      * @param string|int $label The label which can also be an integer
      * @param string|int $value The value which can also be an integer
-     * @return string|int
+     * @return string
      */
     protected function appendValueToLabelInDebugMode($label, $value)
     {
@@ -384,7 +385,7 @@ abstract class AbstractFormElement extends AbstractNode
             return $label . ' [' . $value . ']';
         }
 
-        return $label;
+        return (string)$label;
     }
 
     /**

@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Routing;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Core\Routing;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Routing;
 
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 use TYPO3\CMS\Core\Routing\Aspect\MappableProcessor;
@@ -31,7 +32,7 @@ use TYPO3\CMS\Core\Routing\Aspect\MappableProcessor;
 class PageUriMatcher
 {
     /**
-     * @var RouteCollection
+     * @var RouteCollection<string, Route>
      */
     protected $routes;
 
@@ -68,7 +69,7 @@ class PageUriMatcher
      * Tries to match a URL with a set of routes.
      *
      * @param string $urlPath The path info to be parsed
-     * @param RouteCollection $routes The set of routes
+     * @param RouteCollection<string,Route> $routes The set of routes
      * @return array An array of parameters
      */
     protected function matchCollection(string $urlPath, RouteCollection $routes): ?array
@@ -132,7 +133,12 @@ class PageUriMatcher
             unset($defaults['_canonical_route']);
         }
         $attributes['_route'] = $name;
-
+        // store applied default values in route options
+        $relevantDefaults = array_intersect_key($defaults, array_flip($route->compile()->getPathVariables()));
+        // option '_appliedDefaults' contains internal(!) values (default values are not mapped when resolving)
+        // (keys used are deflated and need to be inflated later using VariableProcessor)
+        $route->setOption('_appliedDefaults', array_diff_key($relevantDefaults, $attributes));
+        // side note: $defaults can contain e.g. '_controller'
         return $this->mergeDefaults($attributes, $defaults);
     }
 

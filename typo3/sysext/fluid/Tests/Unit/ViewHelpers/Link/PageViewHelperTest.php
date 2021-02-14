@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Fluid\Tests\Unit\ViewHelpers\Link;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,9 @@ namespace TYPO3\CMS\Fluid\Tests\Unit\ViewHelpers\Link;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Fluid\Tests\Unit\ViewHelpers\Link;
+
+use TYPO3\CMS\Extbase\Mvc\Controller\ControllerContext;
 use TYPO3\CMS\Extbase\Mvc\Web\Routing\UriBuilder;
 use TYPO3\CMS\Fluid\Core\Rendering\RenderingContext;
 use TYPO3\CMS\Fluid\ViewHelpers\Link\PageViewHelper;
@@ -48,6 +51,7 @@ class PageViewHelperTest extends ViewHelperBaseTestcase
         $this->uriBuilder->expects(self::any())->method('setSection')->willReturn($this->uriBuilder);
         $this->uriBuilder->expects(self::any())->method('setFormat')->willReturn($this->uriBuilder);
         $this->uriBuilder->expects(self::any())->method('setCreateAbsoluteUri')->willReturn($this->uriBuilder);
+        $this->uriBuilder->expects(self::any())->method('setLanguage')->willReturn($this->uriBuilder);
         $this->uriBuilder->expects(self::any())->method('setAddQueryString')->willReturn($this->uriBuilder);
         $this->uriBuilder->expects(self::any())->method('setArgumentsToBeExcludedFromQueryString')->willReturn($this->uriBuilder);
         $this->uriBuilder->expects(self::any())->method('setLinkAccessRestrictedPages')->willReturn($this->uriBuilder);
@@ -57,7 +61,7 @@ class PageViewHelperTest extends ViewHelperBaseTestcase
         $this->uriBuilder->expects(self::any())->method('setAddQueryStringMethod')->willReturn($this->uriBuilder);
 
         // reset parent controller context and uri builder @todo: remove once fluid-cleanup is merged in testing framework
-        $this->controllerContext = $this->createMock(\TYPO3\CMS\Extbase\Mvc\Controller\ControllerContext::class);
+        $this->controllerContext = $this->createMock(ControllerContext::class);
         $this->controllerContext->expects(self::any())->method('getUriBuilder')->willReturn($this->uriBuilder);
         $this->controllerContext->expects(self::any())->method('getRequest')->willReturn($this->request->reveal());
         $this->arguments = [];

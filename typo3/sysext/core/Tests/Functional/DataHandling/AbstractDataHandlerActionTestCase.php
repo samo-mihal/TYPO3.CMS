@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Functional\DataHandling;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,12 +13,15 @@ namespace TYPO3\CMS\Core\Tests\Functional\DataHandling;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Functional\DataHandling;
+
 use Symfony\Component\Yaml\Yaml;
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Context\WorkspaceAspect;
 use TYPO3\CMS\Core\Core\Bootstrap;
 use TYPO3\CMS\Core\Database\Connection;
+use TYPO3\CMS\Core\Database\ReferenceIndex;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\TestingFramework\Core\Functional\Framework\Constraint\RequestSection\DoesNotHaveRecordConstraint;
 use TYPO3\TestingFramework\Core\Functional\Framework\Constraint\RequestSection\HasRecordConstraint;
@@ -34,6 +36,11 @@ use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 abstract class AbstractDataHandlerActionTestCase extends FunctionalTestCase
 {
     const VALUE_BackendUserId = 1;
+
+    /**
+     * @var bool True if assertCleanReferenceIndex() should be called in tearDown(). Set to false only with care.
+     */
+    protected $assertCleanReferenceIndex = true;
 
     /**
      * @var string
@@ -128,6 +135,9 @@ abstract class AbstractDataHandlerActionTestCase extends FunctionalTestCase
     protected function tearDown(): void
     {
         $this->assertErrorLogEntries();
+        if ($this->assertCleanReferenceIndex) {
+            $this->assertCleanReferenceIndex();
+        }
         unset($this->actionService);
         unset($this->recordIds);
         parent::tearDown();
@@ -171,8 +181,8 @@ abstract class AbstractDataHandlerActionTestCase extends FunctionalTestCase
         GeneralUtility::writeFile($fileName, $yamlFileContents);
         // Ensure that no other site configuration was cached before
         $cache = GeneralUtility::makeInstance(CacheManager::class)->getCache('core');
-        if ($cache->has('site-configuration')) {
-            $cache->remove('site-configuration');
+        if ($cache->has('sites-configuration')) {
+            $cache->remove('sites-configuration');
         }
     }
 
@@ -268,6 +278,18 @@ abstract class AbstractDataHandlerActionTestCase extends FunctionalTestCase
             );
             $failureMessage .= '* ' . implode(LF . '* ', $entryMessages) . LF;
             self::fail($failureMessage);
+        }
+    }
+
+    /**
+     * Similar to log entries, verify DataHandler tests end up with a clean reference index.
+     */
+    protected function assertCleanReferenceIndex(): void
+    {
+        $referenceIndex = GeneralUtility::makeInstance(ReferenceIndex::class);
+        $referenceIndexFixResult = $referenceIndex->updateIndex(true);
+        if (count($referenceIndexFixResult['errors']) > 0) {
+            self::fail('Reference index not clean. ' . LF . implode(LF, $referenceIndexFixResult['errors']));
         }
     }
 

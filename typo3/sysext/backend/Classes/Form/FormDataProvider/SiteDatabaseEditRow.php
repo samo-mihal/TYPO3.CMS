@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Backend\Form\FormDataProvider;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,9 +15,10 @@ namespace TYPO3\CMS\Backend\Form\FormDataProvider;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Form\FormDataProvider;
+
 use TYPO3\CMS\Backend\Form\FormDataProviderInterface;
 use TYPO3\CMS\Core\Configuration\SiteConfiguration;
-use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -33,15 +34,9 @@ class SiteDatabaseEditRow implements FormDataProviderInterface
      */
     protected $siteConfiguration;
 
-    /**
-     * @param SiteConfiguration $siteConfiguration
-     */
-    public function __construct(SiteConfiguration $siteConfiguration = null)
+    public function __construct(SiteConfiguration $siteConfiguration)
     {
-        $this->siteConfiguration = $siteConfiguration ?? GeneralUtility::makeInstance(
-            SiteConfiguration::class,
-            Environment::getConfigPath() . '/sites'
-        );
+        $this->siteConfiguration = $siteConfiguration;
     }
 
     /**

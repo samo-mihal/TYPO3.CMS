@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\Service;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Form\Service;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Form\Service;
 
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Localization\LanguageService;
@@ -131,7 +133,7 @@ class TranslationService implements SingletonInterface
             $this->languageKey = $language;
         }
 
-        $this->initializeLocalization($locallangPathAndFilename);
+        $this->initializeLocalization($locallangPathAndFilename ?? '');
 
         // The "from" charset of csConv() is only set for strings from TypoScript via _LOCAL_LANG
         if (!empty($this->LOCAL_LANG[$this->languageKey][$key][0]['target'])
@@ -469,7 +471,7 @@ class TranslationService implements SingletonInterface
         if (is_array($validationErrors)) {
             foreach ($validationErrors as $validationError) {
                 if ((int)$validationError['code'] === $code) {
-                    return sprintf($validationError['message'], $arguments);
+                    return sprintf($validationError['message'], ...$arguments);
                 }
             }
         }

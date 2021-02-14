@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Unit\Http;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\Http;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\Http;
 
 use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -36,15 +38,15 @@ class MiddlewareDispatcherTest extends UnitTestCase
      */
     public function executesKernelWithEmptyMiddlewareStack()
     {
-        $kernel = new class implements RequestHandlerInterface {
+        $kernel = new class() implements RequestHandlerInterface {
             public function handle(ServerRequestInterface $request): ResponseInterface
             {
-                return (new Response)->withStatus(204);
+                return (new Response())->withStatus(204);
             }
         };
 
         $dispatcher = new MiddlewareDispatcher($kernel);
-        $response = $dispatcher->handle(new ServerRequest);
+        $response = $dispatcher->handle(new ServerRequest());
 
         self::assertSame(204, $response->getStatusCode());
     }
@@ -54,16 +56,16 @@ class MiddlewareDispatcherTest extends UnitTestCase
      */
     public function executesMiddlewaresLastInFirstOut()
     {
-        $kernel = new class implements RequestHandlerInterface {
+        $kernel = new class() implements RequestHandlerInterface {
             public function handle(ServerRequestInterface $request): ResponseInterface
             {
-                return (new Response)
+                return (new Response())
                     ->withStatus(204)
                     ->withHeader('X-SEQ-PRE-REQ-HANDLER', $request->getHeader('X-SEQ-PRE-REQ-HANDLER'));
             }
         };
 
-        $middleware1 = new class implements MiddlewareInterface {
+        $middleware1 = new class() implements MiddlewareInterface {
             public $id = '0';
 
             public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
@@ -87,7 +89,7 @@ class MiddlewareDispatcherTest extends UnitTestCase
         $dispatcher->lazy(MiddlewareFixture::class);
         $dispatcher->add($middleware4);
 
-        $response = $dispatcher->handle(new ServerRequest);
+        $response = $dispatcher->handle(new ServerRequest());
 
         self::assertSame(['3', '2', '1', '0'], $response->getHeader('X-SEQ-PRE-REQ-HANDLER'));
         self::assertSame(['0', '1', '2', '3'], $response->getHeader('X-SEQ-POST-REQ-HANDLER'));
@@ -99,22 +101,22 @@ class MiddlewareDispatcherTest extends UnitTestCase
      */
     public function doesNotInstantiateLazyMiddlewareInCaseOfAnEarlyReturningOuterMiddleware()
     {
-        $kernel = new class implements RequestHandlerInterface {
+        $kernel = new class() implements RequestHandlerInterface {
             public function handle(ServerRequestInterface $request): ResponseInterface
             {
-                return new Response;
+                return new Response();
             }
         };
-        $middleware = new class implements MiddlewareInterface {
+        $middleware = new class() implements MiddlewareInterface {
             public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
             {
-                return (new Response)->withStatus(404);
+                return (new Response())->withStatus(404);
             }
         };
 
         MiddlewareFixture::$hasBeenInstantiated = false;
         $dispatcher = new MiddlewareDispatcher($kernel, [MiddlewareFixture::class, $middleware]);
-        $response = $dispatcher->handle(new ServerRequest);
+        $response = $dispatcher->handle(new ServerRequest());
 
         self::assertFalse(MiddlewareFixture::$hasBeenInstantiated);
         self::assertSame(404, $response->getStatusCode());
@@ -128,42 +130,42 @@ class MiddlewareDispatcherTest extends UnitTestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionCode(1516821342);
 
-        $kernel = new class implements RequestHandlerInterface {
+        $kernel = new class() implements RequestHandlerInterface {
             public function handle(ServerRequestInterface $request): ResponseInterface
             {
-                return new Response;
+                return new Response();
             }
         };
 
         MiddlewareFixture::$hasBeenInstantiated = false;
         $dispatcher = new MiddlewareDispatcher($kernel);
         $dispatcher->lazy(\stdClass::class);
-        $dispatcher->handle(new ServerRequest);
+        $dispatcher->handle(new ServerRequest());
     }
 
     /**
      * @test
      */
-    public function canBeExcutedMultipleTimes()
+    public function canBeExecutedMultipleTimes()
     {
-        $kernel = new class implements RequestHandlerInterface {
+        $kernel = new class() implements RequestHandlerInterface {
             public function handle(ServerRequestInterface $request): ResponseInterface
             {
-                return new Response;
+                return new Response();
             }
         };
-        $middleware = new class implements MiddlewareInterface {
+        $middleware = new class() implements MiddlewareInterface {
             public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
             {
-                return (new Response)->withStatus(204);
+                return (new Response())->withStatus(204);
             }
         };
 
         $dispatcher = new MiddlewareDispatcher($kernel);
         $dispatcher->add($middleware);
 
-        $response1 = $dispatcher->handle(new ServerRequest);
-        $response2 = $dispatcher->handle(new ServerRequest);
+        $response1 = $dispatcher->handle(new ServerRequest());
+        $response2 = $dispatcher->handle(new ServerRequest());
 
         self::assertSame(204, $response1->getStatusCode());
         self::assertSame(204, $response2->getStatusCode());
@@ -174,10 +176,10 @@ class MiddlewareDispatcherTest extends UnitTestCase
      */
     public function canBeReExecutedRecursivelyDuringDispatch()
     {
-        $kernel = new class implements RequestHandlerInterface {
+        $kernel = new class() implements RequestHandlerInterface {
             public function handle(ServerRequestInterface $request): ResponseInterface
             {
-                return new Response;
+                return new Response();
             }
         };
 
@@ -194,7 +196,7 @@ class MiddlewareDispatcherTest extends UnitTestCase
             public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
             {
                 if ($request->hasHeader('X-NESTED')) {
-                    return (new Response)->withStatus(204)->withAddedHeader('X-TRACE', 'nested');
+                    return (new Response())->withStatus(204)->withAddedHeader('X-TRACE', 'nested');
                 }
 
                 $response = $this->dispatcher->handle($request->withAddedHeader('X-NESTED', '1'));
@@ -203,7 +205,7 @@ class MiddlewareDispatcherTest extends UnitTestCase
             }
         });
 
-        $response = $dispatcher->handle(new ServerRequest);
+        $response = $dispatcher->handle(new ServerRequest());
 
         self::assertSame(204, $response->getStatusCode());
         self::assertSame(['nested', 'outer'], $response->getHeader('X-TRACE'));
@@ -214,17 +216,17 @@ class MiddlewareDispatcherTest extends UnitTestCase
      */
     public function fetchesMiddlewareFromContainer()
     {
-        $kernel = new class implements RequestHandlerInterface {
+        $kernel = new class() implements RequestHandlerInterface {
             public function handle(ServerRequestInterface $request): ResponseInterface
             {
-                return new Response;
+                return new Response();
             }
         };
 
-        $middleware = new class implements MiddlewareInterface {
+        $middleware = new class() implements MiddlewareInterface {
             public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
             {
-                return (new Response)->withStatus(404);
+                return (new Response())->withStatus(404);
             }
         };
 
@@ -234,7 +236,7 @@ class MiddlewareDispatcherTest extends UnitTestCase
         $containerProphecy->get('somemiddlewarename')->willReturn($middleware);
 
         $dispatcher = new MiddlewareDispatcher($kernel, ['somemiddlewarename'], $containerProphecy->reveal());
-        $response = $dispatcher->handle(new ServerRequest);
+        $response = $dispatcher->handle(new ServerRequest());
 
         self::assertSame(404, $response->getStatusCode());
     }

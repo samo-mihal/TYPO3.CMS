@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Frontend\Tests\Unit\ContentObject;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,11 +15,14 @@ namespace TYPO3\CMS\Frontend\Tests\Unit\ContentObject;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Frontend\Tests\Unit\ContentObject;
+
 use TYPO3\CMS\Core\Package\PackageManager;
 use TYPO3\CMS\Core\Resource\Collection\StaticFileCollection;
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\FileCollectionRepository;
 use TYPO3\CMS\Core\Resource\FileReference;
+use TYPO3\CMS\Core\Resource\FileRepository;
 use TYPO3\CMS\Core\Resource\Folder;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\TypoScript\TemplateService;
@@ -242,7 +245,7 @@ class FilesContentObjectTest extends UnitTestCase
             $fileReferenceMap[] = [$i, $fileReference];
         }
 
-        $fileRepository = $this->createMock(\TYPO3\CMS\Core\Resource\FileRepository::class);
+        $fileRepository = $this->createMock(FileRepository::class);
         $fileRepository->expects(self::any())
             ->method('findFileReferenceByUid')
             ->willReturnMap($fileReferenceMap);

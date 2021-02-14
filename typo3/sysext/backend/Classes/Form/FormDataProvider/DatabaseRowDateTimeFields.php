@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Form\FormDataProvider;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Form\FormDataProvider;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Form\FormDataProvider;
 
 use TYPO3\CMS\Backend\Form\FormDataProviderInterface;
 use TYPO3\CMS\Core\Database\Query\QueryHelper;
@@ -43,7 +44,7 @@ class DatabaseRowDateTimeFields implements FormDataProviderInterface
                     // Create an ISO-8601 date from current field data; the database always contains UTC
                     // The field value is something like "2016-01-01" or "2016-01-01 10:11:12", so appending "UTC"
                     // makes date() treat it as a UTC date (which is what we store in the database).
-                    $result['databaseRow'][$column] = date('c', strtotime($result['databaseRow'][$column] . ' UTC'));
+                    $result['databaseRow'][$column] = date('c', (int)strtotime($result['databaseRow'][$column] . ' UTC'));
                 } else {
                     $result['databaseRow'][$column] = null;
                 }

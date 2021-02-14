@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Recordlist\Browser;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,8 +13,10 @@ namespace TYPO3\CMS\Recordlist\Browser;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Recordlist\Browser;
+
 use TYPO3\CMS\Backend\Routing\UriBuilder;
-use TYPO3\CMS\Backend\Template\DocumentTemplate;
+use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Localization\LanguageService;
@@ -31,9 +32,9 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 abstract class AbstractElementBrowser
 {
     /**
-     * @var DocumentTemplate
+     * @var ModuleTemplate
      */
-    protected $doc;
+    protected $moduleTemplate;
 
     /**
      * @var PageRenderer
@@ -77,11 +78,12 @@ abstract class AbstractElementBrowser
      */
     public function __construct()
     {
-        $this->doc = GeneralUtility::makeInstance(DocumentTemplate::class);
+        $this->moduleTemplate = GeneralUtility::makeInstance(ModuleTemplate::class);
+        $this->moduleTemplate->getDocHeaderComponent()->disable();
+        $this->moduleTemplate->getView()->setTemplate('ElementBrowser');
         $this->iconFactory = GeneralUtility::makeInstance(IconFactory::class);
         $this->pageRenderer = GeneralUtility::makeInstance(PageRenderer::class);
         $this->pageRenderer->loadRequireJsModule('TYPO3/CMS/Recordlist/ElementBrowser');
-
         $this->initialize();
     }
 
@@ -116,35 +118,32 @@ abstract class AbstractElementBrowser
     }
 
     /**
-     * Initialize document template object
+     * Initialize the body tag for the module
      */
-    protected function initDocumentTemplate()
+    protected function setBodyTagParameters()
     {
         $bodyDataAttributes = array_merge(
             $this->getBParamDataAttributes(),
             $this->getBodyTagAttributes()
         );
-        foreach ($bodyDataAttributes as $attributeName => $value) {
-            $this->doc->bodyTagAdditions .= ' ' . $attributeName . '="' . htmlspecialchars($value) . '"';
-        }
-
-        // unset the default jumpToUrl() function as we ship our own
-        unset($this->doc->JScodeArray['jumpToUrl']);
+        $bodyTag = $this->moduleTemplate->getBodyTag();
+        $bodyTag = str_replace('>', ' ' . GeneralUtility::implodeAttributes($bodyDataAttributes, true, true) . '>', $bodyTag);
+        $this->moduleTemplate->setBodyTag($bodyTag);
     }
 
     /**
-     * @return string[] Array of body-tag attributes
+     * @return array<string, string> Array of body-tag attributes
      */
     abstract protected function getBodyTagAttributes();
 
     /**
      * Splits parts of $this->bparams and returns needed data attributes for the Javascript
      *
-     * @return string[] Data attributes for Javascript
+     * @return array<string, string> Data attributes for Javascript
      */
     protected function getBParamDataAttributes()
     {
-        list($fieldRef, $rteParams, $rteConfig, , $irreObjectId) = explode('|', $this->bparams);
+        [$fieldRef, $rteParams, $rteConfig, , $irreObjectId] = explode('|', $this->bparams);
 
         return [
             'data-this-script-url' => strpos($this->thisScript, '?') === false ? $this->thisScript . '?' : $this->thisScript . '&',

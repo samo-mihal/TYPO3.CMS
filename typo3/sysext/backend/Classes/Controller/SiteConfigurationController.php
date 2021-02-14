@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Backend\Controller;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Backend\Controller;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Controller;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -29,10 +31,9 @@ use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Configuration\SiteConfiguration;
-use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Database\ConnectionPool;
-use TYPO3\CMS\Core\Database\Query\Restriction\BackendWorkspaceRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\HiddenRestriction;
+use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 use TYPO3\CMS\Core\Domain\Repository\PageRepository;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Http\HtmlResponse;
@@ -41,9 +42,11 @@ use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Messaging\FlashMessageService;
+use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\CMS\Fluid\View\StandaloneView;
 use TYPO3Fluid\Fluid\View\ViewInterface;
 
@@ -56,6 +59,8 @@ use TYPO3Fluid\Fluid\View\ViewInterface;
  */
 class SiteConfigurationController
 {
+    protected const ALLOWED_ACTIONS = ['overview', 'edit', 'save', 'delete'];
+
     /**
      * @var ModuleTemplate
      */
@@ -88,11 +93,20 @@ class SiteConfigurationController
      */
     public function handleRequest(ServerRequestInterface $request): ResponseInterface
     {
+        // forcing uncached sites will re-initialize `SiteFinder`
+        // which is used later by FormEngine (implicit behavior)
+        $this->siteFinder->getAllSites(false);
         $this->moduleTemplate->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/Backend/ContextMenu');
         $this->moduleTemplate->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/Backend/Modal');
         $action = $request->getQueryParams()['action'] ?? $request->getParsedBody()['action'] ?? 'overview';
+
+        if (!in_array($action, self::ALLOWED_ACTIONS, true)) {
+            return new HtmlResponse('Action not allowed', 400);
+        }
+
         $this->initializeView($action);
-        $result = call_user_func_array([$this, $action . 'Action'], [$request]);
+
+        $result = $this->{$action . 'Action'}($request);
         if ($result instanceof ResponseInterface) {
             return $result;
         }
@@ -119,9 +133,11 @@ class SiteConfigurationController
                 $unassignedSites[] = $site;
             }
         }
+
         $this->view->assignMultiple([
             'pages' => $pages,
-            'unassignedSites' => $unassignedSites
+            'unassignedSites' => $unassignedSites,
+            'duplicatedEntryPoints' => $this->getDuplicatedEntryPoints($allSites, $pages),
         ]);
     }
 
@@ -321,7 +337,7 @@ class SiteConfigurationController
             $newSiteConfiguration = $this->validateFullStructure($newSysSiteData);
 
             // Persist the configuration
-            $siteConfigurationManager = GeneralUtility::makeInstance(SiteConfiguration::class, Environment::getConfigPath() . '/sites');
+            $siteConfigurationManager = GeneralUtility::makeInstance(SiteConfiguration::class);
             if (!$isNewConfiguration && $currentIdentifier !== $siteIdentifier) {
                 $siteConfigurationManager->rename($currentIdentifier, $siteIdentifier);
             }
@@ -357,7 +373,7 @@ class SiteConfigurationController
                 $this->siteFinder->getSiteByIdentifier($identifier);
                 // Force this identifier to be unique
                 $originalIdentifier = $identifier;
-                $identifier = $identifier . '-' . str_replace('.', '', uniqid((string)mt_rand(), true));
+                $identifier = StringUtility::getUniqueId($identifier . '-');
                 $message = sprintf(
                     $languageService->sL('LLL:EXT:backend/Resources/Private/Language/locallang_siteconfiguration.xlf:validation.identifierRenamed.message'),
                     $originalIdentifier,
@@ -490,6 +506,7 @@ class SiteConfigurationController
                 }
                 if (!in_array((int)$child['errorCode'], $uniqueCriteria, true)) {
                     $uniqueCriteria[] = (int)$child['errorCode'];
+                    $child['errorCode'] = (int)$child['errorCode'];
                     $validChildren[] = $child;
                 } else {
                     $message = sprintf(
@@ -521,6 +538,7 @@ class SiteConfigurationController
             }
             if (!in_array((int)$child['languageId'], $uniqueCriteria, true)) {
                 $uniqueCriteria[] = (int)$child['languageId'];
+                $child['languageId'] = (int)$child['languageId'];
                 $validChildren[] = $child;
             } else {
                 $message = sprintf(
@@ -535,6 +553,13 @@ class SiteConfigurationController
             }
         }
         $newSysSiteData['languages'] = $validChildren;
+
+        // cleanup configuration
+        foreach ($newSysSiteData as $identifier => $value) {
+            if (is_array($value) && empty($value)) {
+                unset($newSysSiteData[$identifier]);
+            }
+        }
 
         return $newSysSiteData;
     }
@@ -552,7 +577,7 @@ class SiteConfigurationController
             throw new \RuntimeException('Not site identifier given', 1521565182);
         }
         // Verify site does exist, method throws if not
-        GeneralUtility::makeInstance(SiteConfiguration::class, Environment::getConfigPath() . '/sites')->delete($siteIdentifier);
+        GeneralUtility::makeInstance(SiteConfiguration::class)->delete($siteIdentifier);
         $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
         $overviewRoute = $uriBuilder->buildUriFromRoute('site_configuration', ['action' => 'overview']);
         return new RedirectResponse($overviewRoute);
@@ -627,7 +652,7 @@ class SiteConfigurationController
     {
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('pages');
         $queryBuilder->getRestrictions()->removeByType(HiddenRestriction::class);
-        $queryBuilder->getRestrictions()->add(GeneralUtility::makeInstance(BackendWorkspaceRestriction::class, 0, false));
+        $queryBuilder->getRestrictions()->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, 0));
         $statement = $queryBuilder
             ->select('*')
             ->from('pages')
@@ -657,6 +682,38 @@ class SiteConfigurationController
             $pages[(int)$row['uid']] = $row;
         }
         return $pages;
+    }
+
+    /**
+     * Get all entry duplicates which are used multiple times
+     *
+     * @param Site[] $allSites
+     * @param array $pages
+     * @return array
+     */
+    protected function getDuplicatedEntryPoints(array $allSites, array $pages): array
+    {
+        $duplicatedEntryPoints = [];
+
+        foreach ($allSites as $identifier => $site) {
+            if (!isset($pages[$site->getRootPageId()])) {
+                continue;
+            }
+            foreach ($site->getAllLanguages() as $language) {
+                $base = $language->getBase();
+                $entryPoint = rtrim((string)$language->getBase(), '/');
+                $scheme = $base->getScheme() ? $base->getScheme() . '://' : '//';
+                $entryPointWithoutScheme = str_replace($scheme, '', $entryPoint);
+                if (!isset($duplicatedEntryPoints[$entryPointWithoutScheme][$entryPoint])) {
+                    $duplicatedEntryPoints[$entryPointWithoutScheme][$entryPoint] = 1;
+                } else {
+                    $duplicatedEntryPoints[$entryPointWithoutScheme][$entryPoint]++;
+                }
+            }
+        }
+        return array_filter($duplicatedEntryPoints, static function (array $variants): bool {
+            return count($variants) > 1 || reset($variants) > 1;
+        }, ARRAY_FILTER_USE_BOTH);
     }
 
     /**

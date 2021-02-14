@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Messaging\Renderer;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,8 @@ namespace TYPO3\CMS\Core\Messaging\Renderer;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Messaging\Renderer;
+
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 
 /**
@@ -28,7 +30,7 @@ use TYPO3\CMS\Core\Messaging\FlashMessage;
 class ListRenderer implements FlashMessageRendererInterface
 {
     /**
-     * @var string The message severity class names
+     * @var string[] The message severity class names
      */
     protected static $classes = [
         FlashMessage::NOTICE => 'notice',
@@ -39,7 +41,7 @@ class ListRenderer implements FlashMessageRendererInterface
     ];
 
     /**
-     * @var string The message severity icon names
+     * @var string[] The message severity icon names
      */
     protected static $icons = [
         FlashMessage::NOTICE => 'lightbulb-o',

@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Unit\Utility;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\Utility;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\Utility;
 
 use TYPO3\CMS\Core\Tests\Unit\Utility\Fixtures\ArrayUtilityFilterRecursiveCallbackFixture;
 use TYPO3\CMS\Core\Utility\ArrayUtility;
@@ -289,6 +291,15 @@ class ArrayUtilityTest extends UnitTestCase
                     'bar' => []
                 ],
                 'foo/bar/baz',
+                false
+            ],
+            'last segment is not an array' => [
+                [
+                    'foo' => [
+                        'baz' => 42
+                    ],
+                ],
+                'foo/baz/baz',
                 false
             ],
             // Negative test: This could be improved and the test moved to
@@ -2844,7 +2855,7 @@ class ArrayUtilityTest extends UnitTestCase
             'integer' => 1,
             'float' => 1.9,
             'object' => $testObject,
-            'objectWithStringConversion' => new class {
+            'objectWithStringConversion' => new class() {
                 /**
                  * @return string
                  */

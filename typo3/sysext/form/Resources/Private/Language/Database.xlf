@@ -40,7 +40,7 @@
                 <source>"%s" (no read access).</source>
             </trans-unit>
             <trans-unit id="tt_content.preview.notExistingdPersistenceIdentifier" resname="tt_content.preview.notExistingdPersistenceIdentifier" xml:space="preserve">
-                <source>The form "%s" does not exists.</source>
+                <source>The form "%s" does not exist.</source>
             </trans-unit>
             <trans-unit id="tt_content.preview.invalidFrameworkConfiguration" resname="tt_content.preview.invalidFrameworkConfiguration" xml:space="preserve">
                 <source>"%s" (Invalid ext:form configuration).</source>
@@ -107,6 +107,15 @@
             <trans-unit id="tt_content.finishersDefinition.EmailToSender.addHtmlPart.label" resname="tt_content.finishersDefinition.EmailToSender.addHtmlPart.label" xml:space="preserve">
                 <source>Add HTML mail part</source>
             </trans-unit>
+			<trans-unit id="tt_content.finishersDefinition.EmailToSender.language.label" resname="tt_content.finishersDefinition.EmailToSender.language.label" xml:space="preserve">
+                <source>Translation language</source>
+            </trans-unit>
+			<trans-unit id="tt_content.finishersDefinition.EmailToSender.language.1" resname="tt_content.finishersDefinition.EmailToSender.language.1" xml:space="preserve">
+                <source>Default</source>
+            </trans-unit>
+            <trans-unit id="tt_content.finishersDefinition.EmailToSender.title.label" resname="tt_content.finishersDefinition.EmailToSender.title.label" xml:space="preserve">
+                <source>Title</source>
+            </trans-unit>
 
             <trans-unit id="tt_content.finishersDefinition.EmailToReceiver.label" resname="tt_content.finishersDefinition.EmailToReceiver.label" xml:space="preserve">
                 <source>Email to receiver (you)</source>
@@ -140,6 +149,9 @@
             </trans-unit>
             <trans-unit id="tt_content.finishersDefinition.EmailToReceiver.language.1" resname="tt_content.finishersDefinition.EmailToReceiver.language.1" xml:space="preserve">
                 <source>Default</source>
+            </trans-unit>
+            <trans-unit id="tt_content.finishersDefinition.EmailToReceiver.title.label" resname="tt_content.finishersDefinition.EmailToReceiver.title.label" xml:space="preserve">
+                <source>Title</source>
             </trans-unit>
 
             <trans-unit id="tt_content.finishersDefinition.Redirect.label" resname="tt_content.finishersDefinition.Redirect.label" xml:space="preserve">
@@ -247,6 +259,18 @@
             </trans-unit>
             <trans-unit id="formEditor.new_page_button" resname="formEditor.new_page_button" xml:space="preserve">
                 <source>Create new step</source>
+            </trans-unit>
+			<trans-unit id="formEditor.previous_step_button" resname="formEditor.edit_mode_button" xml:space="preserve">
+                <source>Previous step</source>
+            </trans-unit>
+			<trans-unit id="formEditor.next_step_button" resname="formEditor.edit_mode_button" xml:space="preserve">
+                <source>Next step</source>
+            </trans-unit>
+			<trans-unit id="formEditor.preview_mode_button" resname="formEditor.preview_mode_button" xml:space="preserve">
+                <source>Preview mode</source>
+            </trans-unit>
+			<trans-unit id="formEditor.edit_mode_button" resname="formEditor.edit_mode_button" xml:space="preserve">
+                <source>Edit mode</source>
             </trans-unit>
             <trans-unit id="formEditor.structure" resname="formEditor.structure" xml:space="preserve">
                 <source>Structure</source>
@@ -632,6 +656,24 @@
             <trans-unit id="formEditor.elements.Form.finisher.EmailToSender.editor.attachUploads.label" resname="formEditor.elements.Form.finisher.EmailToSender.editor.attachUploads.label" xml:space="preserve">
                 <source>Attach uploads</source>
             </trans-unit>
+			<trans-unit id="formEditor.elements.Form.finisher.EmailToSender.editor.language.label" resname="formEditor.elements.Form.finisher.EmailToSender.editor.language.label" xml:space="preserve">
+                <source>Translation language</source>
+            </trans-unit>
+			<trans-unit id="formEditor.elements.Form.finisher.EmailToSender.editor.language.1" resname="formEditor.elements.Form.finisher.EmailToSender.editor.language.1" xml:space="preserve">
+                <source>EN</source>
+            </trans-unit>
+            <trans-unit id="formEditor.elements.Form.finisher.EmailToSender.editor.useFluidEmail.label" resname="formEditor.elements.Form.finisher.EmailToSender.editor.useFluidEmail.label" xml:space="preserve">
+                <source>Use FluidEmail</source>
+            </trans-unit>
+            <trans-unit id="formEditor.elements.Form.finisher.EmailToSender.editor.useFluidEmail.fieldExplanationText" resname="formEditor.elements.Form.finisher.EmailToSender.editor.useFluidEmail.fieldExplanationText" xml:space="preserve">
+                <source>If enabled, the email will be sent using the new FluidEmail rendering.</source>
+            </trans-unit>
+            <trans-unit id="formEditor.elements.Form.finisher.EmailToSender.editor.title.label" resname="formEditor.elements.Form.finisher.EmailToSender.editor.useFluidEmail.label" xml:space="preserve">
+                <source>Title</source>
+            </trans-unit>
+            <trans-unit id="formEditor.elements.Form.finisher.EmailToSender.editor.title.fieldExplanationText" resname="formEditor.elements.Form.finisher.EmailToSender.editor.useFluidEmail.fieldExplanationText" xml:space="preserve">
+                <source>Only used if FluidEmail is enabled.</source>
+            </trans-unit>
 
             <trans-unit id="formEditor.elements.Form.finisher.EmailToReceiver.editor.header.label" resname="formEditor.elements.Form.finisher.EmailToReceiver.editor.header.label" xml:space="preserve">
                 <source>Email to receiver (you)</source>
@@ -680,6 +722,18 @@
             </trans-unit>
             <trans-unit id="formEditor.elements.Form.finisher.EmailToReceiver.editor.language.1" resname="formEditor.elements.Form.finisher.EmailToReceiver.editor.language.1" xml:space="preserve">
                 <source>EN</source>
+            </trans-unit>
+            <trans-unit id="formEditor.elements.Form.finisher.EmailToReceiver.editor.useFluidEmail.label" resname="formEditor.elements.Form.finisher.EmailToReceiver.editor.useFluidEmail.label" xml:space="preserve">
+                <source>Use FluidEmail</source>
+            </trans-unit>
+            <trans-unit id="formEditor.elements.Form.finisher.EmailToReceiver.editor.useFluidEmail.fieldExplanationText" resname="formEditor.elements.Form.finisher.EmailToReceiver.editor.useFluidEmail.fieldExplanationText" xml:space="preserve">
+                <source>If enabled, the email will be sent using the new FluidEmail rendering.</source>
+            </trans-unit>
+            <trans-unit id="formEditor.elements.Form.finisher.EmailToReceiver.editor.title.label" resname="formEditor.elements.Form.finisher.EmailToSender.editor.useFluidEmail.label" xml:space="preserve">
+                <source>Title</source>
+            </trans-unit>
+            <trans-unit id="formEditor.elements.Form.finisher.EmailToReceiver.editor.title.fieldExplanationText" resname="formEditor.elements.Form.finisher.EmailToSender.editor.useFluidEmail.fieldExplanationText" xml:space="preserve">
+                <source>Only used if FluidEmail is enabled.</source>
             </trans-unit>
 
             <trans-unit id="formEditor.elements.Form.finisher.Redirect.editor.header.label" resname="formEditor.elements.Form.finisher.Redirect.editor.header.label" xml:space="preserve">

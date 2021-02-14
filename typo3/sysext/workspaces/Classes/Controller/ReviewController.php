@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Workspaces\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Workspaces\Controller;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Workspaces\Controller;
 
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
@@ -154,32 +155,25 @@ class ReviewController extends ActionController
             }
         }
         $wsList = GeneralUtility::makeInstance(WorkspaceService::class)->getAvailableWorkspaces();
+        $customWorkspaceExists = $this->customWorkspaceExists($wsList);
         $activeWorkspace = $backendUser->workspace;
         $performWorkspaceSwitch = false;
-        // Only admins see multiple tabs, we decided to use it this
-        // way for usability reasons. Regular users might be confused
-        // by switching workspaces with the tabs in a module.
-        if (!$backendUser->isAdmin()) {
-            $wsCur = [$activeWorkspace => true];
-            $wsList = array_intersect_key($wsList, $wsCur);
-        } else {
-            if ((string)GeneralUtility::_GP('workspace') !== '') {
-                $switchWs = (int)GeneralUtility::_GP('workspace');
-                if (array_key_exists($switchWs, $wsList) && $activeWorkspace != $switchWs) {
-                    $activeWorkspace = $switchWs;
-                    $backendUser->setWorkspace($activeWorkspace);
-                    $performWorkspaceSwitch = true;
-                    BackendUtility::setUpdateSignal('updatePageTree');
-                } elseif ($switchWs == WorkspaceService::SELECT_ALL_WORKSPACES) {
-                    $this->redirect('fullIndex');
-                }
+        if ((string)GeneralUtility::_GP('workspace') !== '') {
+            $switchWs = (int)GeneralUtility::_GP('workspace');
+            if (array_key_exists($switchWs, $wsList) && $activeWorkspace != $switchWs) {
+                $activeWorkspace = $switchWs;
+                $backendUser->setWorkspace($activeWorkspace);
+                $performWorkspaceSwitch = true;
+                BackendUtility::setUpdateSignal('updatePageTree');
             }
         }
         $this->pageRenderer->addInlineSetting('Workspaces', 'isLiveWorkspace', (int)$backendUser->workspace === 0);
         $this->pageRenderer->addInlineSetting('Workspaces', 'workspaceTabs', $this->prepareWorkspaceTabs($wsList, $activeWorkspace));
         $this->pageRenderer->addInlineSetting('Workspaces', 'activeWorkspaceId', $activeWorkspace);
-        $workspaceIsAccessible = !($backendUser->workspace === 0 && !$backendUser->isAdmin());
+        $workspaceIsAccessible = $backendUser->workspace !== WorkspaceService::LIVE_WORKSPACE_ID;
         $this->view->assignMultiple([
+            'isAdmin' => $backendUser->isAdmin(),
+            'customWorkspaceExists' => $customWorkspaceExists,
             'showGrid' => $workspaceIsAccessible,
             'showLegend' => $workspaceIsAccessible,
             'pageUid' => (int)GeneralUtility::_GP('id'),
@@ -200,56 +194,6 @@ class ReviewController extends ActionController
                 ->setIcon($iconFactory->getIcon('actions-version-workspaces-preview-link', Icon::SIZE_SMALL));
             $buttonBar->addButton($showButton);
         }
-        $backendUser->setAndSaveSessionData('tx_workspace_activeWorkspace', $activeWorkspace);
-    }
-
-    /**
-     * Renders the review module user dependent.
-     * The module will show all records of all workspaces.
-     */
-    public function fullIndexAction()
-    {
-        $wsService = GeneralUtility::makeInstance(WorkspaceService::class);
-        $wsList = $wsService->getAvailableWorkspaces();
-
-        $activeWorkspace = $this->getBackendUser()->workspace;
-        if (!$this->getBackendUser()->isAdmin()) {
-            $wsCur = [$activeWorkspace => true];
-            $wsList = array_intersect_key($wsList, $wsCur);
-        }
-
-        $this->pageRenderer->addInlineSetting('Workspaces', 'workspaceTabs', $this->prepareWorkspaceTabs($wsList, WorkspaceService::SELECT_ALL_WORKSPACES));
-        $this->pageRenderer->addInlineSetting('Workspaces', 'activeWorkspaceId', WorkspaceService::SELECT_ALL_WORKSPACES);
-        $this->view->assignMultiple([
-            'pageUid' => (int)GeneralUtility::_GP('id'),
-            'showGrid' => true,
-            'showLegend' => true,
-            'workspaceList' => $this->prepareWorkspaceTabs($wsList, $activeWorkspace),
-            'activeWorkspaceUid' => WorkspaceService::SELECT_ALL_WORKSPACES
-        ]);
-        $this->getBackendUser()->setAndSaveSessionData('tx_workspace_activeWorkspace', WorkspaceService::SELECT_ALL_WORKSPACES);
-        // set flag for javascript
-        $this->pageRenderer->addInlineSetting('Workspaces', 'allView', '1');
-    }
-
-    /**
-     * Renders the review module for a single page. This is used within the
-     * workspace-preview frame.
-     */
-    public function singleIndexAction()
-    {
-        $wsService = GeneralUtility::makeInstance(WorkspaceService::class);
-        $wsList = $wsService->getAvailableWorkspaces();
-        $activeWorkspace = $this->getBackendUser()->workspace;
-        $wsCur = [$activeWorkspace => true];
-        $wsList = array_intersect_key($wsList, $wsCur);
-        $this->view->assignMultiple([
-            'pageUid' => (int)GeneralUtility::_GP('id'),
-            'showGrid' => true,
-            'workspaceList' => $this->prepareWorkspaceTabs($wsList, (int)$activeWorkspace, false),
-            'activeWorkspaceUid' => $activeWorkspace,
-        ]);
-        $this->pageRenderer->addInlineSetting('Workspaces', 'singleView', '1');
     }
 
     /**
@@ -257,14 +201,13 @@ class ReviewController extends ActionController
      *
      * @param array $workspaceList
      * @param int $activeWorkspace
-     * @param bool $showAllWorkspaceTab
      * @return array
      */
-    protected function prepareWorkspaceTabs(array $workspaceList, int $activeWorkspace, bool $showAllWorkspaceTab = true)
+    protected function prepareWorkspaceTabs(array $workspaceList, int $activeWorkspace)
     {
         $tabs = [];
 
-        if ($activeWorkspace !== WorkspaceService::SELECT_ALL_WORKSPACES) {
+        if ($activeWorkspace !== WorkspaceService::LIVE_WORKSPACE_ID) {
             $tabs[] = [
                 'title' => $workspaceList[$activeWorkspace],
                 'itemId' => 'workspace-' . $activeWorkspace,
@@ -273,17 +216,10 @@ class ReviewController extends ActionController
             ];
         }
 
-        if ($showAllWorkspaceTab) {
-            $tabs[] = [
-                'title' => 'All workspaces',
-                'itemId' => 'workspace-' . WorkspaceService::SELECT_ALL_WORKSPACES,
-                'workspaceId' => WorkspaceService::SELECT_ALL_WORKSPACES,
-                'triggerUrl' => $this->getModuleUri(WorkspaceService::SELECT_ALL_WORKSPACES),
-            ];
-        }
-
         foreach ($workspaceList as $workspaceId => $workspaceTitle) {
-            if ($workspaceId === $activeWorkspace) {
+            if ($workspaceId === $activeWorkspace
+                || $workspaceId === WorkspaceService::LIVE_WORKSPACE_ID
+            ) {
                 continue;
             }
             $tabs[] = [
@@ -309,12 +245,6 @@ class ReviewController extends ActionController
             'id' => $this->pageId,
             'workspace' => $workspaceId,
         ];
-        // The "all workspaces" tab is handled in fullIndexAction
-        // which is required as additional GET parameter in the URI then
-        if ($workspaceId === WorkspaceService::SELECT_ALL_WORKSPACES) {
-            $this->uriBuilder->reset()->uriFor('fullIndex');
-            $parameters = array_merge($parameters, $this->uriBuilder->getArguments());
-        }
         $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
         return (string)$uriBuilder->buildUriFromRoute('web_WorkspacesWorkspaces', $parameters);
     }
@@ -369,6 +299,22 @@ class ReviewController extends ActionController
             $language = $backendUser->uc['moduleData']['Workspaces'][$backendUser->workspace]['language'];
         }
         return $language;
+    }
+
+    /**
+     * Returns true if at least one custom workspace next to live workspace exists.
+     *
+     * @param array $workspaceList
+     * @return bool
+     */
+    protected function customWorkspaceExists(array $workspaceList): bool
+    {
+        foreach (array_keys($workspaceList) as $workspaceId) {
+            if ($workspaceId > 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

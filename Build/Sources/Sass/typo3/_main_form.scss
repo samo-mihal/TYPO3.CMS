@@ -201,6 +201,7 @@ select {
         }
 
         &[size="1"],
+        &:not([multiple][size]),
         &:not([size]) {
             appearance: none;
 
@@ -209,7 +210,7 @@ select {
             }
 
             &:not(.form-select-no-siblings) {
-                background-image: url('#{$path-sysext}/core/Resources/Public/Icons/T3Icons/actions/actions-view-list-expand.svg');
+                background-image: url('#{$path-sysext}/core/Resources/Public/Icons/T3Icons/svgs/actions/actions-chevron-down.svg');
                 background-position: right 4px center;
                 background-repeat: no-repeat;
                 background-size: 16px 16px;
@@ -264,6 +265,12 @@ select {
         .icon {
             vertical-align: 0;
         }
+    }
+}
+
+.form-inline {
+    .form-control-clearable {
+        display: inline-block;
     }
 }
 
@@ -356,6 +363,12 @@ select {
     > .form-wizards-element {
         display: table-cell;
         width: 100%;
+
+        .col-icon img,
+        .inline-icon img {
+            max-width: 2em;
+            max-height: 2em;
+        }
     }
 
     > .form-wizards-items-top {
@@ -371,6 +384,11 @@ select {
 
     > .form-wizards-items-bottom {
         display: table-row;
+
+        .tablelist-item-nolink {
+            padding: 6px;
+            display: inline-block;
+        }
     }
 
     > .form-wizards-items-bottom:first-child {
@@ -382,23 +400,36 @@ select {
 // Form Irre
 //
 .form-irre-header {
-    display: table;
+    display: flex;
+    align-items: center;
     margin: -5px;
 
     @include user-select(none);
 }
 
 .form-irre-header-cell {
-    display: table-cell;
     vertical-align: middle;
     white-space: nowrap;
     padding: 5px;
+}
+
+.form-irre-header-button {
+    display: flex;
+    text-align: left;
+    align-items: center;
+    align-self: stretch;
+    background: transparent;
+    border: 0;
+    width: 100%;
+    margin-left: -15px;
+    padding-left: 20px;
 }
 
 .form-irre-header-body {
     width: 100%;
     font-weight: normal;
     white-space: normal;
+    padding-left: 5px;
 
     dl {
         @extend .dl-horizontal;
@@ -409,6 +440,10 @@ select {
 
 .form-irre-header-icon {
     padding-right: 0;
+}
+
+.form-irre-header-thumbnail {
+    padding-right: 5px;
 }
 
 .form-irre-header-control {

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Reports\Task;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Reports\Task;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Reports\Task;
 
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
@@ -47,7 +48,7 @@ class SystemStatusUpdateTaskNotificationEmailField extends AbstractAdditionalFie
      * Gets additional fields to render in the form to add/edit a task
      *
      * @param array $taskInfo Values of the fields from the add/edit task form
-     * @param AbstractTask|null $task When editing, reference to the current task. NULL when adding.
+     * @param SystemStatusUpdateTask|null $task When editing, reference to the current task. NULL when adding.
      * @param SchedulerModuleController $schedulerModule Reference to the scheduler backend module
      * @return array A two dimensional array, array('Identifier' => array('fieldId' => array('code' => '', 'label' => '', 'cshKey' => '', 'cshLabel' => ''))
      */
@@ -115,7 +116,7 @@ class SystemStatusUpdateTaskNotificationEmailField extends AbstractAdditionalFie
      * Takes care of saving the additional fields' values in the task's object
      *
      * @param array $submittedData An array containing the data submitted by the add/edit task form
-     * @param AbstractTask $task Reference to the scheduler backend module
+     * @param SystemStatusUpdateTask $task Reference to the scheduler backend module
      * @throws \InvalidArgumentException
      */
     public function saveAdditionalFields(array $submittedData, AbstractTask $task)

@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Opendocs\Backend\ToolbarItems;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Opendocs\Backend\ToolbarItems;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Opendocs\Backend\ToolbarItems;
 
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Toolbar\ToolbarItemInterface;
@@ -29,11 +31,6 @@ use TYPO3\CMS\Opendocs\Service\OpenDocumentService;
  */
 class OpendocsToolbarItem implements ToolbarItemInterface
 {
-    /**
-     * @var array
-     */
-    protected $recentDocs = [];
-
     /**
      * @var OpenDocumentService
      */
@@ -175,7 +172,7 @@ class OpendocsToolbarItem implements ToolbarItemInterface
         $result = [];
         $result['table'] = $table;
         $result['record'] = $record;
-        $result['label'] = htmlspecialchars(strip_tags(htmlspecialchars_decode($document[0])));
+        $result['label'] = strip_tags(htmlspecialchars_decode($document[0]));
         /** @var \TYPO3\CMS\Backend\Routing\UriBuilder $uriBuilder */
         $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
         $uri = (string)$uriBuilder->buildUriFromRoute('record_edit') . '&' . $document[2];

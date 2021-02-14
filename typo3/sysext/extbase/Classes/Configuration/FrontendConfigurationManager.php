@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Extbase\Configuration;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,8 +15,15 @@ namespace TYPO3\CMS\Extbase\Configuration;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Configuration;
+
+use TYPO3\CMS\Core\Service\FlexFormService;
+use TYPO3\CMS\Core\TypoScript\TypoScriptService;
 use TYPO3\CMS\Core\Utility\ArrayUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Extbase\Configuration\Exception\ParseErrorException;
+use TYPO3\CMS\Extbase\Object\ObjectManagerInterface;
+use TYPO3\CMS\Extbase\Service\EnvironmentService;
 
 /**
  * A general purpose configuration manager used in frontend mode.
@@ -25,7 +31,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  * Should NOT be singleton, as a new configuration manager is needed per plugin.
  * @internal only to be used within Extbase, not part of TYPO3 Core API.
  */
-class FrontendConfigurationManager extends \TYPO3\CMS\Extbase\Configuration\AbstractConfigurationManager
+class FrontendConfigurationManager extends AbstractConfigurationManager
 {
     /**
      * @var \TYPO3\CMS\Core\Service\FlexFormService
@@ -39,10 +45,10 @@ class FrontendConfigurationManager extends \TYPO3\CMS\Extbase\Configuration\Abst
      * @param \TYPO3\CMS\Core\Service\FlexFormService $flexFormService
      */
     public function __construct(
-        \TYPO3\CMS\Extbase\Object\ObjectManagerInterface $objectManager,
-        \TYPO3\CMS\Core\TypoScript\TypoScriptService $typoScriptService,
-        \TYPO3\CMS\Extbase\Service\EnvironmentService $environmentService,
-        \TYPO3\CMS\Core\Service\FlexFormService $flexFormService
+        ObjectManagerInterface $objectManager,
+        TypoScriptService $typoScriptService,
+        EnvironmentService $environmentService,
+        FlexFormService $flexFormService
     ) {
         parent::__construct($objectManager, $typoScriptService, $environmentService);
 
@@ -230,6 +236,7 @@ class FrontendConfigurationManager extends \TYPO3\CMS\Extbase\Configuration\Abst
      * @param array $flexFormConfiguration The full flexForm configuration
      * @throws Exception\ParseErrorException
      * @return array the modified framework configuration, if needed
+     * @deprecated since TYPO3 v10, will be removed in one of the next major versions of TYPO3, probably version 11.0 or 12.0.
      */
     protected function overrideControllerConfigurationWithSwitchableControllerActionsFromFlexForm(array $frameworkConfiguration, array $flexFormConfiguration): array
     {
@@ -241,9 +248,9 @@ class FrontendConfigurationManager extends \TYPO3\CMS\Extbase\Configuration\Abst
         $switchableControllerActionPartsFromFlexForm = GeneralUtility::trimExplode(',', str_replace(';', ',', $flexFormConfiguration['switchableControllerActions']), true);
         $overriddenControllerConfiguration = [];
         foreach ($switchableControllerActionPartsFromFlexForm as $switchableControllerActionPartFromFlexForm) {
-            list($controller, $action) = GeneralUtility::trimExplode('->', $switchableControllerActionPartFromFlexForm);
+            [$controller, $action] = GeneralUtility::trimExplode('->', $switchableControllerActionPartFromFlexForm);
             if (empty($controller) || empty($action)) {
-                throw new \TYPO3\CMS\Extbase\Configuration\Exception\ParseErrorException('Controller or action were empty when overriding switchableControllerActions from flexForm.', 1257146403);
+                throw new ParseErrorException('Controller or action were empty when overriding switchableControllerActions from flexForm.', 1257146403);
             }
             $overriddenControllerConfiguration[$controller][] = $action;
         }

@@ -1,11 +1,9 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\ViewHelpers;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
- *
- * It originated from the Neos.Form package (www.neos.io)
  *
  * It is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, either version 2
@@ -17,8 +15,15 @@ namespace TYPO3\CMS\Form\ViewHelpers;
  * The TYPO3 project - inspiring people to share!
  */
 
+/*
+ * Inspired by and partially taken from the Neos.Form package (www.neos.io)
+ */
+
+namespace TYPO3\CMS\Form\ViewHelpers;
+
 use TYPO3\CMS\Core\Utility\ArrayUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Extbase\Mvc\Exception\StopActionException;
 use TYPO3\CMS\Extbase\Mvc\Web\Response;
 use TYPO3\CMS\Extbase\Object\ObjectManager;
 use TYPO3\CMS\Form\Domain\Factory\ArrayFormFactory;
@@ -104,7 +109,7 @@ class RenderViewHelper extends AbstractViewHelper
         if ($renderingContext->getControllerContext()->getResponse() === null) {
             try {
                 return $form->render();
-            } catch (\TYPO3\CMS\Extbase\Mvc\Exception\StopActionException $exception) {
+            } catch (StopActionException $exception) {
                 return $response->shutdown();
             }
         }

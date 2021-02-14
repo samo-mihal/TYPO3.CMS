@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Form\FormDataProvider;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Form\FormDataProvider;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Form\FormDataProvider;
 
 use TYPO3\CMS\Backend\Form\FormDataProviderInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
@@ -70,7 +71,7 @@ class DatabaseRecordTypeValue implements FormDataProviderInterface
                 // a foreign table. localField then point to a group or select field in the own table,
                 // this points to a record in a foreign table and the value of foreignField is then
                 // used as type field. This was introduced for some FAL scenarios.
-                list($pointerField, $foreignTableTypeField) = explode(':', $tcaTypeField);
+                [$pointerField, $foreignTableTypeField] = explode(':', $tcaTypeField);
 
                 $relationType = $result['processedTca']['columns'][$pointerField]['config']['type'];
                 if ($relationType !== 'select' && $relationType !== 'group') {
@@ -103,12 +104,14 @@ class DatabaseRecordTypeValue implements FormDataProviderInterface
                         $foreignUid = $foreignUid[0]['uid'];
                     }
                     // Fetch field of this foreign row from db
-                    $foreignRow = $this->getDatabaseRow($foreignTable, $foreignUid, $foreignTableTypeField);
-                    if ($foreignRow[$foreignTableTypeField]) {
-                        // @todo: It might be necessary to fetch the value from default language record as well here,
-                        // @todo: this was buggy in the "old" implementation and never worked. It was therefor left out here for now.
-                        // @todo: To implement that, see if the foreign row is a localized overlay, fetch default and merge exclude
-                        $recordTypeValue = $foreignRow[$foreignTableTypeField];
+                    if (MathUtility::canBeInterpretedAsInteger($foreignUid)) {
+                        $foreignRow = $this->getDatabaseRow($foreignTable, (int)$foreignUid, $foreignTableTypeField);
+                        if ($foreignRow[$foreignTableTypeField]) {
+                            // @todo: It might be necessary to fetch the value from default language record as well here,
+                            // @todo: this was buggy in the "old" implementation and never worked. It was therefor left out here for now.
+                            // @todo: To implement that, see if the foreign row is a localized overlay, fetch default and merge exclude
+                            $recordTypeValue = $foreignRow[$foreignTableTypeField];
+                        }
                     }
                 }
             }

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\TypoScript;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,17 +13,21 @@ namespace TYPO3\CMS\Core\TypoScript;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\TypoScript;
+
+use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
-use TYPO3\CMS\Core\Database\Query\Restriction\BackendWorkspaceRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
+use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 use TYPO3\CMS\Core\Exception;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\TypoScript\Parser\ConstantConfigurationParser;
+use TYPO3\CMS\Core\TypoScript\Parser\TypoScriptParser;
 use TYPO3\CMS\Core\Utility\ArrayUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
@@ -281,7 +284,7 @@ class ExtendedTemplateService extends TemplateService
         // These vars are also set later on...
         $this->setup['sitetitle'] = $this->sitetitle;
         // Parse constants
-        $constants = GeneralUtility::makeInstance(Parser\TypoScriptParser::class);
+        $constants = GeneralUtility::makeInstance(TypoScriptParser::class);
         // Register comments!
         $constants->regComments = true;
         /** @var ConditionMatcher $matchObj */
@@ -346,11 +349,11 @@ class ExtendedTemplateService extends TemplateService
         $keyArr_num = [];
         $keyArr_alpha = [];
         /** @var \TYPO3\CMS\Backend\Routing\UriBuilder $uriBuilder */
-        $uriBuilder = GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Routing\UriBuilder::class);
+        $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
         foreach ($arr as $key => $value) {
             // Don't do anything with comments / linenumber registrations...
             if (substr($key, -2) !== '..') {
-                $key = preg_replace('/\\.$/', '', $key);
+                $key = preg_replace('/\\.$/', '', $key) ?? '';
                 if (substr($key, -1) !== '.') {
                     if (MathUtility::canBeInterpretedAsInteger($key)) {
                         $keyArr_num[$key] = $arr[$key];
@@ -404,13 +407,13 @@ class ExtendedTemplateService extends TemplateService
                             $ln = '';
                         }
                         if ($this->tsbrowser_searchKeys[$depth] & 4) {
+                            // The key has matched the search string
                             $label = '<strong class="text-danger">' . $label . '</strong>';
                         }
-                        // The key has matched the search string
-                        $label = '<a href="' . htmlspecialchars($aHref) . '" title="' . htmlspecialchars($ln) . '">' . $label . '</a>';
+                        $label = '<a href="' . htmlspecialchars($aHref) . '" title="' . htmlspecialchars($depth_in . $key . ' ' . $ln) . '">' . $label . '</a>';
                     }
                 }
-                $HTML .= '<span class="list-tree-label">[' . $label . ']</span>';
+                $HTML .= '<span class="list-tree-label" title="' . htmlspecialchars($depth_in . $key) . '">[' . $label . ']</span>';
                 if (isset($arr[$key])) {
                     $theValue = $arr[$key];
                     // The value has matched the search string
@@ -420,15 +423,15 @@ class ExtendedTemplateService extends TemplateService
                         $HTML .= ' = <span class="list-tree-value">' . htmlspecialchars($theValue) . '</span>';
                     }
                     if ($this->ext_regComments && isset($arr[$key . '..'])) {
-                        $comment = $arr[$key . '..'];
+                        $comment = (string)$arr[$key . '..'];
                         // Skip INCLUDE_TYPOSCRIPT comments, they are almost useless
                         if (!preg_match('/### <INCLUDE_TYPOSCRIPT:.*/', $comment)) {
                             // Remove linebreaks, replace with ' '
-                            $comment = preg_replace('/[\\r\\n]/', ' ', $comment);
+                            $comment = preg_replace('/[\\r\\n]/', ' ', $comment) ?? '';
                             // Remove # and * if more than twice in a row
-                            $comment = preg_replace('/[#\\*]{2,}/', '', $comment);
+                            $comment = preg_replace('/[#\\*]{2,}/', '', $comment) ?? '';
                             // Replace leading # (just if it exists) and add it again. Result: Every comment should be prefixed by a '#'.
-                            $comment = preg_replace('/^[#\\*\\s]+/', '# ', $comment);
+                            $comment = preg_replace('/^[#\\*\\s]+/', '# ', $comment) ?? '';
                             // Masking HTML Tags: Replace < with &lt; and > with &gt;
                             $comment = htmlspecialchars($comment);
                             $HTML .= ' <i class="text-muted">' . trim($comment) . '</i>';
@@ -456,7 +459,7 @@ class ExtendedTemplateService extends TemplateService
      * lineNumbers are in sync with the calculated lineNumbers '.ln..' in TypoScriptParser
      *
      * @param array $lnArr Array with linenumbers (might have some extra symbols, for example for unsetting) to be processed
-     * @return array The same array where each entry has been prepended by the template title if available
+     * @return string Imploded array of line number and template title
      */
     public function lineNumberToScript(array $lnArr)
     {
@@ -500,7 +503,7 @@ class ExtendedTemplateService extends TemplateService
     {
         $keyArr = [];
         foreach ($arr as $key => $value) {
-            $key = preg_replace('/\\.$/', '', $key);
+            $key = preg_replace('/\\.$/', '', $key) ?? '';
             if (substr($key, -1) !== '.') {
                 $keyArr[$key] = 1;
             }
@@ -584,7 +587,7 @@ class ExtendedTemplateService extends TemplateService
     {
         $keyArr = [];
         foreach ($arr as $key => $value) {
-            $key = preg_replace('/\\.$/', '', $key);
+            $key = preg_replace('/\\.$/', '', $key) ?? '';
             if (substr($key, -1) !== '.') {
                 $keyArr[$key] = 1;
             }
@@ -592,7 +595,7 @@ class ExtendedTemplateService extends TemplateService
         $a = 0;
         $c = count($keyArr);
         /** @var \TYPO3\CMS\Backend\Routing\UriBuilder $uriBuilder */
-        $uriBuilder = GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Routing\UriBuilder::class);
+        $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
         /** @var IconFactory $iconFactory */
         $iconFactory = GeneralUtility::makeInstance(IconFactory::class);
         foreach ($keyArr as $key => $value) {
@@ -649,7 +652,7 @@ class ExtendedTemplateService extends TemplateService
      * and turns it into a hierarchical array to show dependencies (used by TemplateAnalyzer)
      *
      * @param array $depthDataArr (empty array on external call)
-     * @param int &$pointer Element number (1! to count()) of $this->hierarchyInfo that should be processed.
+     * @param int $pointer Element number (1! to count()) of $this->hierarchyInfo that should be processed.
      * @return array Processed hierachyInfo.
      */
     public function ext_process_hierarchyInfo(array $depthDataArr, &$pointer)
@@ -693,7 +696,7 @@ class ExtendedTemplateService extends TemplateService
             $all .= '[GLOBAL]' . LF . $str;
         }
         if ($syntaxHL) {
-            $tsparser = GeneralUtility::makeInstance(Parser\TypoScriptParser::class);
+            $tsparser = GeneralUtility::makeInstance(TypoScriptParser::class);
             $tsparser->lineNumberOffset = $this->ext_lineNumberOffset + 1;
             $tsparser->parentObject = $this;
             return $tsparser->doSyntaxHighlight($all, $lineNumbers ? [$this->ext_lineNumberOffset + 1] : '', $syntaxHLBlockmode);
@@ -727,7 +730,7 @@ class ExtendedTemplateService extends TemplateService
 
     /**
      * @param int $lineNumber Line Number
-     * @param array $str
+     * @param string $str
      * @return string
      */
     public function ext_lnBreakPointWrap($lineNumber, $str)
@@ -769,7 +772,7 @@ class ExtendedTemplateService extends TemplateService
                 }
             }
         }
-        $output = implode($cArr, '<br />') . '<br />';
+        $output = implode('<br />', $cArr) . '<br />';
         return $output;
     }
 
@@ -838,7 +841,7 @@ class ExtendedTemplateService extends TemplateService
         $queryBuilder->getRestrictions()
             ->removeAll()
             ->add(GeneralUtility::makeInstance(DeletedRestriction::class))
-            ->add(GeneralUtility::makeInstance(BackendWorkspaceRestriction::class));
+            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, $GLOBALS['BE_USER']->workspace));
 
         $queryBuilder->select('*')
             ->from('sys_template')
@@ -987,7 +990,7 @@ class ExtendedTemplateService extends TemplateService
                     $p_field = '';
                     $raname = substr(md5($params['name']), 0, 10);
                     $aname = '\'' . $raname . '\'';
-                    list($fN, $fV, $params, $idName) = $this->ext_fNandV($params);
+                    [$fN, $fV, $params, $idName] = $this->ext_fNandV($params);
                     $idName = htmlspecialchars($idName);
                     $hint = '';
                     switch ($typeDat['type']) {
@@ -1073,11 +1076,11 @@ class ExtendedTemplateService extends TemplateService
                                 . '</label>';
                             break;
                         case 'comment':
-                            $sel = $fV ? 'checked' : '';
+                            $sel = $fV ? '' : 'checked';
                             $p_field =
-                                '<input type="hidden" name="' . $fN . '" value="#" />'
+                                '<input type="hidden" name="' . $fN . '" value="" />'
                                 . '<label class="btn btn-default btn-checkbox">'
-                                . '<input id="' . $idName . '" type="checkbox" name="' . $fN . '" value="" ' . $sel . ' onClick="uFormUrl(' . $aname . ')" />'
+                                . '<input id="' . $idName . '" type="checkbox" name="' . $fN . '" value="1" ' . $sel . ' onClick="uFormUrl(' . $aname . ')" />'
                                 . '<span class="t3-icon fa"></span>'
                                 . '</label>';
                             break;
@@ -1127,7 +1130,7 @@ class ExtendedTemplateService extends TemplateService
                         $deleteIcon = $iconFactory->getIcon('actions-edit-undo', Icon::SIZE_SMALL)->render();
                         $deleteIconHTML =
                             '<button type="button" class="btn btn-default t3js-toggle" data-toggle="undo" rel="' . $idName . '">'
-                                . '<span title="' . $deleteTitle . '" alt="' . $deleteTitle . '">'
+                                . '<span title="' . $deleteTitle . '">'
                                     . $deleteIcon
                                 . '</span>'
                             . '</button>';
@@ -1135,7 +1138,7 @@ class ExtendedTemplateService extends TemplateService
                         $editIcon = $iconFactory->getIcon('actions-open', Icon::SIZE_SMALL)->render();
                         $editIconHTML =
                             '<button type="button" class="btn btn-default t3js-toggle" data-toggle="edit"  rel="' . $idName . '">'
-                                . '<span title="' . $editTitle . '" alt="' . $editTitle . '">'
+                                . '<span title="' . $editTitle . '">'
                                     . $editIcon
                                 . '</span>'
                             . '</button>';
@@ -1254,7 +1257,7 @@ class ExtendedTemplateService extends TemplateService
             if (count($parts) === 2) {
                 $parts[1] = $theValue;
             }
-            $this->raw[$lineNum] = implode($parts, '=');
+            $this->raw[$lineNum] = implode('=', $parts);
         } else {
             $this->raw[] = $key . ' =' . $theValue;
         }
@@ -1327,12 +1330,12 @@ class ExtendedTemplateService extends TemplateService
                     // If checkbox is set, update the value
                     if ($this->ext_dontCheckIssetValues || isset($check[$key])) {
                         // Exploding with linebreak, just to make sure that no multiline input is given!
-                        list($var) = explode(LF, $var);
+                        [$var] = explode(LF, $var);
                         $typeDat = $this->ext_getTypeData($theConstants[$key]['type']);
                         switch ($typeDat['type']) {
                             case 'int':
                                 if ($typeDat['paramstr']) {
-                                    $var = MathUtility::forceIntegerInRange($var, $typeDat['params'][0], $typeDat['params'][1]);
+                                    $var = MathUtility::forceIntegerInRange((int)$var, $typeDat['params'][0], $typeDat['params'][1]);
                                 } else {
                                     $var = (int)$var;
                                 }
@@ -1343,15 +1346,15 @@ class ExtendedTemplateService extends TemplateService
                             case 'color':
                                 $col = [];
                                 if ($var) {
-                                    $var = preg_replace('/[^A-Fa-f0-9]*/', '', $var);
+                                    $var = preg_replace('/[^A-Fa-f0-9]*/', '', $var) ?? '';
                                     $useFulHex = strlen($var) > 3;
-                                    $col[] = hexdec($var[0]);
-                                    $col[] = hexdec($var[1]);
-                                    $col[] = hexdec($var[2]);
+                                    $col[] = (int)hexdec($var[0]);
+                                    $col[] = (int)hexdec($var[1]);
+                                    $col[] = (int)hexdec($var[2]);
                                     if ($useFulHex) {
-                                        $col[] = hexdec($var[3]);
-                                        $col[] = hexdec($var[4]);
-                                        $col[] = hexdec($var[5]);
+                                        $col[] = (int)hexdec($var[3]);
+                                        $col[] = (int)hexdec($var[4]);
+                                        $col[] = (int)hexdec($var[5]);
                                     }
                                     $var = substr('0' . dechex($col[0]), -1) . substr('0' . dechex($col[1]), -1) . substr('0' . dechex($col[2]), -1);
                                     if ($useFulHex) {
@@ -1362,9 +1365,9 @@ class ExtendedTemplateService extends TemplateService
                                 break;
                             case 'comment':
                                 if ($var) {
-                                    $var = '#';
-                                } else {
                                     $var = '';
+                                } else {
+                                    $var = '#';
                                 }
                                 break;
                             case 'wrap':

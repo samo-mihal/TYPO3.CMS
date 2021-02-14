@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Frontend\Tests\Functional\Rendering;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,6 +15,9 @@ namespace TYPO3\CMS\Frontend\Tests\Functional\Rendering;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Frontend\Tests\Functional\Rendering;
+
+use TYPO3\CMS\Core\Tests\Functional\DataHandling\AbstractDataHandlerActionTestCase;
 use TYPO3\CMS\Core\Tests\Functional\SiteHandling\SiteBasedTestTrait;
 use TYPO3\TestingFramework\Core\Functional\Framework\Frontend\InternalRequest;
 use TYPO3\TestingFramework\Core\Functional\Framework\Frontend\ResponseContent;
@@ -94,7 +96,7 @@ use TYPO3\TestingFramework\Core\Functional\Framework\Frontend\ResponseContent;
  * -> getFallbackChain()
  *    if the page is not available in a specific language, apply other language Ids in the given order until the page translation can be found.
  */
-class LocalizedSiteContentRenderingTest extends \TYPO3\CMS\Core\Tests\Functional\DataHandling\AbstractDataHandlerActionTestCase
+class LocalizedSiteContentRenderingTest extends AbstractDataHandlerActionTestCase
 {
     use SiteBasedTestTrait;
 

@@ -1,4 +1,5 @@
 <?php
+
 return [
     'ctrl' => [
         'title' => 'LLL:EXT:core/Resources/Private/Language/locallang_tca.xlf:sys_news',
@@ -19,9 +20,6 @@ return [
             'default' => 'mimetypes-x-sys_news'
         ],
         'searchFields' => 'title,content'
-    ],
-    'interface' => [
-        'showRecordFieldList' => 'hidden,title,content,starttime,endtime'
     ],
     'columns' => [
         'hidden' => [
@@ -77,13 +75,22 @@ return [
                 'rows' => 5,
                 'enableRichtext' => true,
             ],
-        ]
+        ],
+        'crdate' => [
+            'label' => 'LLL:EXT:core/Resources/Private/Language/locallang_general.xlf:LGL.creationDate',
+            'config' => [
+                'type' => 'input',
+                'renderType' => 'inputDateTime',
+                'eval' => 'datetime,int',
+                'default' => 0
+            ],
+        ],
     ],
     'types' => [
         '1' => [
             'showitem' => '
                 --div--;LLL:EXT:core/Resources/Private/Language/Form/locallang_tabs.xlf:general,
-                    title,content,
+                    title,content,crdate,
                 --div--;LLL:EXT:core/Resources/Private/Language/Form/locallang_tabs.xlf:access,
                     hidden, --palette--;;timeRestriction,
                 --div--;LLL:EXT:core/Resources/Private/Language/Form/locallang_tabs.xlf:extended,

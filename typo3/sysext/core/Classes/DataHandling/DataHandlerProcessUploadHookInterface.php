@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\DataHandling;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Core\DataHandling;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\DataHandling;
+
 /**
  * Interface for classes which hook into DataHandler and do additional processing
  * after the upload of a file.
@@ -26,5 +27,5 @@ interface DataHandlerProcessUploadHookInterface
      * @param string $filename The uploaded file
      * @param \TYPO3\CMS\Core\DataHandling\DataHandler $parentObject
      */
-    public function processUpload_postProcessAction(&$filename, \TYPO3\CMS\Core\DataHandling\DataHandler $parentObject);
+    public function processUpload_postProcessAction(&$filename, DataHandler $parentObject);
 }

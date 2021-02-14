@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Frontend\Http;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,10 @@ namespace TYPO3\CMS\Frontend\Http;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Frontend\Http;
+
+use TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
 
 /**
  * This interface needs to be implemented by all classes that register for the hook in:
@@ -38,5 +41,5 @@ interface UrlProcessorInterface
      * @param bool $keepProcessing If this is set to FALSE no further hooks will be processed after the current one.
      * @return string|null
      */
-    public function process($context, $url, array $configuration, \TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer $contentObjectRenderer, &$keepProcessing);
+    public function process($context, $url, array $configuration, ContentObjectRenderer $contentObjectRenderer, &$keepProcessing);
 }

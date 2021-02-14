@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Seo\XmlSitemap\Exception;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,10 @@ namespace TYPO3\CMS\Seo\XmlSitemap\Exception;
  * The TYPO3 project - inspiring people to share!
  */
 
-class InvalidConfigurationException extends \TYPO3\CMS\Core\Resource\Exception
+namespace TYPO3\CMS\Seo\XmlSitemap\Exception;
+
+use TYPO3\CMS\Core\Resource\Exception;
+
+class InvalidConfigurationException extends Exception
 {
 }

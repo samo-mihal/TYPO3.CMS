@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Unit\ExpressionLanguage;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,10 +15,12 @@ namespace TYPO3\CMS\Core\Tests\Unit\ExpressionLanguage;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\ExpressionLanguage;
+
 use Prophecy\Argument;
 use Symfony\Component\ExpressionLanguage\ExpressionFunction;
 use TYPO3\CMS\Core\Cache\CacheManager;
-use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
+use TYPO3\CMS\Core\Cache\Frontend\PhpFrontend;
 use TYPO3\CMS\Core\ExpressionLanguage\DefaultProvider;
 use TYPO3\CMS\Core\ExpressionLanguage\FunctionsProvider\DefaultFunctionsProvider;
 use TYPO3\CMS\Core\ExpressionLanguage\Resolver;
@@ -38,8 +40,8 @@ class ResolverTest extends UnitTestCase
         parent::setUp();
         $this->resetSingletonInstances = true;
 
-        $cacheFrontendProphecy = $this->prophesize(FrontendInterface::class);
-        $cacheFrontendProphecy->has(Argument::any())->willReturn(false);
+        $cacheFrontendProphecy = $this->prophesize(PhpFrontend::class);
+        $cacheFrontendProphecy->require(Argument::any())->willReturn(false);
         $cacheFrontendProphecy->set(Argument::any(), Argument::any())->willReturn(null);
         $cacheManagerProphecy = $this->prophesize(CacheManager::class);
         $cacheManagerProphecy->getCache('core')->willReturn($cacheFrontendProphecy->reveal());

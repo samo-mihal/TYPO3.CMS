@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Unit\Log;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,9 @@ namespace TYPO3\CMS\Core\Tests\Unit\Log;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\Log;
+
+use Psr\Log\InvalidArgumentException;
 use TYPO3\CMS\Core\Log\LogLevel;
 use TYPO3\CMS\Core\Log\LogRecord;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
@@ -108,7 +111,7 @@ class LogRecordTest extends UnitTestCase
      */
     public function setLevelValidatesLevel()
     {
-        $this->expectException(\Psr\Log\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionCode(1550247164);
 
         $record = $this->getRecord();

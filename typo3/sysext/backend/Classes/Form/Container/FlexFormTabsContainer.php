@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Form\Container;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Form\Container;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Form\Container;
 
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -96,13 +97,14 @@ class FlexFormTabsContainer extends AbstractContainer
             $options['renderType'] = 'flexFormElementContainer';
             $childReturn = $this->nodeFactory->create($options)->render();
 
-            $tabElements[] = [
-                'label' => !empty(trim($sheetDataStructure['ROOT']['sheetTitle'])) ? $languageService->sL(trim($sheetDataStructure['ROOT']['sheetTitle'])) : $sheetName,
-                'content' => $childReturn['html'],
-                'description' => trim($sheetDataStructure['ROOT']['sheetDescription']) ? $languageService->sL(trim($sheetDataStructure['ROOT']['sheetDescription'])) : '',
-                'linkTitle' => trim($sheetDataStructure['ROOT']['sheetShortDescr']) ? $languageService->sL(trim($sheetDataStructure['ROOT']['sheetShortDescr'])) : '',
-            ];
-
+            if ($childReturn['html'] !== '') {
+                $tabElements[] = [
+                    'label' => !empty(trim($sheetDataStructure['ROOT']['sheetTitle'])) ? $languageService->sL(trim($sheetDataStructure['ROOT']['sheetTitle'])) : $sheetName,
+                    'content' => $childReturn['html'],
+                    'description' => trim($sheetDataStructure['ROOT']['sheetDescription']) ? $languageService->sL(trim($sheetDataStructure['ROOT']['sheetDescription'])) : '',
+                    'linkTitle' => trim($sheetDataStructure['ROOT']['sheetShortDescr']) ? $languageService->sL(trim($sheetDataStructure['ROOT']['sheetShortDescr'])) : '',
+                ];
+            }
             $resultArray = $this->mergeChildReturnIntoExistingResult($resultArray, $childReturn, false);
         }
 

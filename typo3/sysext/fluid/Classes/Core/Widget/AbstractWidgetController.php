@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\Core\Widget;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,14 @@ namespace TYPO3\CMS\Fluid\Core\Widget;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Fluid\Core\Widget;
+
+use TYPO3\CMS\Core\SingletonInterface;
+use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
+use TYPO3\CMS\Extbase\Mvc\Controller\ActionController;
+use TYPO3\CMS\Extbase\Mvc\RequestInterface;
+use TYPO3\CMS\Extbase\Mvc\ResponseInterface;
+use TYPO3\CMS\Extbase\Mvc\View\ViewInterface;
 use TYPO3\CMS\Fluid\View\TemplatePaths;
 
 /**
@@ -21,12 +28,12 @@ use TYPO3\CMS\Fluid\View\TemplatePaths;
  * It is basically an ActionController and additionally has $this->widgetConfiguration set to the
  * Configuration of the current Widget.
  */
-abstract class AbstractWidgetController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionController implements \TYPO3\CMS\Core\SingletonInterface
+abstract class AbstractWidgetController extends ActionController implements SingletonInterface
 {
     /**
      * @var array
      */
-    protected $supportedRequestTypes = [\TYPO3\CMS\Fluid\Core\Widget\WidgetRequest::class];
+    protected $supportedRequestTypes = [WidgetRequest::class];
 
     /**
      * Configuration for this widget.
@@ -41,7 +48,7 @@ abstract class AbstractWidgetController extends \TYPO3\CMS\Extbase\Mvc\Controlle
      * @param \TYPO3\CMS\Extbase\Mvc\RequestInterface $request The request object
      * @param \TYPO3\CMS\Extbase\Mvc\ResponseInterface $response The response, modified by this handler
      */
-    public function processRequest(\TYPO3\CMS\Extbase\Mvc\RequestInterface $request, \TYPO3\CMS\Extbase\Mvc\ResponseInterface $response)
+    public function processRequest(RequestInterface $request, ResponseInterface $response)
     {
         $this->widgetConfiguration = $request->getWidgetContext()->getWidgetConfiguration();
         parent::processRequest($request, $response);
@@ -53,9 +60,9 @@ abstract class AbstractWidgetController extends \TYPO3\CMS\Extbase\Mvc\Controlle
      *
      * @param \TYPO3\CMS\Extbase\Mvc\View\ViewInterface $view
      */
-    protected function setViewConfiguration(\TYPO3\CMS\Extbase\Mvc\View\ViewInterface $view)
+    protected function setViewConfiguration(ViewInterface $view)
     {
-        $extbaseFrameworkConfiguration = $this->configurationManager->getConfiguration(\TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface::CONFIGURATION_TYPE_FRAMEWORK);
+        $extbaseFrameworkConfiguration = $this->configurationManager->getConfiguration(ConfigurationManagerInterface::CONFIGURATION_TYPE_FRAMEWORK);
         $widgetViewHelperClassName = $this->request->getWidgetContext()->getWidgetViewHelperClassName();
         $templatePaths = new TemplatePaths($this->controllerContext->getRequest()->getControllerExtensionKey());
         $parentConfiguration = $view->getTemplatePaths()->toArray();

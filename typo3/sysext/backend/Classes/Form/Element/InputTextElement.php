@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Form\Element;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Form\Element;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Form\Element;
 
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -92,13 +93,22 @@ class InputTextElement extends AbstractFormElement
             if (in_array('password', $evalList, true)) {
                 $itemValue = $itemValue ? '*********' : '';
             }
+
+            $disabledFieldAttributes = [
+                'class' => 'form-control',
+                'data-formengine-input-name' => $parameterArray['itemFormElName'],
+                'type' => 'text',
+                'value' => $itemValue,
+                'placeholder' => trim($config['placeholder']) ?? '',
+            ];
+
             $html = [];
             $html[] = '<div class="formengine-field-item t3js-formengine-field-item">';
             $html[] =   $fieldInformationHtml;
             $html[] =   '<div class="form-wizards-wrap">';
             $html[] =       '<div class="form-wizards-element">';
             $html[] =           '<div class="form-control-wrap" style="max-width: ' . $width . 'px">';
-            $html[] =               '<input class="form-control" value="' . htmlspecialchars($itemValue) . '" type="text" disabled>';
+            $html[] =               '<input ' . GeneralUtility::implodeAttributes($disabledFieldAttributes, true) . ' disabled>';
             $html[] =           '</div>';
             $html[] =       '</div>';
             $html[] =   '</div>';
@@ -129,26 +139,28 @@ class InputTextElement extends AbstractFormElement
             }
         }
 
+        $fieldId = StringUtility::getUniqueId('formengine-input-');
+
         $attributes = [
             'value' => '',
-            'id' => StringUtility::getUniqueId('formengine-input-'),
+            'id' => $fieldId,
             'class' => implode(' ', [
                 'form-control',
                 't3js-clearable',
                 'hasDefaultValue',
             ]),
             'data-formengine-validation-rules' => $this->getValidationDataAsJsonString($config),
-            'data-formengine-input-params' => json_encode([
+            'data-formengine-input-params' => (string)json_encode([
                 'field' => $parameterArray['itemFormElName'],
                 'evalList' => implode(',', $evalList),
                 'is_in' => trim($config['is_in'])
             ]),
-            'data-formengine-input-name' => $parameterArray['itemFormElName'],
+            'data-formengine-input-name' => (string)$parameterArray['itemFormElName'],
         ];
 
         $maxLength = $config['max'] ?? 0;
         if ((int)$maxLength > 0) {
-            $attributes['maxlength'] = (int)$maxLength;
+            $attributes['maxlength'] = (string)(int)$maxLength;
         }
         if (!empty($config['placeholder'])) {
             $attributes['placeholder'] = trim($config['placeholder']);
@@ -185,7 +197,10 @@ class InputTextElement extends AbstractFormElement
 
         $valueSliderHtml = [];
         if (isset($config['slider']) && is_array($config['slider'])) {
-            $resultArray['requireJsModules'][] = 'TYPO3/CMS/Backend/ValueSlider';
+            $id = 'slider-' . $fieldId;
+            $resultArray['requireJsModules'][] = ['TYPO3/CMS/Backend/FormEngine/FieldWizard/ValueSlider' =>
+                'function(ValueSlider) { new ValueSlider(' . GeneralUtility::quoteJSvalue($id) . '); }'
+            ];
             $min = $config['range']['lower'] ?? 0;
             $max = $config['range']['upper'] ?? 10000;
             $step = $config['slider']['step'] ?? 1;
@@ -199,19 +214,23 @@ class InputTextElement extends AbstractFormElement
                 $itemValue = (double)$itemValue;
             }
             $callbackParams = [ $table, $row['uid'], $fieldName, $parameterArray['itemFormElName'] ];
-            $id = 'slider-' . md5($parameterArray['itemFormElName']);
-            $valueSliderHtml[] = '<div';
-            $valueSliderHtml[] =    ' id="' . $id . '"';
-            $valueSliderHtml[] =    ' data-slider-id="' . $id . '"';
-            $valueSliderHtml[] =    ' data-slider-min="' . (int)$min . '"';
-            $valueSliderHtml[] =    ' data-slider-max="' . (int)$max . '"';
-            $valueSliderHtml[] =    ' data-slider-step="' . htmlspecialchars($step) . '"';
-            $valueSliderHtml[] =    ' data-slider-value="' . htmlspecialchars($itemValue) . '"';
-            $valueSliderHtml[] =    ' data-slider-value-type="' . htmlspecialchars($valueType) . '"';
-            $valueSliderHtml[] =    ' data-slider-item-name="' . htmlspecialchars($parameterArray['itemFormElName']) . '"';
-            $valueSliderHtml[] =    ' data-slider-callback-params="' . htmlspecialchars(json_encode($callbackParams)) . '"';
-            $valueSliderHtml[] =    ' style="width: ' . $width . 'px;"';
-            $valueSliderHtml[] = '>';
+            $rangeAttributes = [
+                'id' => $id,
+                'type' => 'range',
+                'class' => 'slider',
+                'min' => (string)(int)$min,
+                'max' => (string)(int)$max,
+                'step' => (string)$step,
+                'style' => 'width: ' . (int)$width . 'px',
+                'title' => (string)$itemValue,
+                'value' => (string)$itemValue,
+                'data-slider-id' => $id,
+                'data-slider-value-type' => $valueType,
+                'data-slider-item-name' => (string)($parameterArray['itemFormElName'] ?? ''),
+                'data-slider-callback-params' => (string)json_encode($callbackParams),
+            ];
+            $valueSliderHtml[] = '<div class="slider-wrapper">';
+            $valueSliderHtml[] = '<input ' . GeneralUtility::implodeAttributes($rangeAttributes, true) . '>';
             $valueSliderHtml[] = '</div>';
         }
 
@@ -230,10 +249,10 @@ class InputTextElement extends AbstractFormElement
             $inputType = 'number';
 
             if (isset($config['range']['lower'])) {
-                $attributes['min'] = (int)$config['range']['lower'];
+                $attributes['min'] = (string)(int)$config['range']['lower'];
             }
             if (isset($config['range']['upper'])) {
-                $attributes['max'] = (int)$config['range']['upper'];
+                $attributes['max'] = (string)(int)$config['range']['upper'];
             }
         }
 
@@ -241,7 +260,7 @@ class InputTextElement extends AbstractFormElement
         $mainFieldHtml[] = '<div class="form-control-wrap" style="max-width: ' . $width . 'px">';
         $mainFieldHtml[] =  '<div class="form-wizards-wrap">';
         $mainFieldHtml[] =      '<div class="form-wizards-element">';
-        $mainFieldHtml[] =          '<input type="' . $inputType . '"' . GeneralUtility::implodeAttributes($attributes, true) . ' />';
+        $mainFieldHtml[] =          '<input type="' . $inputType . '" ' . GeneralUtility::implodeAttributes($attributes, true) . ' />';
         $mainFieldHtml[] =          '<input type="hidden" name="' . $parameterArray['itemFormElName'] . '" value="' . htmlspecialchars($itemValue) . '" />';
         $mainFieldHtml[] =      '</div>';
         if (!empty($valuePickerHtml) || !empty($valueSliderHtml) || !empty($fieldControlHtml)) {
@@ -278,7 +297,7 @@ class InputTextElement extends AbstractFormElement
             $fullElement = implode(LF, $fullElement);
         } elseif ($this->hasNullCheckboxWithPlaceholder()) {
             $checked = $itemValue !== null ? ' checked="checked"' : '';
-            $placeholder = $shortenedPlaceholder = $config['placeholder'] ?? '';
+            $placeholder = $shortenedPlaceholder = trim($config['placeholder']) ?? '';
             $disabled = '';
             $fallbackValue = 0;
             if (strlen($placeholder) > 0) {
@@ -309,7 +328,7 @@ class InputTextElement extends AbstractFormElement
             $fullElement[] = '</div>';
             $fullElement[] = '<div class="t3js-formengine-placeholder-placeholder">';
             $fullElement[] =    '<div class="form-control-wrap" style="max-width:' . $width . 'px">';
-            $fullElement[] =        '<input type="text" class="form-control" disabled="disabled" value="' . $shortenedPlaceholder . '" />';
+            $fullElement[] =        '<input type="text" class="form-control" disabled="disabled" value="' . htmlspecialchars($shortenedPlaceholder) . '" />';
             $fullElement[] =    '</div>';
             $fullElement[] = '</div>';
             $fullElement[] = '<div class="t3js-formengine-placeholder-formfield">';

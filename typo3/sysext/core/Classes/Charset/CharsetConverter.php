@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Charset;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Charset;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Charset;
 
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\SingletonInterface;
@@ -151,6 +152,7 @@ class CharsetConverter implements SingletonInterface
                 $ord = ord($chr);
                 // If the charset has two bytes per char
                 if (isset($this->twoByteSets[$charset])) {
+                    // TYPO3 cannot convert from ucs-2 as the according conversion table is not present
                     $ord2 = ord($str[$a + 1]);
                     // Assume big endian
                     $ord = $ord << 8 | $ord2;
@@ -427,10 +429,10 @@ class CharsetConverter implements SingletonInterface
                 // Caching brought parsing time for gb2312 down from 2400 ms to 150 ms. For other charsets we are talking 11 ms down to zero.
                 $cacheFile = Environment::getVarPath() . '/charset/charset_' . $charset . '.tbl';
                 if ($cacheFile && @is_file($cacheFile)) {
-                    $this->parsedCharsets[$charset] = unserialize(file_get_contents($cacheFile));
+                    $this->parsedCharsets[$charset] = unserialize((string)file_get_contents($cacheFile), ['allowed_classes' => false]);
                 } else {
                     // Parse conversion table into lines:
-                    $lines = GeneralUtility::trimExplode(LF, file_get_contents($charsetConvTableFile), true);
+                    $lines = GeneralUtility::trimExplode(LF, (string)file_get_contents($charsetConvTableFile), true);
                     // Initialize the internal variable holding the conv. table:
                     $this->parsedCharsets[$charset] = ['local' => [], 'utf8' => []];
                     // traverse the lines:
@@ -441,22 +443,26 @@ class CharsetConverter implements SingletonInterface
                             // Detect type if not done yet: (Done on first real line)
                             // The "whitespaced" type is on the syntax 	"0x0A	0x000A	#LINE FEED" 	while 	"ms-token" is like 		"B9 = U+00B9 : SUPERSCRIPT ONE"
                             if (!$detectedType) {
-                                $detectedType = preg_match('/[[:space:]]*0x([[:alnum:]]*)[[:space:]]+0x([[:alnum:]]*)[[:space:]]+/', $value) ? 'whitespaced' : 'ms-token';
+                                $detectedType = preg_match('/[[:space:]]*0x([[:xdigit:]]*)[[:space:]]+0x([[:xdigit:]]*)[[:space:]]+/', $value) ? 'whitespaced' : 'ms-token';
                             }
                             $hexbyte = '';
                             $utf8 = '';
                             if ($detectedType === 'ms-token') {
-                                list($hexbyte, $utf8) = preg_split('/[=:]/', $value, 3);
+                                [$hexbyte, $utf8] = preg_split('/[=:]/', $value, 3);
                             } elseif ($detectedType === 'whitespaced') {
                                 $regA = [];
-                                preg_match('/[[:space:]]*0x([[:alnum:]]*)[[:space:]]+0x([[:alnum:]]*)[[:space:]]+/', $value, $regA);
+                                preg_match('/[[:space:]]*0x([[:xdigit:]]*)[[:space:]]+0x([[:xdigit:]]*)[[:space:]]+/', $value, $regA);
+                                if (empty($regA)) {
+                                    // No match => skip this item
+                                    continue;
+                                }
                                 $hexbyte = $regA[1];
                                 $utf8 = 'U+' . $regA[2];
                             }
                             $decval = hexdec(trim($hexbyte));
                             if ($decval > 127) {
                                 $utf8decval = hexdec(substr(trim($utf8), 2));
-                                $this->parsedCharsets[$charset]['local'][$decval] = $this->UnumberToChar($utf8decval);
+                                $this->parsedCharsets[$charset]['local'][$decval] = $this->UnumberToChar((int)$utf8decval);
                                 $this->parsedCharsets[$charset]['utf8'][$this->parsedCharsets[$charset]['local'][$decval]] = $decval;
                             }
                         }
@@ -489,7 +495,7 @@ class CharsetConverter implements SingletonInterface
         }
         // Use cached version if possible
         if ($cacheFileASCII && @is_file($cacheFileASCII)) {
-            $this->toASCII['utf-8'] = unserialize(file_get_contents($cacheFileASCII));
+            $this->toASCII['utf-8'] = unserialize((string)file_get_contents($cacheFileASCII), ['allowed_classes' => false]);
             return 2;
         }
         // Process main Unicode data file
@@ -510,9 +516,9 @@ class CharsetConverter implements SingletonInterface
         // Array of chars to be omitted (eg. Russian hard sign)
         $omit = [];
         while (!feof($fh)) {
-            $line = fgets($fh, 4096);
+            $line = (string)fgets($fh, 4096);
             // Has a lot of info
-            list($char, $name, $cat, , , $decomp, , , $num) = explode(';', rtrim($line));
+            [$char, $name, $cat, , , $decomp, , , $num] = explode(';', rtrim($line));
             $ord = hexdec($char);
             if ($ord > 65535) {
                 // Only process the BMP
@@ -578,7 +584,7 @@ class CharsetConverter implements SingletonInterface
                         continue;
                     }
                     if ($line[0] !== '#' && trim($line) !== '') {
-                        list($char, $translit) = GeneralUtility::trimExplode(';', $line);
+                        [$char, $translit] = GeneralUtility::trimExplode(';', $line);
                         if (!$translit) {
                             $omit['U+' . $char] = 1;
                         }
@@ -613,18 +619,18 @@ class CharsetConverter implements SingletonInterface
         foreach ($decomposition as $from => $to) {
             $code_decomp = [];
             while ($code_value = array_shift($to)) {
-                $ord = hexdec($code_value);
+                $ord = (int)hexdec($code_value);
                 if ($ord > 127) {
                     continue 2;
                 }
                 // Skip decompositions containing non-ASCII chars
                 $code_decomp[] = chr($ord);
             }
-            $this->toASCII['utf-8'][$this->UnumberToChar(hexdec(substr($from, 2)))] = implode('', $code_decomp);
+            $this->toASCII['utf-8'][$this->UnumberToChar((int)hexdec(substr($from, 2)))] = implode('', $code_decomp);
         }
         // Add numeric decompositions
         foreach ($number as $from => $to) {
-            $utf8_char = $this->UnumberToChar(hexdec(substr($from, 2)));
+            $utf8_char = $this->UnumberToChar((int)hexdec(substr($from, 2)));
             if (!isset($this->toASCII['utf-8'][$utf8_char])) {
                 $this->toASCII['utf-8'][$utf8_char] = $to;
             }
@@ -651,7 +657,7 @@ class CharsetConverter implements SingletonInterface
         // Use cached version if possible
         $cacheFile = Environment::getVarPath() . '/charset/csascii_' . $charset . '.tbl';
         if ($cacheFile && @is_file($cacheFile)) {
-            $this->toASCII[$charset] = unserialize(file_get_contents($cacheFile));
+            $this->toASCII[$charset] = unserialize((string)file_get_contents($cacheFile), ['allowed_classes' => false]);
             return 2;
         }
         // Init UTF-8 conversion for this charset

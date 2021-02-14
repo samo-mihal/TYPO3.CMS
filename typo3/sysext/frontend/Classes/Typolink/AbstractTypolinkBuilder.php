@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Frontend\Typolink;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Frontend\Typolink;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Frontend\Typolink;
 
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Domain\Repository\PageRepository;
@@ -42,7 +44,7 @@ abstract class AbstractTypolinkBuilder
     protected $contentObjectRenderer;
 
     /**
-     * @var TypoScriptFrontendController
+     * @var TypoScriptFrontendController|null
      */
     protected $typoScriptFrontendController;
 
@@ -55,7 +57,7 @@ abstract class AbstractTypolinkBuilder
     public function __construct(ContentObjectRenderer $contentObjectRenderer, TypoScriptFrontendController $typoScriptFrontendController = null)
     {
         $this->contentObjectRenderer = $contentObjectRenderer;
-        $this->typoScriptFrontendController = $typoScriptFrontendController ?? $GLOBALS['TSFE'];
+        $this->typoScriptFrontendController = $typoScriptFrontendController ?? $GLOBALS['TSFE'] ?? null;
     }
 
     /**
@@ -183,7 +185,7 @@ abstract class AbstractTypolinkBuilder
         $target = '';
         if (isset($conf[$name])) {
             $target = $conf[$name];
-        } elseif ($targetAttributeAllowed) {
+        } elseif ($targetAttributeAllowed && !($conf['directImageLink'] ?? false)) {
             $target = $fallbackTarget;
         }
         if (isset($conf[$name . '.']) && $conf[$name . '.']) {

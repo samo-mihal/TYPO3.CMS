@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Install\Service;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Install\Service;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Install\Service;
 
 use TYPO3\CMS\Core\Configuration\ConfigurationManager;
 use TYPO3\CMS\Core\Configuration\Loader\YamlFileLoader;
@@ -65,7 +67,7 @@ class LocalConfigurationValueService
      * to check entries recursively.
      *
      * @param array $sections
-     * @param array|null $sectionsFromCurrentConfiguration
+     * @param array $sectionsFromCurrentConfiguration
      * @param array $descriptions
      * @param array $path
      * @return array
@@ -168,12 +170,9 @@ class LocalConfigurationValueService
             $dataType = $descriptionData['type'];
 
             if ($dataType === 'multiline') {
-                // Force Unix line breaks in text areas
-                // Preserve line breaks
-                $value = str_replace([CR, LF], ['', '\' . LF . \''], $value);
-            }
-
-            if ($dataType === 'bool') {
+                $value = str_replace(CR, '', $value);
+                $valueHasChanged = (string)$oldValue !== (string)$value;
+            } elseif ($dataType === 'bool') {
                 // When submitting settings in the Install Tool, values that default to "FALSE" or "TRUE"
                 // in EXT:core/Configuration/DefaultConfiguration.php will be sent as "0" resp. "1".
                 $value = $value === '1';
@@ -214,7 +213,7 @@ class LocalConfigurationValueService
                 ));
             }
         }
-        if (!empty($messageQueue)) {
+        if ($messageQueue->count() > 0) {
             $configurationManager->setLocalConfigurationValuesByPathValuePairs($configurationPathValuePairs);
         }
         return $messageQueue;

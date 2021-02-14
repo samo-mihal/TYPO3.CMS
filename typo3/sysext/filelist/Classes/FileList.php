@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Filelist;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,22 +13,24 @@ namespace TYPO3\CMS\Filelist;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Filelist;
+
 use TYPO3\CMS\Backend\Clipboard\Clipboard;
 use TYPO3\CMS\Backend\Configuration\TranslationConfigurationProvider;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\ConnectionPool;
-use TYPO3\CMS\Core\Database\Query\Restriction\BackendWorkspaceRestriction;
-use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconFactory;
-use TYPO3\CMS\Core\Messaging\FlashMessage;
-use TYPO3\CMS\Core\Messaging\FlashMessageService;
+use TYPO3\CMS\Core\Localization\LanguageService;
+use TYPO3\CMS\Core\Resource\AbstractFile;
 use TYPO3\CMS\Core\Resource\Exception\InsufficientFolderAccessPermissionsException;
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\Folder;
 use TYPO3\CMS\Core\Resource\FolderInterface;
 use TYPO3\CMS\Core\Resource\InaccessibleFolder;
+use TYPO3\CMS\Core\Resource\ProcessedFile;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\Resource\Utility\ListUtility;
 use TYPO3\CMS\Core\Type\Bitmask\JsConfirmation;
@@ -38,7 +39,8 @@ use TYPO3\CMS\Core\Utility\MathUtility;
 use TYPO3\CMS\Filelist\Configuration\ThumbnailConfiguration;
 
 /**
- * Class for rendering of File>Filelist
+ * Class for rendering of File>Filelist (basically used in FileListController)
+ * @see \TYPO3\CMS\Filelist\Controller\FileListController
  * @internal this is a concrete TYPO3 controller implementation and solely used for EXT:filelist and not part of TYPO3's Core API.
  */
 class FileList
@@ -83,7 +85,7 @@ class FileList
      *
      * @var bool
      */
-    public $sortRev = 1;
+    public $sortRev = true;
 
     /**
      * @var int
@@ -91,60 +93,16 @@ class FileList
     public $firstElementNumber = 0;
 
     /**
-     * @var bool
-     */
-    public $clipBoard = 0;
-
-    /**
-     * @var bool
-     */
-    public $bigControlPanel = 0;
-
-    /**
-     * @var string
-     */
-    public $JScode = '';
-
-    /**
-     * String with accumulated HTML content
-     *
-     * @var string
-     */
-    public $HTMLcode = '';
-
-    /**
      * @var int
      */
     public $totalbytes = 0;
 
     /**
-     * @var array
-     */
-    public $dirs = [];
-
-    /**
-     * @var array
-     */
-    public $files = [];
-
-    /**
-     * @var string
-     */
-    public $path = '';
-
-    /**
-     * OBSOLETE - NOT USED ANYMORE. leftMargin
+     * This could be set to the total number of items. Used by the fwd_rew_navigation...
      *
      * @var int
      */
-    public $leftMargin = 0;
-
-    /**
-     * This could be set to the total number of items. Used by the fwd_rew_navigation...
-     *
-     * @var string
-     */
-    public $totalItems = '';
+    public $totalItems = 0;
 
     /**
      * Decides the columns shown. Filled with values that refers to the keys of the data-array. $this->fieldArray[0] is the title column.
@@ -154,46 +112,11 @@ class FileList
     public $fieldArray = [];
 
     /**
-     * Set to zero, if you don't want a left-margin with addElement function
-     *
-     * @var int
-     */
-    public $setLMargin = 1;
-
-    /**
-     * Contains page translation languages
-     *
-     * @var array
-     */
-    public $pageOverlays = [];
-
-    /**
      * Counter increased for each element. Used to index elements for the JavaScript-code that transfers to the clipboard
      *
      * @var int
      */
     public $counter = 0;
-
-    /**
-     * Contains sys language icons and titles
-     *
-     * @var array
-     */
-    public $languageIconTitles = [];
-
-    /**
-     * Script URL
-     *
-     * @var string
-     */
-    public $thisScript = '';
-
-    /**
-     * If set this is <td> CSS-classname for odd columns in addElement. Used with db_layout / pages section
-     *
-     * @var string
-     */
-    public $oddColumnsCssClass = '';
 
     /**
      * Counting the elements no matter what
@@ -208,28 +131,16 @@ class FileList
     public $translateTools;
 
     /**
-     * Keys are fieldnames and values are td-parameters to add in addElement(), please use $addElement_tdCSSClass for CSS-classes;
-     *
-     * @var array
-     */
-    public $addElement_tdParams = [];
-
-    /**
-     * @var int
-     */
-    public $no_noWrap = 0;
-
-    /**
-     * @var int
-     */
-    public $showIcon = 1;
-
-    /**
      * Keys are fieldnames and values are td-css-classes to add in addElement();
      *
      * @var array
      */
-    public $addElement_tdCssClass = [];
+    public $addElement_tdCssClass = [
+        '_CONTROL_' => 'col-control',
+        '_CLIPBOARD_' => 'col-clipboard',
+        'file' => 'col-title col-responsive',
+        '_LOCALIZATION_' => 'col-localizationa',
+    ];
 
     /**
      * @var Folder
@@ -267,30 +178,29 @@ class FileList
     protected $thumbnailConfiguration;
 
     /**
-     * Construct
+     * @var UriBuilder
      */
+    protected $uriBuilder;
+
     public function __construct()
     {
-        $backendUser = $this->getBackendUser();
-        if (isset($backendUser->uc['titleLen']) && $backendUser->uc['titleLen'] > 0) {
-            $this->fixedL = $backendUser->uc['titleLen'];
-        }
+        // Setting the maximum length of the filenames to the user's settings or minimum 30 (= $this->fixedL)
+        $this->fixedL = max($this->fixedL, $this->getBackendUser()->uc['titleLen'] ?? 1);
         $this->iconFactory = GeneralUtility::makeInstance(IconFactory::class);
-        $this->getTranslateTools();
-        $this->determineScriptUrl();
+        $this->translateTools = GeneralUtility::makeInstance(TranslationConfigurationProvider::class);
         $this->thumbnailConfiguration = GeneralUtility::makeInstance(ThumbnailConfiguration::class);
         $this->iLimit = MathUtility::forceIntegerInRange(
-            $backendUser->getTSConfig()['options.']['file_list.']['filesPerPage'] ?? $this->iLimit,
+            $this->getBackendUser()->getTSConfig()['options.']['file_list.']['filesPerPage'] ?? $this->iLimit,
             1
         );
-    }
-
-    /**
-     * @param ResourceFactory $resourceFactory
-     */
-    public function injectResourceFactory(ResourceFactory $resourceFactory)
-    {
-        $this->resourceFactory = $resourceFactory;
+        // Create clipboard object and initialize that
+        $this->clipObj = GeneralUtility::makeInstance(Clipboard::class);
+        $this->clipObj->fileMode = true;
+        $this->clipObj->initializeClipboard();
+        $this->resourceFactory = GeneralUtility::makeInstance(ResourceFactory::class);
+        $this->getLanguageService()->includeLLFile('EXT:core/Resources/Private/Language/locallang_common.xlf');
+        $this->uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
+        $this->spaceIcon = '<span class="btn btn-default disabled">' . $this->iconFactory->getIcon('empty-empty', Icon::SIZE_SMALL)->render() . '</span>';
     }
 
     /**
@@ -308,285 +218,209 @@ class FileList
         $this->folderObject = $folderObject;
         $this->counter = 0;
         $this->totalbytes = 0;
-        $this->JScode = '';
-        $this->HTMLcode = '';
-        $this->path = $folderObject->getReadablePath();
         $this->sort = $sort;
         $this->sortRev = $sortRev;
         $this->firstElementNumber = $pointer;
-        $this->clipBoard = $clipBoard;
-        $this->bigControlPanel = $bigControlPanel;
-        // Setting the maximum length of the filenames to the user's settings or minimum 30 (= $this->fixedL)
-        $this->fixedL = max($this->fixedL, $this->getBackendUser()->uc['titleLen']);
-        $this->getLanguageService()->includeLLFile('EXT:core/Resources/Private/Language/locallang_common.xlf');
-        $this->resourceFactory = ResourceFactory::getInstance();
-    }
-
-    /**
-     * Reading files and directories, counting elements and generating the list in ->HTMLcode
-     */
-    public function generateList()
-    {
-        $this->HTMLcode .= $this->getTable('fileext,tstamp,size,rw,_REF_');
+        // Cleaning rowlist for duplicates and place the $titleCol as the first column always!
+        $rowlist = 'file,_LOCALIZATION_,fileext,tstamp,size,rw,_REF_';
+        if ($clipBoard) {
+            $rowlist = str_replace('_LOCALIZATION_,', '_LOCALIZATION_,_CLIPBOARD_,', $rowlist);
+        }
+        if ($bigControlPanel) {
+            $rowlist = str_replace('_LOCALIZATION_,', '_LOCALIZATION_,_CONTROL_,', $rowlist);
+        }
+        $this->fieldArray = explode(',', $rowlist);
     }
 
     /**
      * Wrapping input string in a link with clipboard command.
      *
      * @param string $string String to be linked - must be htmlspecialchar'ed / prepared before.
-     * @param string $_ unused
      * @param string $cmd "cmd" value
      * @param string $warning Warning for JS confirm message
      * @return string Linked string
      */
-    public function linkClipboardHeaderIcon($string, $_, $cmd, $warning = '')
+    public function linkClipboardHeaderIcon($string, $cmd, $warning = '')
     {
-        $jsCode = 'document.dblistForm.cmd.value=' . GeneralUtility::quoteJSvalue($cmd)
-            . ';document.dblistForm.submit();';
-
-        $attributes = [];
         if ($warning) {
             $attributes['class'] = 'btn btn-default t3js-modal-trigger';
-            $attributes['data-href'] = 'javascript:' . $jsCode;
             $attributes['data-severity'] = 'warning';
             $attributes['data-content'] = $warning;
+            $attributes['data-event-name'] = 'filelist:clipboard:cmd';
+            $attributes['data-event-payload'] = $cmd;
         } else {
             $attributes['class'] = 'btn btn-default';
-            $attributes['onclick'] = $jsCode . 'return false;';
+            $attributes['data-filelist-clipboard-cmd'] = $cmd;
         }
 
-        $attributesString = '';
-        foreach ($attributes as $key => $value) {
-            $attributesString .= ' ' . $key . '="' . htmlspecialchars($value) . '"';
-        }
-        return '<a href="#" ' . $attributesString . '>' . $string . '</a>';
+        return '<a href="#" ' . GeneralUtility::implodeAttributes($attributes, true) . '>' . $string . '</a>';
     }
 
     /**
      * Returns a table with directories and files listed.
      *
-     * @param array $rowlist Array of files from path
      * @return string HTML-table
      */
-    public function getTable($rowlist)
+    public function getTable()
     {
-        // prepare space icon
-        $this->spaceIcon = '<span class="btn btn-default disabled">' . $this->iconFactory->getIcon('empty-empty', Icon::SIZE_SMALL)->render() . '</span>';
-
         // @todo use folder methods directly when they support filters
         $storage = $this->folderObject->getStorage();
         $storage->resetFileAndFolderNameFiltersToDefault();
 
         // Only render the contents of a browsable storage
-        if ($this->folderObject->getStorage()->isBrowsable()) {
-            try {
-                $foldersCount = $storage->countFoldersInFolder($this->folderObject);
-                $filesCount = $storage->countFilesInFolder($this->folderObject);
-            } catch (InsufficientFolderAccessPermissionsException $e) {
-                $foldersCount = 0;
-                $filesCount = 0;
-            }
-
-            if ($foldersCount <= $this->firstElementNumber) {
-                $foldersFrom = false;
-                $foldersNum = false;
-            } else {
-                $foldersFrom = $this->firstElementNumber;
-                if ($this->firstElementNumber + $this->iLimit > $foldersCount) {
-                    $foldersNum = $foldersCount - $this->firstElementNumber;
-                } else {
-                    $foldersNum = $this->iLimit;
-                }
-            }
-            if ($foldersCount >= $this->firstElementNumber + $this->iLimit) {
-                $filesFrom = false;
-                $filesNum  = false;
-            } else {
-                if ($this->firstElementNumber <= $foldersCount) {
-                    $filesFrom = 0;
-                    $filesNum  = $this->iLimit - $foldersNum;
-                } else {
-                    $filesFrom = $this->firstElementNumber - $foldersCount;
-                    if ($filesFrom + $this->iLimit > $filesCount) {
-                        $filesNum = $filesCount - $filesFrom;
-                    } else {
-                        $filesNum = $this->iLimit;
-                    }
-                }
-            }
-
-            $folders = $storage->getFoldersInFolder($this->folderObject, $foldersFrom, $foldersNum, true, false, trim($this->sort), (bool)$this->sortRev);
-            $files = $this->folderObject->getFiles($filesFrom, $filesNum, Folder::FILTER_MODE_USE_OWN_AND_STORAGE_FILTERS, false, trim($this->sort), (bool)$this->sortRev);
-            $this->totalItems = $foldersCount + $filesCount;
-            // Adds the code of files/dirs
-            $out = '';
-            $titleCol = 'file';
-            // Cleaning rowlist for duplicates and place the $titleCol as the first column always!
-            $rowlist = '_LOCALIZATION_,' . $rowlist;
-            $rowlist = GeneralUtility::rmFromList($titleCol, $rowlist);
-            $rowlist = GeneralUtility::uniqueList($rowlist);
-            $rowlist = $rowlist ? $titleCol . ',' . $rowlist : $titleCol;
-            if ($this->clipBoard) {
-                $rowlist = str_replace('_LOCALIZATION_,', '_LOCALIZATION_,_CLIPBOARD_,', $rowlist);
-                $this->addElement_tdCssClass['_CLIPBOARD_'] = 'col-clipboard';
-            }
-            if ($this->bigControlPanel) {
-                $rowlist = str_replace('_LOCALIZATION_,', '_LOCALIZATION_,_CONTROL_,', $rowlist);
-                $this->addElement_tdCssClass['_CONTROL_'] = 'col-control';
-            }
-            $this->fieldArray = explode(',', $rowlist);
-
-            // Add classes to table cells
-            $this->addElement_tdCssClass[$titleCol] = 'col-title col-responsive';
-            $this->addElement_tdCssClass['_LOCALIZATION_'] = 'col-localizationa';
-
-            $folders = ListUtility::resolveSpecialFolderNames($folders);
-
-            $iOut = '';
-            // Directories are added
-            $this->eCounter = $this->firstElementNumber;
-            list(, $code) = $this->fwd_rwd_nav();
-            $iOut .= $code;
-
-            $iOut .= $this->formatDirList($folders);
-            // Files are added
-            $iOut .= $this->formatFileList($files);
-
-            $this->eCounter = $this->firstElementNumber + $this->iLimit < $this->totalItems
-                ? $this->firstElementNumber + $this->iLimit
-                : -1;
-            list(, $code) = $this->fwd_rwd_nav();
-            $iOut .= $code;
-
-            // Header line is drawn
-            $theData = [];
-            foreach ($this->fieldArray as $v) {
-                if ($v === '_CLIPBOARD_' && $this->clipBoard) {
-                    $cells = [];
-                    $table = '_FILE';
-                    $elFromTable = $this->clipObj->elFromTable($table);
-                    if (!empty($elFromTable) && $this->folderObject->checkActionPermission('write')) {
-                        $clipboardMode = $this->clipObj->clipData[$this->clipObj->current]['mode'] ?? '';
-                        $permission = $clipboardMode === 'copy' ? 'copy' : 'move';
-                        $addPasteButton = $this->folderObject->checkActionPermission($permission);
-                        $elToConfirm = [];
-                        foreach ($elFromTable as $key => $element) {
-                            $clipBoardElement = $this->resourceFactory->retrieveFileOrFolderObject($element);
-                            if ($clipBoardElement instanceof Folder && $clipBoardElement->getStorage()->isWithinFolder($clipBoardElement, $this->folderObject)) {
-                                $addPasteButton = false;
-                            }
-                            $elToConfirm[$key] = $clipBoardElement->getName();
-                        }
-                        if ($addPasteButton) {
-                            $cells[] = '<a class="btn btn-default t3js-modal-trigger"' .
-                                ' href="' . htmlspecialchars($this->clipObj->pasteUrl(
-                                    '_FILE',
-                                    $this->folderObject->getCombinedIdentifier()
-                                )) . '"'
-                                . ' data-content="' . htmlspecialchars($this->clipObj->confirmMsgText(
-                                    '_FILE',
-                                    $this->path,
-                                    'into',
-                                    $elToConfirm
-                                )) . '"'
-                                . ' data-severity="warning"'
-                                . ' data-title="' . htmlspecialchars($this->getLanguageService()->getLL('clip_paste')) . '"'
-                                . ' title="' . htmlspecialchars($this->getLanguageService()->getLL('clip_paste')) . '">'
-                                . $this->iconFactory->getIcon('actions-document-paste-into', Icon::SIZE_SMALL)
-                                    ->render()
-                                . '</a>';
-                        } else {
-                            $cells[] = $this->spaceIcon;
-                        }
-                    }
-                    if ($this->clipObj->current !== 'normal' && $iOut) {
-                        if ($this->folderObject->checkActionPermission('copy') && $this->folderObject->checkActionPermission('write') && $this->folderObject->checkActionPermission('move')) {
-                            $cells[] = $this->linkClipboardHeaderIcon('<span title="' . htmlspecialchars($this->getLanguageService()->getLL('clip_selectMarked')) . '">' . $this->iconFactory->getIcon('actions-edit-copy', Icon::SIZE_SMALL)->render() . '</span>', $table, 'setCB');
-                        }
-                        if ($this->folderObject->checkActionPermission('delete')) {
-                            $cells[] = $this->linkClipboardHeaderIcon('<span title="' . htmlspecialchars($this->getLanguageService()->getLL('clip_deleteMarked')) . '">' . $this->iconFactory->getIcon('actions-edit-delete', Icon::SIZE_SMALL)->render(), $table, 'delete', $this->getLanguageService()->getLL('clip_deleteMarkedWarning'));
-                        }
-                        $cells[] = '<a class="btn btn-default t3js-toggle-all-checkboxes" data-checkboxes-names="' . htmlspecialchars(implode(',', $this->CBnames)) . '" rel="" href="#" title="' . htmlspecialchars($this->getLanguageService()->getLL('clip_markRecords')) . '">' . $this->iconFactory->getIcon('actions-document-select', Icon::SIZE_SMALL)->render() . '</a>';
-                    }
-                    $theData[$v] = implode('', $cells);
-                } elseif ($v === '_REF_') {
-                    $theData[$v] = htmlspecialchars($this->getLanguageService()->getLL('c_' . $v));
-                } else {
-                    // Normal row:
-                    $theT = $this->linkWrapSort(htmlspecialchars($this->getLanguageService()->getLL('c_' . $v)), $this->folderObject->getCombinedIdentifier(), $v);
-                    $theData[$v] = $theT;
-                }
-            }
-
-            $out .= '<thead>' . $this->addElement(1, '', $theData, '', '', '', 'th') . '</thead>';
-            $out .= '<tbody>' . $iOut . '</tbody>';
-            // half line is drawn
-            // finish
-            $out = '
-                <!--
-                    Filelist table:
-                -->
-                <div class="panel panel-default">
-                    <div class="table-fit">
-                        <table class="table table-striped table-hover" id="typo3-filelist">
-                            ' . $out . '
-                        </table>
-                    </div>
-                </div>';
-        } else {
-            /** @var FlashMessage $flashMessage */
-            $flashMessage = GeneralUtility::makeInstance(FlashMessage::class, $this->getLanguageService()->getLL('storageNotBrowsableMessage'), $this->getLanguageService()->getLL('storageNotBrowsableTitle'), FlashMessage::INFO);
-            /** @var \TYPO3\CMS\Core\Messaging\FlashMessageService $flashMessageService */
-            $flashMessageService = GeneralUtility::makeInstance(FlashMessageService::class);
-            /** @var \TYPO3\CMS\Core\Messaging\FlashMessageQueue $defaultFlashMessageQueue */
-            $defaultFlashMessageQueue = $flashMessageService->getMessageQueueByIdentifier();
-            $defaultFlashMessageQueue->enqueue($flashMessage);
-            $out = '';
+        if (!$this->folderObject->getStorage()->isBrowsable()) {
+            return '';
         }
-        return $out;
+        try {
+            $foldersCount = $storage->countFoldersInFolder($this->folderObject);
+            $filesCount = $storage->countFilesInFolder($this->folderObject);
+        } catch (InsufficientFolderAccessPermissionsException $e) {
+            $foldersCount = 0;
+            $filesCount = 0;
+        }
+
+        if ($foldersCount <= $this->firstElementNumber) {
+            $foldersFrom = false;
+            $foldersNum = false;
+        } else {
+            $foldersFrom = $this->firstElementNumber;
+            if ($this->firstElementNumber + $this->iLimit > $foldersCount) {
+                $foldersNum = $foldersCount - $this->firstElementNumber;
+            } else {
+                $foldersNum = $this->iLimit;
+            }
+        }
+        if ($foldersCount >= $this->firstElementNumber + $this->iLimit) {
+            $filesFrom = false;
+            $filesNum  = false;
+        } else {
+            if ($this->firstElementNumber <= $foldersCount) {
+                $filesFrom = 0;
+                $filesNum  = $this->iLimit - $foldersNum;
+            } else {
+                $filesFrom = $this->firstElementNumber - $foldersCount;
+                if ($filesFrom + $this->iLimit > $filesCount) {
+                    $filesNum = $filesCount - $filesFrom;
+                } else {
+                    $filesNum = $this->iLimit;
+                }
+            }
+        }
+
+        $folders = $storage->getFoldersInFolder($this->folderObject, $foldersFrom, $foldersNum, true, false, trim($this->sort), (bool)$this->sortRev);
+        $files = $this->folderObject->getFiles($filesFrom, $filesNum, Folder::FILTER_MODE_USE_OWN_AND_STORAGE_FILTERS, false, trim($this->sort), (bool)$this->sortRev);
+        $this->totalItems = $foldersCount + $filesCount;
+        // Adds the code of files/dirs
+
+        $folders = ListUtility::resolveSpecialFolderNames($folders);
+
+        $iOut = '';
+        // Directories are added
+        $this->eCounter = $this->firstElementNumber;
+        $iOut .= $this->fwd_rwd_nav();
+
+        $iOut .= $this->formatDirList($folders);
+        // Files are added
+        $iOut .= $this->formatFileList($files);
+
+        $this->eCounter = $this->firstElementNumber + $this->iLimit < $this->totalItems
+            ? $this->firstElementNumber + $this->iLimit
+            : -1;
+        $iOut .= $this->fwd_rwd_nav();
+
+        // Header line is drawn
+        $theData = [];
+        foreach ($this->fieldArray as $v) {
+            if ($v === '_CLIPBOARD_') {
+                $theData[$v] = $this->renderClipboardHeaderRow(!empty($iOut));
+            } elseif ($v === '_REF_') {
+                $theData[$v] = htmlspecialchars($this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels._REF_'));
+            } else {
+                // Normal row
+                $theData[$v]  = $this->linkWrapSort($this->folderObject->getCombinedIdentifier(), $v);
+            }
+        }
+
+        return '
+            <div class="panel panel-default">
+                <div class="table-fit">
+                    <table class="table table-striped table-hover" id="typo3-filelist">
+                        <thead>' . $this->addElement('', $theData, 'th') . '</thead>
+                        <tbody>' . $iOut . '</tbody>
+                    </table>
+                </div>
+            </div>';
+    }
+
+    protected function renderClipboardHeaderRow(bool $hasContent): string
+    {
+        $cells = [];
+        $elFromTable = $this->clipObj->elFromTable('_FILE');
+        if (!empty($elFromTable) && $this->folderObject->checkActionPermission('write')) {
+            $clipboardMode = $this->clipObj->clipData[$this->clipObj->current]['mode'] ?? '';
+            $permission = $clipboardMode === 'copy' ? 'copy' : 'move';
+            $addPasteButton = $this->folderObject->checkActionPermission($permission);
+            $elToConfirm = [];
+            foreach ($elFromTable as $key => $element) {
+                $clipBoardElement = $this->resourceFactory->retrieveFileOrFolderObject($element);
+                if ($clipBoardElement instanceof Folder && $clipBoardElement->getStorage()->isWithinFolder($clipBoardElement, $this->folderObject)) {
+                    $addPasteButton = false;
+                }
+                $elToConfirm[$key] = $clipBoardElement->getName();
+            }
+            if ($addPasteButton) {
+                $cells[] = '<a class="btn btn-default t3js-modal-trigger"' .
+                    ' href="' . htmlspecialchars($this->clipObj->pasteUrl(
+                        '_FILE',
+                        $this->folderObject->getCombinedIdentifier()
+                    )) . '"'
+                    . ' data-content="' . htmlspecialchars($this->clipObj->confirmMsgText(
+                        '_FILE',
+                        $this->folderObject->getReadablePath(),
+                        'into',
+                        $elToConfirm
+                    )) . '"'
+                    . ' data-severity="warning"'
+                    . ' data-title="' . htmlspecialchars($this->getLanguageService()->getLL('clip_paste')) . '"'
+                    . ' title="' . htmlspecialchars($this->getLanguageService()->getLL('clip_paste')) . '">'
+                    . $this->iconFactory->getIcon('actions-document-paste-into', Icon::SIZE_SMALL)
+                        ->render()
+                    . '</a>';
+            } else {
+                $cells[] = $this->spaceIcon;
+            }
+        }
+        if ($this->clipObj->current !== 'normal' && $hasContent) {
+            $cells[] = $this->linkClipboardHeaderIcon('<span title="' . htmlspecialchars($this->getLanguageService()->getLL('clip_selectMarked')) . '">' . $this->iconFactory->getIcon('actions-edit-copy', Icon::SIZE_SMALL)->render() . '</span>', 'setCB');
+            $cells[] = $this->linkClipboardHeaderIcon('<span title="' . htmlspecialchars($this->getLanguageService()->getLL('clip_deleteMarked')) . '">' . $this->iconFactory->getIcon('actions-edit-delete', Icon::SIZE_SMALL)->render() . '</span>', 'delete', $this->getLanguageService()->getLL('clip_deleteMarkedWarning'));
+            $cells[] = '<a class="btn btn-default t3js-toggle-all-checkboxes" data-checkboxes-names="' . htmlspecialchars(implode(',', $this->CBnames)) . '" rel="" href="#" title="' . htmlspecialchars($this->getLanguageService()->getLL('clip_markRecords')) . '">' . $this->iconFactory->getIcon('actions-document-select', Icon::SIZE_SMALL)->render() . '</a>';
+        }
+        return implode('', $cells);
     }
 
     /**
      * Returns a table-row with the content from the fields in the input data array.
      * OBS: $this->fieldArray MUST be set! (represents the list of fields to display)
      *
-     * @param int $h Is an integer >=0 and denotes how tall an element is. Set to '0' makes a half line, -1 = full line, set to 1 makes a 'join' and above makes 'line'
      * @param string $icon Is the <img>+<a> of the record. If not supplied the first 'join'-icon will be a 'line' instead
      * @param array $data Is the data array, record with the fields. Notice: These fields are (currently) NOT htmlspecialchar'ed before being wrapped in <td>-tags
-     * @param string $rowParams Is insert in the <tr>-tags. Must carry a ' ' as first character
-     * @param string $_ OBSOLETE - NOT USED ANYMORE. $lMargin is the leftMargin (int)
-     * @param string $_2 OBSOLETE - NOT USED ANYMORE. Is the HTML <img>-tag for an alternative 'gfx/ol/line.gif'-icon (used in the top)
      * @param string $colType Defines the tag being used for the columns. Default is td.
      *
      * @return string HTML content for the table row
      */
-    public function addElement($h, $icon, $data, $rowParams = '', $_ = '', $_2 = '', $colType = 'td')
+    public function addElement($icon, $data, $colType = 'td')
     {
         $colType = ($colType === 'th') ? 'th' : 'td';
-        $noWrap = $this->no_noWrap ? '' : ' nowrap';
         // Start up:
         $l10nParent = (int)($data['_l10nparent_'] ?? 0);
         $out = '
-		<!-- Element, begin: -->
-		<tr ' . $rowParams . ' data-uid="' . (int)($data['uid'] ?? 0) . '" data-l10nparent="' . $l10nParent . '">';
-        // Show icon and lines
-        if ($this->showIcon) {
-            $out .= '
-			<' . $colType . ' class="col-icon nowrap">';
-            if (!$h) {
-                $out .= '&nbsp;';
-            } else {
-                for ($a = 0; $a < $h; $a++) {
-                    if (!$a) {
-                        if ($icon) {
-                            $out .= $icon;
-                        }
-                    }
-                }
-            }
-            $out .= '</' . $colType . '>
-			';
+		<tr data-uid="' . (int)($data['uid'] ?? 0) . '" data-l10nparent="' . $l10nParent . '">';
+        $out .= '
+        <' . $colType . ' class="col-icon nowrap">';
+        if ($icon) {
+            $out .= $icon;
         }
+        $out .= '</' . $colType . '>';
         // Init rendering.
         $colsp = '';
         $lastKey = '';
@@ -603,11 +437,8 @@ class FileList
             if (isset($data[$vKey])) {
                 if ($lastKey) {
                     $cssClass = $this->addElement_tdCssClass[$lastKey] ?? '';
-                    if ($this->oddColumnsCssClass && $ccount % 2 == 0) {
-                        $cssClass = implode(' ', [$cssClass, $this->oddColumnsCssClass]);
-                    }
                     $out .= '
-						<' . $colType . ' class="' . $cssClass . $noWrap . '"' . $colsp . ($this->addElement_tdParams[$lastKey] ?? '') . '>' . $data[$lastKey] . '</' . $colType . '>';
+						<' . $colType . ' class="' . $cssClass . '"' . $colsp . '>' . $data[$lastKey] . '</' . $colType . '>';
                 }
                 $lastKey = $vKey;
                 $c = 1;
@@ -626,53 +457,38 @@ class FileList
         }
         if ($lastKey) {
             $cssClass = $this->addElement_tdCssClass[$lastKey] ?? '';
-            if ($this->oddColumnsCssClass) {
-                $cssClass = implode(' ', [$cssClass, $this->oddColumnsCssClass]);
-            }
             $out .= '
-				<' . $colType . ' class="' . $cssClass . $noWrap . '"' . $colsp . ($this->addElement_tdParams[$lastKey] ?? '') . '>' . $data[$lastKey] . '</' . $colType . '>';
+				<' . $colType . ' class="' . $cssClass . '"' . $colsp . '>' . $data[$lastKey] . '</' . $colType . '>';
         }
-        // End row
         $out .= '
 		</tr>';
-        // Return row.
         return $out;
-    }
-
-    /**
-     * Dummy function, used to write the top of a table listing.
-     */
-    public function writeTop()
-    {
     }
 
     /**
      * Creates a forward/reverse button based on the status of ->eCounter, ->firstElementNumber, ->iLimit
      *
-     * @param string $table Table name
-     * @return array array([boolean], [HTML]) where [boolean] is 1 for reverse element, [HTML] is the table-row code for the element
+     * @return string the table-row code for the element
      */
-    public function fwd_rwd_nav($table = '')
+    public function fwd_rwd_nav()
     {
         $code = '';
         if ($this->eCounter >= $this->firstElementNumber && $this->eCounter < $this->firstElementNumber + $this->iLimit) {
             if ($this->firstElementNumber && $this->eCounter == $this->firstElementNumber) {
                 // 	Reverse
                 $theData = [];
-                $titleCol = $this->fieldArray[0];
-                $theData[$titleCol] = $this->fwd_rwd_HTML('fwd', $this->eCounter, $table);
-                $code = $this->addElement(1, '', $theData, 'class="fwd_rwd_nav"');
+                $theData['file'] = $this->fwd_rwd_HTML('fwd', $this->eCounter);
+                $code = $this->addElement('', $theData);
             }
-            return [1, $code];
+            return $code;
         }
         if ($this->eCounter == $this->firstElementNumber + $this->iLimit) {
             // 	Forward
             $theData = [];
-            $titleCol = $this->fieldArray[0];
-            $theData[$titleCol] = $this->fwd_rwd_HTML('rwd', $this->eCounter, $table);
-            $code = $this->addElement(1, '', $theData, 'class="fwd_rwd_nav"');
+            $theData['file'] = $this->fwd_rwd_HTML('rwd', $this->eCounter);
+            $code = $this->addElement('', $theData);
         }
-        return [0, $code];
+        return $code;
     }
 
     /**
@@ -680,24 +496,22 @@ class FileList
      *
      * @param string $type Type: "fwd" or "rwd
      * @param int $pointer Pointer
-     * @param string $table Table name
      * @return string
      * @internal
      */
-    public function fwd_rwd_HTML($type, $pointer, $table = '')
+    public function fwd_rwd_HTML($type, $pointer)
     {
         $content = '';
-        $tParam = $table ? '&table=' . rawurlencode($table) : '';
         switch ($type) {
             case 'fwd':
-                $href = $this->listURL() . '&pointer=' . ($pointer - $this->iLimit) . $tParam;
+                $href = $this->listURL() . '&pointer=' . ($pointer - $this->iLimit);
                 $content = '<a href="' . htmlspecialchars($href) . '">' . $this->iconFactory->getIcon(
                     'actions-move-up',
                     Icon::SIZE_SMALL
                 )->render() . ' <i>[' . (max(0, $pointer - $this->iLimit) + 1) . ' - ' . $pointer . ']</i></a>';
                 break;
             case 'rwd':
-                $href = $this->listURL() . '&pointer=' . $pointer . $tParam;
+                $href = $this->listURL() . '&pointer=' . $pointer;
                 $content = '<a href="' . htmlspecialchars($href) . '">' . $this->iconFactory->getIcon(
                     'actions-move-down',
                     Icon::SIZE_SMALL
@@ -705,96 +519,6 @@ class FileList
                 break;
         }
         return $content;
-    }
-
-    /**
-     * Initializes page languages and icons
-     */
-    public function initializeLanguages()
-    {
-        // Look up page overlays:
-        $localizationParentField = $GLOBALS['TCA']['pages']['ctrl']['transOrigPointerField'];
-        $languageField = $GLOBALS['TCA']['pages']['ctrl']['languageField'];
-        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getQueryBuilderForTable('pages');
-        $queryBuilder->getRestrictions()
-            ->removeAll()
-            ->add(GeneralUtility::makeInstance(DeletedRestriction::class))
-            ->add(GeneralUtility::makeInstance(BackendWorkspaceRestriction::class));
-        $result = $queryBuilder
-            ->select('*')
-            ->from('pages')
-            ->where(
-                $queryBuilder->expr()->andX(
-                    $queryBuilder->expr()->eq(
-                        $localizationParentField,
-                        $queryBuilder->createNamedParameter($this->id, \PDO::PARAM_INT)
-                    ),
-                    $queryBuilder->expr()->gt(
-                        $languageField,
-                        $queryBuilder->createNamedParameter(0, \PDO::PARAM_INT)
-                    )
-                )
-            )
-            ->execute();
-
-        $this->pageOverlays = [];
-        while ($row = $result->fetch()) {
-            $this->pageOverlays[$row[$languageField]] = $row;
-        }
-
-        $this->languageIconTitles = $this->getTranslateTools()->getSystemLanguages($this->id);
-    }
-
-    /**
-     * Return the icon for the language
-     *
-     * @param int $sys_language_uid Sys language uid
-     * @param bool $addAsAdditionalText If set to true, only the flag is returned
-     * @return string Language icon
-     */
-    public function languageFlag($sys_language_uid, $addAsAdditionalText = true)
-    {
-        $out = '';
-        $title = htmlspecialchars($this->languageIconTitles[$sys_language_uid]['title']);
-        if ($this->languageIconTitles[$sys_language_uid]['flagIcon']) {
-            $out .= '<span title="' . $title . '">' . $this->iconFactory->getIcon(
-                $this->languageIconTitles[$sys_language_uid]['flagIcon'],
-                Icon::SIZE_SMALL
-            )->render() . '</span>';
-            if (!$addAsAdditionalText) {
-                return $out;
-            }
-            $out .= '&nbsp;';
-        }
-        $out .= $title;
-        return $out;
-    }
-
-    /**
-     * If there is a parent folder and user has access to it, return an icon
-     * which is linked to the filelist of the parent folder.
-     *
-     * @param Folder $currentFolder
-     * @return string
-     */
-    protected function getLinkToParentFolder(Folder $currentFolder)
-    {
-        $levelUp = '';
-        try {
-            $currentStorage = $currentFolder->getStorage();
-            $parentFolder = $currentFolder->getParentFolder();
-            if ($parentFolder->getIdentifier() !== $currentFolder->getIdentifier() && $currentStorage->isWithinFileMountBoundaries($parentFolder)) {
-                $levelUp = $this->linkWrapDir(
-                    '<span title="' . htmlspecialchars($this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.upOneLevel')) . '">'
-                    . $this->iconFactory->getIcon('actions-view-go-up', Icon::SIZE_SMALL)->render()
-                    . '</span>',
-                    $parentFolder
-                );
-            }
-        } catch (\Exception $e) {
-        }
-        return $levelUp;
     }
 
     /**
@@ -890,7 +614,7 @@ class FileList
                     }
                 }
             }
-            $out .= $this->addElement(1, $theIcon, $theData);
+            $out .= $this->addElement($theIcon, $theData);
         }
         return $out;
     }
@@ -904,15 +628,16 @@ class FileList
      */
     public function linkWrapDir($title, Folder $folderObject)
     {
-        /** @var \TYPO3\CMS\Backend\Routing\UriBuilder $uriBuilder */
-        $uriBuilder = GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Routing\UriBuilder::class);
-        $href = (string)$uriBuilder->buildUriFromRoute('file_FilelistList', ['id' => $folderObject->getCombinedIdentifier()]);
-        $onclick = ' onclick="' . htmlspecialchars('top.document.getElementsByName("nav_frame")[0].contentWindow.Tree.highlightActiveItem("file","folder' . GeneralUtility::md5int($folderObject->getCombinedIdentifier()) . '_"+top.fsMod.currentBank)') . '"';
+        $href = (string)$this->uriBuilder->buildUriFromRoute('file_FilelistList', ['id' => $folderObject->getCombinedIdentifier()]);
+        $triggerTreeUpdateAttribute = sprintf(
+            ' data-tree-update-request="%s"',
+            htmlspecialchars('folder' . GeneralUtility::md5int($folderObject->getCombinedIdentifier()))
+        );
         // Sometimes $code contains plain HTML tags. In such a case the string should not be modified!
         if ((string)$title === strip_tags($title)) {
-            return '<a href="' . htmlspecialchars($href) . '"' . $onclick . ' title="' . htmlspecialchars($title) . '">' . $title . '</a>';
+            return '<a href="' . htmlspecialchars($href) . '"' . $triggerTreeUpdateAttribute . ' title="' . htmlspecialchars($title) . '">' . $title . '</a>';
         }
-        return '<a href="' . htmlspecialchars($href) . '"' . $onclick . '>' . $title . '</a>';
+        return '<a href="' . htmlspecialchars($href) . '"' . $triggerTreeUpdateAttribute . '>' . $title . '</a>';
     }
 
     /**
@@ -935,9 +660,7 @@ class FileList
                     ],
                     'returnUrl' => $this->listURL()
                 ];
-                /** @var \TYPO3\CMS\Backend\Routing\UriBuilder $uriBuilder */
-                $uriBuilder = GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Routing\UriBuilder::class);
-                $url = (string)$uriBuilder->buildUriFromRoute('record_edit', $urlParameters);
+                $url = (string)$this->uriBuilder->buildUriFromRoute('record_edit', $urlParameters);
                 $title = htmlspecialchars($this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:cm.editMetadata'));
                 $code = '<a class="responsive-title" href="' . htmlspecialchars($url) . '" title="' . $title . '">' . $code . '</a>';
             }
@@ -950,15 +673,11 @@ class FileList
     /**
      * Returns list URL; This is the URL of the current script with id and imagemode parameters, that's all.
      * The URL however is not relative, otherwise GeneralUtility::sanitizeLocalUrl() would say that
-     * the URL would be invalid
-     *
-     * @param string $altId
-     * @param string $table Table name to display. Enter "-1" for the current table.
-     * @param string $exclList Comma separated list of fields NOT to include ("sortField", "sortRev" or "firstElementNumber")
+     * the URL would be invalid.
      *
      * @return string URL
      */
-    public function listURL($altId = '', $table = '-1', $exclList = '')
+    public function listURL()
     {
         return GeneralUtility::linkThisScript([
             'target' => rawurlencode($this->folderObject->getCombinedIdentifier()),
@@ -966,6 +685,17 @@ class FileList
         ]);
     }
 
+    protected function getAvailableSystemLanguages(): array
+    {
+        // first two keys are "0" (default) and "-1" (multiple), after that comes the "other languages"
+        $allSystemLanguages = $this->translateTools->getSystemLanguages();
+        return array_filter($allSystemLanguages, function ($languageRecord) {
+            if ($languageRecord['uid'] === -1 || $languageRecord['uid'] === 0 || !$this->getBackendUser()->checkLanguageAccess($languageRecord['uid'])) {
+                return false;
+            }
+            return true;
+        });
+    }
     /**
      * This returns tablerows for the files in the array $items['sorting'].
      *
@@ -974,18 +704,8 @@ class FileList
      */
     public function formatFileList(array $files)
     {
-        /** @var \TYPO3\CMS\Backend\Routing\UriBuilder $uriBuilder */
-        $uriBuilder = GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Routing\UriBuilder::class);
         $out = '';
-        // first two keys are "0" (default) and "-1" (multiple), after that comes the "other languages"
-        $allSystemLanguages = GeneralUtility::makeInstance(TranslationConfigurationProvider::class)->getSystemLanguages();
-        $systemLanguages = array_filter($allSystemLanguages, function ($languageRecord) {
-            if ($languageRecord['uid'] === -1 || $languageRecord['uid'] === 0 || !$this->getBackendUser()->checkLanguageAccess($languageRecord['uid'])) {
-                return false;
-            }
-            return true;
-        });
-
+        $systemLanguages = $this->getAvailableSystemLanguages();
         foreach ($files as $fileObject) {
             // Initialization
             $this->counter++;
@@ -1001,7 +721,7 @@ class FileList
             foreach ($this->fieldArray as $field) {
                 switch ($field) {
                     case 'size':
-                        $theData[$field] = GeneralUtility::formatSize($fileObject->getSize(), htmlspecialchars($this->getLanguageService()->getLL('byteSizeUnits')));
+                        $theData[$field] = GeneralUtility::formatSize((int)$fileObject->getSize(), htmlspecialchars($this->getLanguageService()->getLL('byteSizeUnits')));
                         break;
                     case 'rw':
                         $theData[$field] = '' . (!$fileObject->checkActionPermission('read') ? ' ' : '<strong class="text-danger">' . htmlspecialchars($this->getLanguageService()->getLL('read')) . '</strong>') . (!$fileObject->checkActionPermission('write') ? '' : '<strong class="text-danger">' . htmlspecialchars($this->getLanguageService()->getLL('write')) . '</strong>');
@@ -1019,7 +739,7 @@ class FileList
                         $theData[$field] = $this->makeClip($fileObject);
                         break;
                     case '_LOCALIZATION_':
-                        if (!empty($systemLanguages) && $fileObject->isIndexed() && $fileObject->checkActionPermission('editMeta') && $this->getBackendUser()->check('tables_modify', 'sys_file_metadata')) {
+                        if (!empty($systemLanguages) && $fileObject->isIndexed() && $fileObject->checkActionPermission('editMeta') && $this->getBackendUser()->check('tables_modify', 'sys_file_metadata') && !empty($GLOBALS['TCA']['sys_file_metadata']['ctrl']['languageField'] ?? null)) {
                             $metaDataRecord = $fileObject->getMetaData()->get();
                             $translations = $this->getTranslationsForMetaData($metaDataRecord);
                             $languageCode = '';
@@ -1029,7 +749,6 @@ class FileList
                                 $flagIcon = $language['flagIcon'];
                                 if (array_key_exists($languageId, $translations)) {
                                     $title = htmlspecialchars(sprintf($this->getLanguageService()->getLL('editMetadataForLanguage'), $language['title']));
-                                    // @todo the overlay for the flag needs to be added ($flagIcon . '-overlay')
                                     $urlParameters = [
                                         'edit' => [
                                             'sys_file_metadata' => [
@@ -1039,7 +758,7 @@ class FileList
                                         'returnUrl' => $this->listURL()
                                     ];
                                     $flagButtonIcon = $this->iconFactory->getIcon($flagIcon, Icon::SIZE_SMALL, 'overlay-edit')->render();
-                                    $url = (string)$uriBuilder->buildUriFromRoute('record_edit', $urlParameters);
+                                    $url = (string)$this->uriBuilder->buildUriFromRoute('record_edit', $urlParameters);
                                     $languageCode .= '<a href="' . htmlspecialchars($url) . '" class="btn btn-default" title="' . $title . '">'
                                         . $flagButtonIcon . '</a>';
                                 } else {
@@ -1047,7 +766,7 @@ class FileList
                                         'justLocalized' => 'sys_file_metadata:' . $metaDataRecord['uid'] . ':' . $languageId,
                                         'returnUrl' => $this->listURL()
                                     ];
-                                    $returnUrl = (string)$uriBuilder->buildUriFromRoute('record_edit', $parameters);
+                                    $returnUrl = (string)$this->uriBuilder->buildUriFromRoute('record_edit', $parameters);
                                     $href = BackendUtility::getLinkToDataHandlerAction(
                                         '&cmd[sys_file_metadata][' . $metaDataRecord['uid'] . '][localize]=' . $languageId,
                                         $returnUrl
@@ -1078,13 +797,17 @@ class FileList
                                 . htmlspecialchars($this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:warning.file_missing'))
                                 . '</span>';
                         // Thumbnails?
-                        } elseif ($this->thumbs && ($this->isImage($ext) || $this->isMediaFile($ext))) {
-                            $imageUri = BackendUtility::getThumbnailUrl($fileObject->getUid(), [
-                                'width' => $this->thumbnailConfiguration->getWidth(),
-                                'height' => $this->thumbnailConfiguration->getHeight()
-                            ]);
-                            $theData[$field] .= '<br /><img src="' . htmlspecialchars($imageUri) . '" ' .
-                                'width="' . $this->thumbnailConfiguration->getWidth() . '" ' .
+                        } elseif ($this->thumbs && ($fileObject->isImage() || $fileObject->isMediaFile())) {
+                            $processedFile = $fileObject->process(
+                                ProcessedFile::CONTEXT_IMAGEPREVIEW,
+                                [
+                                    'width' => $this->thumbnailConfiguration->getWidth(),
+                                    'height' => $this->thumbnailConfiguration->getHeight(),
+                                ]
+                            );
+                            $theData[$field] .= '<br /><img src="' . htmlspecialchars($processedFile->getPublicUrl(true)) . '" ' .
+                                'width="' . htmlspecialchars($processedFile->getProperty('width')) . '" ' .
+                                'height="' . htmlspecialchars($processedFile->getProperty('height')) . '" ' .
                                 'title="' . htmlspecialchars($fileName) . '" alt="" />';
                         }
                         break;
@@ -1095,7 +818,7 @@ class FileList
                         }
                 }
             }
-            $out .= $this->addElement(1, $theIcon, $theData);
+            $out .= $this->addElement($theIcon, $theData);
         }
         return $out;
     }
@@ -1103,7 +826,7 @@ class FileList
     /**
      * Fetch the translations for a sys_file_metadata record
      *
-     * @param $metaDataRecord
+     * @param array $metaDataRecord
      * @return array keys are the sys_language uids, values are the $rows
      */
     protected function getTranslationsForMetaData($metaDataRecord)
@@ -1134,36 +857,38 @@ class FileList
 
     /**
      * Returns TRUE if $ext is an image-extension according to $GLOBALS['TYPO3_CONF_VARS']['GFX']['imagefile_ext']
+     * Use the AbstractFile->isImage() method if you're using File objects directly
      *
      * @param string $ext File extension
      * @return bool
      */
     public function isImage($ext)
     {
-        return GeneralUtility::inList($GLOBALS['TYPO3_CONF_VARS']['GFX']['imagefile_ext'], strtolower($ext));
+        return GeneralUtility::inList(strtolower($GLOBALS['TYPO3_CONF_VARS']['GFX']['imagefile_ext']), strtolower($ext));
     }
 
     /**
      * Returns TRUE if $ext is a media-extension according to $GLOBALS['TYPO3_CONF_VARS']['SYS']['mediafile_ext']
+     * Use the AbstractFile->isMediaFile() method if you're using File objects directly
      *
      * @param string $ext File extension
      * @return bool
      */
     public function isMediaFile($ext)
     {
-        return GeneralUtility::inList($GLOBALS['TYPO3_CONF_VARS']['SYS']['mediafile_ext'], strtolower($ext));
+        return GeneralUtility::inList(strtolower($GLOBALS['TYPO3_CONF_VARS']['SYS']['mediafile_ext']), strtolower($ext));
     }
 
     /**
      * Wraps the directory-titles ($code) in a link to filelist/Modules/Filelist/index.php (id=$path) and sorting commands...
      *
-     * @param string $code String to be wrapped
      * @param string $folderIdentifier ID (path)
      * @param string $col Sorting column
      * @return string HTML
      */
-    public function linkWrapSort($code, $folderIdentifier, $col)
+    public function linkWrapSort($folderIdentifier, $col)
     {
+        $code = htmlspecialchars($this->getLanguageService()->getLL('c_' . $col));
         $params = ['id' => $folderIdentifier, 'SET' => ['sort' => $col]];
 
         if ($this->sort === $col) {
@@ -1174,9 +899,7 @@ class FileList
             $params['SET']['reverse'] = 0;
             $sortArrow = '';
         }
-        /** @var \TYPO3\CMS\Backend\Routing\UriBuilder $uriBuilder */
-        $uriBuilder = GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Routing\UriBuilder::class);
-        $href = (string)$uriBuilder->buildUriFromRoute('file_FilelistList', $params);
+        $href = (string)$this->uriBuilder->buildUriFromRoute('file_FilelistList', $params);
         return '<a href="' . htmlspecialchars($href) . '">' . $code . ' ' . $sortArrow . '</a>';
     }
 
@@ -1277,14 +1000,14 @@ class FileList
     {
         $cells = [];
         $fullIdentifier = $fileOrFolderObject->getCombinedIdentifier();
-        /** @var \TYPO3\CMS\Backend\Routing\UriBuilder $uriBuilder */
-        $uriBuilder = GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Routing\UriBuilder::class);
 
         // Edit file content (if editable)
-        if ($fileOrFolderObject instanceof File && $fileOrFolderObject->checkActionPermission('write') && GeneralUtility::inList($GLOBALS['TYPO3_CONF_VARS']['SYS']['textfile_ext'], $fileOrFolderObject->getExtension())) {
-            $url = (string)$uriBuilder->buildUriFromRoute('file_edit', ['target' => $fullIdentifier]);
-            $editOnClick = 'top.list_frame.location.href=' . GeneralUtility::quoteJSvalue($url) . '+\'&returnUrl=\'+encodeURIComponent(top.list_frame.document.location.pathname+top.list_frame.document.location.search);return false;';
-            $cells['edit'] = '<a href="#" class="btn btn-default" onclick="' . htmlspecialchars($editOnClick) . '" title="' . $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:cm.editcontent') . '">'
+        if ($fileOrFolderObject instanceof File && $fileOrFolderObject->checkActionPermission('write') && $fileOrFolderObject->isTextFile()) {
+            $attributes = [
+                'href' => (string)$this->uriBuilder->buildUriFromRoute('file_edit', ['target' => $fullIdentifier, 'returnUrl' => $this->listURL()]),
+                'title' => $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:cm.editcontent'),
+            ];
+            $cells['edit'] = '<a class="btn btn-default" ' . GeneralUtility::implodeAttributes($attributes, true) . '>'
                 . $this->iconFactory->getIcon('actions-page-open', Icon::SIZE_SMALL)->render()
                 . '</a>';
         } else {
@@ -1302,7 +1025,7 @@ class FileList
                 ],
                 'returnUrl' => $this->listURL()
             ];
-            $url = (string)$uriBuilder->buildUriFromRoute('record_edit', $urlParameters);
+            $url = (string)$this->uriBuilder->buildUriFromRoute('record_edit', $urlParameters);
             $title = htmlspecialchars($this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:cm.editMetadata'));
             $cells['metadata'] = '<a class="btn btn-default" href="' . htmlspecialchars($url) . '" title="' . $title . '">' . $this->iconFactory->getIcon('actions-open', Icon::SIZE_SMALL)->render() . '</a>';
         }
@@ -1321,16 +1044,20 @@ class FileList
 
         // replace file
         if ($fileOrFolderObject instanceof File && $fileOrFolderObject->checkActionPermission('replace')) {
-            $url = (string)$uriBuilder->buildUriFromRoute('file_replace', ['target' => $fullIdentifier, 'uid' => $fileOrFolderObject->getUid()]);
-            $replaceOnClick = 'top.list_frame.location.href = ' . GeneralUtility::quoteJSvalue($url) . '+\'&returnUrl=\'+encodeURIComponent(top.list_frame.document.location.pathname+top.list_frame.document.location.search);return false;';
-            $cells['replace'] = '<a href="#" class="btn btn-default" onclick="' . $replaceOnClick . '"  title="' . $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:cm.replace') . '">' . $this->iconFactory->getIcon('actions-edit-replace', Icon::SIZE_SMALL)->render() . '</a>';
+            $attributes = [
+                'href' => $url = (string)$this->uriBuilder->buildUriFromRoute('file_replace', ['target' => $fullIdentifier, 'uid' => $fileOrFolderObject->getUid(), 'returnUrl' => $this->listURL()]),
+                'title' => $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:cm.replace'),
+            ];
+            $cells['replace'] = '<a class="btn btn-default" ' . GeneralUtility::implodeAttributes($attributes, true) . '>' . $this->iconFactory->getIcon('actions-edit-replace', Icon::SIZE_SMALL)->render() . '</a>';
         }
 
         // rename the file
         if ($fileOrFolderObject->checkActionPermission('rename')) {
-            $url = (string)$uriBuilder->buildUriFromRoute('file_rename', ['target' => $fullIdentifier]);
-            $renameOnClick = 'top.list_frame.location.href = ' . GeneralUtility::quoteJSvalue($url) . '+\'&returnUrl=\'+encodeURIComponent(top.list_frame.document.location.pathname+top.list_frame.document.location.search);return false;';
-            $cells['rename'] = '<a href="#" class="btn btn-default" onclick="' . htmlspecialchars($renameOnClick) . '"  title="' . $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:cm.rename') . '">' . $this->iconFactory->getIcon('actions-edit-rename', Icon::SIZE_SMALL)->render() . '</a>';
+            $attributes = [
+                'href' => (string)$this->uriBuilder->buildUriFromRoute('file_rename', ['target' => $fullIdentifier, 'returnUrl' => $this->listURL()]),
+                'title' => $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:cm.rename'),
+            ];
+            $cells['rename'] = '<a class="btn btn-default" ' . GeneralUtility::implodeAttributes($attributes, true) . '>' . $this->iconFactory->getIcon('actions-edit-rename', Icon::SIZE_SMALL)->render() . '</a>';
         } else {
             $cells['rename'] = $this->spaceIcon;
         }
@@ -1338,20 +1065,24 @@ class FileList
         // upload files
         if ($fileOrFolderObject->getStorage()->checkUserActionPermission('add', 'File') && $fileOrFolderObject->checkActionPermission('write')) {
             if ($fileOrFolderObject instanceof Folder) {
-                $url = (string)$uriBuilder->buildUriFromRoute('file_upload', ['target' => $fullIdentifier]);
-                $uploadOnClick = 'top.list_frame.location.href = ' . GeneralUtility::quoteJSvalue($url) . '+\'&returnUrl=\'+encodeURIComponent(top.list_frame.document.location.pathname+top.list_frame.document.location.search);return false;';
-                $cells['upload'] = '<a href="#" class="btn btn-default" onclick="' . htmlspecialchars($uploadOnClick) . '"  title="' . htmlspecialchars($this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:cm.upload')) . '">' . $this->iconFactory->getIcon('actions-edit-upload', Icon::SIZE_SMALL)->render() . '</a>';
+                $attributes = [
+                    'href' => (string)$this->uriBuilder->buildUriFromRoute('file_upload', ['target' => $fullIdentifier, 'returnUrl' => $this->listURL()]),
+                    'title' => $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:cm.upload'),
+                ];
+                $cells['upload'] = '<a class="btn btn-default" ' . GeneralUtility::implodeAttributes($attributes, true) . '>' . $this->iconFactory->getIcon('actions-edit-upload', Icon::SIZE_SMALL)->render() . '</a>';
             }
         }
 
         if ($fileOrFolderObject->checkActionPermission('read')) {
-            $infoOnClick = '';
-            if ($fileOrFolderObject instanceof Folder) {
-                $infoOnClick = 'top.TYPO3.InfoWindow.showItem(\'_FOLDER\', ' . GeneralUtility::quoteJSvalue($fullIdentifier) . ');return false;';
-            } elseif ($fileOrFolderObject instanceof File) {
-                $infoOnClick = 'top.TYPO3.InfoWindow.showItem(\'_FILE\', ' . GeneralUtility::quoteJSvalue($fullIdentifier) . ');return false;';
+            $attributes = [
+                'title' => $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:cm.info'),
+            ];
+            if ($fileOrFolderObject instanceof Folder || $fileOrFolderObject instanceof File) {
+                $attributes['data-filelist-show-item-type'] = $fileOrFolderObject instanceof File ? '_FILE' : '_FOLDER';
+                $attributes['data-filelist-show-item-identifier'] = $fullIdentifier;
             }
-            $cells['info'] = '<a href="#" class="btn btn-default" onclick="' . htmlspecialchars($infoOnClick) . '" title="' . $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:cm.info') . '">' . $this->iconFactory->getIcon('actions-document-info', Icon::SIZE_SMALL)->render() . '</a>';
+            $cells['info'] = '<a href="#" class="btn btn-default" ' . GeneralUtility::implodeAttributes($attributes, true) . '>'
+                . $this->iconFactory->getIcon('actions-document-info', Icon::SIZE_SMALL)->render() . '</a>';
         } else {
             $cells['info'] = $this->spaceIcon;
         }
@@ -1363,7 +1094,7 @@ class FileList
                 $referenceCountText = BackendUtility::referenceCount('_FILE', $identifier, ' ' . $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.referencesToFolder'));
                 $deleteType = 'delete_folder';
             } else {
-                $referenceCountText = BackendUtility::referenceCount('sys_file', $fileOrFolderObject->getUid(), ' ' . $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.referencesToFile'));
+                $referenceCountText = BackendUtility::referenceCount('sys_file', (string)$fileOrFolderObject->getUid(), ' ' . $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.referencesToFile'));
                 $deleteType = 'delete_file';
             }
 
@@ -1373,7 +1104,7 @@ class FileList
                 $confirmationCheck = '0';
             }
 
-            $deleteUrl = (string)$uriBuilder->buildUriFromRoute('tce_file');
+            $deleteUrl = (string)$this->uriBuilder->buildUriFromRoute('tce_file');
             $confirmationMessage = sprintf($this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:mess.delete'), $fileOrFolderObject->getName()) . $referenceCountText;
             $title = $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:cm.delete');
             $cells['delete'] = '<a href="#" class="btn btn-default t3js-filelist-delete" data-content="' . htmlspecialchars($confirmationMessage)
@@ -1439,13 +1170,13 @@ class FileList
             ->execute()
             ->fetchColumn();
 
-        return $this->generateReferenceToolTip($referenceCount, '\'_FILE\', ' . GeneralUtility::quoteJSvalue($fileOrFolderObject->getCombinedIdentifier()));
+        return $this->generateReferenceToolTip($referenceCount, $fileOrFolderObject);
     }
 
     /**
      * Returns an instance of LanguageService
      *
-     * @return \TYPO3\CMS\Core\Localization\LanguageService
+     * @return LanguageService
      */
     protected function getLanguageService()
     {
@@ -1455,7 +1186,7 @@ class FileList
     /**
      * Returns the current BE user.
      *
-     * @return \TYPO3\CMS\Core\Authentication\BackendUserAuthentication
+     * @return BackendUserAuthentication
      */
     protected function getBackendUser()
     {
@@ -1463,66 +1194,28 @@ class FileList
     }
 
     /**
-     * Sets the script url depending on being a module or script request
-     */
-    protected function determineScriptUrl()
-    {
-        if ($routePath = GeneralUtility::_GP('route')) {
-            $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
-            $this->thisScript = (string)$uriBuilder->buildUriFromRoutePath($routePath);
-        } else {
-            $this->thisScript = GeneralUtility::getIndpEnv('SCRIPT_NAME');
-        }
-    }
-
-    /**
-     * @return string
-     */
-    protected function getThisScript()
-    {
-        return strpos($this->thisScript, '?') === false ? $this->thisScript . '?' : $this->thisScript . '&';
-    }
-
-    /**
-     * Gets an instance of TranslationConfigurationProvider
-     *
-     * @return TranslationConfigurationProvider
-     */
-    protected function getTranslateTools()
-    {
-        if (!isset($this->translateTools)) {
-            $this->translateTools = GeneralUtility::makeInstance(TranslationConfigurationProvider::class);
-        }
-        return $this->translateTools;
-    }
-
-    /**
      * Generates HTML code for a Reference tooltip out of
      * sys_refindex records you hand over
      *
      * @param int $references number of records from sys_refindex table
-     * @param string $launchViewParameter JavaScript String, which will be passed as parameters to top.TYPO3.InfoWindow.showItem
+     * @param AbstractFile $fileObject
      * @return string
      */
-    protected function generateReferenceToolTip($references, $launchViewParameter = '')
+    protected function generateReferenceToolTip($references, $fileObject)
     {
         if (!$references) {
-            $htmlCode = '-';
-        } else {
-            $htmlCode = '<a href="#"';
-            if ($launchViewParameter !== '') {
-                $htmlCode .= ' onclick="' . htmlspecialchars(
-                    'top.TYPO3.InfoWindow.showItem(' . $launchViewParameter . '); return false;'
-                ) . '"';
-            }
-            $htmlCode .= ' title="' . htmlspecialchars(
-                $this->getLanguageService()->sL(
-                    'LLL:EXT:backend/Resources/Private/Language/locallang.xlf:show_references'
-                ) . ' (' . $references . ')'
-            ) . '">';
-            $htmlCode .= $references;
-            $htmlCode .= '</a>';
+            return '-';
         }
+        $attributes = [
+            'data-filelist-show-item-type' => '_FILE',
+            'data-filelist-show-item-identifier' => $fileObject->getCombinedIdentifier(),
+            'title' => $this->getLanguageService()
+                ->sL('LLL:EXT:backend/Resources/Private/Language/locallang.xlf:show_references')
+                . ' (' . $references . ')'
+        ];
+        $htmlCode = '<a href="#" ' . GeneralUtility::implodeAttributes($attributes, true) . '">';
+        $htmlCode .= $references;
+        $htmlCode .= '</a>';
         return $htmlCode;
     }
 }

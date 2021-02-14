@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Frontend\Middleware;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Frontend\Middleware;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Frontend\Middleware;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -89,7 +91,7 @@ class SiteBaseRedirectResolver implements MiddlewareInterface
     /**
      * Checks if the language is allowed in Frontend, if not, check if there is valid BE user
      *
-     * @param SiteLanguage|null $language
+     * @param SiteLanguage $language
      * @param BackendUserAuthentication|null $user
      * @return bool
      */

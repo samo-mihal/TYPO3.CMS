@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Backend\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Controller;
+
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Search\LiveSearch\LiveSearch;
@@ -27,11 +28,6 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  */
 class LiveSearchController
 {
-    /**
-     * @var array
-     */
-    protected $searchResults = [];
-
     /**
      * Processes all AJAX calls and sends back a JSON object
      *

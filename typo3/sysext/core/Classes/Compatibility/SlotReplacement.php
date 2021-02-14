@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Compatibility;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,6 +15,8 @@ namespace TYPO3\CMS\Core\Compatibility;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Compatibility;
+
 use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\Configuration\Event\AfterTcaCompilationEvent;
 use TYPO3\CMS\Core\Database\Event\AlterTableDefinitionStatementsEvent;
@@ -27,6 +28,9 @@ use TYPO3\CMS\Core\DataHandling\Event\AppendLinkHandlerElementsEvent;
 use TYPO3\CMS\Core\DataHandling\Event\IsTableExcludedFromReferenceIndexEvent;
 use TYPO3\CMS\Core\Imaging\Event\ModifyIconForResourcePropertiesEvent;
 use TYPO3\CMS\Core\Imaging\IconFactory;
+use TYPO3\CMS\Core\Mail\Event\AfterMailerInitializationEvent;
+use TYPO3\CMS\Core\Mail\Mailer;
+use TYPO3\CMS\Core\Package\Event\PackagesMayHaveChangedEvent;
 use TYPO3\CMS\Core\Resource\Event\AfterFileAddedEvent;
 use TYPO3\CMS\Core\Resource\Event\AfterFileAddedToIndexEvent;
 use TYPO3\CMS\Core\Resource\Event\AfterFileContentsSetEvent;
@@ -159,7 +163,7 @@ class SlotReplacement
         [, $uid, $recordData, $fileIdentifier] = $this->signalSlotDispatcher->dispatch(
             ResourceFactory::class,
             'preProcessStorage',
-            [ResourceFactory::getInstance(), $event->getStorageUid(), $event->getRecord(), $event->getFileIdentifier()]
+            [GeneralUtility::makeInstance(ResourceFactory::class), $event->getStorageUid(), $event->getRecord(), $event->getFileIdentifier()]
         );
         $event->setStorageUid($uid);
         $event->setRecord($recordData);
@@ -171,7 +175,7 @@ class SlotReplacement
         $this->signalSlotDispatcher->dispatch(
             ResourceFactory::class,
             'postProcessStorage',
-            [ResourceFactory::getInstance(), $event->getStorage()]
+            [GeneralUtility::makeInstance(ResourceFactory::class), $event->getStorage()]
         );
     }
 
@@ -221,7 +225,7 @@ class SlotReplacement
 
     public function onResourceStorageEmitSanitizeFileNameSignal(SanitizeFileNameEvent $event): void
     {
-        list($fileName) = $this->signalSlotDispatcher->dispatch(
+        [$fileName] = $this->signalSlotDispatcher->dispatch(
             ResourceStorage::class,
             ResourceStorage::SIGNAL_SanitizeFileName,
             [
@@ -635,7 +639,7 @@ class SlotReplacement
 
     public function onExtensionManagementUtilityTcaIsBeingBuilt(AfterTcaCompilationEvent $event): void
     {
-        list($tca) = $this->signalSlotDispatcher->dispatch(
+        [$tca] = $this->signalSlotDispatcher->dispatch(
             ExtensionManagementUtility::class,
             'tcaIsBeingBuilt',
             [
@@ -679,6 +683,18 @@ class SlotReplacement
                 'PostProcessTreeData',
                 [$event->getProvider(), $event->getTreeData()]
             );
+        }
+    }
+
+    public function packagesMayHaveChanged(PackagesMayHaveChangedEvent $event): void
+    {
+        $this->signalSlotDispatcher->dispatch('PackageManagement', 'packagesMayHaveChanged');
+    }
+
+    public function postInitializeMailer(AfterMailerInitializationEvent $event): void
+    {
+        if ($event->getMailer() instanceof Mailer) {
+            $this->signalSlotDispatcher->dispatch(Mailer::class, 'postInitializeMailer', [$event->getMailer()]);
         }
     }
 }

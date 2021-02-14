@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Resource\Driver;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,14 @@ namespace TYPO3\CMS\Core\Resource\Driver;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Resource\Driver;
+
+use TYPO3\CMS\Core\SingletonInterface;
+
 /**
  * Registry for driver classes.
  */
-class DriverRegistry implements \TYPO3\CMS\Core\SingletonInterface
+class DriverRegistry implements SingletonInterface
 {
     /**
      * @var array
@@ -45,7 +48,7 @@ class DriverRegistry implements \TYPO3\CMS\Core\SingletonInterface
      * Registers a driver class with an optional short name.
      *
      * @param string $className
-     * @param string $shortName
+     * @param string|null $shortName
      * @param string $label
      * @param string $flexFormDataStructurePathAndFilename
      * @return bool TRUE if registering succeeded
@@ -53,6 +56,9 @@ class DriverRegistry implements \TYPO3\CMS\Core\SingletonInterface
      */
     public function registerDriverClass($className, $shortName = null, $label = null, $flexFormDataStructurePathAndFilename = null)
     {
+        // todo: Default of $shortName must be empty string, not null.
+        $shortName = (string)$shortName;
+
         // check if the class is available for TYPO3 before registering the driver
         if (!class_exists($className)) {
             throw new \InvalidArgumentException('Class ' . $className . ' does not exist.', 1314979197);

@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Tests\Unit\Resource;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\Resource;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\Resource;
 
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Tests\Unit\Resource\ResourceCompressorTest\Fixtures\TestableResourceCompressor;
@@ -87,7 +88,12 @@ class ResourceCompressorIntegrationTest extends BaseTestCase
         $GLOBALS['TYPO3_CONF_VARS']['SYS']['generateApacheHtaccess'] = false;
         $this->resourceCompressor = new TestableResourceCompressor();
         $htaccessPath = Environment::getPublicPath() . '/' . $this->resourceCompressor->getTargetDirectory() . '.htaccess';
-        self::assertFileNotExists($htaccessPath);
+        // @todo remove condition and else branch as soon as phpunit v8 goes out of support
+        if (method_exists($this, 'assertFileDoesNotExist')) {
+            self::assertFileDoesNotExist($htaccessPath);
+        } else {
+            self::assertFileNotExists($htaccessPath);
+        }
     }
 
     /**

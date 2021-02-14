@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\FrontendLogin\Tests\Unit\Service;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\FrontendLogin\Tests\Unit\Service;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\FrontendLogin\Tests\Unit\Service;
 
 use TYPO3\CMS\Extbase\Validation\Validator\NotEmptyValidator;
 use TYPO3\CMS\Extbase\Validation\Validator\StringLengthValidator;
@@ -72,7 +73,7 @@ class ValidatorResolverServiceTest extends UnitTestCase
 
     protected function setUp(): void
     {
-        $this->subject = new ValidatorResolverService;
+        $this->subject = new ValidatorResolverService();
 
         parent::setUp();
     }

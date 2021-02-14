@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Frontend\Tests\Functional\SiteHandling\LocalizedPageRendering;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Frontend\Tests\Functional\SiteHandling\LocalizedPageRenderin
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Frontend\Tests\Functional\SiteHandling\LocalizedPageRendering;
 
 /**
  * Scenario prerequisites:
@@ -151,8 +152,7 @@ class ScenarioETest extends AbstractLocalizedPagesTestCase
                 'menu' => [
                     ['title' => 'DE: Über uns', 'link' => '/de-ch/ueber-uns'],
                     ['title' => 'DE: Produkte', 'link' => '/de-ch/produkte'],
-                    // FIXME: Page "EN: Shortcut to welcome" must to be rendered in menu, needs a refactored menu generation
-                    ['title' => 'EN: Shortcut to welcome', 'link' => ''],
+                    ['title' => 'EN: Shortcut to welcome', 'link' => '/de-ch/hello'],
                 ],
             ],
             [
@@ -160,8 +160,7 @@ class ScenarioETest extends AbstractLocalizedPagesTestCase
                 'menu' => [
                     ['title' => 'DE: Über uns', 'link' => '/de-ch/ueber-uns'],
                     ['title' => 'DE: Produkte', 'link' => '/de-ch/produkte'],
-                    // FIXME: Page "EN: Shortcut to welcome" must to be rendered in menu, needs a refactored menu generation
-                    ['title' => 'EN: Shortcut to welcome', 'link' => ''],
+                    ['title' => 'EN: Shortcut to welcome', 'link' => '/de-ch/hello'],
                 ],
             ],
         ];

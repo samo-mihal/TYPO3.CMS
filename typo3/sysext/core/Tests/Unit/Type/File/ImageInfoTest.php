@@ -1,7 +1,5 @@
 <?php
 
-namespace TYPO3\CMS\Core\Tests\Unit\Type\File;
-
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -14,6 +12,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\Type\File;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\Type\File;
 
 use org\bovigo\vfs\vfsStream;
 use TYPO3\CMS\Core\Imaging\GraphicalFunctions;
@@ -33,8 +33,8 @@ class ImageInfoTest extends UnitTestCase
      */
     public function classImageInfoCanBeInstantiated()
     {
-        $className = \TYPO3\CMS\Core\Type\File\ImageInfo::class;
-        $classInstance = new \TYPO3\CMS\Core\Type\File\ImageInfo('FooFileName');
+        $className = ImageInfo::class;
+        $classInstance = new ImageInfo('FooFileName');
         self::assertInstanceOf($className, $classInstance);
     }
 

@@ -1,7 +1,5 @@
 <?php
 
-namespace TYPO3\CMS\Backend\Backend\Avatar;
-
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -14,6 +12,8 @@ namespace TYPO3\CMS\Backend\Backend\Avatar;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Backend\Avatar;
 
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Cache\CacheManager;
@@ -98,7 +98,7 @@ class Avatar
         if (!$avatarImage) {
             $avatarImage = GeneralUtility::makeInstance(
                 Image::class,
-                PathUtility::stripPathSitePrefix(GeneralUtility::getFileAbsFileName('EXT:core/Resources/Public/Icons/T3Icons/avatar/avatar-default.svg')),
+                PathUtility::stripPathSitePrefix(GeneralUtility::getFileAbsFileName('EXT:core/Resources/Public/Icons/T3Icons/svgs/avatar/avatar-default.svg')),
                 $size,
                 $size
             );

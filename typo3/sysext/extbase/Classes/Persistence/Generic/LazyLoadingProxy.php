@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Persistence\Generic;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Extbase\Persistence\Generic;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Persistence\Generic;
+
 use TYPO3\CMS\Extbase\DomainObject\AbstractDomainObject;
 use TYPO3\CMS\Extbase\DomainObject\DomainObjectInterface;
 use TYPO3\CMS\Extbase\Object\ObjectManagerInterface;
@@ -27,7 +28,7 @@ use TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapper;
 class LazyLoadingProxy implements \Iterator, LoadingStrategyInterface
 {
     /**
-     * @var ?DataMapper
+     * @var DataMapper|null
      */
     protected $dataMapper;
 
@@ -144,7 +145,9 @@ class LazyLoadingProxy implements \Iterator, LoadingStrategyInterface
         if (!is_object($realInstance)) {
             return null;
         }
-        return call_user_func_array([$realInstance, $methodName], $arguments);
+        /** @var callable $callable */
+        $callable = [$realInstance, $methodName];
+        return call_user_func_array($callable, $arguments);
     }
 
     /**
@@ -212,6 +215,7 @@ class LazyLoadingProxy implements \Iterator, LoadingStrategyInterface
      */
     public function current()
     {
+        // todo: make sure current() can be performed on $realInstance
         $realInstance = $this->_loadRealInstance();
         return current($realInstance);
     }
@@ -223,6 +227,7 @@ class LazyLoadingProxy implements \Iterator, LoadingStrategyInterface
      */
     public function key()
     {
+        // todo: make sure key() can be performed on $realInstance
         $realInstance = $this->_loadRealInstance();
         return key($realInstance);
     }
@@ -232,6 +237,7 @@ class LazyLoadingProxy implements \Iterator, LoadingStrategyInterface
      */
     public function next()
     {
+        // todo: make sure next() can be performed on $realInstance
         $realInstance = $this->_loadRealInstance();
         next($realInstance);
     }
@@ -241,6 +247,7 @@ class LazyLoadingProxy implements \Iterator, LoadingStrategyInterface
      */
     public function rewind()
     {
+        // todo: make sure reset() can be performed on $realInstance
         $realInstance = $this->_loadRealInstance();
         reset($realInstance);
     }

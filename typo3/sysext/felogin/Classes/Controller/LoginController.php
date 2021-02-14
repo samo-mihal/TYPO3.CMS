@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\FrontendLogin\Controller;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,6 +15,8 @@ namespace TYPO3\CMS\FrontendLogin\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\FrontendLogin\Controller;
+
 use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\Authentication\LoginType;
 use TYPO3\CMS\Core\Context\Context;
@@ -23,7 +24,10 @@ use TYPO3\CMS\Core\Context\UserAspect;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Mvc\Exception\StopActionException;
 use TYPO3\CMS\FrontendLogin\Configuration\RedirectConfiguration;
+use TYPO3\CMS\FrontendLogin\Event\BeforeRedirectEvent;
 use TYPO3\CMS\FrontendLogin\Event\LoginConfirmedEvent;
+use TYPO3\CMS\FrontendLogin\Event\LoginErrorOccurredEvent;
+use TYPO3\CMS\FrontendLogin\Event\LogoutConfirmedEvent;
 use TYPO3\CMS\FrontendLogin\Event\ModifyLoginFormViewEvent;
 use TYPO3\CMS\FrontendLogin\Redirect\RedirectHandler;
 use TYPO3\CMS\FrontendLogin\Redirect\ServerRequestHandler;
@@ -58,6 +62,11 @@ class LoginController extends AbstractLoginFormController
      * @var string
      */
     protected $loginType = '';
+
+    /**
+     * @var string
+     */
+    protected $redirectUrl = '';
 
     /**
      * @var ServerRequestHandler
@@ -116,14 +125,11 @@ class LoginController extends AbstractLoginFormController
                 return;
             }
 
-            $redirectUrl = $this->redirectHandler->processRedirect(
+            $this->redirectUrl = $this->redirectHandler->processRedirect(
                 $this->loginType,
                 $this->configuration,
                 $this->request->hasArgument('redirectReferrer') ? $this->request->getArgument('redirectReferrer') : ''
             );
-            if ($redirectUrl !== '') {
-                $this->redirectToUri($redirectUrl);
-            }
         }
     }
 
@@ -132,7 +138,14 @@ class LoginController extends AbstractLoginFormController
      */
     public function loginAction(): void
     {
+        if ($this->isLogoutSuccessful()) {
+            $this->eventDispatcher->dispatch(new LogoutConfirmedEvent($this, $this->view));
+        } elseif ($this->hasLoginErrorOccurred()) {
+            $this->eventDispatcher->dispatch(new LoginErrorOccurredEvent());
+        }
+
         $this->handleLoginForwards();
+        $this->handleRedirect();
 
         $this->eventDispatcher->dispatch(new ModifyLoginFormViewEvent($this->view));
 
@@ -163,6 +176,7 @@ class LoginController extends AbstractLoginFormController
         }
 
         $this->eventDispatcher->dispatch(new LoginConfirmedEvent($this, $this->view));
+        $this->handleRedirect();
 
         $this->view->assignMultiple(
             [
@@ -179,6 +193,8 @@ class LoginController extends AbstractLoginFormController
      */
     public function logoutAction(int $redirectPageLogout = 0): void
     {
+        $this->handleRedirect();
+
         $this->view->assignMultiple(
             [
                 'cookieWarning' => $this->showCookieWarning,
@@ -191,6 +207,17 @@ class LoginController extends AbstractLoginFormController
     }
 
     /**
+     * Handles the redirect when $this->redirectUrl is not empty
+     */
+    protected function handleRedirect(): void
+    {
+        if ($this->redirectUrl !== '') {
+            $this->eventDispatcher->dispatch(new BeforeRedirectEvent($this->loginType, $this->redirectUrl));
+            $this->redirectToUri($this->redirectUrl);
+        }
+    }
+
+    /**
      * Handle forwards to overview and logout actions from login action
      */
     protected function handleLoginForwards(): void
@@ -200,7 +227,7 @@ class LoginController extends AbstractLoginFormController
         }
 
         if ($this->userAspect->isLoggedIn()) {
-            $this->forward('logout');
+            $this->forward('logout', null, null, ['redirectPageLogout' => $this->settings['redirectPageLogout']]);
         }
     }
 
@@ -244,7 +271,7 @@ class LoginController extends AbstractLoginFormController
     protected function getStatusMessageKey(): string
     {
         $messageKey = self::MESSAGEKEY_DEFAULT;
-        if ($this->loginType === LoginType::LOGIN && !$this->userAspect->isLoggedIn()) {
+        if ($this->hasLoginErrorOccurred()) {
             $messageKey = self::MESSAGEKEY_ERROR;
         } elseif ($this->loginType === LoginType::LOGOUT) {
             $messageKey = self::MESSAGEKEY_LOGOUT;
@@ -269,5 +296,15 @@ class LoginController extends AbstractLoginFormController
             $this->request->hasArgument('noredirect')
             || ($this->settings['noredirect'] ?? false)
             || ($this->settings['redirectDisable'] ?? false);
+    }
+
+    protected function isLogoutSuccessful(): bool
+    {
+        return $this->loginType === LoginType::LOGOUT && !$this->userAspect->isLoggedIn();
+    }
+
+    protected function hasLoginErrorOccurred(): bool
+    {
+        return $this->loginType === LoginType::LOGIN && !$this->userAspect->isLoggedIn();
     }
 }

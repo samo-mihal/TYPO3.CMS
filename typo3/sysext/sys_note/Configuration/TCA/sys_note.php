@@ -1,4 +1,5 @@
 <?php
+
 return [
     'ctrl' => [
         'label' => 'subject',
@@ -13,9 +14,6 @@ return [
         ],
         'sortby' => 'sorting',
         'searchFields' => 'subject,message'
-    ],
-    'interface' => [
-        'showRecordFieldList' => 'category,subject,message,personal'
     ],
     'columns' => [
         'category' => [

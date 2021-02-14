@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Unit\Package;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\Package;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\Package;
+
 use ArrayObject;
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
@@ -22,6 +24,8 @@ use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\Package\AbstractServiceProvider;
 use TYPO3\CMS\Core\Package\Package;
 use TYPO3\CMS\Core\Package\PseudoServiceProvider;
+use TYPO3\CMS\Core\Tests\Unit\Package\Mocks\Package1ServiceProviderMock;
+use TYPO3\CMS\Core\Tests\Unit\Package\Mocks\Package2ServiceProviderMock;
 use TYPO3\CMS\Core\Tests\Unit\Utility\Fixtures\GeneralUtilityMakeInstanceInjectLoggerFixture;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
@@ -39,11 +43,11 @@ class AbstractServiceProviderTest extends UnitTestCase
         $containerProphecy->willImplement(ContainerInterface::class);
 
         $middlewares = new ArrayObject();
-        $middlewares = Mocks\Package1ServiceProviderMock::configureMiddlewares(
+        $middlewares = Package1ServiceProviderMock::configureMiddlewares(
             $containerProphecy->reveal(),
             $middlewares
         );
-        $middlewares = Mocks\Package2ServiceProviderMock::configureMiddlewares(
+        $middlewares = Package2ServiceProviderMock::configureMiddlewares(
             $containerProphecy->reveal(),
             $middlewares
         );
@@ -74,7 +78,7 @@ class AbstractServiceProviderTest extends UnitTestCase
         $package2ServiceProvider = new PseudoServiceProvider($package2->reveal());
 
         $middlewares = new ArrayObject();
-        $middlewares = Mocks\Package1ServiceProviderMock::configureMiddlewares(
+        $middlewares = Package1ServiceProviderMock::configureMiddlewares(
             $containerProphecy->reveal(),
             $middlewares
         );
@@ -109,7 +113,7 @@ class AbstractServiceProviderTest extends UnitTestCase
         $package2ServiceProvider = new PseudoServiceProvider($package2->reveal());
 
         $middlewares = new ArrayObject();
-        $middlewares = Mocks\Package1ServiceProviderMock::configureMiddlewares(
+        $middlewares = Package1ServiceProviderMock::configureMiddlewares(
             $containerProphecy->reveal(),
             $middlewares
         );
@@ -145,7 +149,7 @@ class AbstractServiceProviderTest extends UnitTestCase
         $package2ServiceProvider = new PseudoServiceProvider($package2->reveal());
 
         $middlewares = new ArrayObject();
-        $middlewares = Mocks\Package1ServiceProviderMock::configureMiddlewares(
+        $middlewares = Package1ServiceProviderMock::configureMiddlewares(
             $containerProphecy->reveal(),
             $middlewares
         );

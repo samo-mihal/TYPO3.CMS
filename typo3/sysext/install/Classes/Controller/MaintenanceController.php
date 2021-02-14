@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Install\Controller;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,8 +15,11 @@ namespace TYPO3\CMS\Install\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Install\Controller;
+
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Configuration\ConfigurationManager;
 use TYPO3\CMS\Core\Core\ClassLoadingInformation;
 use TYPO3\CMS\Core\Core\Environment;
@@ -36,6 +39,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Install\Service\ClearCacheService;
 use TYPO3\CMS\Install\Service\ClearTableService;
 use TYPO3\CMS\Install\Service\LanguagePackService;
+use TYPO3\CMS\Install\Service\LateBootService;
 use TYPO3\CMS\Install\Service\Typo3tempFileService;
 
 /**
@@ -44,6 +48,58 @@ use TYPO3\CMS\Install\Service\Typo3tempFileService;
  */
 class MaintenanceController extends AbstractController
 {
+    /**
+     * @var LateBootService
+     */
+    private $lateBootService;
+
+    /**
+     * @var ClearCacheService
+     */
+    private $clearCacheService;
+
+    /**
+     * @var LanguagePackService
+     */
+    private $languagePackService;
+
+    /**
+     * @var Typo3tempFileService
+     */
+    private $typo3tempFileService;
+
+    /**
+     * @var ConfigurationManager
+     */
+    private $configurationManager;
+
+    /**
+     * @var PasswordHashFactory
+     */
+    private $passwordHashFactory;
+
+    /**
+     * @var Locales
+     */
+    private $locales;
+
+    public function __construct(
+        LateBootService $lateBootService,
+        ClearCacheService $clearCacheService,
+        LanguagePackService $languagePackService,
+        Typo3tempFileService $typo3tempFileService,
+        ConfigurationManager $configurationManager,
+        PasswordHashFactory $passwordHashFactory,
+        Locales $locales
+    ) {
+        $this->lateBootService = $lateBootService;
+        $this->clearCacheService = $clearCacheService;
+        $this->languagePackService = $languagePackService;
+        $this->typo3tempFileService = $typo3tempFileService;
+        $this->configurationManager = $configurationManager;
+        $this->passwordHashFactory = $passwordHashFactory;
+        $this->locales = $locales;
+    }
     /**
      * Main "show the cards" view
      *
@@ -66,7 +122,7 @@ class MaintenanceController extends AbstractController
      */
     public function cacheClearAllAction(): ResponseInterface
     {
-        GeneralUtility::makeInstance(ClearCacheService::class)->clearAll();
+        $this->clearCacheService->clearAll();
         GeneralUtility::makeInstance(OpcodeCacheService::class)->clearAllActive();
         $messageQueue = (new FlashMessageQueue('install'))->enqueue(
             new FlashMessage('Successfully cleared all caches and all available opcode caches.', 'Caches cleared')
@@ -85,7 +141,7 @@ class MaintenanceController extends AbstractController
      */
     public function clearTypo3tempFilesStatsAction(ServerRequestInterface $request): ResponseInterface
     {
-        $this->loadExtLocalconfDatabaseAndExtTables();
+        $this->lateBootService->loadExtLocalconfDatabaseAndExtTables();
         $view = $this->initializeStandaloneView($request, 'Maintenance/ClearTypo3tempFiles.html');
         $formProtection = FormProtectionFactory::get(InstallToolFormProtection::class);
         $view->assignMultiple([
@@ -94,7 +150,7 @@ class MaintenanceController extends AbstractController
         return new JsonResponse(
             [
                 'success' => true,
-                'stats' => (new Typo3tempFileService())->getDirectoryStatistics(),
+                'stats' => $this->typo3tempFileService->getDirectoryStatistics(),
                 'html' => $view->render(),
                 'buttons' => [
                     [
@@ -114,26 +170,30 @@ class MaintenanceController extends AbstractController
      */
     public function clearTypo3tempFilesAction(ServerRequestInterface $request): ResponseInterface
     {
-        $this->loadExtLocalconfDatabaseAndExtTables();
+        $this->lateBootService->loadExtLocalconfDatabaseAndExtTables();
         $messageQueue = new FlashMessageQueue('install');
-        $typo3tempFileService = new Typo3tempFileService();
         $folder = $request->getParsedBody()['install']['folder'];
         // storageUid is an optional post param if FAL storages should be cleaned
         $storageUid = $request->getParsedBody()['install']['storageUid'] ?? null;
         if ($storageUid === null) {
-            $typo3tempFileService->clearAssetsFolder($folder);
-            $messageQueue->enqueue(new FlashMessage('Cleared files in "' . $folder . '" folder'));
+            $this->typo3tempFileService->clearAssetsFolder($folder);
+            $messageQueue->enqueue(new FlashMessage('The directory "' . $folder . '" has been cleared successfully', 'Directory cleared'));
         } else {
             $storageUid = (int)$storageUid;
-            $failedDeletions = $typo3tempFileService->clearProcessedFiles($storageUid);
+            // We have to get the stats before deleting files, otherwise we're not able to retrieve the amount of files anymore
+            $stats = $this->typo3tempFileService->getStatsFromStorageByUid($storageUid);
+            $failedDeletions = $this->typo3tempFileService->clearProcessedFiles($storageUid);
             if ($failedDeletions) {
                 $messageQueue->enqueue(new FlashMessage(
                     'Failed to delete ' . $failedDeletions . ' processed files. See TYPO3 log (by default typo3temp/var/log/typo3_*.log)',
-                    '',
+                    'Failed to delete files',
                     FlashMessage::ERROR
                 ));
             } else {
-                $messageQueue->enqueue(new FlashMessage('Cleared processed files'));
+                $messageQueue->enqueue(new FlashMessage(
+                    sprintf('Removed %d files from directory "%s"', $stats['numberOfFiles'], $stats['directory']),
+                    'Deleted processed files'
+                ));
             }
         }
         return new JsonResponse([
@@ -152,14 +212,15 @@ class MaintenanceController extends AbstractController
         $messageQueue = new FlashMessageQueue('install');
         if (Environment::isComposerMode()) {
             $messageQueue->enqueue(new FlashMessage(
-                'Skipped generating additional class loading information in composer mode.',
-                '',
+                'Skipped generating additional class loading information in Composer mode.',
+                'Autoloader not dumped',
                 FlashMessage::NOTICE
             ));
         } else {
             ClassLoadingInformation::dumpClassLoadingInformation();
             $messageQueue->enqueue(new FlashMessage(
-                'Successfully dumped class loading information for extensions.'
+                'Successfully dumped class loading information for extensions.',
+                'Dumped autoloader'
             ));
         }
         return new JsonResponse([
@@ -204,7 +265,7 @@ class MaintenanceController extends AbstractController
      */
     public function databaseAnalyzerAnalyzeAction(ServerRequestInterface $request): ResponseInterface
     {
-        $container = $this->loadExtLocalconfDatabaseAndExtTables();
+        $container = $this->lateBootService->loadExtLocalconfDatabaseAndExtTables();
         $messageQueue = new FlashMessageQueue('install');
         $suggestions = [];
         try {
@@ -360,12 +421,12 @@ class MaintenanceController extends AbstractController
      */
     public function databaseAnalyzerExecuteAction(ServerRequestInterface $request): ResponseInterface
     {
-        $container = $this->loadExtLocalconfDatabaseAndExtTables();
+        $container = $this->lateBootService->loadExtLocalconfDatabaseAndExtTables();
         $messageQueue = new FlashMessageQueue('install');
         $selectedHashes = $request->getParsedBody()['install']['hashes'] ?? [];
         if (empty($selectedHashes)) {
             $messageQueue->enqueue(new FlashMessage(
-                '',
+                'Please select any change by activating their respective checkboxes.',
                 'No database changes selected',
                 FlashMessage::WARNING
             ));
@@ -438,7 +499,7 @@ class MaintenanceController extends AbstractController
         }
         (new ClearTableService())->clearSelectedTable($table);
         $messageQueue = (new FlashMessageQueue('install'))->enqueue(
-            new FlashMessage('Cleared table')
+            new FlashMessage('The table ' . $table . ' has been cleared.', 'Table cleared')
         );
         return new JsonResponse([
             'success' => true,
@@ -486,9 +547,9 @@ class MaintenanceController extends AbstractController
 
         $messages = new FlashMessageQueue('install');
 
-        if (strlen($username) < 1) {
+        if ($username === '') {
             $messages->enqueue(new FlashMessage(
-                'No valid username given.',
+                'No username given.',
                 'Administrator user not created',
                 FlashMessage::ERROR
             ));
@@ -519,7 +580,7 @@ class MaintenanceController extends AbstractController
                     FlashMessage::ERROR
                 ));
             } else {
-                $hashInstance = GeneralUtility::makeInstance(PasswordHashFactory::class)->getDefaultHashInstance('BE');
+                $hashInstance = $this->passwordHashFactory->getDefaultHashInstance('BE');
                 $hashedPassword = $hashInstance->getHashedPassword($password);
                 $adminUserFields = [
                     'username' => $username,
@@ -546,15 +607,14 @@ class MaintenanceController extends AbstractController
                     $newSystemMaintainersList[] = $newAdminUserUid;
 
                     // Update the LocalConfiguration.php file with the new list
-                    $configurationManager = GeneralUtility::makeInstance(ConfigurationManager::class);
-                    $configurationManager->setLocalConfigurationValuesByPathValuePairs(
+                    $this->configurationManager->setLocalConfigurationValuesByPathValuePairs(
                         ['SYS/systemMaintainers' => $newSystemMaintainersList]
                     );
                 }
 
                 $messages->enqueue(new FlashMessage(
-                    '',
-                    'Administrator created with username "' . $username . '".'
+                    'Administrator created',
+                    'An administrator with username "' . $username . '" has been created successfully.'
                 ));
             }
         }
@@ -583,15 +643,14 @@ class MaintenanceController extends AbstractController
             'languagePacksUpdateIsoTimesToken' => $formProtection->generateToken('installTool', 'languagePacksUpdateIsoTimes'),
         ]);
         // This action needs TYPO3_CONF_VARS for full GeneralUtility::getUrl() config
-        $this->loadExtLocalconfDatabaseAndExtTables();
-        $languagePacksService = GeneralUtility::makeInstance(LanguagePackService::class);
-        $languagePacksService->updateMirrorBaseUrl();
-        $extensions = $languagePacksService->getExtensionLanguagePackDetails();
+        $this->lateBootService->loadExtLocalconfDatabaseAndExtTables();
+        $this->languagePackService->updateMirrorBaseUrl();
+        $extensions = $this->languagePackService->getExtensionLanguagePackDetails();
         return new JsonResponse([
             'success' => true,
-            'languages' => $languagePacksService->getLanguageDetails(),
+            'languages' => $this->languagePackService->getLanguageDetails(),
             'extensions' => $extensions,
-            'activeLanguages' => $languagePacksService->getActiveLanguages(),
+            'activeLanguages' => $this->languagePackService->getActiveLanguages(),
             'activeExtensions' => array_column($extensions, 'key'),
             'html' => $view->render(),
         ]);
@@ -607,7 +666,6 @@ class MaintenanceController extends AbstractController
     {
         $messageQueue = new FlashMessageQueue('install');
         $languagePackService = GeneralUtility::makeInstance(LanguagePackService::class);
-        $locales = GeneralUtility::makeInstance(Locales::class);
         $availableLanguages = $languagePackService->getAvailableLanguages();
         $activeLanguages = $languagePackService->getActiveLanguages();
         $iso = $request->getParsedBody()['install']['iso'];
@@ -615,7 +673,7 @@ class MaintenanceController extends AbstractController
         foreach ($availableLanguages as $availableIso => $name) {
             if ($availableIso === $iso && !in_array($availableIso, $activeLanguages, true)) {
                 $activateArray[] = $iso;
-                $dependencies = $locales->getLocaleDependencies($availableIso);
+                $dependencies = $this->locales->getLocaleDependencies($availableIso);
                 if (!empty($dependencies)) {
                     foreach ($dependencies as $dependency) {
                         if (!in_array($dependency, $activeLanguages, true)) {
@@ -628,8 +686,7 @@ class MaintenanceController extends AbstractController
         if (!empty($activateArray)) {
             $activeLanguages = array_merge($activeLanguages, $activateArray);
             sort($activeLanguages);
-            $configurationManager = GeneralUtility::makeInstance(ConfigurationManager::class);
-            $configurationManager->setLocalConfigurationValueByPath(
+            $this->configurationManager->setLocalConfigurationValueByPath(
                 'EXTCONF/lang',
                 ['availableLanguages' => $activeLanguages]
             );
@@ -664,7 +721,6 @@ class MaintenanceController extends AbstractController
     {
         $messageQueue = new FlashMessageQueue('install');
         $languagePackService = GeneralUtility::makeInstance(LanguagePackService::class);
-        $locales = GeneralUtility::makeInstance(Locales::class);
         $availableLanguages = $languagePackService->getAvailableLanguages();
         $activeLanguages = $languagePackService->getActiveLanguages();
         $iso = $request->getParsedBody()['install']['iso'];
@@ -676,7 +732,7 @@ class MaintenanceController extends AbstractController
             if ($activeLanguage === $iso) {
                 continue;
             }
-            $dependencies = $locales->getLocaleDependencies($activeLanguage);
+            $dependencies = $this->locales->getLocaleDependencies($activeLanguage);
             if (in_array($iso, $dependencies, true)) {
                 $otherActiveLanguageDependencies[] = $activeLanguage;
             }
@@ -706,8 +762,7 @@ class MaintenanceController extends AbstractController
                     }
                     $newActiveLanguages[] = $activeLanguage;
                 }
-                $configurationManager = GeneralUtility::makeInstance(ConfigurationManager::class);
-                $configurationManager->setLocalConfigurationValueByPath(
+                $this->configurationManager->setLocalConfigurationValueByPath(
                     'EXTCONF/lang',
                     ['availableLanguages' => $newActiveLanguages]
                 );
@@ -741,7 +796,7 @@ class MaintenanceController extends AbstractController
      */
     public function languagePacksUpdatePackAction(ServerRequestInterface $request): ResponseInterface
     {
-        $this->loadExtLocalconfDatabaseAndExtTables();
+        $this->lateBootService->loadExtLocalconfDatabaseAndExtTables();
         $iso = $request->getParsedBody()['install']['iso'];
         $key = $request->getParsedBody()['install']['extension'];
         $languagePackService = GeneralUtility::makeInstance(LanguagePackService::class);
@@ -769,7 +824,7 @@ class MaintenanceController extends AbstractController
         // cacheManager implements SingletonInterface, so the only way to get a "fresh"
         // instance is by circumventing makeInstance and/or the objectManager and
         // using new directly!
-        $cacheManager = new \TYPO3\CMS\Core\Cache\CacheManager();
+        $cacheManager = new CacheManager();
         $cacheManager->setCacheConfigurations($GLOBALS['TYPO3_CONF_VARS']['SYS']['caching']['cacheConfigurations']);
         $cacheManager->getCache('l10n')->flush();
 

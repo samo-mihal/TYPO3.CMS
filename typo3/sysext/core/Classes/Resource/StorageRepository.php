@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Resource;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,12 +13,15 @@ namespace TYPO3\CMS\Core\Resource;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Resource;
+
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use TYPO3\CMS\Core\Configuration\FlexForm\FlexFormTools;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\FrontendRestrictionContainer;
+use TYPO3\CMS\Core\Resource\Driver\DriverRegistry;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -66,6 +68,24 @@ class StorageRepository extends AbstractRepository implements LoggerAwareInterfa
             return $this->factory->getStorageObject($uid, $this->storageRowCache[$uid]);
         }
         return null;
+    }
+
+    /**
+     * Only for use in ResourceFactory::getStorageObject
+     *
+     * @internal
+     * @param int $uid
+     *
+     * @return array
+     */
+    public function fetchRowByUid(int $uid): array
+    {
+        $this->initializeLocalCache();
+        if (!isset($this->storageRowCache[$uid])) {
+            throw new \InvalidArgumentException(sprintf('No storage found with uid "%d".', $uid), 1599235454);
+        }
+
+        return $this->storageRowCache[$uid];
     }
 
     /**
@@ -134,7 +154,7 @@ class StorageRepository extends AbstractRepository implements LoggerAwareInterfa
         $this->initializeLocalCache();
 
         /** @var Driver\DriverRegistry $driverRegistry */
-        $driverRegistry = GeneralUtility::makeInstance(Driver\DriverRegistry::class);
+        $driverRegistry = GeneralUtility::makeInstance(DriverRegistry::class);
 
         $storageObjects = [];
         foreach ($this->storageRowCache as $storageRow) {
@@ -145,7 +165,7 @@ class StorageRepository extends AbstractRepository implements LoggerAwareInterfa
                 $storageObjects[] = $this->factory->getStorageObject($storageRow['uid'], $storageRow);
             } else {
                 $this->logger->warning(
-                    sprintf('Could not instantiate storage "%s" because of missing driver.', [$storageRow['name']]),
+                    sprintf('Could not instantiate storage "%s" because of missing driver.', $storageRow['name']),
                     $storageRow
                 );
             }
@@ -164,7 +184,7 @@ class StorageRepository extends AbstractRepository implements LoggerAwareInterfa
         $this->initializeLocalCache();
 
         /** @var Driver\DriverRegistry $driverRegistry */
-        $driverRegistry = GeneralUtility::makeInstance(Driver\DriverRegistry::class);
+        $driverRegistry = GeneralUtility::makeInstance(DriverRegistry::class);
 
         $storageObjects = [];
         foreach ($this->storageRowCache as $storageRow) {
@@ -172,7 +192,7 @@ class StorageRepository extends AbstractRepository implements LoggerAwareInterfa
                 $storageObjects[] = $this->factory->getStorageObject($storageRow['uid'], $storageRow);
             } else {
                 $this->logger->warning(
-                    sprintf('Could not instantiate storage "%s" because of missing driver.', [$storageRow['name']]),
+                    sprintf('Could not instantiate storage "%s" because of missing driver.', $storageRow['name']),
                     $storageRow
                 );
             }

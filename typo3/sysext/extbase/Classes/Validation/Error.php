@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Validation;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Extbase\Validation;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Validation;
+
 /**
  * This object holds a validation error.
  */
@@ -25,7 +26,7 @@ class Error extends \TYPO3\CMS\Extbase\Error\Error
     protected $message = 'Unknown validation error';
 
     /**
-     * @var string
+     * @var int
      */
     protected $code = 1201447005;
 }

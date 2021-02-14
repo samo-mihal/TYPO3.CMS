@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Domain\Repository;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Core\Domain\Repository;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Domain\Repository;
+
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use TYPO3\CMS\Core\Cache\CacheManager;
@@ -26,8 +27,12 @@ use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryHelper;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
+use TYPO3\CMS\Core\Database\Query\Restriction\FrontendGroupRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\FrontendRestrictionContainer;
 use TYPO3\CMS\Core\Database\Query\Restriction\FrontendWorkspaceRestriction;
+use TYPO3\CMS\Core\Database\Query\Restriction\HiddenRestriction;
+use TYPO3\CMS\Core\Database\Query\Restriction\QueryRestrictionContainerInterface;
+use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 use TYPO3\CMS\Core\Error\Http\ShortcutTargetPageNotFoundException;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
@@ -151,34 +156,54 @@ class PageRepository implements LoggerAwareInterface
     protected function init($show_hidden)
     {
         $this->where_groupAccess = '';
+        // As PageRepository may be used multiple times during the frontend request, and may
+        // actually be used before the usergroups have been resolved, self::getMultipleGroupsWhereClause()
+        // and the hook in ->enableFields() need to be reconsidered when the usergroup state changes.
+        // When something changes in the context, a second runtime cache entry is built.
+        // However, the PageRepository is generally in use for generating e.g. hundreds of links, so they would all use
+        // the same cache identifier.
+        $userAspect = $this->context->getAspect('frontend.user');
+        $frontendUserIdentifier = 'user_' . (int)$userAspect->get('id') . '_groups_' . md5(implode(',', $userAspect->getGroupIds()));
 
-        $expressionBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getQueryBuilderForTable('pages')
-            ->expr();
-        if ($this->versioningWorkspaceId > 0) {
-            // For version previewing, make sure that enable-fields are not
-            // de-selecting hidden pages - we need versionOL() to unset them only
-            // if the overlay record instructs us to.
-            // Clear where_hid_del and restrict to live and current workspaces
-            $this->where_hid_del = ' AND ' . $expressionBuilder->andX(
-                $expressionBuilder->eq('pages.deleted', 0),
-                $expressionBuilder->orX(
-                    $expressionBuilder->eq('pages.t3ver_wsid', 0),
-                    $expressionBuilder->eq('pages.t3ver_wsid', (int)$this->versioningWorkspaceId)
-                ),
-                $expressionBuilder->lt('pages.doktype', 200)
-            );
+        // We need to respect the date aspect as we might have subrequests with a different time (e.g. backend preview links)
+        $dateTimeIdentifier = $this->context->getAspect('date')->get('timestamp');
+
+        $cache = $this->getRuntimeCache();
+        $cacheIdentifier = 'PageRepository_hidDelWhere' . ($show_hidden ? 'ShowHidden' : '') . '_' . (int)$this->versioningWorkspaceId . '_' . $frontendUserIdentifier . '_' . $dateTimeIdentifier;
+        $cacheEntry = $cache->get($cacheIdentifier);
+        if ($cacheEntry) {
+            $this->where_hid_del = $cacheEntry;
         } else {
-            // add starttime / endtime, and check for hidden/deleted
-            // Filter out new/deleted place-holder pages in case we are NOT in a
-            // versioning preview (that means we are online!)
-            $this->where_hid_del = ' AND ' . (string)$expressionBuilder->andX(
-                QueryHelper::stripLogicalOperatorPrefix(
-                    $this->enableFields('pages', $show_hidden, ['fe_group' => true])
-                ),
-                $expressionBuilder->lt('pages.doktype', 200)
-            );
+            $expressionBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+                ->getQueryBuilderForTable('pages')
+                ->expr();
+            if ($this->versioningWorkspaceId > 0) {
+                // For version previewing, make sure that enable-fields are not
+                // de-selecting hidden pages - we need versionOL() to unset them only
+                // if the overlay record instructs us to.
+                // Clear where_hid_del and restrict to live and current workspaces
+                $this->where_hid_del = ' AND ' . $expressionBuilder->andX(
+                    $expressionBuilder->eq('pages.deleted', 0),
+                    $expressionBuilder->orX(
+                        $expressionBuilder->eq('pages.t3ver_wsid', 0),
+                        $expressionBuilder->eq('pages.t3ver_wsid', (int)$this->versioningWorkspaceId)
+                    ),
+                    $expressionBuilder->neq('pages.doktype', self::DOKTYPE_RECYCLER)
+                );
+            } else {
+                // add starttime / endtime, and check for hidden/deleted
+                // Filter out new/deleted place-holder pages in case we are NOT in a
+                // versioning preview (that means we are online!)
+                $this->where_hid_del = ' AND ' . (string)$expressionBuilder->andX(
+                    QueryHelper::stripLogicalOperatorPrefix(
+                        $this->enableFields('pages', (int)$show_hidden, ['fe_group' => true])
+                    ),
+                    $expressionBuilder->neq('pages.doktype', self::DOKTYPE_RECYCLER)
+                );
+            }
+            $cache->set($cacheIdentifier, $this->where_hid_del);
         }
+
         if (is_array($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS'][self::class]['init'] ?? false)) {
             foreach ($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS'][self::class]['init'] as $classRef) {
                 $hookObject = GeneralUtility::makeInstance($classRef);
@@ -260,8 +285,12 @@ class PageRepository implements LoggerAwareInterface
                 QueryHelper::stripLogicalOperatorPrefix($this->where_hid_del)
             );
 
+        $originalWhereGroupAccess = '';
         if (!$disableGroupAccessCheck) {
             $queryBuilder->andWhere(QueryHelper::stripLogicalOperatorPrefix($this->where_groupAccess));
+        } else {
+            $originalWhereGroupAccess = $this->where_groupAccess;
+            $this->where_groupAccess = '';
         }
 
         $row = $queryBuilder->execute()->fetch();
@@ -271,6 +300,11 @@ class PageRepository implements LoggerAwareInterface
                 $result = $this->getPageOverlay($row);
             }
         }
+
+        if ($disableGroupAccessCheck) {
+            $this->where_groupAccess = $originalWhereGroupAccess;
+        }
+
         $cache->set($cacheIdentifier, $result);
         return $result;
     }
@@ -440,7 +474,7 @@ class PageRepository implements LoggerAwareInterface
      * @param array $page the page translation record or the page in the default language
      * @param LanguageAspect $languageAspect
      * @return bool true if the given page translation record is suited for the given language ID
-     * @internal only in use for HMENU generation for now
+     * @internal
      */
     public function isPageSuitableForLanguage(array $page, LanguageAspect $languageAspect): bool
     {
@@ -501,7 +535,9 @@ class PageRepository implements LoggerAwareInterface
             $orderedListByLanguages = array_flip($languageUids);
 
             $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('pages');
-            $queryBuilder->setRestrictions(GeneralUtility::makeInstance(FrontendRestrictionContainer::class));
+            $queryBuilder->setRestrictions(GeneralUtility::makeInstance(FrontendRestrictionContainer::class, $this->context));
+            // Because "fe_group" is an exclude field, so it is synced between overlays, the group restriction is removed for language overlays of pages
+            $queryBuilder->getRestrictions()->removeByType(FrontendGroupRestriction::class);
             $result = $queryBuilder->select('*')
                 ->from('pages')
                 ->where(
@@ -553,9 +589,9 @@ class PageRepository implements LoggerAwareInterface
      * @param string $table Table name
      * @param array $row Record to overlay. Must contain uid, pid and $table]['ctrl']['languageField']
      * @param int $sys_language_content Pointer to the sys_language uid for content on the site.
-     * @param string $OLmode Overlay mode. If "hideNonTranslated" then records without translation will not be returned  un-translated but unset (and return value is FALSE)
+     * @param string $OLmode Overlay mode. If "hideNonTranslated" then records without translation will not be returned  un-translated but unset (and return value is NULL)
      * @throws \UnexpectedValueException
-     * @return mixed Returns the input record, possibly overlaid with a translation.  But if $OLmode is "hideNonTranslated" then it will return FALSE if no translation is found.
+     * @return mixed Returns the input record, possibly overlaid with a translation.  But if $OLmode is "hideNonTranslated" then it will return NULL if no translation is found.
      */
     public function getRecordOverlay($table, $row, $sys_language_content, $OLmode = '')
     {
@@ -584,7 +620,7 @@ class PageRepository implements LoggerAwareInterface
                     $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
                         ->getQueryBuilderForTable($table);
                     $queryBuilder->setRestrictions(
-                        GeneralUtility::makeInstance(FrontendRestrictionContainer::class)
+                        GeneralUtility::makeInstance(FrontendRestrictionContainer::class, $this->context)
                     );
                     $olrow = $queryBuilder->select('*')
                         ->from($table)
@@ -625,16 +661,16 @@ class PageRepository implements LoggerAwareInterface
                     } elseif ($OLmode === 'hideNonTranslated' && (int)$row[$tableControl['languageField']] === 0) {
                         // Unset, if non-translated records should be hidden. ONLY done if the source
                         // record really is default language and not [All] in which case it is allowed.
-                        unset($row);
+                        $row = null;
                     }
                 } elseif ($sys_language_content != $row[$tableControl['languageField']]) {
-                    unset($row);
+                    $row = null;
                 }
             } else {
                 // When default language is displayed, we never want to return a record carrying
                 // another language!
                 if ($row[$tableControl['languageField']] > 0) {
-                    unset($row);
+                    $row = null;
                 }
             }
         }
@@ -664,9 +700,10 @@ class PageRepository implements LoggerAwareInterface
      * rootline these must be handled externally to this function.
      *
      * @param int|int[] $pageId The page id (or array of page ids) for which to fetch subpages (PID)
-     * @param string $fields List of fields to select. Default is "*" = all
+     * @param string $fields Fields to select, `*` is the default - If a custom list is set, make sure the list
+     *                       contains the `uid` field. It's mandatory for further processing of the result row.
      * @param string $sortField The field to sort by. Default is "sorting
-     * @param string $additionalWhereClause Optional additional where clauses. Like "AND title like '%blabla%'" for instance.
+     * @param string $additionalWhereClause Optional additional where clauses. Like "AND title like '%some text%'" for instance.
      * @param bool $checkShortcuts Check if shortcuts exist, checks by default
      * @return array Array with key/value pairs; keys are page-uid numbers. values are the corresponding page records (with overlaid localized fields, if any)
      * @see getPageShortcut()
@@ -684,9 +721,10 @@ class PageRepository implements LoggerAwareInterface
      * the _MP_PARAM field is set to the correct MPvar.
      *
      * @param int[] $pageIds Array of page ids to fetch
-     * @param string $fields List of fields to select. Default is "*" = all
+     * @param string $fields Fields to select, `*` is the default - If a custom list is set, make sure the list
+     *                       contains the `uid` field. It's mandatory for further processing of the result row.
      * @param string $sortField The field to sort by. Default is "sorting"
-     * @param string $additionalWhereClause Optional additional where clauses. Like "AND title like '%blabla%'" for instance.
+     * @param string $additionalWhereClause Optional additional where clauses. Like "AND title like '%some text%'" for instance.
      * @param bool $checkShortcuts Check if shortcuts exist, checks by default
      * @return array Array with key/value pairs; keys are page-uid numbers. values are the corresponding page records (with overlaid localized fields, if any)
      */
@@ -713,14 +751,15 @@ class PageRepository implements LoggerAwareInterface
      * point.
      *
      * The query can be customized by setting fields, sorting and additional WHERE clauses. If additional WHERE
-     * clauses are given, the clause must start with an operator, i.e: "AND title like '%blabla%'".
+     * clauses are given, the clause must start with an operator, i.e: "AND title like '%some text%'".
      *
      * The keys of the returned page records are the page UIDs.
      *
      * CAUTION: In case of an overlaid mount point, it is the original UID.
      *
      * @param int[] $pageIds PIDs or UIDs to load records for
-     * @param string $fields fields to select
+     * @param string $fields Fields to select, `*` is the default - If a custom list is set, make sure the list
+     *                       contains the `uid` field. It's mandatory for further processing of the result row.
      * @param string $sortField the field to sort by
      * @param string $additionalWhereClause optional additional WHERE clause
      * @param bool $checkShortcuts whether to check if shortcuts exist
@@ -740,7 +779,9 @@ class PageRepository implements LoggerAwareInterface
     ): array {
         $relationField = $parentPages ? 'pid' : 'uid';
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('pages');
-        $queryBuilder->getRestrictions()->removeAll();
+        $queryBuilder->getRestrictions()
+            ->removeAll()
+            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, $this->versioningWorkspaceId));
 
         $res = $queryBuilder->select(...GeneralUtility::trimExplode(',', $fields, true))
             ->from('pages')
@@ -841,7 +882,7 @@ class PageRepository implements LoggerAwareInterface
      * If shortcut, look up if the target exists and is currently visible
      *
      * @param array $page The page to check
-     * @param string $additionalWhereClause Optional additional where clauses. Like "AND title like '%blabla%'" for instance.
+     * @param string $additionalWhereClause Optional additional where clauses. Like "AND title like '%some text%'" for instance.
      * @return array
      */
     protected function checkValidShortcutOfPage(array $page, $additionalWhereClause)
@@ -902,7 +943,7 @@ class PageRepository implements LoggerAwareInterface
     /**
      * Get page shortcut; Finds the records pointed to by input value $SC (the shortcut value)
      *
-     * @param int $shortcutFieldValue The value of the "shortcut" field from the pages record
+     * @param string $shortcutFieldValue The value of the "shortcut" field from the pages record
      * @param int $shortcutMode The shortcut mode: 1 will select first subpage, 2 a random subpage, 3 the parent page; default is the page pointed to by $SC
      * @param int $thisUid The current page UID of the page which is a shortcut
      * @param int $iteration Safety feature which makes sure that the function is calling itself recursively max 20 times (since this function can find shortcuts to other shortcuts to other shortcuts...)
@@ -925,7 +966,7 @@ class PageRepository implements LoggerAwareInterface
                 $pageArray = $this->getMenu($idArray[0] ?: $thisUid, '*', 'sorting', 'AND pages.doktype<199 AND pages.doktype!=' . self::DOKTYPE_BE_USER_SECTION);
                 $pO = 0;
                 if ($shortcutMode == self::SHORTCUT_MODE_RANDOM_SUBPAGE && !empty($pageArray)) {
-                    $pO = (int)rand(0, count($pageArray) - 1);
+                    $pO = (int)random_int(0, count($pageArray) - 1);
                 }
                 $c = 0;
                 $page = [];
@@ -1047,7 +1088,7 @@ class PageRepository implements LoggerAwareInterface
                 ->removeAll()
                 ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
 
-            $pageRec = $queryBuilder->select('uid', 'pid', 'doktype', 'mount_pid', 'mount_pid_ol', 't3ver_state')
+            $pageRec = $queryBuilder->select('uid', 'pid', 'doktype', 'mount_pid', 'mount_pid_ol', 't3ver_state', 'l10n_parent')
                 ->from('pages')
                 ->where(
                     $queryBuilder->expr()->eq(
@@ -1068,7 +1109,7 @@ class PageRepository implements LoggerAwareInterface
         }
         // Set first Page uid:
         if (!$firstPageUid) {
-            $firstPageUid = $pageRec['uid'];
+            $firstPageUid = (int)($pageRec['l10n_parent'] ?: $pageRec['uid']);
         }
         // Look for mount pid value plus other required circumstances:
         $mount_pid = (int)$pageRec['mount_pid'];
@@ -1079,7 +1120,7 @@ class PageRepository implements LoggerAwareInterface
                 ->removeAll()
                 ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
 
-            $mountRec = $queryBuilder->select('uid', 'pid', 'doktype', 'mount_pid', 'mount_pid_ol', 't3ver_state')
+            $mountRec = $queryBuilder->select('uid', 'pid', 'doktype', 'mount_pid', 'mount_pid_ol', 't3ver_state', 'l10n_parent')
                 ->from('pages')
                 ->where(
                     $queryBuilder->expr()->eq(
@@ -1116,6 +1157,40 @@ class PageRepository implements LoggerAwareInterface
         return $result;
     }
 
+    /**
+     * Removes Page UID numbers from the input array which are not available due to QueryRestrictions
+     * This is also very helpful to add a custom RestrictionContainer to add custom Restrictions such as "bad doktypes" e.g. RECYCLER doktypes
+     *
+     * @param int[] $pageIds Array of Page UID numbers to check
+     * @param QueryRestrictionContainerInterface|null $restrictionContainer
+     * @return int[] Returns the array of remaining page UID numbers
+     */
+    public function filterAccessiblePageIds(array $pageIds, QueryRestrictionContainerInterface $restrictionContainer = null): array
+    {
+        if ($pageIds === []) {
+            return [];
+        }
+        $validPageIds = [];
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('pages');
+        if ($restrictionContainer instanceof QueryRestrictionContainerInterface) {
+            $queryBuilder->setRestrictions($restrictionContainer);
+        } else {
+            $queryBuilder->setRestrictions(GeneralUtility::makeInstance(FrontendRestrictionContainer::class, $this->context));
+        }
+        $statement = $queryBuilder->select('uid')
+            ->from('pages')
+            ->where(
+                $queryBuilder->expr()->in(
+                    'uid',
+                    $queryBuilder->createNamedParameter($pageIds, Connection::PARAM_INT_ARRAY)
+                )
+            )
+            ->execute();
+        while ($row = $statement->fetch()) {
+            $validPageIds[] = (int)$row['uid'];
+        }
+        return $validPageIds;
+    }
     /********************************
      *
      * Selecting records in general
@@ -1136,7 +1211,7 @@ class PageRepository implements LoggerAwareInterface
         $uid = (int)$uid;
         if (is_array($GLOBALS['TCA'][$table]) && $uid > 0) {
             $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($table);
-            $queryBuilder->setRestrictions(GeneralUtility::makeInstance(FrontendRestrictionContainer::class));
+            $queryBuilder->setRestrictions(GeneralUtility::makeInstance(FrontendRestrictionContainer::class, $this->context));
             $row = $queryBuilder->select('*')
                 ->from($table)
                 ->where($queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($uid, \PDO::PARAM_INT)))
@@ -1149,7 +1224,7 @@ class PageRepository implements LoggerAwareInterface
                     if ($checkPage) {
                         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
                             ->getQueryBuilderForTable('pages');
-                        $queryBuilder->setRestrictions(GeneralUtility::makeInstance(FrontendRestrictionContainer::class));
+                        $queryBuilder->setRestrictions(GeneralUtility::makeInstance(FrontendRestrictionContainer::class, $this->context));
                         $numRows = (int)$queryBuilder->count('*')
                             ->from('pages')
                             ->where(
@@ -1177,7 +1252,8 @@ class PageRepository implements LoggerAwareInterface
      *
      * @param string $table The table name to search
      * @param int $uid The uid to look up in $table
-     * @param string $fields The fields to select, default is "*
+     * @param string $fields Fields to select, `*` is the default - If a custom list is set, make sure the list
+     *                       contains the `uid` field. It's mandatory for further processing of the result row.
      * @return mixed Returns array (the record) if found, otherwise blank/0 (zero)
      * @see getPage_noCheck()
      */
@@ -1244,6 +1320,7 @@ class PageRepository implements LoggerAwareInterface
                 $constraints[] = $expressionBuilder->eq($table . '.' . $ctrl['delete'], 0);
             }
             if ($this->hasTableWorkspaceSupport($table)) {
+                // this should work exactly as WorkspaceRestriction and WorkspaceRestriction should be used instead
                 if ($this->versioningWorkspaceId === 0) {
                     // Filter out placeholder records (new/moved/deleted items)
                     // in case we are NOT in a versioning preview (that means we are online!)
@@ -1251,7 +1328,8 @@ class PageRepository implements LoggerAwareInterface
                         $table . '.t3ver_state',
                         new VersionState(VersionState::DEFAULT_STATE)
                     );
-                } elseif ($table !== 'pages') {
+                    $constraints[] = $expressionBuilder->eq($table . '.t3ver_wsid', 0);
+                } else {
                     // show only records of live and of the current workspace
                     // in case we are in a versioning preview
                     $constraints[] = $expressionBuilder->orX(
@@ -1262,7 +1340,8 @@ class PageRepository implements LoggerAwareInterface
 
                 // Filter out versioned records
                 if (empty($ignore_array['pid'])) {
-                    $constraints[] = $expressionBuilder->neq($table . '.pid', -1);
+                    // Always filter out versioned records that have an "offline" record
+                    $constraints[] = $expressionBuilder->eq($table . '.t3ver_oid', 0);
                 }
             }
 
@@ -1277,13 +1356,19 @@ class PageRepository implements LoggerAwareInterface
                     }
                     if (($ctrl['enablecolumns']['starttime'] ?? false) && !($ignore_array['starttime'] ?? false)) {
                         $field = $table . '.' . $ctrl['enablecolumns']['starttime'];
-                        $constraints[] = $expressionBuilder->lte($field, (int)$GLOBALS['SIM_ACCESS_TIME']);
+                        $constraints[] = $expressionBuilder->lte(
+                            $field,
+                            $this->context->getPropertyFromAspect('date', 'accessTime', 0)
+                        );
                     }
                     if (($ctrl['enablecolumns']['endtime'] ?? false) && !($ignore_array['endtime'] ?? false)) {
                         $field = $table . '.' . $ctrl['enablecolumns']['endtime'];
                         $constraints[] = $expressionBuilder->orX(
                             $expressionBuilder->eq($field, 0),
-                            $expressionBuilder->gt($field, (int)$GLOBALS['SIM_ACCESS_TIME'])
+                            $expressionBuilder->gt(
+                                $field,
+                                $this->context->getPropertyFromAspect('date', 'accessTime', 0)
+                            )
                         );
                     }
                     if (($ctrl['enablecolumns']['fe_group'] ?? false) && !($ignore_array['fe_group'] ?? false)) {
@@ -1332,6 +1417,12 @@ class PageRepository implements LoggerAwareInterface
         /** @var UserAspect $userAspect */
         $userAspect = $this->context->getAspect('frontend.user');
         $memberGroups = $userAspect->getGroupIds();
+        $cache = $this->getRuntimeCache();
+        $cacheIdentifier = 'PageRepository_groupAccessWhere_' . md5($field . '_' . $table . '_' . implode('_', $memberGroups));
+        $cacheEntry = $cache->get($cacheIdentifier);
+        if ($cacheEntry) {
+            return $cacheEntry;
+        }
 
         $expressionBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
             ->getQueryBuilderForTable($table)
@@ -1347,7 +1438,9 @@ class PageRepository implements LoggerAwareInterface
             $orChecks[] = $expressionBuilder->inSet($field, $expressionBuilder->literal($value));
         }
 
-        return' AND (' . $expressionBuilder->orX(...$orChecks) . ')';
+        $accessGroupWhere = ' AND (' . $expressionBuilder->orX(...$orChecks) . ')';
+        $cache->set($cacheIdentifier, $accessGroupWhere);
+        return $accessGroupWhere;
     }
 
     /**********************
@@ -1362,78 +1455,81 @@ class PageRepository implements LoggerAwareInterface
      * ONLY active when backend user is previewing records. MUST NEVER affect a site
      * served which is not previewed by backend users!!!
      *
-     * Will look if the "pid" value of the input record is -1 (it is an offline
-     * version) and if the table supports versioning; if so, it will translate the -1
-     * PID into the PID of the original record.
+     * What happens in this method:
+     * If a record was moved in a workspace, the records' PID might be different. This is only reason
+     * nowadays why this method exists.
+     *
+     * This is checked:
+     * 1. If the record has a "online pendant" (t3ver_oid > 0), it overrides the "pid" with the one from the online version.
+     * 2. If a record is a live version, check if there is a moved version in this workspace, and override the LIVE version with the new moved "pid" value.
      *
      * Used whenever you are tracking something back, like making the root line.
      *
      * Principle; Record offline! => Find online?
      *
      * @param string $table Table name
-     * @param array $rr Record array passed by reference. As minimum, "pid" and "uid" fields must exist! "t3ver_oid" and "t3ver_wsid" is nice and will save you a DB query.
+     * @param array $rr Record array passed by reference. As minimum, "pid" and "uid" fields must exist! "t3ver_oid", "t3ver_state" and "t3ver_wsid", "t3ver_state" is nice and will save you a DB query.
      * @see BackendUtility::fixVersioningPid()
      * @see versionOL()
-     * @see getRootLine()
      */
     public function fixVersioningPid($table, &$rr)
     {
-        if ($this->versioningWorkspaceId > 0 && is_array($rr) && $this->hasTableWorkspaceSupport($table)) {
-            $oid = 0;
-            $wsid = 0;
-            // Check values for t3ver_oid and t3ver_wsid:
-            if (isset($rr['t3ver_oid']) && isset($rr['t3ver_wsid'])) {
-                // If "t3ver_oid" is already a field, just set this:
-                $oid = $rr['t3ver_oid'];
-                $wsid = $rr['t3ver_wsid'];
-            } else {
-                // Otherwise we have to expect "uid" to be in the record and look up based
-                // on this:
-                $uid = (int)$rr['uid'];
-                if ($uid > 0) {
-                    $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($table);
-                    $queryBuilder->getRestrictions()
-                        ->removeAll()
-                        ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
-                    $newPidRec = $queryBuilder->select('t3ver_oid', 't3ver_wsid')
-                        ->from($table)
-                        ->where($queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($uid, \PDO::PARAM_INT)))
-                        ->execute()
-                        ->fetch();
+        if ($this->versioningWorkspaceId <= 0) {
+            return;
+        }
+        if (!is_array($rr)) {
+            return;
+        }
+        if (!$this->hasTableWorkspaceSupport($table)) {
+            return;
+        }
+        $uid = (int)$rr['uid'];
+        $oid = 0;
+        $workspaceId = 0;
+        $versionState = null;
+        // Check values for t3ver_oid and t3ver_wsid
+        if (isset($rr['t3ver_oid']) && isset($rr['t3ver_wsid']) && isset($rr['t3ver_state'])) {
+            // If "t3ver_oid" is already a field, just set this:
+            $oid = $rr['t3ver_oid'];
+            $workspaceId = (int)$rr['t3ver_wsid'];
+            $versionState = (int)$rr['t3ver_state'];
+        } elseif ($uid > 0) {
+            // Otherwise we have to expect "uid" to be in the record and look up based
+            // on this:
+            $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($table);
+            $queryBuilder->getRestrictions()
+                ->removeAll()
+                ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
+            $newPidRec = $queryBuilder->select('t3ver_oid', 't3ver_wsid', 't3ver_state')
+                ->from($table)
+                ->where($queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($uid, \PDO::PARAM_INT)))
+                ->execute()
+                ->fetch();
 
-                    if (is_array($newPidRec)) {
-                        $oid = $newPidRec['t3ver_oid'];
-                        $wsid = $newPidRec['t3ver_wsid'];
-                    }
-                }
-            }
-            // If workspace ids matches and ID of current online version is found, look up
-            // the PID value of that:
-            if ($oid && (int)$wsid === (int)$this->versioningWorkspaceId) {
-                $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($table);
-                $queryBuilder->getRestrictions()
-                    ->removeAll()
-                    ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
-                $oidRec = $queryBuilder->select('pid')
-                    ->from($table)
-                    ->where($queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($oid, \PDO::PARAM_INT)))
-                    ->execute()
-                    ->fetch();
-
-                if (is_array($oidRec)) {
-                    // SWAP uid as well? Well no, because when fixing a versioning PID happens it is
-                    // assumed that this is a "branch" type page and therefore the uid should be
-                    // kept (like in versionOL()). However if the page is NOT a branch version it
-                    // should not happen - but then again, direct access to that uid should not
-                    // happen!
-                    $rr['_ORIG_pid'] = $rr['pid'];
-                    $rr['pid'] = $oidRec['pid'];
-                }
+            if (is_array($newPidRec)) {
+                $oid = $newPidRec['t3ver_oid'];
+                $workspaceId = (int)$newPidRec['t3ver_wsid'];
+                $versionState = (int)$newPidRec['t3ver_state'];
             }
         }
-        // Changing PID in case of moving pointer:
-        if ($movePlhRec = $this->getMovePlaceholder($table, $rr['uid'], 'pid')) {
-            $rr['pid'] = $movePlhRec['pid'];
+
+        // Workspace does not match, so this is skipped
+        if ($workspaceId !== (int)$this->versioningWorkspaceId) {
+            return;
+        }
+        // Now set the "pid" properly.
+        // This will only make a difference when handing in move placeholders but is kept for backwards-compat
+        // however it's always the same for live + versioned record, except for moving, where _ORIG_pid will
+        // be set to the live PID, and pid to the moved location
+        if ($oid) {
+            $rr['_ORIG_pid'] = $rr['pid'];
+        }
+        // Changing PID in case there is a move pointer
+        // This happens if the $uid is still a live version but the overlay happened (via t3ver_oid) and the t3ver_state was
+        // Changed to MOVE_POINTER. This logic happens in versionOL(), where the "pid" of the live version is kept.
+        if ($versionState === VersionState::MOVE_POINTER && $movedPageId = $this->getMovedPidOfVersionedRecord($table, $uid)) {
+            $rr['_ORIG_pid'] = $rr['pid'];
+            $rr['pid'] = $movedPageId;
         }
     }
 
@@ -1474,6 +1570,8 @@ class PageRepository implements LoggerAwareInterface
                     // Keep the old (-1) - indicates it was a version...
                     $wsAlt['_ORIG_pid'] = $wsAlt['pid'];
                     // Set in the online versions PID.
+                    // Side note: For move pointers, this is set back to the PID of the live record now
+                    // The only place where PID is actually different.
                     $wsAlt['pid'] = $row['pid'];
                     // For versions of single elements or page+content, preserve online UID and PID
                     // (this will produce true "overlay" of element _content_, not any references)
@@ -1560,7 +1658,8 @@ class PageRepository implements LoggerAwareInterface
             // Find pointed-to record.
             if ($moveID) {
                 $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($table);
-                $queryBuilder->setRestrictions(GeneralUtility::makeInstance(FrontendRestrictionContainer::class));
+                $queryBuilder->setRestrictions(GeneralUtility::makeInstance(FrontendRestrictionContainer::class, $this->context));
+                $queryBuilder->getRestrictions()->removeByType(HiddenRestriction::class);
                 $origRow = $queryBuilder->select(...array_keys($this->purgeComputedProperties($row)))
                     ->from($table)
                     ->where(
@@ -1583,52 +1682,58 @@ class PageRepository implements LoggerAwareInterface
     }
 
     /**
-     * Returns move placeholder of online (live) version
+     * Returns the PID of the new (moved) location within a version, when a $liveUid is given.
+     *
+     * Please note: This is only performed within a workspace.
+     * This was previously stored in the move placeholder's PID, but move pointer's PID and move placeholder's PID
+     * are the same since TYPO3 v10, so the MOVE_POINTER is queried.
      *
      * @param string $table Table name
-     * @param int $uid Record UID of online version
-     * @param string $fields Field list, default is *
-     * @return array If found, the record, otherwise nothing.
+     * @param int $liveUid Record UID of online version
+     * @return int|null If found, the Page ID of the moved record, otherwise null.
      * @see BackendUtility::getMovePlaceholder()
      */
-    protected function getMovePlaceholder($table, $uid, $fields = '*')
+    protected function getMovedPidOfVersionedRecord(string $table, int $liveUid): ?int
     {
-        $workspace = (int)$this->versioningWorkspaceId;
-        if ($workspace > 0 && $this->hasTableWorkspaceSupport($table)) {
-            // Select workspace version of record:
-            $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($table);
-            $queryBuilder->getRestrictions()
-                ->removeAll()
-                ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
-
-            $row = $queryBuilder->select(...GeneralUtility::trimExplode(',', $fields, true))
-                ->from($table)
-                ->where(
-                    $queryBuilder->expr()->eq(
-                        't3ver_state',
-                        $queryBuilder->createNamedParameter(
-                            (string)VersionState::cast(VersionState::MOVE_PLACEHOLDER),
-                            \PDO::PARAM_INT
-                        )
-                    ),
-                    $queryBuilder->expr()->eq(
-                        't3ver_move_id',
-                        $queryBuilder->createNamedParameter($uid, \PDO::PARAM_INT)
-                    ),
-                    $queryBuilder->expr()->eq(
-                        't3ver_wsid',
-                        $queryBuilder->createNamedParameter($workspace, \PDO::PARAM_INT)
-                    )
-                )
-                ->setMaxResults(1)
-                ->execute()
-                ->fetch();
-
-            if (is_array($row)) {
-                return $row;
-            }
+        if ($this->versioningWorkspaceId <= 0) {
+            return null;
         }
-        return false;
+        if (!$this->hasTableWorkspaceSupport($table)) {
+            return null;
+        }
+        // Select workspace version of record
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($table);
+        $queryBuilder->getRestrictions()
+            ->removeAll()
+            ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
+
+        $row = $queryBuilder->select('pid')
+            ->from($table)
+            ->where(
+                $queryBuilder->expr()->eq(
+                    't3ver_state',
+                    $queryBuilder->createNamedParameter(
+                        (string)VersionState::cast(VersionState::MOVE_POINTER),
+                        \PDO::PARAM_INT
+                    )
+                ),
+                $queryBuilder->expr()->eq(
+                    't3ver_oid',
+                    $queryBuilder->createNamedParameter($liveUid, \PDO::PARAM_INT)
+                ),
+                $queryBuilder->expr()->eq(
+                    't3ver_wsid',
+                    $queryBuilder->createNamedParameter($this->versioningWorkspaceId, \PDO::PARAM_INT)
+                )
+            )
+            ->setMaxResults(1)
+            ->execute()
+            ->fetch();
+
+        if (is_array($row)) {
+            return (int)$row['pid'];
+        }
+        return null;
     }
 
     /**
@@ -1637,7 +1742,8 @@ class PageRepository implements LoggerAwareInterface
      * @param int $workspace Workspace ID
      * @param string $table Table name to select from
      * @param int $uid Record uid for which to find workspace version.
-     * @param string $fields Field list to select
+     * @param string $fields Fields to select, `*` is the default - If a custom list is set, make sure the list
+     *                       contains the `uid` field. It's mandatory for further processing of the result row.
      * @param bool $bypassEnableFieldsCheck If TRUE, enablefields are not checked for.
      * @return mixed If found, return record, otherwise other value: Returns 1 if version was sought for but not found, returns -1/-2 if record (offline/online) existed but had enableFields that would disable it. Returns FALSE if not in workspace or no versioning for record. Notice, that the enablefields of the online record is also tested.
      * @see BackendUtility::getWorkspaceVersionOfRecord()
@@ -1672,7 +1778,7 @@ class PageRepository implements LoggerAwareInterface
             // If version found, check if it could have been selected with enableFields on
             // as well:
             $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($table);
-            $queryBuilder->setRestrictions(GeneralUtility::makeInstance(FrontendRestrictionContainer::class));
+            $queryBuilder->setRestrictions(GeneralUtility::makeInstance(FrontendRestrictionContainer::class, $this->context));
             // Remove the frontend workspace restriction because we are testing a version record
             $queryBuilder->getRestrictions()->removeByType(FrontendWorkspaceRestriction::class);
             $queryBuilder->select('uid')

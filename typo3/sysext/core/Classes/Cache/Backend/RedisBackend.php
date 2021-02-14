@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Cache\Backend;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Cache\Backend;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Cache\Backend;
 
 use TYPO3\CMS\Core\Cache\Exception;
 use TYPO3\CMS\Core\Cache\Exception\InvalidDataException;
@@ -365,7 +366,7 @@ class RedisBackend extends AbstractBackend implements TaggableBackendInterface
             $storedEntry = $this->redis->get(self::IDENTIFIER_DATA_PREFIX . $entryIdentifier);
         }
         if ($this->compression && (string)$storedEntry !== '') {
-            $storedEntry = gzuncompress($storedEntry);
+            $storedEntry = gzuncompress((string)$storedEntry);
         }
         return $storedEntry;
     }
@@ -487,7 +488,7 @@ class RedisBackend extends AbstractBackend implements TaggableBackendInterface
     {
         $identifierToTagsKeys = $this->redis->keys(self::IDENTIFIER_TAGS_PREFIX . '*');
         foreach ($identifierToTagsKeys as $identifierToTagsKey) {
-            list(, $identifier) = explode(':', $identifierToTagsKey);
+            [, $identifier] = explode(':', $identifierToTagsKey);
             // Check if the data entry still exists
             if (!$this->redis->exists(self::IDENTIFIER_DATA_PREFIX . $identifier)) {
                 $tagsToRemoveIdentifierFrom = $this->redis->sMembers($identifierToTagsKey);

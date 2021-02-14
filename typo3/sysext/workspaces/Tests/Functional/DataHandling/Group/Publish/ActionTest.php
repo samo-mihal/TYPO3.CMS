@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Group\Publish;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,17 @@ namespace TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Group\Publish;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Group\Publish;
+
+use TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Group\AbstractActionTestCase;
+use TYPO3\TestingFramework\Core\Functional\Framework\Frontend\InternalRequest;
+use TYPO3\TestingFramework\Core\Functional\Framework\Frontend\InternalRequestContext;
+use TYPO3\TestingFramework\Core\Functional\Framework\Frontend\ResponseContent;
+
 /**
  * Functional test for the DataHandler
  */
-class ActionTest extends \TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Group\AbstractActionTestCase
+class ActionTest extends AbstractActionTestCase
 {
     /**
      * @var string
@@ -25,12 +31,12 @@ class ActionTest extends \TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Gro
     protected $assertionDataSetDirectory = 'typo3/sysext/workspaces/Tests/Functional/DataHandling/Group/Publish/DataSet/';
 
     /**
-     * Relations
+     * @var bool False as temporary hack
      */
+    protected $assertCleanReferenceIndex = false;
 
     /**
      * @test
-     * See DataSet/addElementRelation.csv
      */
     public function addElementRelation()
     {
@@ -38,7 +44,11 @@ class ActionTest extends \TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Gro
         $this->actionService->publishRecord(self::TABLE_Content, self::VALUE_ContentIdFirst);
         $this->assertAssertionDataSet('addElementRelation');
 
-        $responseSections = $this->getFrontendResponse(self::VALUE_PageId, 0, self::VALUE_BackendUserId, self::VALUE_WorkspaceId)->getResponseSections();
+        $response = $this->executeFrontendRequest(
+            (new InternalRequest())->withPageId(self::VALUE_PageId),
+            (new InternalRequestContext())->withBackendUserId(self::VALUE_BackendUserId)->withWorkspaceId(self::VALUE_WorkspaceId)
+        );
+        $responseSections = ResponseContent::fromString((string)$response->getBody())->getSections();
         self::assertThat($responseSections, $this->getRequestSectionStructureHasRecordConstraint()
             ->setRecordIdentifier(self::TABLE_Content . ':' . self::VALUE_ContentIdFirst)->setRecordField(self::FIELD_ContentElement)
             ->setTable(self::TABLE_Element)->setField('title')->setValues('Element #1', 'Element #2', 'Element #3'));
@@ -46,7 +56,6 @@ class ActionTest extends \TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Gro
 
     /**
      * @test
-     * See DataSet/deleteElementRelation.csv
      */
     public function deleteElementRelation()
     {
@@ -54,7 +63,11 @@ class ActionTest extends \TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Gro
         $this->actionService->publishRecord(self::TABLE_Content, self::VALUE_ContentIdFirst);
         $this->assertAssertionDataSet('deleteElementRelation');
 
-        $responseSections = $this->getFrontendResponse(self::VALUE_PageId, 0, self::VALUE_BackendUserId, self::VALUE_WorkspaceId)->getResponseSections();
+        $response = $this->executeFrontendRequest(
+            (new InternalRequest())->withPageId(self::VALUE_PageId),
+            (new InternalRequestContext())->withBackendUserId(self::VALUE_BackendUserId)->withWorkspaceId(self::VALUE_WorkspaceId)
+        );
+        $responseSections = ResponseContent::fromString((string)$response->getBody())->getSections();
         self::assertThat($responseSections, $this->getRequestSectionStructureHasRecordConstraint()
             ->setRecordIdentifier(self::TABLE_Content . ':' . self::VALUE_ContentIdFirst)->setRecordField(self::FIELD_ContentElement)
             ->setTable(self::TABLE_Element)->setField('title')->setValues('Element #1'));
@@ -65,7 +78,6 @@ class ActionTest extends \TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Gro
 
     /**
      * @test
-     * See DataSet/changeElementSorting.csv
      */
     public function changeElementSorting()
     {
@@ -73,7 +85,8 @@ class ActionTest extends \TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Gro
         $this->actionService->publishRecord(self::TABLE_Element, self::VALUE_ElementIdFirst);
         $this->assertAssertionDataSet('changeElementSorting');
 
-        $responseSections = $this->getFrontendResponse(self::VALUE_PageId)->getResponseSections();
+        $response = $this->executeFrontendRequest((new InternalRequest())->withPageId(self::VALUE_PageId));
+        $responseSections = ResponseContent::fromString((string)$response->getBody())->getSections();
         self::assertThat($responseSections, $this->getRequestSectionStructureHasRecordConstraint()
             ->setRecordIdentifier(self::TABLE_Content . ':' . self::VALUE_ContentIdFirst)->setRecordField(self::FIELD_ContentElement)
             ->setTable(self::TABLE_Element)->setField('title')->setValues('Element #1', 'Element #2'));
@@ -81,7 +94,6 @@ class ActionTest extends \TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Gro
 
     /**
      * @test
-     * See DataSet/changeElementRelationSorting.csv
      */
     public function changeElementRelationSorting()
     {
@@ -89,7 +101,11 @@ class ActionTest extends \TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Gro
         $this->actionService->publishRecord(self::TABLE_Content, self::VALUE_ContentIdFirst);
         $this->assertAssertionDataSet('changeElementRelationSorting');
 
-        $responseSections = $this->getFrontendResponse(self::VALUE_PageId, 0, self::VALUE_BackendUserId, self::VALUE_WorkspaceId)->getResponseSections();
+        $response = $this->executeFrontendRequest(
+            (new InternalRequest())->withPageId(self::VALUE_PageId),
+            (new InternalRequestContext())->withBackendUserId(self::VALUE_BackendUserId)->withWorkspaceId(self::VALUE_WorkspaceId)
+        );
+        $responseSections = ResponseContent::fromString((string)$response->getBody())->getSections();
         self::assertThat($responseSections, $this->getRequestSectionStructureHasRecordConstraint()
             ->setRecordIdentifier(self::TABLE_Content . ':' . self::VALUE_ContentIdFirst)->setRecordField(self::FIELD_ContentElement)
             ->setTable(self::TABLE_Element)->setField('title')->setValues('Element #1', 'Element #2'));
@@ -97,7 +113,6 @@ class ActionTest extends \TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Gro
 
     /**
      * @test
-     * See DataSet/createContentNAddRelation.csv
      */
     public function createContentAndAddElementRelation()
     {
@@ -105,7 +120,11 @@ class ActionTest extends \TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Gro
         $this->actionService->publishRecord(self::TABLE_Content, $this->recordIds['newContentId']);
         $this->assertAssertionDataSet('createContentNAddRelation');
 
-        $responseSections = $this->getFrontendResponse(self::VALUE_PageId, 0, self::VALUE_BackendUserId, self::VALUE_WorkspaceId)->getResponseSections();
+        $response = $this->executeFrontendRequest(
+            (new InternalRequest())->withPageId(self::VALUE_PageId),
+            (new InternalRequestContext())->withBackendUserId(self::VALUE_BackendUserId)->withWorkspaceId(self::VALUE_WorkspaceId)
+        );
+        $responseSections = ResponseContent::fromString((string)$response->getBody())->getSections();
         self::assertThat($responseSections, $this->getRequestSectionHasRecordConstraint()
             ->setTable(self::TABLE_Content)->setField('header')->setValues('Testing #1'));
         self::assertThat($responseSections, $this->getRequestSectionStructureHasRecordConstraint()
@@ -115,20 +134,21 @@ class ActionTest extends \TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Gro
 
     /**
      * @test
-     * See DataSet/createContentNCreateRelation.csv
      */
     public function createContentAndCreateElementRelation()
     {
         parent::createContentAndCreateElementRelation();
-        $this->actionService->publishRecords(
-            [
-                self::TABLE_Content => [$this->recordIds['newContentId']],
-                self::TABLE_Element => [$this->recordIds['newElementId']],
-            ]
-        );
+        $this->actionService->publishRecords([
+            self::TABLE_Content => [$this->recordIds['newContentId']],
+            self::TABLE_Element => [$this->recordIds['newElementId']],
+        ]);
         $this->assertAssertionDataSet('createContentNCreateRelation');
 
-        $responseSections = $this->getFrontendResponse(self::VALUE_PageId, 0, self::VALUE_BackendUserId, self::VALUE_WorkspaceId)->getResponseSections();
+        $response = $this->executeFrontendRequest(
+            (new InternalRequest())->withPageId(self::VALUE_PageId),
+            (new InternalRequestContext())->withBackendUserId(self::VALUE_BackendUserId)->withWorkspaceId(self::VALUE_WorkspaceId)
+        );
+        $responseSections = ResponseContent::fromString((string)$response->getBody())->getSections();
         self::assertThat($responseSections, $this->getRequestSectionHasRecordConstraint()
             ->setTable(self::TABLE_Content)->setField('header')->setValues('Testing #1'));
         self::assertThat($responseSections, $this->getRequestSectionStructureHasRecordConstraint()
@@ -138,7 +158,6 @@ class ActionTest extends \TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Gro
 
     /**
      * @test
-     * See DataSet/modifyElementOfRelation.csv
      */
     public function modifyElementOfRelation()
     {
@@ -146,7 +165,11 @@ class ActionTest extends \TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Gro
         $this->actionService->publishRecord(self::TABLE_Element, self::VALUE_ElementIdFirst);
         $this->assertAssertionDataSet('modifyElementOfRelation');
 
-        $responseSections = $this->getFrontendResponse(self::VALUE_PageId, 0, self::VALUE_BackendUserId, self::VALUE_WorkspaceId)->getResponseSections();
+        $response = $this->executeFrontendRequest(
+            (new InternalRequest())->withPageId(self::VALUE_PageId),
+            (new InternalRequestContext())->withBackendUserId(self::VALUE_BackendUserId)->withWorkspaceId(self::VALUE_WorkspaceId)
+        );
+        $responseSections = ResponseContent::fromString((string)$response->getBody())->getSections();
         self::assertThat($responseSections, $this->getRequestSectionStructureHasRecordConstraint()
             ->setRecordIdentifier(self::TABLE_Content . ':' . self::VALUE_ContentIdFirst)->setRecordField(self::FIELD_ContentElement)
             ->setTable(self::TABLE_Element)->setField('title')->setValues('Testing #1', 'Element #2'));
@@ -154,7 +177,6 @@ class ActionTest extends \TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Gro
 
     /**
      * @test
-     * See DataSet/modifyContentOfRelation.csv
      */
     public function modifyContentOfRelation()
     {
@@ -162,27 +184,32 @@ class ActionTest extends \TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Gro
         $this->actionService->publishRecord(self::TABLE_Content, self::VALUE_ContentIdFirst);
         $this->assertAssertionDataSet('modifyContentOfRelation');
 
-        $responseSections = $this->getFrontendResponse(self::VALUE_PageId, 0, self::VALUE_BackendUserId, self::VALUE_WorkspaceId)->getResponseSections();
+        $response = $this->executeFrontendRequest(
+            (new InternalRequest())->withPageId(self::VALUE_PageId),
+            (new InternalRequestContext())->withBackendUserId(self::VALUE_BackendUserId)->withWorkspaceId(self::VALUE_WorkspaceId)
+        );
+        $responseSections = ResponseContent::fromString((string)$response->getBody())->getSections();
         self::assertThat($responseSections, $this->getRequestSectionHasRecordConstraint()
             ->setTable(self::TABLE_Content)->setField('header')->setValues('Testing #1'));
     }
 
     /**
      * @test
-     * See DataSet/modifyBothSidesOfRelation.csv
      */
     public function modifyBothSidesOfRelation()
     {
         parent::modifyBothSidesOfRelation();
-        $this->actionService->publishRecords(
-            [
-                self::TABLE_Content => [self::VALUE_ContentIdFirst],
-                self::TABLE_Element => [self::VALUE_ElementIdFirst],
-            ]
-        );
+        $this->actionService->publishRecords([
+            self::TABLE_Content => [self::VALUE_ContentIdFirst],
+            self::TABLE_Element => [self::VALUE_ElementIdFirst],
+        ]);
         $this->assertAssertionDataSet('modifyBothSidesOfRelation');
 
-        $responseSections = $this->getFrontendResponse(self::VALUE_PageId, 0, self::VALUE_BackendUserId, self::VALUE_WorkspaceId)->getResponseSections();
+        $response = $this->executeFrontendRequest(
+            (new InternalRequest())->withPageId(self::VALUE_PageId),
+            (new InternalRequestContext())->withBackendUserId(self::VALUE_BackendUserId)->withWorkspaceId(self::VALUE_WorkspaceId)
+        );
+        $responseSections = ResponseContent::fromString((string)$response->getBody())->getSections();
         self::assertThat($responseSections, $this->getRequestSectionStructureHasRecordConstraint()
             ->setRecordIdentifier(self::TABLE_Content . ':' . self::VALUE_ContentIdFirst)->setRecordField(self::FIELD_ContentElement)
             ->setTable(self::TABLE_Element)->setField('title')->setValues('Testing #1', 'Element #2'));
@@ -192,7 +219,6 @@ class ActionTest extends \TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Gro
 
     /**
      * @test
-     * See DataSet/deleteContentOfRelation.csv
      */
     public function deleteContentOfRelation()
     {
@@ -200,14 +226,17 @@ class ActionTest extends \TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Gro
         $this->actionService->publishRecord(self::TABLE_Content, self::VALUE_ContentIdLast);
         $this->assertAssertionDataSet('deleteContentOfRelation');
 
-        $responseSections = $this->getFrontendResponse(self::VALUE_PageId, 0, self::VALUE_BackendUserId, self::VALUE_WorkspaceId)->getResponseSections();
+        $response = $this->executeFrontendRequest(
+            (new InternalRequest())->withPageId(self::VALUE_PageId),
+            (new InternalRequestContext())->withBackendUserId(self::VALUE_BackendUserId)->withWorkspaceId(self::VALUE_WorkspaceId)
+        );
+        $responseSections = ResponseContent::fromString((string)$response->getBody())->getSections();
         self::assertThat($responseSections, $this->getRequestSectionDoesNotHaveRecordConstraint()
             ->setTable(self::TABLE_Content)->setField('header')->setValues('Testing #1'));
     }
 
     /**
      * @test
-     * See DataSet/deleteElementOfRelation.csv
      */
     public function deleteElementOfRelation()
     {
@@ -215,7 +244,11 @@ class ActionTest extends \TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Gro
         $this->actionService->publishRecord(self::TABLE_Element, self::VALUE_ElementIdFirst);
         $this->assertAssertionDataSet('deleteElementOfRelation');
 
-        $responseSections = $this->getFrontendResponse(self::VALUE_PageId, 0, self::VALUE_BackendUserId, self::VALUE_WorkspaceId)->getResponseSections();
+        $response = $this->executeFrontendRequest(
+            (new InternalRequest())->withPageId(self::VALUE_PageId),
+            (new InternalRequestContext())->withBackendUserId(self::VALUE_BackendUserId)->withWorkspaceId(self::VALUE_WorkspaceId)
+        );
+        $responseSections = ResponseContent::fromString((string)$response->getBody())->getSections();
         self::assertThat($responseSections, $this->getRequestSectionStructureDoesNotHaveRecordConstraint()
             ->setRecordIdentifier(self::TABLE_Content . ':' . self::VALUE_ContentIdFirst)->setRecordField(self::FIELD_ContentElement)
             ->setTable(self::TABLE_Element)->setField('title')->setValues('Element #1'));
@@ -223,7 +256,6 @@ class ActionTest extends \TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Gro
 
     /**
      * @test
-     * See DataSet/copyContentOfRelation.csv
      */
     public function copyContentOfRelation()
     {
@@ -231,7 +263,11 @@ class ActionTest extends \TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Gro
         $this->actionService->publishRecord(self::TABLE_Content, $this->recordIds['copiedContentId']);
         $this->assertAssertionDataSet('copyContentOfRelation');
 
-        $responseSections = $this->getFrontendResponse(self::VALUE_PageId, 0, self::VALUE_BackendUserId, self::VALUE_WorkspaceId)->getResponseSections();
+        $response = $this->executeFrontendRequest(
+            (new InternalRequest())->withPageId(self::VALUE_PageId),
+            (new InternalRequestContext())->withBackendUserId(self::VALUE_BackendUserId)->withWorkspaceId(self::VALUE_WorkspaceId)
+        );
+        $responseSections = ResponseContent::fromString((string)$response->getBody())->getSections();
         // Referenced elements are not copied with the "parent", which is expected and correct
         self::assertThat($responseSections, $this->getRequestSectionStructureHasRecordConstraint()
             ->setRecordIdentifier(self::TABLE_Content . ':' . $this->recordIds['copiedContentId'])->setRecordField(self::FIELD_ContentElement)
@@ -240,7 +276,6 @@ class ActionTest extends \TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Gro
 
     /**
      * @test
-     * See DataSet/copyElementOfRelation.csv
      */
     public function copyElementOfRelation()
     {
@@ -248,7 +283,11 @@ class ActionTest extends \TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Gro
         $this->actionService->publishRecord(self::TABLE_Element, $this->recordIds['copiedElementId']);
         $this->assertAssertionDataSet('copyElementOfRelation');
 
-        $responseSections = $this->getFrontendResponse(self::VALUE_PageId, 0, self::VALUE_BackendUserId, self::VALUE_WorkspaceId)->getResponseSections();
+        $response = $this->executeFrontendRequest(
+            (new InternalRequest())->withPageId(self::VALUE_PageId),
+            (new InternalRequestContext())->withBackendUserId(self::VALUE_BackendUserId)->withWorkspaceId(self::VALUE_WorkspaceId)
+        );
+        $responseSections = ResponseContent::fromString((string)$response->getBody())->getSections();
         self::assertThat($responseSections, $this->getRequestSectionStructureHasRecordConstraint()
             ->setRecordIdentifier(self::TABLE_Content . ':' . self::VALUE_ContentIdFirst)->setRecordField(self::FIELD_ContentElement)
             ->setTable(self::TABLE_Element)->setField('title')->setValues('Element #1'));
@@ -260,7 +299,6 @@ class ActionTest extends \TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Gro
 
     /**
      * @test
-     * See DataSet/localizeContentOfRelation.csv
      */
     public function localizeContentOfRelation()
     {
@@ -268,7 +306,11 @@ class ActionTest extends \TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Gro
         $this->actionService->publishRecord(self::TABLE_Content, $this->recordIds['localizedContentId']);
         $this->assertAssertionDataSet('localizeContentOfRelation');
 
-        $responseSections = $this->getFrontendResponse(self::VALUE_PageId, self::VALUE_LanguageId, self::VALUE_BackendUserId, self::VALUE_WorkspaceId)->getResponseSections();
+        $response = $this->executeFrontendRequest(
+            (new InternalRequest())->withPageId(self::VALUE_PageId)->withLanguageId(self::VALUE_LanguageId),
+            (new InternalRequestContext())->withBackendUserId(self::VALUE_BackendUserId)->withWorkspaceId(self::VALUE_WorkspaceId)
+        );
+        $responseSections = ResponseContent::fromString((string)$response->getBody())->getSections();
         self::assertThat($responseSections, $this->getRequestSectionStructureHasRecordConstraint()
             ->setRecordIdentifier(self::TABLE_Content . ':' . self::VALUE_ContentIdLast)->setRecordField(self::FIELD_ContentElement)
             ->setTable(self::TABLE_Element)->setField('title')->setValues('Element #2', 'Element #3'));
@@ -276,7 +318,6 @@ class ActionTest extends \TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Gro
 
     /**
      * @test
-     * See DataSet/localizeElementOfRelation.csv
      */
     public function localizeElementOfRelation()
     {
@@ -287,7 +328,11 @@ class ActionTest extends \TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Gro
         $this->actionService->publishRecord(self::TABLE_Element, $this->recordIds['localizedElementId']);
         $this->assertAssertionDataSet('localizeElementOfRelation');
 
-        $responseSections = $this->getFrontendResponse(self::VALUE_PageId, self::VALUE_LanguageId, self::VALUE_BackendUserId, self::VALUE_WorkspaceId)->getResponseSections();
+        $response = $this->executeFrontendRequest(
+            (new InternalRequest())->withPageId(self::VALUE_PageId)->withLanguageId(self::VALUE_LanguageId),
+            (new InternalRequestContext())->withBackendUserId(self::VALUE_BackendUserId)->withWorkspaceId(self::VALUE_WorkspaceId)
+        );
+        $responseSections = ResponseContent::fromString((string)$response->getBody())->getSections();
         self::assertThat($responseSections, $this->getRequestSectionStructureHasRecordConstraint()
             ->setRecordIdentifier(self::TABLE_Content . ':' . self::VALUE_ContentIdFirst)->setRecordField(self::FIELD_ContentElement)
             ->setTable(self::TABLE_Element)->setField('title')->setValues('[Translate to Dansk:] Element #1', 'Element #2'));
@@ -295,7 +340,6 @@ class ActionTest extends \TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Gro
 
     /**
      * @test
-     * See DataSet/moveContentOfRelationToDifferentPage.csv
      */
     public function moveContentOfRelationToDifferentPage()
     {
@@ -303,7 +347,11 @@ class ActionTest extends \TYPO3\CMS\Workspaces\Tests\Functional\DataHandling\Gro
         $this->actionService->publishRecord(self::TABLE_Content, self::VALUE_ContentIdLast);
         $this->assertAssertionDataSet('moveContentOfRelationToDifferentPage');
 
-        $responseSections = $this->getFrontendResponse(self::VALUE_PageIdTarget, 0, self::VALUE_BackendUserId, self::VALUE_WorkspaceId)->getResponseSections();
+        $response = $this->executeFrontendRequest(
+            (new InternalRequest())->withPageId(self::VALUE_PageIdTarget),
+            (new InternalRequestContext())->withBackendUserId(self::VALUE_BackendUserId)->withWorkspaceId(self::VALUE_WorkspaceId)
+        );
+        $responseSections = ResponseContent::fromString((string)$response->getBody())->getSections();
         self::assertThat($responseSections, $this->getRequestSectionStructureHasRecordConstraint()
             ->setRecordIdentifier(self::TABLE_Content . ':' . self::VALUE_ContentIdLast)->setRecordField(self::FIELD_ContentElement)
             ->setTable(self::TABLE_Element)->setField('title')->setValues('Element #2', 'Element #3'));

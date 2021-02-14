@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Persistence\Generic;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,16 +13,20 @@ namespace TYPO3\CMS\Extbase\Persistence\Generic;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Persistence\Generic;
+
 use TYPO3\CMS\Extbase\DomainObject\DomainObjectInterface;
 use TYPO3\CMS\Extbase\Object\ObjectManagerInterface;
+use TYPO3\CMS\Extbase\Persistence\Generic\Mapper\ColumnMap;
 use TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapper;
+use TYPO3\CMS\Extbase\Persistence\ObjectStorage;
 
 /**
  * A proxy that can replace any object and replaces itself in it's parent on
  * first access (call, get, set, isset, unset).
  * @internal only to be used within Extbase, not part of TYPO3 Core API.
  */
-class LazyObjectStorage extends \TYPO3\CMS\Extbase\Persistence\ObjectStorage implements \TYPO3\CMS\Extbase\Persistence\Generic\LoadingStrategyInterface
+class LazyObjectStorage extends ObjectStorage implements LoadingStrategyInterface
 {
     /**
      * This field is only needed to make debugging easier:
@@ -36,7 +39,7 @@ class LazyObjectStorage extends \TYPO3\CMS\Extbase\Persistence\ObjectStorage imp
     private $warning = 'You should never see this warning. If you do, you probably used PHP array functions like current() on the TYPO3\\CMS\\Extbase\\Persistence\\Generic\\LazyObjectStorage. To retrieve the first result, you can use the rewind() and current() methods.';
 
     /**
-     * @var ?DataMapper
+     * @var DataMapper|null
      */
     protected $dataMapper;
 
@@ -148,14 +151,14 @@ class LazyObjectStorage extends \TYPO3\CMS\Extbase\Persistence\ObjectStorage imp
      *
      * @see \TYPO3\CMS\Extbase\Persistence\ObjectStorage::addAll
      */
-    public function addAll(\TYPO3\CMS\Extbase\Persistence\ObjectStorage $storage)
+    public function addAll(ObjectStorage $storage)
     {
         $this->initialize();
         parent::addAll($storage);
     }
 
     /**
-     * @param object $object The object to add.
+     * @param DomainObjectInterface $object The object to add.
      * @param mixed $data The data to associate with the object.
      *
      * @see \TYPO3\CMS\Extbase\Persistence\ObjectStorage::attach
@@ -167,7 +170,7 @@ class LazyObjectStorage extends \TYPO3\CMS\Extbase\Persistence\ObjectStorage imp
     }
 
     /**
-     * @param object $object The object to look for.
+     * @param DomainObjectInterface $object The object to look for.
      * @return bool
      *
      * @see \TYPO3\CMS\Extbase\Persistence\ObjectStorage::contains
@@ -188,20 +191,20 @@ class LazyObjectStorage extends \TYPO3\CMS\Extbase\Persistence\ObjectStorage imp
     {
         $columnMap = $this->dataMapper->getDataMap(get_class($this->parentObject))->getColumnMap($this->propertyName);
         $numberOfElements = null;
-        if (!$this->isInitialized && $columnMap->getTypeOfRelation() === Mapper\ColumnMap::RELATION_HAS_MANY) {
+        if (!$this->isInitialized && $columnMap->getTypeOfRelation() === ColumnMap::RELATION_HAS_MANY) {
             $numberOfElements = $this->dataMapper->countRelated($this->parentObject, $this->propertyName, $this->fieldValue);
         } else {
             $this->initialize();
             $numberOfElements = count($this->storage);
         }
         if ($numberOfElements === null) {
-            throw new \TYPO3\CMS\Extbase\Persistence\Generic\Exception('The number of elements could not be determined.', 1252514486);
+            throw new Exception('The number of elements could not be determined.', 1252514486);
         }
         return $numberOfElements;
     }
 
     /**
-     * @return object The object at the current iterator position.
+     * @return DomainObjectInterface The object at the current iterator position.
      *
      * @see \TYPO3\CMS\Extbase\Persistence\ObjectStorage::current
      */
@@ -212,7 +215,7 @@ class LazyObjectStorage extends \TYPO3\CMS\Extbase\Persistence\ObjectStorage imp
     }
 
     /**
-     * @param object $object The object to remove.
+     * @param DomainObjectInterface $object The object to remove.
      *
      * @see \TYPO3\CMS\Extbase\Persistence\ObjectStorage::detach
      */
@@ -243,7 +246,7 @@ class LazyObjectStorage extends \TYPO3\CMS\Extbase\Persistence\ObjectStorage imp
     }
 
     /**
-     * @param object $value The object to look for, or the key in the storage.
+     * @param DomainObjectInterface $value The object to look for, or the key in the storage.
      * @return bool
      *
      * @see \TYPO3\CMS\Extbase\Persistence\ObjectStorage::offsetExists
@@ -255,7 +258,7 @@ class LazyObjectStorage extends \TYPO3\CMS\Extbase\Persistence\ObjectStorage imp
     }
 
     /**
-     * @param object $value The object to look for, or its key in the storage.
+     * @param DomainObjectInterface $value The object to look for, or its key in the storage.
      * @return mixed
      *
      * @see \TYPO3\CMS\Extbase\Persistence\ObjectStorage::offsetGet
@@ -267,7 +270,7 @@ class LazyObjectStorage extends \TYPO3\CMS\Extbase\Persistence\ObjectStorage imp
     }
 
     /**
-     * @param object $object The object to add.
+     * @param DomainObjectInterface $object The object to add.
      * @param mixed $info The data to associate with the object.
      *
      * @see \TYPO3\CMS\Extbase\Persistence\ObjectStorage::offsetSet
@@ -279,7 +282,7 @@ class LazyObjectStorage extends \TYPO3\CMS\Extbase\Persistence\ObjectStorage imp
     }
 
     /**
-     * @param object $value The object to remove, or its key in the storage.
+     * @param DomainObjectInterface $value The object to remove, or its key in the storage.
      *
      * @see \TYPO3\CMS\Extbase\Persistence\ObjectStorage::offsetUnset
      */
@@ -294,7 +297,7 @@ class LazyObjectStorage extends \TYPO3\CMS\Extbase\Persistence\ObjectStorage imp
      *
      * @see \TYPO3\CMS\Extbase\Persistence\ObjectStorage::removeAll
      */
-    public function removeAll(\TYPO3\CMS\Extbase\Persistence\ObjectStorage $storage)
+    public function removeAll(ObjectStorage $storage)
     {
         $this->initialize();
         parent::removeAll($storage);

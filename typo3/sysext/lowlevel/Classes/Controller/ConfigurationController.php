@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Lowlevel\Controller;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,20 +15,27 @@ namespace TYPO3\CMS\Lowlevel\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Lowlevel\Controller;
+
 use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Configuration\SiteTcaConfiguration;
 use TYPO3\CMS\Backend\Routing\Router;
+use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
+use TYPO3\CMS\Backend\View\ArrayBrowser;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\EventDispatcher\ListenerProvider;
 use TYPO3\CMS\Core\Http\HtmlResponse;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Utility\ArrayUtility;
+use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Extbase\Object\ObjectManager;
 use TYPO3\CMS\Fluid\View\StandaloneView;
-use TYPO3\CMS\Lowlevel\Utility\ArrayBrowser;
+use TYPO3\CMS\Form\Mvc\Configuration\ConfigurationManager;
+use TYPO3\CMS\Form\Mvc\Configuration\ConfigurationManagerInterface;
 
 /**
  * View configuration arrays in the backend
@@ -134,6 +141,9 @@ class ConfigurationController
      */
     protected $blindedConfigurationOptions = [
         'TYPO3_CONF_VARS' => [
+            'BE' => [
+                'installToolPassword' => '******'
+            ],
             'DB' => [
                 'database' => '******',
                 'host' => '******',
@@ -152,6 +162,16 @@ class ConfigurationController
                     ],
                 ],
             ],
+            'HTTP' => [
+                'cert' => '******',
+                'ssl_key' => '******'
+            ],
+            'MAIL' => [
+                'transport_smtp_encrypt' => '******',
+                'transport_smtp_password' => '******',
+                'transport_smtp_server' => '******',
+                'transport_smtp_username' => '******',
+            ],
             'SYS' => [
                 'encryptionKey' => '******'
             ],
@@ -169,6 +189,13 @@ class ConfigurationController
      */
     public function mainAction(ServerRequestInterface $request): ResponseInterface
     {
+        if (ExtensionManagementUtility::isLoaded('form')) {
+            $this->treeSetup['formYamlConfiguration'] = [
+                'label' => 'formYamlConfiguration',
+                'type' => 'formYamlConfiguration',
+            ];
+        }
+
         $backendUser = $this->getBackendUser();
         $languageService = $this->getLanguageService();
 
@@ -245,6 +272,9 @@ class ConfigurationController
             $sortKeysByName = false;
             $listenerProvider = $this->container->get(ListenerProvider::class);
             $renderArray = $listenerProvider->getAllListenerDefinitions();
+        } elseif ($selectedTreeDetails['type'] === 'formYamlConfiguration') {
+            $formConfigurationManager = GeneralUtility::makeInstance(ObjectManager::class)->get(ConfigurationManager::class);
+            $renderArray = $formConfigurationManager->getConfiguration(ConfigurationManagerInterface::CONFIGURATION_TYPE_YAML_SETTINGS, 'form');
         } else {
             throw new \RuntimeException('Unknown array type "' . $selectedTreeDetails['type'] . '"', 1507845662);
         }
@@ -253,9 +283,8 @@ class ConfigurationController
         }
 
         // Prepare array renderer class, apply search and expand / collapse states
-        $arrayBrowser = GeneralUtility::makeInstance(ArrayBrowser::class);
-        $arrayBrowser->dontLinkVar = true;
-        $arrayBrowser->searchKeysToo = true;
+        $route = GeneralUtility::makeInstance(Router::class)->match(GeneralUtility::_GP('route'));
+        $arrayBrowser = GeneralUtility::makeInstance(ArrayBrowser::class, $route);
         $arrayBrowser->regexMode = $moduleState['regexSearch'];
         $node = $queryParams['node'];
         if ($searchString) {
@@ -305,7 +334,7 @@ class ConfigurationController
         foreach ($this->treeSetup as $treeKey => $treeDetails) {
             $menuItem = $menu->makeMenuItem();
             /** @var \TYPO3\CMS\Backend\Routing\UriBuilder $uriBuilder */
-            $uriBuilder = GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Routing\UriBuilder::class);
+            $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
             $menuItem->setHref((string)$uriBuilder->buildUriFromRoute('system_config', ['tree' => $treeKey]))
                 ->setTitle($languageService->sL(
                     'LLL:EXT:lowlevel/Resources/Private/Language/locallang.xlf:' . $treeDetails['label']

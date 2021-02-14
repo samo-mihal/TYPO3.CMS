@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Install\Configuration\Context;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,14 +13,18 @@ namespace TYPO3\CMS\Install\Configuration\Context;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Install\Configuration\Context;
+
 use TYPO3\CMS\Core\Core\Environment;
-use TYPO3\CMS\Install\Configuration;
+use TYPO3\CMS\Core\Log\LogLevel;
+use TYPO3\CMS\Core\Log\Writer\FileWriter;
+use TYPO3\CMS\Install\Configuration\AbstractPreset;
 
 /**
  * Live preset
  * @internal only to be used within EXT:install
  */
-class LivePreset extends Configuration\AbstractPreset
+class LivePreset extends AbstractPreset
 {
     /**
      * @var string Name of preset
@@ -41,6 +44,8 @@ class LivePreset extends Configuration\AbstractPreset
         'FE/debug' => false,
         'SYS/devIPmask' => '',
         'SYS/displayErrors' => 0,
+        // Values below are not available in UI
+        'LOG/TYPO3/CMS/deprecations/writerConfiguration/' . LogLevel::NOTICE . '/' . FileWriter::class . '/disabled' => true,
         // E_RECOVERABLE_ERROR
         'SYS/exceptionalErrors' => 4096,
     ];

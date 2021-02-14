@@ -33,10 +33,11 @@ Here are some examples to understand the power of the expression language:
    # This condition does match if "foo" **not** matches the regExp: `/bar/`
    [END]
 
-   [applicationContext == "Production"] && [userId == 15]
-   # This condition match if application context is "Production" AND logged in user has the uid 15
-   # This condition could also be combined in one condition:
-   # [applicationContext == "Production" && userId == 15]
+   [applicationContext == "Production" && userId == 15]
+   # This condition matches if application context is "Production" AND logged in user has the uid 15
+   # Note that the old syntax with two blocks combined with && is deprecated
+   # and will not work in v10:
+   # [applicationContext == "Production"] && [userId == 15]
    [END]
 
    [request.getNormalizedParams().getHttpHost() == 'typo3.org']
@@ -49,6 +50,16 @@ Here are some examples to understand the power of the expression language:
 
    [request.getNormalizedParams().isHttps() == false]
    # This condition matches if current request is **not** https
+   [END]
+
+   [request.getPageArguments().get('foo_id') > 0]
+   # This condition matches if the GET parameter foo_id is greater than 0.
+   # getPageArguments() contains resolved route parts from enhancers which
+   # request.getQueryParams() does not contain.
+   [END]
+
+   [traverse(request.getQueryParams(), 'tx_news_pi1/news') > 0]
+   # This condition matches if current query parameters have tx_news_pi[news] set to a value greater than zero
    [END]
 
 
@@ -77,7 +88,9 @@ The following variables are available. The values are context related.
 |                     |            |                                                                              |
 | .rootLine           | Array      | array of arrays with uid and pid                                             |
 |                     |            |                                                                              |
-| .rootLineIds        | Array      | an array with UIDs of the rootline                                           |
+| .rootLineIds        | Array      | an array with UIDs of the root line                                          |
+|                     |            |                                                                              |
+| .rootLineParentIds  | Array      | an array with parent UIDs of the root line                                   |
 +---------------------+------------+------------------------------------------------------------------------------+
 | backend             | Object     | object with backend information (available in BE only)                       |
 |                     |            |                                                                              |
@@ -101,13 +114,21 @@ The following variables are available. The values are context related.
 |                     |            |                                                                              |
 | .user.userGroupList | String     | comma list of group UIDs                                                     |
 +---------------------+------------+------------------------------------------------------------------------------+
+| workspace           | Object     | object with workspace information                                            |
+|                     |            |                                                                              |
+| .workspaceId        | Integer    | id of current workspace                                                      |
+|                     |            |                                                                              |
+| .isLive             | Boolean    | true if current workspace is live                                            |
+|                     |            |                                                                              |
+| .isOffline          | Boolean    | true if current workspace is offline                                         |
++---------------------+------------+------------------------------------------------------------------------------+
 | typo3               | Object     | object with TYPO3 related information                                        |
 |                     |            |                                                                              |
 | .version            | String     | TYPO3_version (e.g. 9.4.0-dev)                                               |
 |                     |            |                                                                              |
 | .branch             | String     | TYPO3_branch (e.g. 9.4)                                                      |
 |                     |            |                                                                              |
-| .devIpMask          | String     | :php`$GLOBALS['TYPO3_CONF_VARS']['SYS']['devIPmask']`                        |
+| .devIpMask          | String     | :php:`$GLOBALS['TYPO3_CONF_VARS']['SYS']['devIPmask']`                       |
 +---------------------+------------+------------------------------------------------------------------------------+
 
 
@@ -117,53 +138,64 @@ Functions
 Functions take over the logic of the old conditions which do more than a simple comparison check.
 The following functions are available in **any** context:
 
-+------------------------+-----------------------+---------------------------------------------------------+
-| Function               | Parameter             | Description                                             |
-+========================+=======================+=========================================================+
-| request                | Custom Object         | This object provides 4 methods                          |
-|                        |                       |                                                         |
-| .getQueryParams()      |                       | `[request.getQueryParams()['foo'] == 1]`                |
-|                        |                       |                                                         |
-| .getParsedBody()       |                       | `[request.getParsedBody()['foo'] == 1]`                 |
-|                        |                       |                                                         |
-| .getHeaders()          |                       | `[request.getHeaders()['Accept'] == 'json']`            |
-|                        |                       |                                                         |
-| .getCookieParams()     |                       | `[request.getCookieParams()['foo'] == 1]`               |
-|                        |                       |                                                         |
-| .getNormalizedParams() |                       | `[request.getNormalizedParams().isHttps()]`             |
-+------------------------+-----------------------+---------------------------------------------------------+
-| date                   | String                | Get current date in given format.                       |
-|                        |                       | Examples:                                               |
-|                        |                       |                                                         |
-|                        |                       | * true if day of current month is 7: `[date("j") == 7]` |
-|                        |                       | * true if day of current week is 7: `[date("w") == 7]`  |
-|                        |                       | * true if day of current year is 7: `[date("z") == 7]`  |
-|                        |                       | * true if current hour is 7: `[date("G") == 7]`         |
-+------------------------+-----------------------+---------------------------------------------------------+
-| like                   | String                | This function has two parameters:                       |
-|                        |                       | the first parameter is the string to search in          |
-|                        |                       | the second parameter is the search string               |
-|                        |                       | Example: `[like("foobarbaz", "*bar*")]`                 |
-+------------------------+-----------------------+---------------------------------------------------------+
-| ip                     | String                | Value or Constraint, Wildcard or RegExp possible        |
-|                        |                       | special value: devIP (match the devIPMask)              |
-+------------------------+-----------------------+---------------------------------------------------------+
-| compatVersion          | String                | version constraint, e.g. `9.4` or `9.4.0`               |
-+------------------------+-----------------------+---------------------------------------------------------+
-| loginUser              | String                | value or constraint, wildcard or RegExp possible        |
-|                        |                       | Examples:                                               |
-|                        |                       |                                                         |
-|                        |                       | * `[loginUser('*')]` // any logged in user              |
-|                        |                       | * `[loginUser(1)]` // user with uid 1                   |
-|                        |                       | * `[loginUser('1,3,5')]` // user 1, 3 or 5              |
-|                        |                       | * `[loginUser('*') == false]` // not logged in          |
-+------------------------+-----------------------+---------------------------------------------------------+
-| getTSFE                | Object                | TypoScriptFrontendController (`$GLOBALS['TSFE']`)       |
-+------------------------+-----------------------+---------------------------------------------------------+
-| getenv                 | String                | PHP function: :php:`getenv()`                           |
-+------------------------+-----------------------+---------------------------------------------------------+
-| usergroup              | String                | value or constraint, wildcard or RegExp possible        |
-+------------------------+-----------------------+---------------------------------------------------------+
++------------------------+-----------------------+-------------------------------------------------------------------------+
+| Function               | Parameter             | Description                                                             |
++========================+=======================+=========================================================================+
+| request                | Custom Object         | This object provides 6 methods                                          |
+|                        |                       |                                                                         |
+| .getQueryParams()      |                       | `[request.getQueryParams()['foo'] == 1]`                                |
+|                        |                       |                                                                         |
+| .getParsedBody()       |                       | `[request.getParsedBody()['foo'] == 1]`                                 |
+|                        |                       |                                                                         |
+| .getHeaders()          |                       | `[request.getHeaders()['Accept'] == 'json']`                            |
+|                        |                       |                                                                         |
+| .getCookieParams()     |                       | `[request.getCookieParams()['foo'] == 1]`                               |
+|                        |                       |                                                                         |
+| .getNormalizedParams() |                       | `[request.getNormalizedParams().isHttps()]`                             |
+|                        |                       |                                                                         |
+| .getPageArguments()    |                       | `[request.getPageArguments().get('foo_id') > 0]`                        |
++------------------------+-----------------------+-------------------------------------------------------------------------+
+| date                   | String                | Get current date in given format.                                       |
+|                        |                       | Examples:                                                               |
+|                        |                       |                                                                         |
+|                        |                       | * true if day of current month is 7: `[date("j") == 7]`                 |
+|                        |                       | * true if day of current week is 7: `[date("w") == 7]`                  |
+|                        |                       | * true if day of current year is 7: `[date("z") == 7]`                  |
+|                        |                       | * true if current hour is 7: `[date("G") == 7]`                         |
++------------------------+-----------------------+-------------------------------------------------------------------------+
+| like                   | String                | This function has two parameters:                                       |
+|                        |                       | the first parameter is the string to search in                          |
+|                        |                       | the second parameter is the search string                               |
+|                        |                       | Example: `[like("foobarbaz", "*bar*")]`                                 |
++------------------------+-----------------------+-------------------------------------------------------------------------+
+| traverse               | Array and String      | This function has two parameters:                                       |
+|                        |                       | - first parameter is the array to traverse                              |
+|                        |                       | - second parameter is the path to traverse                              |
+|                        |                       | Syntax: <array-key>[/<array-key>]*                                      |
+|                        |                       | Example: `[traverse(request.getQueryParams(), 'tx_news_pi1/news') > 0]` |
++------------------------+-----------------------+-------------------------------------------------------------------------+
+| ip                     | String                | Value or Constraint, Wildcard or RegExp possible                        |
+|                        |                       | special value: devIP (match the devIPMask)                              |
++------------------------+-----------------------+-------------------------------------------------------------------------+
+| compatVersion          | String                | version constraint, e.g. `9.4` or `9.4.0`                               |
++------------------------+-----------------------+-------------------------------------------------------------------------+
+| loginUser              | String                | value or constraint, wildcard or RegExp possible                        |
+|                        |                       | Examples:                                                               |
+|                        |                       |                                                                         |
+|                        |                       | * `[loginUser('*')]` // any logged in user                              |
+|                        |                       | * `[loginUser(1)]` // user with uid 1                                   |
+|                        |                       | * `[loginUser('1,3,5')]` // user 1, 3 or 5                              |
+|                        |                       | * `[loginUser('*') == false]` // not logged in                          |
++------------------------+-----------------------+-------------------------------------------------------------------------+
+| getTSFE                | Object                | TypoScriptFrontendController (:php:`$GLOBALS['TSFE']`)                  |
+|                        |                       |                                                                         |
+|                        |                       | Conditions based on `getTSFE()` used in a context where                 |
+|                        |                       | TSFE is not available will always evaluate to false.                    |
++------------------------+-----------------------+-------------------------------------------------------------------------+
+| getenv                 | String                | PHP function: :php:`getenv()`                                           |
++------------------------+-----------------------+-------------------------------------------------------------------------+
+| usergroup              | String                | value or constraint, wildcard or RegExp possible                        |
++------------------------+-----------------------+-------------------------------------------------------------------------+
 
 
 The following functions are only available in **frontend** context:
@@ -177,7 +209,7 @@ The following functions are only available in **frontend** context:
 |                    |            | `[session("session:foo|bar") == 1234567]`                       |
 +--------------------+------------+-----------------------------------------------------------------+
 | site               | String     | get value from site configuration, or null if                   |
-|                    |            | no site was found or property does not exists                   |
+|                    |            | no site was found or property does not exist                    |
 |                    |            |                                                                 |
 |                    |            | Example, matches if site identifier = foo                       |
 |                    |            | `[site("identifier") == "foo"]`                                 |
@@ -186,7 +218,7 @@ The following functions are only available in **frontend** context:
 |                    |            | `[site("base") == "http://localhost"]`                          |
 +--------------------+------------+-----------------------------------------------------------------+
 | siteLanguage       | String     | get value from siteLanguage configuration, or                   |
-|                    |            | null if no site was found or property not exists                |
+|                    |            | null if no site was found or property does not exist            |
 |                    |            |                                                                 |
 |                    |            | Example, match if siteLanguage locale = foo                     |
 |                    |            | `[siteLanguage("locale") == "de_CH"]`                           |

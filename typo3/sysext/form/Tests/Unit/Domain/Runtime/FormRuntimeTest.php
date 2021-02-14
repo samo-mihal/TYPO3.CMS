@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Form\Tests\Unit\Domain\Runtime;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Form\Tests\Unit\Domain\Runtime;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Form\Tests\Unit\Domain\Runtime;
 
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Object\ObjectManager;
@@ -36,47 +37,40 @@ class FormRuntimeTest extends UnitTestCase
     /**
      * @test
      */
-    public function renderThrowsExceptionIfFormDefinitionReturnsNoRendererClassName()
+    public function renderThrowsExceptionIfFormDefinitionReturnsNoRendererClassName(): void
     {
         $mockFormRuntime = $this->getAccessibleMock(FormRuntime::class, [
             'isAfterLastPage', 'processVariants'
         ], [], '', false);
 
-        $mockPage = $this->getAccessibleMock(Page::class, [
+        $mockPage = $this->getMockBuilder(Page::class)->onlyMethods([
             'getIndex'
-        ], [], '', false);
+        ])->disableOriginalConstructor()->getMock();
 
-        $mockFormState = $this->getAccessibleMock(FormState::class, [
-            'dummy'
-        ], [], '', false);
+        $mockFormState = $this->getMockBuilder(FormState::class)->disableOriginalConstructor()->getMock();
 
-        $mockFormDefinition = $this->getAccessibleMock(FormDefinition::class, [
+        $mockFormDefinition = $this->getMockBuilder(FormDefinition::class)->onlyMethods([
             'getRendererClassName',
             'getIdentifier'
-        ], [], '', false);
+        ])->disableOriginalConstructor()->getMock();
 
         $mockPage
-            ->expects(self::any())
             ->method('getIndex')
             ->willReturn(1);
 
         $mockFormDefinition
-            ->expects(self::any())
             ->method('getRendererClassName')
             ->willReturn('');
 
         $mockFormDefinition
-            ->expects(self::any())
             ->method('getIdentifier')
             ->willReturn('text-1');
 
         $mockFormRuntime
-            ->expects(self::any())
             ->method('isAfterLastPage')
             ->willReturn(false);
 
         $mockFormRuntime
-            ->expects(self::any())
             ->method('processVariants')
             ->willReturn(null);
 
@@ -93,7 +87,7 @@ class FormRuntimeTest extends UnitTestCase
     /**
      * @test
      */
-    public function renderThrowsExceptionIfRendererClassNameInstanceDoesNotImplementRendererInterface()
+    public function renderThrowsExceptionIfRendererClassNameInstanceDoesNotImplementRendererInterface(): void
     {
         $objectManagerProphecy = $this->prophesize(ObjectManager::class);
         GeneralUtility::setSingletonInstance(ObjectManager::class, $objectManagerProphecy->reveal());
@@ -102,47 +96,40 @@ class FormRuntimeTest extends UnitTestCase
             'isAfterLastPage', 'processVariants'
         ], [], '', false);
 
-        $mockPage = $this->getAccessibleMock(Page::class, [
+        $mockPage = $this->getMockBuilder(Page::class)->onlyMethods([
             'getIndex'
-        ], [], '', false);
+        ])->disableOriginalConstructor()->getMock();
 
-        $mockFormState = $this->getAccessibleMock(FormState::class, [
-            'dummy'
-        ], [], '', false);
+        $mockFormState = $this->getMockBuilder(FormState::class)->disableOriginalConstructor()->getMock();
 
-        $mockFormDefinition = $this->getAccessibleMock(FormDefinition::class, [
+        $mockFormDefinition = $this->getMockBuilder(FormDefinition::class)->onlyMethods([
             'getRendererClassName',
             'getIdentifier'
-        ], [], '', false);
+        ])->disableOriginalConstructor()->getMock();
 
         $mockPage
-            ->expects(self::any())
             ->method('getIndex')
             ->willReturn(1);
 
         $mockFormDefinition
-            ->expects(self::any())
             ->method('getRendererClassName')
             ->willReturn('fooRenderer');
 
         $mockFormDefinition
-            ->expects(self::any())
             ->method('getIdentifier')
             ->willReturn('text-1');
 
         $mockFormRuntime
-            ->expects(self::any())
             ->method('isAfterLastPage')
             ->willReturn(false);
 
         $mockFormRuntime
-            ->expects(self::any())
             ->method('processVariants')
             ->willReturn(null);
 
         $objectManagerProphecy
             ->get('fooRenderer')
-            ->willReturn(new \stdClass);
+            ->willReturn(new \stdClass());
 
         $mockFormRuntime->_set('formState', $mockFormState);
         $mockFormRuntime->_set('currentPage', $mockPage);

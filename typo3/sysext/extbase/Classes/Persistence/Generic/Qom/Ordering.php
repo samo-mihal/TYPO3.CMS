@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Persistence\Generic\Qom;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,10 @@ namespace TYPO3\CMS\Extbase\Persistence\Generic\Qom;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Extbase\Persistence\Generic\Qom;
+
+use TYPO3\CMS\Extbase\Persistence\QueryInterface;
 
 /**
  * Determines the relative order of two rows in the result set by evaluating operand for
@@ -37,7 +40,7 @@ class Ordering implements OrderingInterface
      * @param DynamicOperandInterface $operand The operand; non-null
      * @param string $order One of \TYPO3\CMS\Extbase\Persistence\QueryInterface::ORDER_*
      */
-    public function __construct(DynamicOperandInterface $operand, $order = \TYPO3\CMS\Extbase\Persistence\QueryInterface::ORDER_ASCENDING)
+    public function __construct(DynamicOperandInterface $operand, $order = QueryInterface::ORDER_ASCENDING)
     {
         $this->operand = $operand;
         $this->order = $order;

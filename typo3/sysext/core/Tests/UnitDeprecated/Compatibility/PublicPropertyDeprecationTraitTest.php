@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Unit\Compatibility;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\Compatibility;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\Compatibility;
 
 use TYPO3\CMS\Core\Compatibility\PublicPropertyDeprecationTrait;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
@@ -38,7 +40,7 @@ class PublicPropertyDeprecationTraitTest extends UnitTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->fixture = new class {
+        $this->fixture = new class() {
             use PublicPropertyDeprecationTrait;
             private $deprecatedPublicProperties = [
                 'taggedProperty' => 'taggedProperty is deprecated',

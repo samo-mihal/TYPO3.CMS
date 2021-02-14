@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extensionmanager\Utility\Connection;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Extensionmanager\Utility\Connection;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Extensionmanager\Utility\Connection;
 
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Core\Environment;
@@ -47,7 +48,7 @@ class TerUtility
         }
         $extensionPath = strtolower($extensionKey);
         $mirrorUrl .= $extensionPath[0] . '/' . $extensionPath[1] . '/' . $extensionPath . '_' . $version . '.t3x';
-        $t3x = \TYPO3\CMS\Core\Utility\GeneralUtility::getUrl($mirrorUrl);
+        $t3x = GeneralUtility::getUrl($mirrorUrl);
         $md5 = md5($t3x);
         if ($t3x === false) {
             throw new ExtensionManagerException(sprintf('The T3X file "%s" could not be fetched. Possible reasons: network problems, allow_url_fopen is off, cURL is not enabled in Install Tool.', $mirrorUrl), 1334426097);
@@ -74,12 +75,12 @@ class TerUtility
         $parts = explode(':', $stream, 3);
         if ($parts[1] === 'gzcompress') {
             if (function_exists('gzuncompress')) {
-                $parts[2] = gzuncompress($parts[2]);
+                $parts[2] = (string)gzuncompress($parts[2]);
             } else {
                 throw new ExtensionManagerException('Decoding Error: No decompressor available for compressed content. gzcompress()/gzuncompress() functions are not available!', 1344761814);
             }
         }
-        if (md5($parts[2]) === $parts[0]) {
+        if (hash_equals($parts[0], md5($parts[2]))) {
             $output = unserialize($parts[2], ['allowed_classes' => false]);
             if (!is_array($output)) {
                 throw new ExtensionManagerException('Error: Content could not be unserialized to an array. Strange (since MD5 hashes match!)', 1344761938);

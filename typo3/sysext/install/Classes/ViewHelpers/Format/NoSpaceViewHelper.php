@@ -1,5 +1,6 @@
 <?php
-namespace TYPO3\CMS\Install\ViewHelpers\Format;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +14,8 @@ namespace TYPO3\CMS\Install\ViewHelpers\Format;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Install\ViewHelpers\Format;
 
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
@@ -30,7 +33,7 @@ class NoSpaceViewHelper extends AbstractViewHelper
     /**
      * Initialize arguments
      */
-    public function initializeArguments()
+    public function initializeArguments(): void
     {
         parent::initializeArguments();
         $this->registerArgument('value', 'string', '', true);
@@ -45,8 +48,8 @@ class NoSpaceViewHelper extends AbstractViewHelper
      *
      * @return string
      */
-    public static function renderStatic(array $arguments, \Closure $renderChildrenClosure, RenderingContextInterface $renderingContext)
+    public static function renderStatic(array $arguments, \Closure $renderChildrenClosure, RenderingContextInterface $renderingContext): string
     {
-        return str_replace(' ', '', $arguments['value']);
+        return preg_replace('/\s+/', '', $arguments['value']);
     }
 }

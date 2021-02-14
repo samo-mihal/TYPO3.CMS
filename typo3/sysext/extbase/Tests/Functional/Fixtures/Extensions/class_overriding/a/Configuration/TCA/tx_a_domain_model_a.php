@@ -1,13 +1,11 @@
 <?php
+
 return [
     'ctrl' => [
         'label' => 'uid',
         'title' => 'A',
         'tstamp' => 'tstamp',
         'crdate' => 'crdate',
-    ],
-    'interface' => [
-        'showRecordFieldList' => 'title'
     ],
     'columns' => [
         'a' => [

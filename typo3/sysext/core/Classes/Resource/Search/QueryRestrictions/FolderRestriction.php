@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Resource\Search\QueryRestrictions;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Resource\Search\QueryRestrictions;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Resource\Search\QueryRestrictions;
 
 use TYPO3\CMS\Core\Database\Query\Restriction\AbstractRestrictionContainer;
 use TYPO3\CMS\Core\Database\Query\Restriction\QueryRestrictionInterface;
@@ -51,7 +53,7 @@ class FolderRestriction extends AbstractRestrictionContainer
             $this->add($this->createFolderRestriction());
             return;
         }
-        if ($this->folder->getIdentifier() === $storage->getRootLevelFolder()->getIdentifier()) {
+        if ($this->folder->getIdentifier() === $storage->getRootLevelFolder(false)->getIdentifier()) {
             return;
         }
         if ($storage->hasHierarchicalIdentifiers()) {
@@ -68,6 +70,7 @@ class FolderRestriction extends AbstractRestrictionContainer
 
     private function createFolderRestriction(): QueryRestrictionInterface
     {
+        $hashedFolderIdentifiers = [];
         $hashedFolderIdentifiers[] = $this->folder->getHashedIdentifier();
         if ($this->recursive) {
             foreach ($this->folder->getSubfolders(0, 0, Folder::FILTER_MODE_NO_FILTERS, true) as $subFolder) {

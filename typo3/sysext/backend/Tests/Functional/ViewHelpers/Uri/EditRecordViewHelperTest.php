@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Backend\Tests\Functional\ViewHelpers\Uri;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Backend\Tests\Functional\ViewHelpers\Uri;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Tests\Functional\ViewHelpers\Uri;
 
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Fluid\View\StandaloneView;
@@ -63,6 +64,34 @@ class EditRecordViewHelperTest extends FunctionalTestCase
         self::assertStringContainsString('route=/record/edit', $result);
         self::assertStringContainsString('edit[c_table][43]=edit', $result);
         self::assertStringContainsString('returnUrl=foo/bar', $result);
+    }
+
+    /**
+     * @test
+     */
+    public function renderReturnsValidLinkWithField()
+    {
+        $view = GeneralUtility::makeInstance(StandaloneView::class);
+        $view->setTemplatePathAndFilename('EXT:backend/Tests/Functional/ViewHelpers/Fixtures/Uri/EditRecordViewHelper/WithUidTableAndField.html');
+        $result = urldecode($view->render());
+
+        self::assertStringContainsString('route=/record/edit', $result);
+        self::assertStringContainsString('edit[c_table][43]=edit', $result);
+        self::assertStringContainsString('columnsOnly=canonical_url', $result);
+    }
+
+    /**
+     * @test
+     */
+    public function renderReturnsValidLinkWithFields()
+    {
+        $view = GeneralUtility::makeInstance(StandaloneView::class);
+        $view->setTemplatePathAndFilename('EXT:backend/Tests/Functional/ViewHelpers/Fixtures/Uri/EditRecordViewHelper/WithUidTableAndFields.html');
+        $result = urldecode($view->render());
+
+        self::assertStringContainsString('route=/record/edit', $result);
+        self::assertStringContainsString('edit[c_table][43]=edit', $result);
+        self::assertStringContainsString('columnsOnly=canonical_url,title', $result);
     }
 
     /**

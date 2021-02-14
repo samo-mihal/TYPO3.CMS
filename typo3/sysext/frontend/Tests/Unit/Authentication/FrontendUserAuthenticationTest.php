@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Frontend\Tests\Unit\Authentication;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,8 @@ namespace TYPO3\CMS\Frontend\Tests\Unit\Authentication;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Frontend\Tests\Unit\Authentication;
+
 use Doctrine\DBAL\Statement;
 use Prophecy\Argument;
 use Psr\Log\NullLogger;
@@ -28,6 +30,7 @@ use TYPO3\CMS\Core\Session\Backend\Exception\SessionNotFoundException;
 use TYPO3\CMS\Core\Session\Backend\SessionBackendInterface;
 use TYPO3\CMS\Core\Session\SessionManager;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\CMS\Frontend\Authentication\FrontendUserAuthentication;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
@@ -38,6 +41,8 @@ use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
  */
 class FrontendUserAuthenticationTest extends UnitTestCase
 {
+    private const NOT_CHECKED_INDICATOR = '--not-checked--';
+
     /**
      * @var bool Reset singletons created by subject
      */
@@ -50,7 +55,7 @@ class FrontendUserAuthenticationTest extends UnitTestCase
      */
     public function userFieldIsNotSetForAnonymousSessions()
     {
-        $uniqueSessionId = $this->getUniqueId('test');
+        $uniqueSessionId = StringUtility::getUniqueId('test');
         $_COOKIE['fe_typo_user'] = $uniqueSessionId;
 
         // This setup fakes the "getAuthInfoArray() db call
@@ -67,7 +72,7 @@ class FrontendUserAuthenticationTest extends UnitTestCase
         // Main session backend setup
         $sessionBackendProphecy = $this->prophesize(SessionBackendInterface::class);
         $sessionRecord = [
-            'ses_id' => $uniqueSessionId,
+            'ses_id' => $uniqueSessionId . self::NOT_CHECKED_INDICATOR,
             'ses_data' => serialize(['foo' => 'bar']),
             'ses_anonymous' => true,
             'ses_iplock' => '[DISABLED]',
@@ -108,6 +113,7 @@ class FrontendUserAuthenticationTest extends UnitTestCase
         $sessionManagerProphecy = $this->prophesize(SessionManager::class);
         GeneralUtility::setSingletonInstance(SessionManager::class, $sessionManagerProphecy->reveal());
         $sessionManagerProphecy->getSessionBackend('FE')->willReturn($sessionBackendProphecy->reveal());
+        // @todo Session handling is not used/evaluated at all in this test
 
         // Verify new session id is generated
         $randomProphecy = $this->prophesize(Random::class);
@@ -133,7 +139,7 @@ class FrontendUserAuthenticationTest extends UnitTestCase
      */
     public function canSetAndUnsetSessionKey()
     {
-        $uniqueSessionId = $this->getUniqueId('test');
+        $uniqueSessionId = StringUtility::getUniqueId('test');
         $_COOKIE['fe_typo_user'] = $uniqueSessionId;
 
         // This setup fakes the "getAuthInfoArray() db call
@@ -150,7 +156,7 @@ class FrontendUserAuthenticationTest extends UnitTestCase
         // Main session backend setup
         $sessionBackendProphecy = $this->prophesize(SessionBackendInterface::class);
         $sessionRecord = [
-            'ses_id' => $uniqueSessionId,
+            'ses_id' => $uniqueSessionId . self::NOT_CHECKED_INDICATOR,
             'ses_data' => serialize(['foo' => 'bar']),
             'ses_anonymous' => true,
             'ses_iplock' => '[DISABLED]',
@@ -182,7 +188,7 @@ class FrontendUserAuthenticationTest extends UnitTestCase
      */
     public function canSetSessionDataForAnonymousUser()
     {
-        $uniqueSessionId = $this->getUniqueId('test');
+        $uniqueSessionId = StringUtility::getUniqueId('test');
         $_COOKIE['fe_typo_user'] = $uniqueSessionId;
         $GLOBALS['TYPO3_CONF_VARS']['FE']['lockIP'] = 0;
         $currentTime = $GLOBALS['EXEC_TIME'];
@@ -250,7 +256,7 @@ class FrontendUserAuthenticationTest extends UnitTestCase
      */
     public function canLoadExistingAuthenticatedSession()
     {
-        $uniqueSessionId = $this->getUniqueId('test');
+        $uniqueSessionId = StringUtility::getUniqueId('test');
         $_COOKIE['fe_typo_user'] = $uniqueSessionId;
         $currentTime = $GLOBALS['EXEC_TIME'];
 
@@ -274,7 +280,7 @@ class FrontendUserAuthenticationTest extends UnitTestCase
         // a valid session is returned
         $sessionBackendProphecy->get($uniqueSessionId)->shouldBeCalled()->willReturn(
             [
-                'ses_id' => $uniqueSessionId,
+                'ses_id' => $uniqueSessionId . self::NOT_CHECKED_INDICATOR,
                 'ses_userid' => 1,
                 'ses_iplock' => '[DISABLED]',
                 'ses_tstamp' => $currentTime,
@@ -352,14 +358,15 @@ class FrontendUserAuthenticationTest extends UnitTestCase
         GeneralUtility::addInstance(Random::class, $randomProphecy->reveal());
 
         // Mock the login data and auth services here since fully prophesize this is a lot of hassle
-        $subject = $this->getMockBuilder($this->buildAccessibleProxy(FrontendUserAuthentication::class))
-            ->setMethods([
+        $subject = $this->getAccessibleMock(
+            FrontendUserAuthentication::class,
+            [
                 'getLoginFormData',
                 'getAuthServices',
                 'createUserSession',
                 'getCookie',
-            ])
-            ->getMock();
+            ]
+        );
         $subject->setLogger(new NullLogger());
         $subject->gc_probability = -1;
 
@@ -387,7 +394,7 @@ class FrontendUserAuthenticationTest extends UnitTestCase
         $subject->method('getCookie')->willReturn(null);
 
         $subject->start();
-        self::assertFalse($subject->_get('loginFailure'));
+        self::assertFalse($subject->loginFailure);
         self::assertEquals('existingUserName', $subject->user['username']);
     }
 

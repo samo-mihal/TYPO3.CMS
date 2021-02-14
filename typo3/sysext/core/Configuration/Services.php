@@ -1,5 +1,6 @@
 <?php
-declare(strict_types = 1);
+
+declare(strict_types=1);
 namespace TYPO3\CMS\Core;
 
 use Psr\Http\Server\MiddlewareInterface;
@@ -21,5 +22,6 @@ return function (ContainerConfigurator $container, ContainerBuilder $containerBu
     $containerBuilder->addCompilerPass(new DependencyInjection\ListenerProviderPass('event.listener'));
     $containerBuilder->addCompilerPass(new DependencyInjection\PublicServicePass('typo3.middleware'));
     $containerBuilder->addCompilerPass(new DependencyInjection\PublicServicePass('typo3.request_handler'));
+    $containerBuilder->addCompilerPass(new DependencyInjection\ConsoleCommandPass('console.command'));
     $containerBuilder->addCompilerPass(new DependencyInjection\AutowireInjectMethodsPass());
 };

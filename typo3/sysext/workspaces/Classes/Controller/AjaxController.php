@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Workspaces\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Workspaces\Controller;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Workspaces\Controller;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -37,6 +38,7 @@ class AjaxController
      */
     public function switchWorkspaceAction(ServerRequestInterface $request): ResponseInterface
     {
+        $page = [];
         $parsedBody = $request->getParsedBody();
         $queryParams = $request->getQueryParams();
         $workspaceId = (int)($parsedBody['workspaceId'] ?? $queryParams['workspaceId']);

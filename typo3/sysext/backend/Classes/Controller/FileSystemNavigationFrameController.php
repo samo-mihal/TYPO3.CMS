@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Backend\Controller;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Backend\Controller;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Controller;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -118,7 +120,7 @@ class FileSystemNavigationFrameController
         $scopeHash = $parsedBody['scopeHash'] ?? $queryParams['scopeHash'] ?? '';
 
         if (!empty($scopeData) && hash_equals(GeneralUtility::hmac($scopeData), $scopeHash)) {
-            $this->scopeData = unserialize($scopeData);
+            $this->scopeData = json_decode($scopeData, true);
         }
 
         // Create folder tree object:
@@ -159,6 +161,7 @@ class FileSystemNavigationFrameController
         // Adding javascript for drag & drop activation and highlighting
         $pageRenderer = $this->moduleTemplate->getPageRenderer();
         $pageRenderer->loadRequireJsModule('TYPO3/CMS/Backend/ContextMenu');
+        $pageRenderer->loadRequireJsModule('TYPO3/CMS/Backend/BroadcastService', 'function(service) { service.listen(); }');
         $pageRenderer->loadRequireJsModule('TYPO3/CMS/Backend/LegacyTree', 'function() {
             DragDrop.table = "folders";
             Tree.registerDragDropHandlers();

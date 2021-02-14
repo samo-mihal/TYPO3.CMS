@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Tree\View;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Backend\Tree\View;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Tree\View;
+
 /**
  * Extension for the tree class that generates the tree of pages in the page-wizard mode
  *
@@ -23,6 +24,17 @@ namespace TYPO3\CMS\Backend\Tree\View;
 class NewRecordPageTreeView extends PageTreeView
 {
     /**
+     * @var int
+     */
+    protected $currentPageId;
+
+    public function __construct(int $currentPageId)
+    {
+        $this->currentPageId = $currentPageId;
+        parent::__construct();
+    }
+
+    /**
      * Determines whether to expand a branch or not.
      * Here the branch is expanded if the current id matches the global id for the listing/new
      *
@@ -31,6 +43,6 @@ class NewRecordPageTreeView extends PageTreeView
      */
     public function expandNext($id)
     {
-        return $id == $GLOBALS['SOBE']->id;
+        return (int)$id === $this->currentPageId;
     }
 }

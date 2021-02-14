@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Resource\Exception;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,9 +13,11 @@ namespace TYPO3\CMS\Core\Resource\Exception;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Resource\Exception;
+
 /**
  * An exception when something is wrong with the file handling
  */
-class InsufficientFileWritePermissionsException extends \TYPO3\CMS\Core\Resource\Exception\InsufficientFileAccessPermissionsException
+class InsufficientFileWritePermissionsException extends InsufficientFileAccessPermissionsException
 {
 }

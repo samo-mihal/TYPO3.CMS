@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Mvc\Web;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,11 @@ namespace TYPO3\CMS\Extbase\Mvc\Web;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Mvc\Web;
+
+use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
+use TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
+
 /**
  * A request handler which can handle web requests invoked by the frontend.
  * @internal only to be used within Extbase, not part of TYPO3 Core API.
@@ -21,42 +25,16 @@ namespace TYPO3\CMS\Extbase\Mvc\Web;
 class FrontendRequestHandler extends AbstractRequestHandler
 {
     /**
-     * @var \TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface
+     * @var ConfigurationManagerInterface
      */
     protected $configurationManager;
 
     /**
-     * @var \TYPO3\CMS\Extbase\Service\ExtensionService
+     * @param ConfigurationManagerInterface $configurationManager
      */
-    protected $extensionService;
-
-    /**
-     * @var \TYPO3\CMS\Extbase\Mvc\Web\CacheHashEnforcer
-     */
-    protected $cacheHashEnforcer;
-
-    /**
-     * @param \TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface $configurationManager
-     */
-    public function injectConfigurationManager(\TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface $configurationManager)
+    public function injectConfigurationManager(ConfigurationManagerInterface $configurationManager)
     {
         $this->configurationManager = $configurationManager;
-    }
-
-    /**
-     * @param \TYPO3\CMS\Extbase\Service\ExtensionService $extensionService
-     */
-    public function injectExtensionService(\TYPO3\CMS\Extbase\Service\ExtensionService $extensionService)
-    {
-        $this->extensionService = $extensionService;
-    }
-
-    /**
-     * @param \TYPO3\CMS\Extbase\Mvc\Web\CacheHashEnforcer $cacheHashEnforcer
-     */
-    public function injectCacheHashEnforcer(\TYPO3\CMS\Extbase\Mvc\Web\CacheHashEnforcer $cacheHashEnforcer)
-    {
-        $this->cacheHashEnforcer = $cacheHashEnforcer;
     }
 
     /**
@@ -67,11 +45,11 @@ class FrontendRequestHandler extends AbstractRequestHandler
     public function handleRequest()
     {
         $request = $this->requestBuilder->build();
-        if ($this->extensionService->isActionCacheable(null, null, $request->getControllerObjectName(), $request->getControllerActionName())) {
+        if ($this->isActionCacheable($request->getControllerObjectName(), $request->getControllerActionName())) {
             $request->setIsCached(true);
         } else {
             $contentObject = $this->configurationManager->getContentObject();
-            if ($contentObject->getUserObjectType() === \TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer::OBJECTTYPE_USER) {
+            if ($contentObject->getUserObjectType() === ContentObjectRenderer::OBJECTTYPE_USER) {
                 $contentObject->convertToUserIntObject();
                 // \TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer::convertToUserIntObject() will recreate the object, so we have to stop the request here
                 return null;
@@ -80,15 +58,11 @@ class FrontendRequestHandler extends AbstractRequestHandler
         }
 
         if ($this->configurationManager->isFeatureEnabled('requireCHashArgumentForActionArguments')) {
-            $pluginNamespace = $this->extensionService->getPluginNamespace(
-                $request->getControllerExtensionName(),
-                $request->getPluginName()
-            );
-            $this->cacheHashEnforcer->enforceForRequest($request, $pluginNamespace);
+            trigger_error('The option requireCHashArgumentForActionArguments is removed', E_USER_DEPRECATED);
         }
 
         /** @var \TYPO3\CMS\Extbase\Mvc\ResponseInterface $response */
-        $response = $this->objectManager->get(\TYPO3\CMS\Extbase\Mvc\Web\Response::class);
+        $response = $this->objectManager->get(Response::class);
         $this->dispatcher->dispatch($request, $response);
         return $response;
     }
@@ -101,5 +75,20 @@ class FrontendRequestHandler extends AbstractRequestHandler
     public function canHandleRequest()
     {
         return $this->environmentService->isEnvironmentInFrontendMode();
+    }
+
+    protected function isActionCacheable(string $controllerClassName, string $actionName): bool
+    {
+        $frameworkConfiguration = $this->configurationManager->getConfiguration(
+            ConfigurationManagerInterface::CONFIGURATION_TYPE_FRAMEWORK
+        );
+
+        $nonCacheableActions = $frameworkConfiguration['controllerConfiguration'][$controllerClassName]['nonCacheableActions'] ?? null;
+
+        if (!is_array($nonCacheableActions)) {
+            return true;
+        }
+
+        return !in_array($actionName, $frameworkConfiguration['controllerConfiguration'][$controllerClassName]['nonCacheableActions'], true);
     }
 }

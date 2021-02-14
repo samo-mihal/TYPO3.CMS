@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Extbase\Property\TypeConverter;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,12 +15,17 @@ namespace TYPO3\CMS\Extbase\Property\TypeConverter;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Property\TypeConverter;
+
+use TYPO3\CMS\Core\Resource\ResourceInterface;
+use TYPO3\CMS\Extbase\Domain\Model\File;
+
 /**
  * Converter which transforms simple types to \TYPO3\CMS\Extbase\Domain\Model\File.
  *
  * @internal experimental! This class is experimental and subject to change!
  */
-class FileConverter extends \TYPO3\CMS\Extbase\Property\TypeConverter\AbstractFileFolderConverter
+class FileConverter extends AbstractFileFolderConverter
 {
     /**
      * @var string[]
@@ -31,7 +35,7 @@ class FileConverter extends \TYPO3\CMS\Extbase\Property\TypeConverter\AbstractFi
     /**
      * @var string
      */
-    protected $targetType = \TYPO3\CMS\Extbase\Domain\Model\File::class;
+    protected $targetType = File::class;
 
     /**
      * @var string
@@ -42,7 +46,7 @@ class FileConverter extends \TYPO3\CMS\Extbase\Property\TypeConverter\AbstractFi
      * @param string|int $source
      * @return \TYPO3\CMS\Core\Resource\FileInterface|\TYPO3\CMS\Core\Resource\Folder|null
      */
-    protected function getOriginalResource($source): ?\TYPO3\CMS\Core\Resource\ResourceInterface
+    protected function getOriginalResource($source): ?ResourceInterface
     {
         return $this->fileFactory->retrieveFileOrFolderObject($source);
     }

@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Extbase\SignalSlot;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Extbase\SignalSlot;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Extbase\SignalSlot;
 
 use Psr\Log\LoggerInterface;
 use TYPO3\CMS\Backend\Authentication\Event\SwitchUserEvent;
@@ -35,6 +36,10 @@ use TYPO3\CMS\Core\DataHandling\Event\AppendLinkHandlerElementsEvent;
 use TYPO3\CMS\Core\DataHandling\Event\IsTableExcludedFromReferenceIndexEvent;
 use TYPO3\CMS\Core\Imaging\Event\ModifyIconForResourcePropertiesEvent;
 use TYPO3\CMS\Core\Imaging\IconFactory;
+use TYPO3\CMS\Core\Package\Event\AfterPackageActivationEvent;
+use TYPO3\CMS\Core\Package\Event\AfterPackageDeactivationEvent;
+use TYPO3\CMS\Core\Package\Event\BeforePackageActivationEvent;
+use TYPO3\CMS\Core\Package\Event\PackagesMayHaveChangedEvent;
 use TYPO3\CMS\Core\Resource\Event\AfterFileAddedEvent;
 use TYPO3\CMS\Core\Resource\Event\AfterFileAddedToIndexEvent;
 use TYPO3\CMS\Core\Resource\Event\AfterFileContentsSetEvent;
@@ -82,17 +87,42 @@ use TYPO3\CMS\Core\Resource\ResourceFactoryInterface;
 use TYPO3\CMS\Core\Resource\ResourceStorage;
 use TYPO3\CMS\Core\Resource\ResourceStorageInterface;
 use TYPO3\CMS\Core\Resource\Service\FileProcessingService;
+use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Core\Tree\Event\ModifyTreeDataEvent;
 use TYPO3\CMS\Core\Tree\TableConfiguration\DatabaseTreeDataProvider;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
+use TYPO3\CMS\Extbase\Event\Mvc\AfterRequestDispatchedEvent;
+use TYPO3\CMS\Extbase\Event\Mvc\BeforeActionCallEvent;
+use TYPO3\CMS\Extbase\Event\Persistence\AfterObjectThawedEvent;
+use TYPO3\CMS\Extbase\Event\Persistence\EntityAddedToPersistenceEvent;
+use TYPO3\CMS\Extbase\Event\Persistence\EntityFinalizedAfterPersistenceEvent;
+use TYPO3\CMS\Extbase\Event\Persistence\EntityPersistedEvent;
+use TYPO3\CMS\Extbase\Event\Persistence\EntityRemovedFromPersistenceEvent;
+use TYPO3\CMS\Extbase\Event\Persistence\EntityUpdatedInPersistenceEvent;
+use TYPO3\CMS\Extbase\Event\Persistence\ModifyQueryBeforeFetchingObjectDataEvent;
+use TYPO3\CMS\Extbase\Event\Persistence\ModifyResultAfterFetchingObjectDataEvent;
+use TYPO3\CMS\Extbase\Mvc\Controller\ActionController;
 use TYPO3\CMS\Extbase\Object\ObjectManagerInterface;
+use TYPO3\CMS\Extbase\Persistence\Generic\Backend;
+use TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapper;
+use TYPO3\CMS\Extbase\SignalSlot\Exception\InvalidSlotException;
+use TYPO3\CMS\Extbase\SignalSlot\Exception\InvalidSlotReturnException;
+use TYPO3\CMS\Extensionmanager\Event\AfterExtensionDatabaseContentHasBeenImportedEvent;
+use TYPO3\CMS\Extensionmanager\Event\AfterExtensionFilesHaveBeenImportedEvent;
+use TYPO3\CMS\Extensionmanager\Event\AfterExtensionStaticDatabaseContentHasBeenImportedEvent;
+use TYPO3\CMS\Extensionmanager\Event\AvailableActionsForExtensionEvent;
+use TYPO3\CMS\Extensionmanager\Service\ExtensionManagementService;
+use TYPO3\CMS\Extensionmanager\Utility\InstallUtility;
+use TYPO3\CMS\Extensionmanager\ViewHelpers\ProcessAvailableActionsViewHelper;
 
 /**
  * A dispatcher which dispatches signals by calling its registered slot methods
  * and passing them the method arguments which were originally passed to the
  * signal method.
+ *
+ * @deprecated will be removed in TYPO3 v12.0. Use PSR-14 based events and EventDispatcherInterface instead.
  */
-class Dispatcher implements \TYPO3\CMS\Core\SingletonInterface
+class Dispatcher implements SingletonInterface
 {
     /**
      * @var ObjectManagerInterface
@@ -113,6 +143,9 @@ class Dispatcher implements \TYPO3\CMS\Core\SingletonInterface
      */
     protected $logger;
 
+    /**
+     * @var string[][]
+     */
     protected $deprecatedSlots = [
         FileIndexRepository::class => [
             'recordUpdated' => AfterFileUpdatedInIndexEvent::class,
@@ -196,6 +229,24 @@ class Dispatcher implements \TYPO3\CMS\Core\SingletonInterface
         UsernamePasswordLoginProvider::class => [
             'getPageRenderer' => ModifyPageLayoutOnLoginProviderSelectionEvent::class
         ],
+        \TYPO3\CMS\Extbase\Mvc\Dispatcher::class => [
+          'afterRequestDispatch' => AfterRequestDispatchedEvent::class
+        ],
+        ActionController::class => [
+            'beforeCallActionMethod' => BeforeActionCallEvent::class
+        ],
+        DataMapper::class => [
+            'afterMappingSingleRow' => AfterObjectThawedEvent::class
+        ],
+        Backend::class => [
+            'beforeGettingObjectData' => ModifyQueryBeforeFetchingObjectDataEvent::class,
+            'afterGettingObjectData' => ModifyResultAfterFetchingObjectDataEvent::class,
+            'endInsertObject' => EntityFinalizedAfterPersistenceEvent::class,
+            'afterInsertObject' => EntityAddedToPersistenceEvent::class,
+            'afterUpdateObject' => EntityUpdatedInPersistenceEvent::class,
+            'afterPersistObject' => EntityPersistedEvent::class,
+            'afterRemoveObject' => EntityRemovedFromPersistenceEvent::class
+        ],
         // Strings are used here on purpose for all non-required system extensions. Do not change to
         // Fqn::class *unless* you also declare each and every extension whose classes are listed
         // here as explicit and mandatory dependencies of EXT:extbase.
@@ -219,6 +270,22 @@ class Dispatcher implements \TYPO3\CMS\Core\SingletonInterface
             'generateDataArray.postProcess' => 'TYPO3\\CMS\\Workspaces\\Event\\AfterDataGeneratedForWorkspaceEvent',
             'getDataArray.postProcess' => 'TYPO3\\CMS\\Workspaces\\Event\\GetVersionedDataEvent',
             'sortDataArray.postProcess' => 'TYPO3\\CMS\\Workspaces\\Event\\SortVersionedDataEvent',
+        ],
+        'PackageManagement' => [
+            'packagesMayHaveChanged' => PackagesMayHaveChangedEvent::class,
+        ],
+        InstallUtility::class => [
+            'afterExtensionInstall' => AfterPackageActivationEvent::class,
+            'afterExtensionUninstall' => AfterPackageDeactivationEvent::class,
+            'afterExtensionT3DImport' => AfterExtensionDatabaseContentHasBeenImportedEvent::class,
+            'afterExtensionStaticSqlImport' => AfterExtensionStaticDatabaseContentHasBeenImportedEvent::class,
+            'afterExtensionFileImport' => AfterExtensionFilesHaveBeenImportedEvent::class,
+        ],
+        ExtensionManagementService::class => [
+            'willInstallExtensions' => BeforePackageActivationEvent::class
+        ],
+        ProcessAvailableActionsViewHelper::class => [
+            'processActions' => AvailableActionsForExtensionEvent::class
         ]
     ];
 
@@ -297,14 +364,17 @@ class Dispatcher implements \TYPO3\CMS\Core\SingletonInterface
             if (isset($slotInformation['object'])) {
                 $object = $slotInformation['object'];
             } else {
-                if (!$this->objectManager->isRegistered($slotInformation['class'])) {
-                    throw new Exception\InvalidSlotException('The given class "' . $slotInformation['class'] . '" is not a registered object.', 1245673367);
+                if (!class_exists($slotInformation['class'])) {
+                    throw new InvalidSlotException('The given class "' . $slotInformation['class'] . '" is not a registered object.', 1245673367);
                 }
                 $object = $this->objectManager->get($slotInformation['class']);
             }
 
-            if (!method_exists($object, $slotInformation['method'])) {
-                throw new Exception\InvalidSlotException('The slot method ' . get_class($object) . '->' . $slotInformation['method'] . '() does not exist.', 1245673368);
+            $method = (string)($slotInformation['method'] ?? '');
+            $callable = [$object, $method];
+
+            if (!is_object($object) || !is_callable($callable)) {
+                throw new InvalidSlotException('The slot method ' . get_class($object) . '->' . $method . '() does not exist.', 1245673368);
             }
 
             $preparedSlotArguments = $signalArguments;
@@ -312,15 +382,15 @@ class Dispatcher implements \TYPO3\CMS\Core\SingletonInterface
                 $preparedSlotArguments[] = $signalClassName . '::' . $signalName;
             }
 
-            $slotReturn = call_user_func_array([$object, $slotInformation['method']], $preparedSlotArguments);
+            $slotReturn = call_user_func_array($callable, $preparedSlotArguments);
 
             if ($slotReturn) {
                 if (!is_array($slotReturn)) {
-                    throw new Exception\InvalidSlotReturnException('The slot method ' . get_class($object) . '->' . $slotInformation['method'] . '()\'s return value is of an not allowed type ('
+                    throw new InvalidSlotReturnException('The slot method ' . get_class($object) . '->' . $method . '()\'s return value is of an not allowed type ('
                         . gettype($slotReturn) . ').', 1376683067);
                 }
                 if (count($slotReturn) !== count($signalArguments)) {
-                    throw new Exception\InvalidSlotReturnException('The slot method ' . get_class($object) . '->' . $slotInformation['method'] . '() returned a different number ('
+                    throw new InvalidSlotReturnException('The slot method ' . get_class($object) . '->' . $method . '() returned a different number ('
                         . count($slotReturn) . ') of arguments, than it received (' . count($signalArguments) . ').', 1376683066);
                 }
                 $signalArguments = $slotReturn;

@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Unit\Configuration\TypoScript\ConditionMatching;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,11 +15,14 @@ namespace TYPO3\CMS\Core\Tests\Unit\Configuration\TypoScript\ConditionMatching;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\Configuration\TypoScript\ConditionMatching;
+
 use Prophecy\Argument;
 use Psr\Log\NullLogger;
 use TYPO3\CMS\Backend\Configuration\TypoScript\ConditionMatching\ConditionMatcher;
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
+use TYPO3\CMS\Core\Cache\Frontend\PhpFrontend;
 use TYPO3\CMS\Core\Configuration\TypoScript\ConditionMatching\AbstractConditionMatcher;
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Context\DateTimeAspect;
@@ -58,12 +61,14 @@ class AbstractConditionMatcherTest extends UnitTestCase
 
         $this->resetSingletonInstances = true;
         $GLOBALS['TYPO3_REQUEST'] = new ServerRequest();
+        $coreCacheProphecy = $this->prophesize(PhpFrontend::class);
+        $coreCacheProphecy->require(Argument::any())->willReturn(false);
+        $coreCacheProphecy->set(Argument::any(), Argument::any())->willReturn(null);
         $cacheFrontendProphecy = $this->prophesize(FrontendInterface::class);
-        $cacheFrontendProphecy->has(Argument::any())->willReturn(false);
         $cacheFrontendProphecy->set(Argument::any(), Argument::any())->willReturn(null);
         $cacheFrontendProphecy->get('backendUtilityBeGetRootLine')->willReturn([]);
         $cacheManagerProphecy = $this->prophesize(CacheManager::class);
-        $cacheManagerProphecy->getCache('core')->willReturn($cacheFrontendProphecy->reveal());
+        $cacheManagerProphecy->getCache('core')->willReturn($coreCacheProphecy->reveal());
         $cacheManagerProphecy->getCache('runtime')->willReturn($cacheFrontendProphecy->reveal());
         GeneralUtility::setSingletonInstance(CacheManager::class, $cacheManagerProphecy->reveal());
 

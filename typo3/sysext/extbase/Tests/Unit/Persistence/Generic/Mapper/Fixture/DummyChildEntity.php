@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Extbase\Tests\Unit\Persistence\Generic\Mapper\Fixture;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,9 +15,13 @@ namespace TYPO3\CMS\Extbase\Tests\Unit\Persistence\Generic\Mapper\Fixture;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Tests\Unit\Persistence\Generic\Mapper\Fixture;
+
+use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
+
 /**
  * Fixture
  */
-class DummyChildEntity extends \TYPO3\CMS\Extbase\DomainObject\AbstractEntity
+class DummyChildEntity extends AbstractEntity
 {
 }

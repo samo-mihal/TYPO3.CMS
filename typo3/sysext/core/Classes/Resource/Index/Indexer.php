@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Resource\Index;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Resource\Index;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Resource\Index;
 
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
@@ -70,7 +71,7 @@ class Indexer implements LoggerAwareInterface
      */
     public function createIndexEntry($identifier): File
     {
-        if (!isset($identifier) || !is_string($identifier) || $identifier === '') {
+        if (!is_string($identifier) || $identifier === '') {
             throw new \InvalidArgumentException(
                 'Invalid file identifier given. It must be of type string and not empty. "' . gettype($identifier) . '" given.',
                 1401732565
@@ -270,6 +271,8 @@ class Indexer implements LoggerAwareInterface
                 }
             } catch (InvalidHashException $e) {
                 $this->logger->error('Unable to create hash for file ' . $identifier);
+            } catch (\Exception $e) {
+                $this->logger->error('Unable to index / update file with identifier ' . $identifier . ' (Error: ' . $e->getMessage() . ')');
             }
         }
     }
@@ -287,7 +290,7 @@ class Indexer implements LoggerAwareInterface
 
         // since the core desperately needs image sizes in metadata table do this manually
         // prevent doing this for remote storages, remote storages must provide the data with extractors
-        if ($fileObject->getType() === File::FILETYPE_IMAGE && $this->storage->getDriverType() === 'Local') {
+        if ($fileObject->isImage() && $this->storage->getDriverType() === 'Local') {
             $rawFileLocation = $fileObject->getForLocalProcessing(false);
             $imageInfo = GeneralUtility::makeInstance(ImageInfo::class, $rawFileLocation);
             $metaData = [
@@ -329,7 +332,7 @@ class Indexer implements LoggerAwareInterface
      */
     protected function getFileType($mimeType)
     {
-        list($fileType) = explode('/', $mimeType);
+        [$fileType] = explode('/', $mimeType);
         switch (strtolower($fileType)) {
             case 'text':
                 $type = File::FILETYPE_TEXT;
@@ -412,7 +415,7 @@ class Indexer implements LoggerAwareInterface
      */
     protected function getResourceFactory()
     {
-        return ResourceFactory::getInstance();
+        return GeneralUtility::makeInstance(ResourceFactory::class);
     }
 
     /**

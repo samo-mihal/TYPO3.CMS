@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Filelist\ContextMenu\ItemProviders;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,9 @@ namespace TYPO3\CMS\Filelist\ContextMenu\ItemProviders;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Filelist\ContextMenu\ItemProviders;
+
+use TYPO3\CMS\Backend\ContextMenu\ItemProviders\AbstractProvider;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\Folder;
@@ -25,7 +28,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 /**
  * Provides click menu items for files and folders
  */
-class FileProvider extends \TYPO3\CMS\Backend\ContextMenu\ItemProviders\AbstractProvider
+class FileProvider extends AbstractProvider
 {
     /**
      * @var File|Folder
@@ -113,7 +116,7 @@ class FileProvider extends \TYPO3\CMS\Backend\ContextMenu\ItemProviders\Abstract
     protected function initialize()
     {
         parent::initialize();
-        $fileObject = ResourceFactory::getInstance()
+        $fileObject = GeneralUtility::makeInstance(ResourceFactory::class)
                 ->retrieveFileOrFolderObject($this->identifier);
         $this->record = $fileObject;
     }
@@ -182,7 +185,7 @@ class FileProvider extends \TYPO3\CMS\Backend\ContextMenu\ItemProviders\Abstract
     {
         return $this->isFile()
            && $this->record->checkActionPermission('write')
-           && GeneralUtility::inList($GLOBALS['TYPO3_CONF_VARS']['SYS']['textfile_ext'], $this->record->getExtension());
+           && $this->record->isTextFile();
     }
 
     /**
@@ -243,7 +246,7 @@ class FileProvider extends \TYPO3\CMS\Backend\ContextMenu\ItemProviders\Abstract
             return false;
         }
         $selItem = reset($elArr);
-        $fileOrFolderInClipBoard = ResourceFactory::getInstance()->retrieveFileOrFolderObject($selItem);
+        $fileOrFolderInClipBoard = GeneralUtility::makeInstance(ResourceFactory::class)->retrieveFileOrFolderObject($selItem);
 
         return $this->isFolder()
             && $this->record->checkActionPermission('write')
@@ -258,7 +261,7 @@ class FileProvider extends \TYPO3\CMS\Backend\ContextMenu\ItemProviders\Abstract
      * Checks if folder and record are in the same filemount
      * Cannot copy folders between filemounts
      *
-     * @param  File|Folder $fileOrFolderInClipBoard
+     * @param File|Folder|null $fileOrFolderInClipBoard
      * @return bool
      */
     protected function isFoldersAreInTheSameRoot($fileOrFolderInClipBoard): bool
@@ -341,7 +344,7 @@ class FileProvider extends \TYPO3\CMS\Backend\ContextMenu\ItemProviders\Abstract
             } else {
                 $confirmMessage .= BackendUtility::referenceCount(
                     'sys_file',
-                    $this->record->getUid(),
+                    (string)$this->record->getUid(),
                     ' ' . $this->languageService->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.referencesToFile')
                 );
             }
@@ -357,7 +360,7 @@ class FileProvider extends \TYPO3\CMS\Backend\ContextMenu\ItemProviders\Abstract
         if ($itemName === 'pasteInto' && $this->backendUser->jsConfirmation(JsConfirmation::COPY_MOVE_PASTE)) {
             $elArr = $this->clipboard->elFromTable('_FILE');
             $selItem = reset($elArr);
-            $fileOrFolderInClipBoard = ResourceFactory::getInstance()->retrieveFileOrFolderObject($selItem);
+            $fileOrFolderInClipBoard = GeneralUtility::makeInstance(ResourceFactory::class)->retrieveFileOrFolderObject($selItem);
 
             $title = $this->languageService->sL('LLL:EXT:core/Resources/Private/Language/locallang_mod_web_list.xlf:clip_paste');
 

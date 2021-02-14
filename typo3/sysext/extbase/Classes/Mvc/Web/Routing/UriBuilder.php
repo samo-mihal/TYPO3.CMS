@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Extbase\Mvc\Web\Routing;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,13 +15,21 @@ namespace TYPO3\CMS\Extbase\Mvc\Web\Routing;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Mvc\Web\Routing;
+
 use TYPO3\CMS\Backend\Routing\Exception\ResourceNotFoundException;
 use TYPO3\CMS\Backend\Routing\Exception\RouteNotFoundException;
 use TYPO3\CMS\Core\Utility\ArrayUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\HttpUtility;
+use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
+use TYPO3\CMS\Extbase\DomainObject\AbstractDomainObject;
+use TYPO3\CMS\Extbase\DomainObject\AbstractValueObject;
+use TYPO3\CMS\Extbase\Mvc\Exception\InvalidArgumentValueException;
 use TYPO3\CMS\Extbase\Mvc\Request;
-use TYPO3\CMS\Extbase\Mvc\Web\Request as WebRequest;
+use TYPO3\CMS\Extbase\Persistence\Generic\LazyLoadingProxy;
+use TYPO3\CMS\Extbase\Service\EnvironmentService;
+use TYPO3\CMS\Extbase\Service\ExtensionService;
 
 /**
  * An URI Builder
@@ -109,6 +116,11 @@ class UriBuilder
     protected $targetPageType = 0;
 
     /**
+     * @var string
+     */
+    protected $language;
+
+    /**
      * @var bool
      */
     protected $noCache = false;
@@ -132,7 +144,7 @@ class UriBuilder
      * @param \TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface $configurationManager
      * @internal only to be used within Extbase, not part of TYPO3 Core API.
      */
-    public function injectConfigurationManager(\TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface $configurationManager): void
+    public function injectConfigurationManager(ConfigurationManagerInterface $configurationManager): void
     {
         $this->configurationManager = $configurationManager;
     }
@@ -141,7 +153,7 @@ class UriBuilder
      * @param \TYPO3\CMS\Extbase\Service\ExtensionService $extensionService
      * @internal only to be used within Extbase, not part of TYPO3 Core API.
      */
-    public function injectExtensionService(\TYPO3\CMS\Extbase\Service\ExtensionService $extensionService): void
+    public function injectExtensionService(ExtensionService $extensionService): void
     {
         $this->extensionService = $extensionService;
     }
@@ -150,7 +162,7 @@ class UriBuilder
      * @param \TYPO3\CMS\Extbase\Service\EnvironmentService $environmentService
      * @internal only to be used within Extbase, not part of TYPO3 Core API.
      */
-    public function injectEnvironmentService(\TYPO3\CMS\Extbase\Service\EnvironmentService $environmentService): void
+    public function injectEnvironmentService(EnvironmentService $environmentService): void
     {
         $this->environmentService = $environmentService;
     }
@@ -291,6 +303,22 @@ class UriBuilder
     {
         $this->absoluteUriScheme = $absoluteUriScheme;
         return $this;
+    }
+
+    /**
+     * Enforces a URI / link to a page to a specific language (or use "current")
+     * @param string|null $language
+     * @return UriBuilder
+     */
+    public function setLanguage(?string $language): UriBuilder
+    {
+        $this->language = $language;
+        return $this;
+    }
+
+    public function getLanguage(): ?string
+    {
+        return $this->language;
     }
 
     /**
@@ -526,6 +554,7 @@ class UriBuilder
         $this->arguments = [];
         $this->section = '';
         $this->format = '';
+        $this->language = null;
         $this->createAbsoluteUri = false;
         $this->addQueryString = false;
         $this->addQueryStringMethod = '';
@@ -577,7 +606,7 @@ class UriBuilder
             $extensionName = $this->request->getControllerExtensionName();
         }
         if ($pluginName === null && $this->environmentService->isEnvironmentInFrontendMode()) {
-            $pluginName = $this->extensionService->getPluginNameByAction($extensionName, $controllerArguments['controller'], $controllerArguments['action']);
+            $pluginName = $this->extensionService->getPluginNameByAction($extensionName, $controllerArguments['controller'], $controllerArguments['action'] ?? null);
         }
         if ($pluginName === null) {
             $pluginName = $this->request->getPluginName();
@@ -685,14 +714,14 @@ class UriBuilder
         unset($arguments['route'], $arguments['token']);
         $backendUriBuilder = GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Routing\UriBuilder::class);
         try {
-            if ($this->request instanceof WebRequest && $this->createAbsoluteUri) {
+            if ($this->createAbsoluteUri) {
                 $uri = (string)$backendUriBuilder->buildUriFromRoutePath($routeName, $arguments, \TYPO3\CMS\Backend\Routing\UriBuilder::ABSOLUTE_URL);
             } else {
                 $uri = (string)$backendUriBuilder->buildUriFromRoutePath($routeName, $arguments, \TYPO3\CMS\Backend\Routing\UriBuilder::ABSOLUTE_PATH);
             }
         } catch (ResourceNotFoundException $e) {
             try {
-                if ($this->request instanceof WebRequest && $this->createAbsoluteUri) {
+                if ($this->createAbsoluteUri) {
                     $uri = (string)$backendUriBuilder->buildUriFromRoute($routeName, $arguments, \TYPO3\CMS\Backend\Routing\UriBuilder::ABSOLUTE_URL);
                 } else {
                     $uri = (string)$backendUriBuilder->buildUriFromRoute($routeName, $arguments, \TYPO3\CMS\Backend\Routing\UriBuilder::ABSOLUTE_PATH);
@@ -761,6 +790,10 @@ class UriBuilder
                 $typolinkConfiguration['addQueryString.']['method'] = $this->addQueryStringMethod;
             }
         }
+        if ($this->language !== null) {
+            $typolinkConfiguration['language'] = $this->language;
+        }
+
         if ($this->noCache === true) {
             $typolinkConfiguration['no_cache'] = 1;
         }
@@ -785,7 +818,7 @@ class UriBuilder
     {
         foreach ($arguments as $argumentKey => $argumentValue) {
             // if we have a LazyLoadingProxy here, make sure to get the real instance for further processing
-            if ($argumentValue instanceof \TYPO3\CMS\Extbase\Persistence\Generic\LazyLoadingProxy) {
+            if ($argumentValue instanceof LazyLoadingProxy) {
                 $argumentValue = $argumentValue->_loadRealInstance();
                 // also update the value in the arguments array, because the lazyLoaded object could be
                 // hidden and thus the $argumentValue would be NULL.
@@ -794,13 +827,13 @@ class UriBuilder
             if ($argumentValue instanceof \Iterator) {
                 $argumentValue = $this->convertIteratorToArray($argumentValue);
             }
-            if ($argumentValue instanceof \TYPO3\CMS\Extbase\DomainObject\AbstractDomainObject) {
+            if ($argumentValue instanceof AbstractDomainObject) {
                 if ($argumentValue->getUid() !== null) {
                     $arguments[$argumentKey] = $argumentValue->getUid();
-                } elseif ($argumentValue instanceof \TYPO3\CMS\Extbase\DomainObject\AbstractValueObject) {
+                } elseif ($argumentValue instanceof AbstractValueObject) {
                     $arguments[$argumentKey] = $this->convertTransientObjectToArray($argumentValue);
                 } else {
-                    throw new \TYPO3\CMS\Extbase\Mvc\Exception\InvalidArgumentValueException('Could not serialize Domain Object ' . get_class($argumentValue) . '. It is neither an Entity with identity properties set, nor a Value Object.', 1260881688);
+                    throw new InvalidArgumentValueException('Could not serialize Domain Object ' . get_class($argumentValue) . '. It is neither an Entity with identity properties set, nor a Value Object.', 1260881688);
                 }
             } elseif (is_array($argumentValue)) {
                 $arguments[$argumentKey] = $this->convertDomainObjectsToIdentityArrays($argumentValue);
@@ -831,14 +864,14 @@ class UriBuilder
      * @todo Refactor this into convertDomainObjectsToIdentityArrays()
      * @internal only to be used within Extbase, not part of TYPO3 Core API.
      */
-    public function convertTransientObjectToArray(\TYPO3\CMS\Extbase\DomainObject\AbstractDomainObject $object): array
+    public function convertTransientObjectToArray(AbstractDomainObject $object): array
     {
         $result = [];
         foreach ($object->_getProperties() as $propertyName => $propertyValue) {
             if ($propertyValue instanceof \Iterator) {
                 $propertyValue = $this->convertIteratorToArray($propertyValue);
             }
-            if ($propertyValue instanceof \TYPO3\CMS\Extbase\DomainObject\AbstractDomainObject) {
+            if ($propertyValue instanceof AbstractDomainObject) {
                 if ($propertyValue->getUid() !== null) {
                     $result[$propertyName] = $propertyValue->getUid();
                 } else {

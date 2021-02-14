@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\FrontendLogin\Tests\Functional\Domain\Repository;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\FrontendLogin\Tests\Functional\Domain\Repository;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\FrontendLogin\Tests\Functional\Domain\Repository;
 
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Frontend\Authentication\FrontendUserAuthentication;
@@ -122,6 +123,10 @@ class FrontendUserRepositoryTest extends FunctionalTestCase
                     'middle_name' => '',
                     'last_name' => '',
                 ]
+            ],
+            'non existing user' => [
+                'non-existing@user.com',
+                []
             ],
         ];
     }

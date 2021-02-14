@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Persistence\Generic;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Extbase\Persistence\Generic;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Extbase\Persistence\Generic;
 
 /**
  * The property types supported by the JCR standard.
@@ -185,7 +186,7 @@ class PropertyType
     /**
      * String constant for type name as used in serialization.
      */
-    const TYPENAME_WEAKREFERENCE = \WeakReference::class;
+    const TYPENAME_WEAKREFERENCE = 'WeakReference';
 
     /**
      * String constant for type name as used in serialization.

@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Unit\Context;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\Context;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\Context;
 
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Context\Exception\AspectPropertyNotFoundException;
@@ -34,6 +36,17 @@ class UserAspectTest extends UnitTestCase
         self::assertFalse($subject->get('isLoggedIn'));
         self::assertEquals([], $subject->get('groupIds'));
         self::assertEquals([], $subject->get('groupNames'));
+    }
+
+    /**
+     * @test
+     */
+    public function alternativeGroupsAreAlwaysReturned()
+    {
+        $subject = new UserAspect(null, []);
+        self::assertEquals([], $subject->get('groupIds'));
+        $subject = new UserAspect(null, [567]);
+        self::assertEquals([567], $subject->get('groupIds'));
     }
 
     /**
@@ -66,14 +79,14 @@ class UserAspectTest extends UnitTestCase
     /**
      * @test
      */
-    public function isLoggedInReturnsFalseOnFrontendUserWithoutUserGroup()
+    public function isLoggedInReturnsTrueOnFrontendUserWithoutUserGroup()
     {
         $user = new FrontendUserAuthentication();
         $user->user = [
             'uid' => 13
         ];
         $subject = new UserAspect($user);
-        self::assertFalse($subject->isLoggedIn());
+        self::assertTrue($subject->isLoggedIn());
     }
 
     /**

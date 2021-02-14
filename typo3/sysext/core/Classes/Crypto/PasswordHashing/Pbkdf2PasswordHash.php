@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Crypto\PasswordHashing;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Crypto\PasswordHashing;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Crypto\PasswordHashing;
 
 use TYPO3\CMS\Core\Crypto\Random;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -66,7 +68,7 @@ class Pbkdf2PasswordHash implements PasswordHashInterface
      */
     public function checkPassword(string $plainPW, string $saltedHashPW): bool
     {
-        return $this->isValidSalt($saltedHashPW) && hash_equals($this->getHashedPasswordInternal($plainPW, $saltedHashPW), $saltedHashPW);
+        return $this->isValidSalt($saltedHashPW) && hash_equals((string)$this->getHashedPasswordInternal($plainPW, $saltedHashPW), $saltedHashPW);
     }
 
     /**
@@ -235,7 +237,7 @@ class Pbkdf2PasswordHash implements PasswordHashInterface
             if (!strncmp('$', $salt, 1)) {
                 if (!strncmp(self::PREFIX, $salt, strlen(self::PREFIX))) {
                     $isValid = true;
-                    $salt = substr($salt, strrpos($salt, '$') + 1);
+                    $salt = substr($salt, (int)strrpos($salt, '$') + 1);
                 } else {
                     $skip = true;
                 }

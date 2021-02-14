@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Controller\ContentElement;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Controller\ContentElement;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Controller\ContentElement;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -150,7 +151,6 @@ class ElementHistoryController
             }
         }
 
-        $this->view->assign('TYPO3_REQUEST_URI', $normalizedParams->getRequestUrl());
         $this->view->assign('editLock', $this->editLock);
 
         // Setting up the buttons and markers for docheader
@@ -220,6 +220,7 @@ class ElementHistoryController
      */
     protected function prepareDisplaySettings(ServerRequestInterface $request)
     {
+        $selector = [];
         // Get current selection from UC, merge data, write it back to UC
         $currentSelection = is_array($this->getBackendUser()->uc['moduleData']['history'])
             ? $this->getBackendUser()->uc['moduleData']['history']
@@ -273,7 +274,7 @@ class ElementHistoryController
 
         foreach ($selector as $key => $values) {
             foreach ($values as $singleKey => $singleVal) {
-                $selector[$key][$singleKey]['scriptUrl'] = htmlspecialchars(GeneralUtility::quoteJSvalue($scriptUrl . '&settings[' . $key . ']=' . $singleKey));
+                $selector[$key][$singleKey]['scriptUrl'] = $scriptUrl . '&settings[' . $key . ']=' . $singleKey;
             }
         }
         $this->view->assign('settings', $selector);
@@ -288,6 +289,7 @@ class ElementHistoryController
     protected function displayMultipleDiff(array $diff)
     {
         // Get all array keys needed
+        /** @var string[] $arrayKeys */
         $arrayKeys = array_merge(array_keys($diff['newData']), array_keys($diff['insertsDeletes']), array_keys($diff['oldData']));
         $arrayKeys = array_unique($arrayKeys);
         if (!empty($arrayKeys)) {
@@ -309,7 +311,7 @@ class ElementHistoryController
                         'newRecord' => $diff['oldData'][$key],
                         'oldRecord' => $diff['newData'][$key]
                     ];
-                    $singleLine['differences'] = $this->renderDiff($tmpArr, $elParts[0], $elParts[1]);
+                    $singleLine['differences'] = $this->renderDiff($tmpArr, $elParts[0], (int)$elParts[1]);
                 }
                 $elParts = explode(':', $key);
                 $singleLine['revertRecordUrl'] = $this->buildUrl(['rollbackFields' => $key]);
@@ -363,6 +365,7 @@ class ElementHistoryController
                 if (!$this->showDiff) {
                     // Display field names instead of full diff
                     // Re-write field names with labels
+                    /** @var string[] $tmpFieldList */
                     $tmpFieldList = array_keys($entry['newRecord']);
                     foreach ($tmpFieldList as $key => $value) {
                         $tmp = str_replace(':', '', $languageService->sL(BackendUtility::getItemLabel($entry['tablename'], $value)));
@@ -460,7 +463,7 @@ class ElementHistoryController
     {
         $title = $table . ':' . $uid;
         if (!empty($GLOBALS['TCA'][$table]['ctrl']['label'])) {
-            $record = $this->getRecord($table, $uid);
+            $record = $this->getRecord($table, (int)$uid) ?? [];
             $title .= ' (' . BackendUtility::getRecordTitle($table, $record, true) . ')';
         }
         return $title;

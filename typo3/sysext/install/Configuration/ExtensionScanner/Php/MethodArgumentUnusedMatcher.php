@@ -1,4 +1,5 @@
 <?php
+
 return [
     'TYPO3\CMS\Core\Html\RteHtmlParser->RTE_transform' => [
         'unusedArgumentNumbers' => [ 2 ],
@@ -31,13 +32,6 @@ return [
         'unusedArgumentNumbers' => [ 2 ],
         'restFiles' => [
             'Deprecation-83252-Link-tagSyntaxProcesssing.rst',
-            'Breaking-87193-DeprecatedFunctionalityRemoved.rst',
-        ],
-    ],
-    'TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController->__construct' => [
-        'unusedArgumentNumbers' => [ 4 ],
-        'restFiles' => [
-            'Deprecation-86002-TSFEConstructorWithNo_cacheArgument.rst',
             'Breaking-87193-DeprecatedFunctionalityRemoved.rst',
         ],
     ],

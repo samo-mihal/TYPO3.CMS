@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Beuser\Domain\Repository;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,17 +13,22 @@ namespace TYPO3\CMS\Beuser\Domain\Repository;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Beuser\Domain\Repository;
+
+use TYPO3\CMS\Extbase\Persistence\QueryInterface;
+use TYPO3\CMS\Extbase\Persistence\Repository;
+
 /**
  * Repository for \TYPO3\CMS\Beuser\Domain\Model\BackendUserGroup
  * @internal This class is a TYPO3 Backend implementation and is not considered part of the Public TYPO3 API.
  */
-class BackendUserGroupRepository extends \TYPO3\CMS\Extbase\Persistence\Repository
+class BackendUserGroupRepository extends Repository
 {
     /**
      * @var array Default order is by title ascending
      */
     protected $defaultOrderings = [
-        'title' => \TYPO3\CMS\Extbase\Persistence\QueryInterface::ORDER_ASCENDING
+        'title' => QueryInterface::ORDER_ASCENDING
     ];
 
     /**
@@ -37,5 +41,26 @@ class BackendUserGroupRepository extends \TYPO3\CMS\Extbase\Persistence\Reposito
         $query = parent::createQuery();
         $query->getQuerySettings()->setIgnoreEnableFields(true);
         return $query;
+    }
+
+    /**
+     * Finds Backend Usergroups on a given list of uids
+     *
+     * @param array $uidList
+     * @return array
+     */
+    public function findByUidList(array $uidList): array
+    {
+        $items = [];
+
+        foreach ($uidList as $id) {
+            $query = $this->createQuery();
+            $query->matching($query->equals('uid', $id));
+            $result = $query->execute(true);
+            if ($result) {
+                $items[] = $result[0];
+            }
+        }
+        return $items;
     }
 }

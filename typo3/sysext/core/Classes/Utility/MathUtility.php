@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Utility;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Utility;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Utility;
 
 /**
  * Class with helper functions for mathematical calculations
@@ -66,7 +67,7 @@ class MathUtility
      *
      * Note: Integer casting from objects or arrays is considered undefined and thus will return false.
      *
-     * @see http://php.net/manual/en/language.types.integer.php#language.types.integer.casting.from-other
+     * @see https://php.net/manual/en/language.types.integer.php#language.types.integer.casting.from-other
      * @param mixed $var Any input variable to test
      * @return bool Returns TRUE if string is an integer
      */
@@ -152,7 +153,7 @@ class MathUtility
                     $buffer *= $v;
                 }
                 if ($sign === '^') {
-                    $buffer = pow($buffer, $v);
+                    $buffer = $buffer ** $v;
                 }
             }
         }

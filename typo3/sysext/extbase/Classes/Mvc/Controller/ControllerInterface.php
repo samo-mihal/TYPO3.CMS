@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Mvc\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,11 @@ namespace TYPO3\CMS\Extbase\Mvc\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Mvc\Controller;
+
+use TYPO3\CMS\Extbase\Mvc\RequestInterface;
+use TYPO3\CMS\Extbase\Mvc\ResponseInterface;
+
 /**
  * Interface for controllers
  */
@@ -25,7 +29,7 @@ interface ControllerInterface
      * @param \TYPO3\CMS\Extbase\Mvc\RequestInterface $request The current request
      * @return bool TRUE if this request type is supported, otherwise FALSE
      */
-    public function canProcessRequest(\TYPO3\CMS\Extbase\Mvc\RequestInterface $request);
+    public function canProcessRequest(RequestInterface $request);
 
     /**
      * Processes a general request. The result can be returned by altering the given response.
@@ -34,5 +38,5 @@ interface ControllerInterface
      * @param \TYPO3\CMS\Extbase\Mvc\ResponseInterface $response The response, modified by the controller
      * @throws \TYPO3\CMS\Extbase\Mvc\Exception\UnsupportedRequestTypeException if the controller doesn't support the current request type
      */
-    public function processRequest(\TYPO3\CMS\Extbase\Mvc\RequestInterface $request, \TYPO3\CMS\Extbase\Mvc\ResponseInterface $response);
+    public function processRequest(RequestInterface $request, ResponseInterface $response);
 }

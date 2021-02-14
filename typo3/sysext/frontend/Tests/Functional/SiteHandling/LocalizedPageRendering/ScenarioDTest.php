@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Frontend\Tests\Functional\SiteHandling\LocalizedPageRendering;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,6 +15,8 @@ namespace TYPO3\CMS\Frontend\Tests\Functional\SiteHandling\LocalizedPageRenderin
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Frontend\Tests\Functional\SiteHandling\LocalizedPageRendering;
+
 /**
  * Scenario prerequisites:
  *   Site configuration has localizations
@@ -28,6 +29,7 @@ namespace TYPO3\CMS\Frontend\Tests\Functional\SiteHandling\LocalizedPageRenderin
  *   Home page is not localized into any language and has l18n_cfg=2 set
  *   "About" page is localized into DE and has l18n_cfg=2 set
  *   "Products" page is localized into DE-CH and has l18n_cfg=2 set
+ *   "Company" page is of type "default" in EN and of type "shortcut" in DE, redirecting to page "About"
  *
  * Scenario expectations:
  *   Calling home page in EN renders page in EN
@@ -37,6 +39,9 @@ namespace TYPO3\CMS\Frontend\Tests\Functional\SiteHandling\LocalizedPageRenderin
  *   Calling "about" page in EN renders page in EN
  *   Calling "about" page in DE renders page in DE
  *   Calling "about" page in DE-CH renders page in DE-CH
+ *
+ *   Calling "company" page in EN renders page in EN
+ *   Calling "company" page in DE redirects to page "About" in DE
  */
 class ScenarioDTest extends AbstractLocalizedPagesTestCase
 {
@@ -144,6 +149,7 @@ class ScenarioDTest extends AbstractLocalizedPagesTestCase
                     ['title' => 'EN: About us', 'link' => '/en/about-us'],
                     ['title' => 'EN: Products', 'link' => '/en/products'],
                     ['title' => 'EN: Shortcut to welcome', 'link' => '/en/hello'],
+                    ['title' => 'EN: Company', 'link' => '/en/company'],
                 ],
             ],
             [
@@ -153,12 +159,14 @@ class ScenarioDTest extends AbstractLocalizedPagesTestCase
                     ['title' => 'EN: About us', 'link' => '/en/about-us'],
                     ['title' => 'EN: Products', 'link' => '/en/products'],
                     ['title' => 'EN: Shortcut to welcome', 'link' => '/en/hello'],
+                    ['title' => 'EN: Company', 'link' => '/en/company'],
                 ],
             ],
             [
                 'url' => 'https://acme.com/de/ueber-uns',
                 'menu' => [
                     ['title' => 'DE: Über uns', 'link' => '/de/ueber-uns'],
+                    ['title' => 'DE: Unternehmen', 'link' => '/de/ueber-uns'],
                 ],
             ],
             [
@@ -166,8 +174,7 @@ class ScenarioDTest extends AbstractLocalizedPagesTestCase
                 'menu' => [
                     ['title' => 'DE-CH: Über uns', 'link' => '/de-ch/ueber-uns'],
                     ['title' => 'DE-CH: Produkte', 'link' => '/de-ch/produkte'],
-                    // FIXME: Page "EN: Shortcut to welcome" must to be rendered in menu, needs a refactored menu generation
-                    ['title' => 'EN: Shortcut to welcome', 'link' => '/de-ch/hello'],
+                    ['title' => 'EN: Shortcut to welcome', 'link' => ''],
                 ],
             ],
         ];

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\Tests\Unit\ViewHelpers\Format;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Fluid\Tests\Unit\ViewHelpers\Format;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Fluid\Tests\Unit\ViewHelpers\Format;
 
 use TYPO3\CMS\Fluid\ViewHelpers\Format\NumberViewHelper;
 use TYPO3\TestingFramework\Fluid\Unit\ViewHelpers\ViewHelperBaseTestcase;
@@ -98,5 +99,21 @@ class NumberViewHelperTest extends ViewHelperBaseTestcase
         );
         $actualResult = $this->viewHelper->initializeArgumentsAndRender();
         self::assertEquals('3,141.59', $actualResult);
+    }
+
+    /**
+     * @test
+     */
+    public function formatNumberWithEmptyInput()
+    {
+        $this->viewHelper->setRenderChildrenClosure(function () {
+            return '';
+        });
+        $this->setArgumentsUnderTest(
+            $this->viewHelper,
+            []
+        );
+        $actualResult = $this->viewHelper->initializeArgumentsAndRender();
+        self::assertEquals('0.00', $actualResult);
     }
 }

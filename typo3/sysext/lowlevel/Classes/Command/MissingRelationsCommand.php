@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Lowlevel\Command;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,11 +15,14 @@ namespace TYPO3\CMS\Lowlevel\Command;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Lowlevel\Command;
+
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use TYPO3\CMS\Backend\Command\ProgressListener\ReferenceIndexProgressListener;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Core\Bootstrap;
 use TYPO3\CMS\Core\Database\ConnectionPool;
@@ -94,6 +97,7 @@ If you want to get more detailed information, use the --verbose option.')
      *
      * @param InputInterface $input
      * @param OutputInterface $output
+     * @return int
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
@@ -172,6 +176,7 @@ If you want to get more detailed information, use the --verbose option.')
         } else {
             $io->success('Nothing to do, no missing relations found. Everything is in place.');
         }
+        return 0;
     }
 
     /**
@@ -197,8 +202,10 @@ If you want to get more detailed information, use the --verbose option.')
 
         // Update the reference index
         if ($updateReferenceIndex) {
+            $progressListener = GeneralUtility::makeInstance(ReferenceIndexProgressListener::class);
+            $progressListener->initialize($io);
             $referenceIndex = GeneralUtility::makeInstance(ReferenceIndex::class);
-            $referenceIndex->updateIndex(false, !$io->isQuiet());
+            $referenceIndex->updateIndex(false, $progressListener);
         } else {
             $io->writeln('Reference index is assumed to be up to date, continuing.');
         }

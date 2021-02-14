@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\Domain\Configuration;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Form\Domain\Configuration;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Form\Domain\Configuration;
 
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
@@ -560,7 +562,7 @@ class ConfigurationService implements SingletonInterface
 
             $formElementType = $validationDto->getFormElementType();
             if (!$this->isFormElementTypeDefinedInFormSetup($validationDto)) {
-                $message = 'Form element type "%s" does not exists in prototype configuration "%s"';
+                $message = 'Form element type "%s" does not exist in prototype configuration "%s"';
                 throw new PropertyException(
                     sprintf($message, $formElementType, $validationDto->getPrototypeName()),
                     1528633967
@@ -667,9 +669,8 @@ class ConfigurationService implements SingletonInterface
         if (isset($this->firstLevelCache[$cacheKey])) {
             return $this->firstLevelCache[$cacheKey];
         }
-        return $this->getCacheFrontend()->has('form_' . $cacheKey)
-            ? $this->getCacheFrontend()->get('form_' . $cacheKey)
-            : null;
+        $cacheValue = $this->getCacheFrontend()->get('form_' . $cacheKey);
+        return $cacheValue === false ? null : $cacheValue;
     }
 
     /**

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Utility;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Utility;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Utility;
 
 /**
  * Class with helper functions for CSV handling
@@ -39,6 +40,7 @@ class CsvUtility
             fwrite($handle, $input);
             rewind($handle);
             while (($cells = fgetcsv($handle, 0, $fieldDelimiter, $fieldEnclosure)) !== false) {
+                $cells = is_array($cells) ? $cells : [];
                 $maximumCellCount = max(count($cells), $maximumCellCount);
                 $multiArray[] = preg_replace('|<br */?>|i', LF, $cells);
             }

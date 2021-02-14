@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Form\FormDataProvider;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Form\FormDataProvider;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Form\FormDataProvider;
 
 use TYPO3\CMS\Backend\Form\FormDataProviderInterface;
 use TYPO3\CMS\Core\Localization\LanguageService;
@@ -54,7 +55,7 @@ class TcaRadioItems extends AbstractItemProvider implements FormDataProviderInte
             foreach ($items as $itemKey => $itemValue) {
                 if (!is_array($itemValue)) {
                     throw new \UnexpectedValueException(
-                        'Item ' . $itemKey . ' of field ' . $fieldName . ' of TCA table ' . $result['tableName'] . ' is no array as exepcted',
+                        'Item ' . $itemKey . ' of field ' . $fieldName . ' of TCA table ' . $result['tableName'] . ' is not an array as expected',
                         1438607163
                     );
                 }

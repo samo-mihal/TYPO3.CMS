@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Resource\Processing;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Resource\Processing;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Resource\Processing;
 
 /**
  * Abstract base implementation of a task.
@@ -68,6 +69,10 @@ abstract class AbstractGraphicalTask extends AbstractTask
         if (!empty($this->configuration['fileExtension'])) {
             $targetFileExtension = $this->configuration['fileExtension'];
         } elseif (in_array($this->getSourceFile()->getExtension(), ['jpg', 'jpeg', 'png', 'gif'], true)) {
+            $targetFileExtension = $this->getSourceFile()->getExtension();
+        } elseif (empty($this->configuration['crop'])
+            && $this->getSourceFile()->getExtension() === 'svg'
+        ) {
             $targetFileExtension = $this->getSourceFile()->getExtension();
         } elseif ($GLOBALS['TYPO3_CONF_VARS']['GFX']['thumbnails_png']) {
             // If true, thumbnails from non-processable files will be converted to 'png', otherwise 'gif'

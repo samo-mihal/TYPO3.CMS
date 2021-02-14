@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Functional\Error;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Functional\Error;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Functional\Error;
 
 use PHPUnit\Framework\MockObject\MockObject;
 use TYPO3\CMS\Core\Error\ErrorHandler;
@@ -91,7 +93,7 @@ class ErrorHandlerTest extends FunctionalTestCase
         );
         $coreErrorHandler->setLogger($logger);
 
-        $customErrorHandler = new class {
+        $customErrorHandler = new class() {
             protected $existingHandler;
 
             public function setExistingHandler($existingHandler)

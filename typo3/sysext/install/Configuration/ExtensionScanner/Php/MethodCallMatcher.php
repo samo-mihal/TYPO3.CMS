@@ -1,4 +1,5 @@
 <?php
+
 return [
     // Removed methods
     'TYPO3\CMS\Backend\Clipboard\Clipboard->confirmMsg' => [
@@ -4125,14 +4126,6 @@ return [
             'Breaking-87193-DeprecatedFunctionalityRemoved.rst'
         ],
     ],
-    'TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapper->__construct' => [
-        'numberOfMandatoryArguments' => 7,
-        'maximumNumberOfArguments' => 8,
-        'restFiles' => [
-            'Breaking-87305-UseConstructorInjectionInDataMapper.rst',
-            'Deprecation-87305-UseConstructorInjectionInDataMapper.rst',
-        ],
-    ],
     'TYPO3\CMS\Core\DataHandling\DataHandler->process_uploads' => [
         'numberOfMandatoryArguments' => 1,
         'maximumNumberOfArguments' => 1,
@@ -4287,88 +4280,138 @@ return [
             'Deprecation-89127-CleanupRecordHistoryHandling.rst',
         ],
     ],
-    'TYPO3\CMS\Extbase\Mvc\Controller\AbstractController->getControllerContext' => [
+    'TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController->reqCHash' => [
         'numberOfMandatoryArguments' => 0,
         'maximumNumberOfArguments' => 0,
         'restFiles' => [
-            'Deprecation-89554-DeprecateTYPO3CMSExtbaseMvcControllerAbstractController.rst',
+            'Deprecation-89868-RemoveReqCHashFunctionalityForPlugins.rst',
         ],
     ],
-    'TYPO3\CMS\Extbase\Mvc\Controller\AbstractController->addFlashMessage' => [
-        'numberOfMandatoryArguments' => 1,
-        'maximumNumberOfArguments' => 4,
-        'restFiles' => [
-            'Deprecation-89554-DeprecateTYPO3CMSExtbaseMvcControllerAbstractController.rst',
-        ],
-    ],
-    'TYPO3\CMS\Extbase\Mvc\Controller\AbstractController->canProcessRequest' => [
-        'numberOfMandatoryArguments' => 1,
-        'maximumNumberOfArguments' => 1,
-        'restFiles' => [
-            'Deprecation-89554-DeprecateTYPO3CMSExtbaseMvcControllerAbstractController.rst',
-        ],
-    ],
-    'TYPO3\CMS\Extbase\Mvc\Controller\AbstractController->processRequest' => [
+    'TYPO3\CMS\Core\DataHandling\DataHandler->setTSconfigPermissions' => [
         'numberOfMandatoryArguments' => 2,
         'maximumNumberOfArguments' => 2,
         'restFiles' => [
-            'Deprecation-89554-DeprecateTYPO3CMSExtbaseMvcControllerAbstractController.rst',
+            'Deprecation-90019-PagePermissionLogicByDataHandler.rst',
         ],
     ],
-    'TYPO3\CMS\Extbase\Mvc\Controller\AbstractController->buildControllerContext' => [
-        'numberOfMandatoryArguments' => 0,
-        'maximumNumberOfArguments' => 0,
-        'restFiles' => [
-            'Deprecation-89554-DeprecateTYPO3CMSExtbaseMvcControllerAbstractController.rst',
-        ],
-    ],
-    'TYPO3\CMS\Extbase\Mvc\Controller\AbstractController->forward' => [
-        'numberOfMandatoryArguments' => 1,
-        'maximumNumberOfArguments' => 4,
-        'restFiles' => [
-            'Deprecation-89554-DeprecateTYPO3CMSExtbaseMvcControllerAbstractController.rst',
-        ],
-    ],
-    'TYPO3\CMS\Extbase\Mvc\Controller\AbstractController->redirect' => [
-        'numberOfMandatoryArguments' => 1,
-        'maximumNumberOfArguments' => 7,
-        'restFiles' => [
-            'Deprecation-89554-DeprecateTYPO3CMSExtbaseMvcControllerAbstractController.rst',
-        ],
-    ],
-    'TYPO3\CMS\Extbase\Mvc\Controller\AbstractController->redirectToUri' => [
-        'numberOfMandatoryArguments' => 1,
-        'maximumNumberOfArguments' => 3,
-        'restFiles' => [
-            'Deprecation-89554-DeprecateTYPO3CMSExtbaseMvcControllerAbstractController.rst',
-        ],
-    ],
-    'TYPO3\CMS\Extbase\Mvc\Controller\AbstractController->addBaseUriIfNecessary' => [
+    'TYPO3\CMS\Core\DataHandling\DataHandler->assemblePermissions' => [
         'numberOfMandatoryArguments' => 1,
         'maximumNumberOfArguments' => 1,
         'restFiles' => [
-            'Deprecation-89554-DeprecateTYPO3CMSExtbaseMvcControllerAbstractController.rst',
+            'Deprecation-90019-PagePermissionLogicByDataHandler.rst',
         ],
     ],
-    'TYPO3\CMS\Extbase\Mvc\Controller\AbstractController->throwStatus' => [
+    'TYPO3\CMS\Core\Utility\File\BasicFileUtility->setFileExtensionPermissions' => [
+        'numberOfMandatoryArguments' => 2,
+        'maximumNumberOfArguments' => 2,
+        'restFiles' => [
+            'Important-90020-LegacyBasicFileUtilityAndExtendedFileUtilityClassesMarkedAsInternal.rst',
+        ],
+    ],
+    'TYPO3\CMS\Extbase\Mvc\Controller\ActionController->emitBeforeCallActionMethodSignal' => [
         'numberOfMandatoryArguments' => 1,
+        'maximumNumberOfArguments' => 1,
+        'restFiles' => [
+            'Deprecation-89870-NewPSR-14EventsForExtbase-relatedSignals.rst',
+        ],
+    ],
+    'TYPO3\CMS\Core\Html\RteHtmlParser->init' => [
+        'numberOfMandatoryArguments' => 0,
+        'maximumNumberOfArguments' => 2,
+        'restFiles' => [
+            'Deprecation-90258-SimplifiedRTEParserAPI.rst',
+        ],
+    ],
+    'TYPO3\CMS\Core\Html\RteHtmlParser->RTE_transform' => [
+        'numberOfMandatoryArguments' => 1,
+        'maximumNumberOfArguments' => 4,
+        'restFiles' => [
+            'Deprecation-90258-SimplifiedRTEParserAPI.rst',
+        ],
+    ],
+    'TYPO3\CMS\Core\Console\CommandRegistry->getIterator' => [
+        'numberOfMandatoryArguments' => 0,
+        'maximumNumberOfArguments' => 0,
+        'restFiles' => [
+            'Feature-89139-AddDependencyInjectionSupportForConsoleCommands.rst',
+            'Deprecation-89139-ConsoleCommandsConfigurationFormatCommandsPhp.rst',
+        ],
+    ],
+    'TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer->cImage' => [
+        'numberOfMandatoryArguments' => 2,
+        'maximumNumberOfArguments' => 2,
+        'restFiles' => [
+            'Deprecation-90861-Image-relatedMethodsWithinContentObjectRenderer.rst',
+        ],
+    ],
+    'TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer->getBorderAttr' => [
+        'numberOfMandatoryArguments' => 1,
+        'maximumNumberOfArguments' => 1,
+        'restFiles' => [
+            'Deprecation-90861-Image-relatedMethodsWithinContentObjectRenderer.rst',
+        ],
+    ],
+    'TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer->getImageTagTemplate' => [
+        'numberOfMandatoryArguments' => 2,
+        'maximumNumberOfArguments' => 2,
+        'restFiles' => [
+            'Deprecation-90861-Image-relatedMethodsWithinContentObjectRenderer.rst',
+        ],
+    ],
+    'TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer->getImageSourceCollection' => [
+        'numberOfMandatoryArguments' => 3,
         'maximumNumberOfArguments' => 3,
         'restFiles' => [
-            'Deprecation-89554-DeprecateTYPO3CMSExtbaseMvcControllerAbstractController.rst',
+            'Deprecation-90861-Image-relatedMethodsWithinContentObjectRenderer.rst',
         ],
     ],
-    'TYPO3\CMS\Extbase\Mvc\Controller\AbstractController->initializeControllerArgumentsBaseValidators' => [
+    'TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer->linkWrap' => [
+        'numberOfMandatoryArguments' => 2,
+        'maximumNumberOfArguments' => 2,
+        'restFiles' => [
+            'Deprecation-90861-Image-relatedMethodsWithinContentObjectRenderer.rst',
+        ],
+    ],
+    'TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer->getAltParam' => [
+        'numberOfMandatoryArguments' => 1,
+        'maximumNumberOfArguments' => 2,
+        'restFiles' => [
+            'Deprecation-90861-Image-relatedMethodsWithinContentObjectRenderer.rst',
+        ],
+    ],
+    'TYPO3\CMS\Core\Localization\LanguageService->getLabelsWithPrefix' => [
+        'numberOfMandatoryArguments' => 1,
+        'maximumNumberOfArguments' => 2,
+        'restFiles' => [
+            'Deprecation-90964-LanguageServiceFunctionalityAndInternalProperties.rst',
+        ],
+    ],
+    'TYPO3\CMS\Core\Localization\LanguageService->getLLL' => [
+        'numberOfMandatoryArguments' => 2,
+        'maximumNumberOfArguments' => 2,
+        'restFiles' => [
+            'Deprecation-90964-LanguageServiceFunctionalityAndInternalProperties.rst',
+        ],
+    ],
+    'TYPO3\CMS\Core\Localization\LanguageService->debugLL' => [
+        'numberOfMandatoryArguments' => 1,
+        'maximumNumberOfArguments' => 1,
+        'restFiles' => [
+            'Deprecation-90964-LanguageServiceFunctionalityAndInternalProperties.rst',
+        ],
+    ],
+    'TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController->isOutputting' => [
         'numberOfMandatoryArguments' => 0,
         'maximumNumberOfArguments' => 0,
         'restFiles' => [
-            'Deprecation-89554-DeprecateTYPO3CMSExtbaseMvcControllerAbstractController.rst',
+            'Deprecation-91012-VariousHooksRelatedToTypoScriptFrontendController.rst',
         ],
     ],
-    'TYPO3\CMS\Extbase\Mvc\Controller\AbstractController->mapRequestArgumentsToControllerArguments' => [
+    'TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController->processContentForOutput' => [
         'numberOfMandatoryArguments' => 0,
         'maximumNumberOfArguments' => 0,
         'restFiles' => [
-            'Deprecation-89554-DeprecateTYPO3CMSExtbaseMvcControllerAbstractController.rst',
+            'Deprecation-91012-VariousHooksRelatedToTypoScriptFrontendController.rst',
         ],
     ],
 ];

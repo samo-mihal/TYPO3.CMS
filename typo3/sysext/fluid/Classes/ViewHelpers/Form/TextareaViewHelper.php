@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\ViewHelpers\Form;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Fluid\ViewHelpers\Form;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Fluid\ViewHelpers\Form;
 
 /**
  * Generates an :html:`<textarea>`.
@@ -30,7 +31,7 @@ namespace TYPO3\CMS\Fluid\ViewHelpers\Form;
  *
  *    <textarea name="myTextArea">This is shown inside the textarea</textarea>
  */
-class TextareaViewHelper extends \TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormFieldViewHelper
+class TextareaViewHelper extends AbstractFormFieldViewHelper
 {
     /**
      * @var string

@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Functional\Authentication;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,14 +14,18 @@ namespace TYPO3\CMS\Core\Tests\Functional\Authentication;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Functional\Authentication;
+
 use Psr\Log\NullLogger;
 use TYPO3\CMS\Core\Authentication\AuthenticationService;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
+use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
 /**
  * Testcase for class \TYPO3\CMS\Core\Authentication\AuthenticationService
  */
-class AuthenticationServiceTest extends \TYPO3\TestingFramework\Core\Functional\FunctionalTestCase
+class AuthenticationServiceTest extends FunctionalTestCase
 {
     /**
      * @var AuthenticationService

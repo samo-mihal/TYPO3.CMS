@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Filelist\Controller\File;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,8 +15,11 @@ namespace TYPO3\CMS\Filelist\Controller\File;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Filelist\Controller\File;
+
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Core\Http\HtmlResponse;
 use TYPO3\CMS\Core\Imaging\Icon;
@@ -93,7 +96,7 @@ class FileUploadController
         $queryParams = $request->getQueryParams();
 
         /** @var \TYPO3\CMS\Backend\Routing\UriBuilder $uriBuilder */
-        $uriBuilder = GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Routing\UriBuilder::class);
+        $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
         // Initialize GPvars:
         $this->target = $parsedBody['target'] ?? $queryParams['target'] ?? null;
         $this->returnUrl = GeneralUtility::sanitizeLocalUrl($parsedBody['returnUrl'] ?? $queryParams['returnUrl'] ?? '');
@@ -104,7 +107,7 @@ class FileUploadController
         }
         // Create the folder object
         if ($this->target) {
-            $this->folderObject = ResourceFactory::getInstance()
+            $this->folderObject = GeneralUtility::makeInstance(ResourceFactory::class)
                 ->retrieveFileOrFolderObject($this->target);
         }
         if ($this->folderObject->getStorage()->getUid() === 0) {
@@ -138,7 +141,7 @@ class FileUploadController
     {
         $lang = $this->getLanguageService();
         /** @var \TYPO3\CMS\Backend\Routing\UriBuilder $uriBuilder */
-        $uriBuilder = GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Routing\UriBuilder::class);
+        $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
 
         // set page title
         $this->moduleTemplate->setTitle($lang->sL('LLL:EXT:filelist/Resources/Private/Language/locallang.xlf:file_upload.php.pagetitle'));

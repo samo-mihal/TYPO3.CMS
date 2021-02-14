@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Controller\Wizard;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Controller\Wizard;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Controller\Wizard;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -60,6 +61,14 @@ class SuggestWizardController
             // Normal columns field
             $fieldConfig = $GLOBALS['TCA'][$tableName]['columns'][$fieldName]['config'];
             $fieldNameInPageTsConfig = $fieldName;
+
+            // With possible columnsOverrides
+            $row = BackendUtility::getRecord($tableName, $uid) ?? [];
+            $recordType = BackendUtility::getTCAtypeValue($tableName, $row);
+            $columnsOverridesConfigOfField = $GLOBALS['TCA'][$tableName]['types'][$recordType]['columnsOverrides'][$fieldName]['config'] ?? null;
+            if ($columnsOverridesConfigOfField) {
+                ArrayUtility::mergeRecursiveWithOverrule($fieldConfig, $columnsOverridesConfigOfField);
+            }
         } else {
             // A flex flex form field
             $flexFormTools = GeneralUtility::makeInstance(FlexFormTools::class);

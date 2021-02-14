@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Property;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Extbase\Property;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Extbase\Property;
 
 /**
  * Concrete configuration object for the PropertyMapper.
@@ -313,7 +314,7 @@ class PropertyMappingConfiguration implements PropertyMappingConfigurationInterf
     protected function getTypeConvertersWithParentClasses($typeConverter)
     {
         $typeConverterClasses = class_parents($typeConverter);
-        $typeConverterClasses = $typeConverterClasses === false ? [] : $typeConverterClasses;
+        $typeConverterClasses = $typeConverterClasses ?: [];
         $typeConverterClasses[] = $typeConverter;
         return $typeConverterClasses;
     }
@@ -350,7 +351,7 @@ class PropertyMappingConfiguration implements PropertyMappingConfigurationInterf
             if (isset($this->subConfigurationForProperty[self::PROPERTY_PATH_PLACEHOLDER])) {
                 $this->subConfigurationForProperty[$currentProperty] = clone $this->subConfigurationForProperty[self::PROPERTY_PATH_PLACEHOLDER];
             } else {
-                $this->subConfigurationForProperty[$currentProperty] = new $type;
+                $this->subConfigurationForProperty[$currentProperty] = new $type();
             }
         }
         return $this->subConfigurationForProperty[$currentProperty]->traverseProperties($splittedPropertyPath);
@@ -359,7 +360,7 @@ class PropertyMappingConfiguration implements PropertyMappingConfigurationInterf
     /**
      * Return the type converter set for this configuration.
      *
-     * @return \TYPO3\CMS\Extbase\Property\TypeConverterInterface
+     * @return \TYPO3\CMS\Extbase\Property\TypeConverterInterface|null
      */
     public function getTypeConverter()
     {
@@ -372,7 +373,7 @@ class PropertyMappingConfiguration implements PropertyMappingConfigurationInterf
      * @param \TYPO3\CMS\Extbase\Property\TypeConverterInterface $typeConverter
      * @return \TYPO3\CMS\Extbase\Property\PropertyMappingConfiguration this
      */
-    public function setTypeConverter(\TYPO3\CMS\Extbase\Property\TypeConverterInterface $typeConverter)
+    public function setTypeConverter(TypeConverterInterface $typeConverter)
     {
         $this->typeConverter = $typeConverter;
         return $this;

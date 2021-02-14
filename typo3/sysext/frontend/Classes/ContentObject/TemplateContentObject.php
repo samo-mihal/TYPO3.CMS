@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Frontend\ContentObject;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Frontend\ContentObject;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Frontend\ContentObject;
 
 use TYPO3\CMS\Core\Html\HtmlParser;
 use TYPO3\CMS\Core\Service\MarkerBasedTemplateService;
@@ -55,7 +56,7 @@ class TemplateContentObject extends AbstractContentObject
         if (!$markerWrap) {
             $markerWrap = '### | ###';
         }
-        list($PRE, $POST) = explode('|', $markerWrap);
+        [$PRE, $POST] = explode('|', $markerWrap);
         $POST = trim($POST);
         $PRE = trim($PRE);
         // Getting the content

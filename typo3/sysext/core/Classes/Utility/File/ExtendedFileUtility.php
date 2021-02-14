@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Utility\File;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Core\Utility\File;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Utility\File;
+
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
@@ -25,18 +26,23 @@ use TYPO3\CMS\Core\Resource\DuplicationBehavior;
 use TYPO3\CMS\Core\Resource\Exception;
 use TYPO3\CMS\Core\Resource\Exception\ExistingTargetFileNameException;
 use TYPO3\CMS\Core\Resource\Exception\ExistingTargetFolderException;
+use TYPO3\CMS\Core\Resource\Exception\FileOperationErrorException;
 use TYPO3\CMS\Core\Resource\Exception\IllegalFileExtensionException;
+use TYPO3\CMS\Core\Resource\Exception\InsufficientFileAccessPermissionsException;
 use TYPO3\CMS\Core\Resource\Exception\InsufficientFileWritePermissionsException;
 use TYPO3\CMS\Core\Resource\Exception\InsufficientFolderAccessPermissionsException;
 use TYPO3\CMS\Core\Resource\Exception\InsufficientFolderWritePermissionsException;
 use TYPO3\CMS\Core\Resource\Exception\InsufficientUserPermissionsException;
+use TYPO3\CMS\Core\Resource\Exception\InvalidFileException;
 use TYPO3\CMS\Core\Resource\Exception\InvalidFileNameException;
+use TYPO3\CMS\Core\Resource\Exception\InvalidTargetFolderException;
 use TYPO3\CMS\Core\Resource\Exception\NotInMountPointException;
 use TYPO3\CMS\Core\Resource\Exception\ResourceDoesNotExistException;
 use TYPO3\CMS\Core\Resource\Exception\UploadException;
 use TYPO3\CMS\Core\Resource\Exception\UploadSizeException;
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\Folder;
+use TYPO3\CMS\Core\Resource\Index\Indexer;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\Resource\ResourceStorage;
 use TYPO3\CMS\Core\SysLog\Action\File as SystemLogFileAction;
@@ -55,12 +61,10 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  * This class contains functions primarily used by tce_file.php (TYPO3 Core Engine for file manipulation)
  * Functions include copying, moving, deleting, uploading and so on...
  *
- * Important internal variables:
+ * All fileoperations must be within the filemount paths of the user.
  *
- * $fileExtensionPermissions (see basicFileFunctions)
- *
- * All fileoperations must be within the filemount paths of the user. Further the fileextension
- * MUST validate TRUE with the fileExtensionPermissions array
+ * @internal Since TYPO3 v10, this class should not be used anymore outside of TYPO3 Core, and is considered internal,
+ * as the FAL API should be used instead.
  */
 class ExtendedFileUtility extends BasicFileUtility
 {
@@ -172,7 +176,7 @@ class ExtendedFileUtility extends BasicFileUtility
     public function start($fileCmds)
     {
         // Initialize Object Factory
-        $this->fileFactory = ResourceFactory::getInstance();
+        $this->fileFactory = GeneralUtility::makeInstance(ResourceFactory::class);
         // Initializing file processing commands:
         $this->fileCmdMap = $fileCmds;
     }
@@ -459,7 +463,7 @@ class ExtendedFileUtility extends BasicFileUtility
                     $this->addFlashMessage($flashMessage);
                     // Log success
                     $this->writeLog(SystemLogFileAction::DELETE, SystemLogErrorClassification::MESSAGE, 1, 'File "%s" deleted', [$fileObject->getIdentifier()]);
-                } catch (\TYPO3\CMS\Core\Resource\Exception\InsufficientFileAccessPermissionsException $e) {
+                } catch (InsufficientFileAccessPermissionsException $e) {
                     $this->writeLog(SystemLogFileAction::DELETE, SystemLogErrorClassification::USER_ERROR, 112, 'You are not allowed to access the file', [$fileObject->getIdentifier()]);
                     $this->addMessageToFlashMessageQueue('FileUtility.YouAreNotAllowedToAccessTheFile', [$fileObject->getIdentifier()]);
                 } catch (NotInMountPointException $e) {
@@ -498,7 +502,7 @@ class ExtendedFileUtility extends BasicFileUtility
                 } catch (NotInMountPointException $e) {
                     $this->writeLog(SystemLogFileAction::DELETE, SystemLogErrorClassification::USER_ERROR, 121, 'Target was not within your mountpoints! T="%s"', [$fileObject->getIdentifier()]);
                     $this->addMessageToFlashMessageQueue('FileUtility.TargetWasNotWithinYourMountpoints', [$fileObject->getIdentifier()]);
-                } catch (\TYPO3\CMS\Core\Resource\Exception\FileOperationErrorException $e) {
+                } catch (FileOperationErrorException $e) {
                     $this->writeLog(SystemLogFileAction::DELETE, SystemLogErrorClassification::USER_ERROR, 120, 'Could not delete directory "%s"! Write-permission problem?', [$fileObject->getIdentifier()]);
                     $this->addMessageToFlashMessageQueue('FileUtility.CouldNotDeleteDirectory', [$fileObject->getIdentifier()]);
                 }
@@ -614,10 +618,10 @@ class ExtendedFileUtility extends BasicFileUtility
     {
         $object = $this->fileFactory->retrieveFileOrFolderObject($identifier);
         if (!is_object($object)) {
-            throw new \TYPO3\CMS\Core\Resource\Exception\InvalidFileException('The item ' . $identifier . ' was not a file or directory!!', 1320122453);
+            throw new InvalidFileException('The item ' . $identifier . ' was not a file or directory!!', 1320122453);
         }
         if ($object->getStorage()->getUid() === 0) {
-            throw new \TYPO3\CMS\Core\Resource\Exception\InsufficientFileAccessPermissionsException('You are not allowed to access files outside your storages', 1375889830);
+            throw new InsufficientFileAccessPermissionsException('You are not allowed to access files outside your storages', 1375889830);
         }
         return $object;
     }
@@ -657,7 +661,7 @@ class ExtendedFileUtility extends BasicFileUtility
             } catch (InsufficientUserPermissionsException $e) {
                 $this->writeLog(SystemLogFileAction::COPY, SystemLogErrorClassification::USER_ERROR, 114, 'You are not allowed to copy files', []);
                 $this->addMessageToFlashMessageQueue('FileUtility.YouAreNotAllowedToCopyFiles');
-            } catch (\TYPO3\CMS\Core\Resource\Exception\InsufficientFileAccessPermissionsException $e) {
+            } catch (InsufficientFileAccessPermissionsException $e) {
                 $this->writeLog(SystemLogFileAction::COPY, SystemLogErrorClassification::USER_ERROR, 110, 'Could not access all necessary resources. Source file or destination maybe was not within your mountpoints? T="%s", D="%s"', [$sourceFileObject->getIdentifier(), $targetFolderObject->getIdentifier()]);
                 $this->addMessageToFlashMessageQueue('FileUtility.CouldNotAccessAllNecessaryResources', [$sourceFileObject->getIdentifier(), $targetFolderObject->getIdentifier()]);
             } catch (IllegalFileExtensionException $e) {
@@ -685,13 +689,13 @@ class ExtendedFileUtility extends BasicFileUtility
             } catch (InsufficientUserPermissionsException $e) {
                 $this->writeLog(SystemLogFileAction::COPY, SystemLogErrorClassification::USER_ERROR, 125, 'You are not allowed to copy directories', []);
                 $this->addMessageToFlashMessageQueue('FileUtility.YouAreNotAllowedToCopyDirectories');
-            } catch (\TYPO3\CMS\Core\Resource\Exception\InsufficientFileAccessPermissionsException $e) {
+            } catch (InsufficientFileAccessPermissionsException $e) {
                 $this->writeLog(SystemLogFileAction::COPY, SystemLogErrorClassification::USER_ERROR, 110, 'Could not access all necessary resources. Source file or destination maybe was not within your mountpoints? T="%s", D="%s"', [$sourceFolderObject->getIdentifier(), $targetFolderObject->getIdentifier()]);
                 $this->addMessageToFlashMessageQueue('FileUtility.CouldNotAccessAllNecessaryResources', [$sourceFolderObject->getIdentifier(), $targetFolderObject->getIdentifier()]);
             } catch (InsufficientFolderAccessPermissionsException $e) {
                 $this->writeLog(SystemLogFileAction::COPY, SystemLogErrorClassification::USER_ERROR, 121, 'You don\'t have full access to the destination directory "%s"!', [$targetFolderObject->getIdentifier()]);
                 $this->addMessageToFlashMessageQueue('FileUtility.YouDontHaveFullAccessToTheDestinationDirectory', [$targetFolderObject->getIdentifier()]);
-            } catch (\TYPO3\CMS\Core\Resource\Exception\InvalidTargetFolderException $e) {
+            } catch (InvalidTargetFolderException $e) {
                 $this->writeLog(SystemLogFileAction::COPY, SystemLogErrorClassification::USER_ERROR, 122, 'Cannot copy folder "%s" into target folder "%s", because the target folder is already within the folder to be copied!', [$sourceFolderObject->getName(), $targetFolderObject->getName()]);
                 $this->addMessageToFlashMessageQueue('FileUtility.CannotCopyFolderIntoTargetFolderBecauseTheTargetFolderIsAlreadyWithinTheFolderToBeCopied', [$sourceFolderObject->getName(), $targetFolderObject->getName()]);
             } catch (ExistingTargetFolderException $e) {
@@ -752,7 +756,7 @@ class ExtendedFileUtility extends BasicFileUtility
             } catch (InsufficientUserPermissionsException $e) {
                 $this->writeLog(SystemLogFileAction::MOVE, SystemLogErrorClassification::USER_ERROR, 114, 'You are not allowed to move files', []);
                 $this->addMessageToFlashMessageQueue('FileUtility.YouAreNotAllowedToMoveFiles');
-            } catch (\TYPO3\CMS\Core\Resource\Exception\InsufficientFileAccessPermissionsException $e) {
+            } catch (InsufficientFileAccessPermissionsException $e) {
                 $this->writeLog(SystemLogFileAction::MOVE, SystemLogErrorClassification::USER_ERROR, 110, 'Could not access all necessary resources. Source file or destination maybe was not within your mountpoints? T="%s", D="%s"', [$sourceFileObject->getIdentifier(), $targetFolderObject->getIdentifier()]);
                 $this->addMessageToFlashMessageQueue('FileUtility.CouldNotAccessAllNecessaryResources', [$sourceFileObject->getIdentifier(), $targetFolderObject->getIdentifier()]);
             } catch (IllegalFileExtensionException $e) {
@@ -784,13 +788,13 @@ class ExtendedFileUtility extends BasicFileUtility
             } catch (InsufficientUserPermissionsException $e) {
                 $this->writeLog(SystemLogFileAction::MOVE, SystemLogErrorClassification::USER_ERROR, 125, 'You are not allowed to move directories', []);
                 $this->addMessageToFlashMessageQueue('FileUtility.YouAreNotAllowedToMoveDirectories');
-            } catch (\TYPO3\CMS\Core\Resource\Exception\InsufficientFileAccessPermissionsException $e) {
+            } catch (InsufficientFileAccessPermissionsException $e) {
                 $this->writeLog(SystemLogFileAction::MOVE, SystemLogErrorClassification::USER_ERROR, 110, 'Could not access all necessary resources. Source file or destination maybe was not within your mountpoints? T="%s", D="%s"', [$sourceFolderObject->getIdentifier(), $targetFolderObject->getIdentifier()]);
                 $this->addMessageToFlashMessageQueue('FileUtility.CouldNotAccessAllNecessaryResources', [$sourceFolderObject->getIdentifier(), $targetFolderObject->getIdentifier()]);
             } catch (InsufficientFolderAccessPermissionsException $e) {
                 $this->writeLog(SystemLogFileAction::MOVE, SystemLogErrorClassification::USER_ERROR, 121, 'You don\'t have full access to the destination directory "%s"!', [$targetFolderObject->getIdentifier()]);
                 $this->addMessageToFlashMessageQueue('FileUtility.YouDontHaveFullAccessToTheDestinationDirectory', [$targetFolderObject->getIdentifier()]);
-            } catch (\TYPO3\CMS\Core\Resource\Exception\InvalidTargetFolderException $e) {
+            } catch (InvalidTargetFolderException $e) {
                 $this->writeLog(SystemLogFileAction::MOVE, SystemLogErrorClassification::USER_ERROR, 122, 'Cannot move folder "%s" into target folder "%s", because the target folder is already within the folder to be moved!', [$sourceFolderObject->getName(), $targetFolderObject->getName()]);
                 $this->addMessageToFlashMessageQueue('FileUtility.CannotMoveFolderIntoTargetFolderBecauseTheTargetFolderIsAlreadyWithinTheFolderToBeMoved', [$sourceFolderObject->getName(), $targetFolderObject->getName()]);
             } catch (ExistingTargetFolderException $e) {
@@ -900,6 +904,7 @@ class ExtendedFileUtility extends BasicFileUtility
      */
     public function func_newfolder($cmds)
     {
+        $resultObject = false;
         $targetFolderObject = $this->getFileObject($cmds['target']);
         if (!$targetFolderObject instanceof Folder) {
             $this->writeLog(SystemLogFileAction::NEW_FOLDER, SystemLogErrorClassification::SYSTEM_ERROR, 104, 'Destination "%s" was not a directory', [$cmds['target']]);
@@ -911,16 +916,16 @@ class ExtendedFileUtility extends BasicFileUtility
             $resultObject = $targetFolderObject->createFolder($folderName);
             $this->writeLog(SystemLogFileAction::NEW_FOLDER, SystemLogErrorClassification::MESSAGE, 1, 'Directory "%s" created in "%s"', [$folderName, $targetFolderObject->getIdentifier()]);
             $this->addMessageToFlashMessageQueue('FileUtility.DirectoryCreatedIn', [$folderName, $targetFolderObject->getIdentifier()], FlashMessage::OK);
-        } catch (\TYPO3\CMS\Core\Resource\Exception\InvalidFileNameException $e) {
+        } catch (InvalidFileNameException $e) {
             $this->writeLog(SystemLogFileAction::NEW_FOLDER, SystemLogErrorClassification::USER_ERROR, 104, 'Invalid folder name "%s"!', [$folderName]);
             $this->addMessageToFlashMessageQueue('FileUtility.YouAreNotAllowedToCreateDirectories', [$folderName]);
-        } catch (\TYPO3\CMS\Core\Resource\Exception\InsufficientFolderWritePermissionsException $e) {
+        } catch (InsufficientFolderWritePermissionsException $e) {
             $this->writeLog(SystemLogFileAction::NEW_FOLDER, SystemLogErrorClassification::USER_ERROR, 103, 'You are not allowed to create directories!', []);
             $this->addMessageToFlashMessageQueue('FileUtility.YouAreNotAllowedToCreateDirectories');
-        } catch (\TYPO3\CMS\Core\Resource\Exception\NotInMountPointException $e) {
+        } catch (NotInMountPointException $e) {
             $this->writeLog(SystemLogFileAction::NEW_FOLDER, SystemLogErrorClassification::USER_ERROR, 102, 'Destination path "%s" was not within your mountpoints!', [$targetFolderObject->getIdentifier()]);
             $this->addMessageToFlashMessageQueue('FileUtility.DestinationPathWasNotWithinYourMountpoints', [$targetFolderObject->getIdentifier()]);
-        } catch (\TYPO3\CMS\Core\Resource\Exception\ExistingTargetFolderException $e) {
+        } catch (ExistingTargetFolderException $e) {
             $this->writeLog(SystemLogFileAction::NEW_FOLDER, SystemLogErrorClassification::USER_ERROR, 101, 'File or directory "%s" existed already!', [$folderName]);
             $this->addMessageToFlashMessageQueue('FileUtility.FileOrDirectoryExistedAlready', [$folderName]);
         } catch (\RuntimeException $e) {
@@ -990,20 +995,20 @@ class ExtendedFileUtility extends BasicFileUtility
         // for backwards compatibility: the combined file identifier was the path+filename
         $fileIdentifier = $cmds['target'];
         $fileObject = $this->getFileObject($fileIdentifier);
-        // Example identifier for $cmds['target'] => "2:targetpath/targetfolder/"
-        $content = $cmds['data'];
         if (!$fileObject instanceof File) {
             $this->writeLog(SystemLogFileAction::EDIT, SystemLogErrorClassification::SYSTEM_ERROR, 123, 'Target "%s" was not a file!', [$fileIdentifier]);
             $this->addMessageToFlashMessageQueue('FileUtility.TargetWasNotAFile', [$fileIdentifier]);
             return false;
         }
-        $extList = $GLOBALS['TYPO3_CONF_VARS']['SYS']['textfile_ext'];
-        if (!GeneralUtility::inList($extList, $fileObject->getExtension())) {
+        if (!$fileObject->isTextFile()) {
+            $extList = $GLOBALS['TYPO3_CONF_VARS']['SYS']['textfile_ext'];
             $this->writeLog(SystemLogFileAction::EDIT, SystemLogErrorClassification::USER_ERROR, 102, 'File extension "%s" is not a textfile format! (%s)', [$fileObject->getExtension(), $extList]);
             $this->addMessageToFlashMessageQueue('FileUtility.FileExtensionIsNotATextfileFormat', [$fileObject->getExtension(), $extList]);
             return false;
         }
         try {
+            // Example identifier for $cmds['target'] => "2:targetpath/targetfolder/"
+            $content = $cmds['data'];
             $fileObject->setContents($content);
             clearstatcache();
             $this->writeLog(SystemLogFileAction::EDIT, SystemLogErrorClassification::MESSAGE, 1, 'File saved to "%s", bytes: %s, MD5: %s ', [$fileObject->getIdentifier(), $fileObject->getSize(), md5($content)]);
@@ -1017,11 +1022,7 @@ class ExtendedFileUtility extends BasicFileUtility
             $this->writeLog(SystemLogFileAction::EDIT, SystemLogErrorClassification::USER_ERROR, 100, 'File "%s" was not saved! Write-permission problem?', [$fileObject->getIdentifier()]);
             $this->addMessageToFlashMessageQueue('FileUtility.FileWasNotSaved', [$fileObject->getIdentifier()]);
             return false;
-        } catch (IllegalFileExtensionException $e) {
-            $this->writeLog(SystemLogFileAction::EDIT, SystemLogErrorClassification::USER_ERROR, 100, 'File "%s" was not saved! File extension rejected!', [$fileObject->getIdentifier()]);
-            $this->addMessageToFlashMessageQueue('FileUtility.FileWasNotSaved', [$fileObject->getIdentifier()]);
-            return false;
-        } catch (\RuntimeException $e) {
+        } catch (IllegalFileExtensionException|\RuntimeException $e) {
             $this->writeLog(SystemLogFileAction::EDIT, SystemLogErrorClassification::USER_ERROR, 100, 'File "%s" was not saved! File extension rejected!', [$fileObject->getIdentifier()]);
             $this->addMessageToFlashMessageQueue('FileUtility.FileWasNotSaved', [$fileObject->getIdentifier()]);
             return false;
@@ -1056,7 +1057,7 @@ class ExtendedFileUtility extends BasicFileUtility
      * @param array $cmds $cmds['data'] is the ID-number (points to the global var that holds the filename-ref
      *                    ($_FILES['upload_' . $id]['name']) . $cmds['target'] is the target directory, $cmds['charset']
      *                    is the the character set of the file name (utf-8 is needed for JS-interaction)
-     * @return File[] | FALSE Returns an array of new file objects upon success. False otherwise
+     * @return File[]|bool Returns an array of new file objects upon success. False otherwise
      */
     public function func_upload($cmds)
     {
@@ -1091,7 +1092,7 @@ class ExtendedFileUtility extends BasicFileUtility
             try {
                 /** @var File $fileObject */
                 $fileObject = $targetFolderObject->addUploadedFile($fileInfo, (string)$this->existingFilesConflictMode);
-                $fileObject = ResourceFactory::getInstance()->getFileObjectByStorageAndIdentifier($targetFolderObject->getStorage()->getUid(), $fileObject->getIdentifier());
+                $fileObject = GeneralUtility::makeInstance(ResourceFactory::class)->getFileObjectByStorageAndIdentifier($targetFolderObject->getStorage()->getUid(), $fileObject->getIdentifier());
                 if ($this->existingFilesConflictMode->equals(DuplicationBehavior::REPLACE)) {
                     $this->getIndexer($fileObject->getStorage())->updateIndexEntry($fileObject);
                 }
@@ -1144,6 +1145,7 @@ class ExtendedFileUtility extends BasicFileUtility
      */
     protected function replaceFile(array $cmdArr)
     {
+        $fileObjectToReplace = null;
         $uploadPosition = $cmdArr['data'];
         $fileInfo = $_FILES['replace_' . $uploadPosition];
         if (empty($fileInfo['name'])) {
@@ -1226,7 +1228,7 @@ class ExtendedFileUtility extends BasicFileUtility
      */
     protected function getIndexer(ResourceStorage $storage)
     {
-        return GeneralUtility::makeInstance(\TYPO3\CMS\Core\Resource\Index\Indexer::class, $storage);
+        return GeneralUtility::makeInstance(Indexer::class, $storage);
     }
 
     /**

@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Acceptance\Backend\FormEngine;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Acceptance\Backend\FormEngine;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Acceptance\Backend\FormEngine;
 
 use TYPO3\CMS\Core\Tests\Acceptance\Support\BackendTester;
 
@@ -36,7 +38,7 @@ class CategoryTreeCest
     public function checkIfCategoryListIsAvailable(BackendTester $I)
     {
         // A sub-element of web module is show
-        $I->waitForElementVisible('#web .modulemenu-group-container .modulemenu-item');
+        $I->waitForElementVisible('#web + .modulemenu-group-container .modulemenu-action');
         $I->click('#web_list');
         $I->switchToContentFrame();
         $I->waitForElement('#recordlist-sys_category');
@@ -49,7 +51,7 @@ class CategoryTreeCest
     public function editCategoryItem(BackendTester $I)
     {
         // A sub-element of web module is show
-        $I->waitForElementVisible('#web .modulemenu-group-container .modulemenu-item');
+        $I->waitForElementVisible('#web + .modulemenu-group-container .modulemenu-action');
         $I->click('#web_list');
         $I->switchToContentFrame();
         // Collapse all tables and expand category again - ensures category fits into window

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Beuser\Tests\Unit\Domain\Repository;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,10 @@ namespace TYPO3\CMS\Beuser\Tests\Unit\Domain\Repository;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Beuser\Tests\Unit\Domain\Repository;
+
+use TYPO3\CMS\Beuser\Domain\Repository\BackendUserSessionRepository;
+use TYPO3\CMS\Extbase\Object\ObjectManagerInterface;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -26,7 +29,7 @@ class BackendUserSessionRepositoryTest extends UnitTestCase
      */
     public function classCanBeInstantiated()
     {
-        $objectManager = $this->getMockBuilder(\TYPO3\CMS\Extbase\Object\ObjectManagerInterface::class)->getMock();
-        new \TYPO3\CMS\Beuser\Domain\Repository\BackendUserSessionRepository($objectManager);
+        $objectManager = $this->getMockBuilder(ObjectManagerInterface::class)->getMock();
+        new BackendUserSessionRepository($objectManager);
     }
 }

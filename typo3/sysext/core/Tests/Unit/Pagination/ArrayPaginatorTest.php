@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Extbase\Tests\Unit\Pagination;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Extbase\Tests\Unit\Pagination;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\Pagination;
 
 use TYPO3\CMS\Core\Pagination\ArrayPaginator;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
@@ -124,7 +125,23 @@ class ArrayPaginatorTest extends UnitTestCase
     /**
      * @test
      */
-    public function paginatorProperlyCalulatesOnlyOnePage()
+    public function paginatorSetsCurrentPageToLastPageIfCurrentPageExceedsMaximum(): void
+    {
+        $paginator = new ArrayPaginator(
+            $this->fixture,
+            3,
+            10
+        );
+
+        self::assertEquals(2, $paginator->getCurrentPageNumber());
+        self::assertEquals(2, $paginator->getNumberOfPages());
+        self::assertCount(4, $paginator->getPaginatedItems());
+    }
+
+    /**
+     * @test
+     */
+    public function paginatorProperlyCalculatesOnlyOnePage()
     {
         $paginator = new ArrayPaginator(
             $this->fixture,

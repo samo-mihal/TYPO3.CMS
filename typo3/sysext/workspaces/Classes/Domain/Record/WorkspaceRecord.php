@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Workspaces\Domain\Record;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,9 @@ namespace TYPO3\CMS\Workspaces\Domain\Record;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Workspaces\Domain\Record;
+
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Workspaces\Service\StagesService;
@@ -76,6 +78,8 @@ class WorkspaceRecord extends AbstractRecord
         } elseif (empty($record)) {
             $record = static::fetch('sys_workspace', $uid);
         }
+        // [phpstan] Unsafe usage of new static()
+        // todo: Either mark this class or its constructor final or use new self instead.
         return new static($record);
     }
 

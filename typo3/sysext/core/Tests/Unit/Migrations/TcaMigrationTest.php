@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Unit\Migrations;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\Migrations;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\Migrations;
 
 use TYPO3\CMS\Core\Migrations\TcaMigration;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
@@ -475,6 +477,121 @@ class TcaMigrationTest extends UnitTestCase
                     ],
                 ],
             ],
+        ];
+        $subject = new TcaMigration();
+        self::assertEquals($expected, $subject->migrate($input));
+    }
+
+    /**
+     * @test
+     */
+    public function removeExcludeFieldForTransOrigPointerFieldIsRemoved(): void
+    {
+        $input = [
+            'aTable' => [
+                'ctrl' => [
+                    'transOrigPointerField' => 'l10n_parent'
+                ],
+                'columns' => [
+                    'l10n_parent' => [
+                        'exclude' => true,
+                        'config' => [
+                            'type' => 'select'
+                        ]
+                    ]
+                ]
+            ],
+            'bTable' => [
+                'ctrl' => [
+                    'transOrigPointerField' => 'l10n_parent'
+                ],
+                'columns' => [
+                    'l10n_parent' => [
+                        'config' => [
+                            'type' => 'select'
+                        ]
+                    ]
+                ]
+            ],
+            'cTable' => [
+                'columns' => [
+                    'l10n_parent' => [
+                        'exclude' => true,
+                        'config' => [
+                            'type' => 'select'
+                        ]
+                    ]
+                ]
+            ]
+        ];
+        $expected = [
+            'aTable' => [
+                'ctrl' => [
+                    'transOrigPointerField' => 'l10n_parent'
+                ],
+                'columns' => [
+                    'l10n_parent' => [
+                        'config' => [
+                            'type' => 'select'
+                        ]
+                    ]
+                ]
+            ],
+            'bTable' => [
+                'ctrl' => [
+                    'transOrigPointerField' => 'l10n_parent'
+                ],
+                'columns' => [
+                    'l10n_parent' => [
+                        'config' => [
+                            'type' => 'select'
+                        ]
+                    ]
+                ]
+            ],
+            'cTable' => [
+                'columns' => [
+                    'l10n_parent' => [
+                        'exclude' => true,
+                        'config' => [
+                            'type' => 'select'
+                        ]
+                    ]
+                ]
+            ]
+        ];
+        $subject = new TcaMigration();
+        self::assertEquals($expected, $subject->migrate($input));
+    }
+
+    /**
+     * @test
+     */
+    public function removeShowRecordFieldListFieldIsRemoved(): void
+    {
+        $input = [
+            'aTable' => [
+                'interface' => [
+                    'showRecordFieldList' => 'title,text,description',
+                ]
+            ],
+            'bTable' => [
+                'interface' => [
+                    'showRecordFieldList' => 'title,text,description',
+                    'maxDBListItems' => 30,
+                    'maxSingleDBListItems' => 50
+                ]
+            ]
+        ];
+        $expected = [
+            'aTable' => [
+            ],
+            'bTable' => [
+                'interface' => [
+                    'maxDBListItems' => 30,
+                    'maxSingleDBListItems' => 50
+                ]
+            ]
         ];
         $subject = new TcaMigration();
         self::assertEquals($expected, $subject->migrate($input));

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Command;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,9 @@ namespace TYPO3\CMS\Backend\Command;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Command;
+
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -45,6 +47,7 @@ class LockBackendCommand extends Command
      *
      * @param InputInterface $input
      * @param OutputInterface $output
+     * @return int
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
@@ -57,6 +60,7 @@ class LockBackendCommand extends Command
         $output = 'Wrote lock file to "' . $lockFile . '"';
         if ($input->getArgument('redirect')) {
             $lockFileContent = $input->getArgument('redirect');
+            $lockFileContent = is_string($lockFileContent) ? $lockFileContent : '';
             $output .= LF . 'with content "' . $lockFileContent . '".';
         } else {
             $lockFileContent = '';
@@ -64,6 +68,7 @@ class LockBackendCommand extends Command
         }
         GeneralUtility::writeFile($lockFile, $lockFileContent);
         $io->success($output);
+        return 0;
     }
 
     /**

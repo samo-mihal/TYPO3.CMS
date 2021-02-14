@@ -1,4 +1,5 @@
 <?php
+
 defined('TYPO3_MODE') or die();
 
 // Registers the workspaces Backend Module
@@ -9,7 +10,7 @@ defined('TYPO3_MODE') or die();
     'before:info',
     [
         // An array holding the controller-action-combinations that are accessible
-        \TYPO3\CMS\Workspaces\Controller\ReviewController::class => 'index,fullIndex,singleIndex'
+        \TYPO3\CMS\Workspaces\Controller\ReviewController::class => 'index'
     ],
     [
         'access' => 'user,group',

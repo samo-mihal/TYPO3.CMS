@@ -212,7 +212,7 @@ prototypeName
 +++++++++++++
 
 The name of the prototype, on which basis the ``factoryClass`` should create the form.
-If nothing is specified, the configuration (``form definition`` or ``overrideConfiguration``) is searched for the prototy name.
+If nothing is specified, the configuration (``form definition`` or ``overrideConfiguration``) is searched for the prototype's name.
 If no specification exists, the standard prototype ``standard`` is used.
 
 
@@ -265,6 +265,12 @@ Implement a ``FormFactory`` and build the form::
            $message = $page2->createElement('message', 'Textarea');
            $message->setLabel('Message');
            $message->addValidator(GeneralUtility::makeInstance(ObjectManager::class)->get(StringLengthValidator::class, ['minimum' => 5, 'maximum' => 20]));
+
+           // Creating a RadioButton/MultiCheckbox
+           $page3 = $form->createPage('page3');
+           $radio = $page3->createElement('checkbox', 'RadioButton');
+           $radio->setProperty('options', ['value1' => 'Label1', 'value2' => 'Label2']);
+           $radio->setLabel('My Radio ...');
 
            $form->createFinisher('EmailToSender', [
                'subject' => 'Hello',
@@ -1592,12 +1598,12 @@ Use the hook
 
    /**
     * @param \TYPO3\CMS\Form\Domain\Runtime\FormRuntime $formRuntime
-    * @param \TYPO3\CMS\Form\Domain\Model\Renderable\CompositeRenderableInterface $currentPage
+    * @param null|\TYPO3\CMS\Form\Domain\Model\Renderable\CompositeRenderableInterface $currentPage
     * @param null|\TYPO3\CMS\Form\Domain\Model\Renderable\CompositeRenderableInterface $lastPage
     * @param mixed $elementValue submitted value of the element *before post processing*
-    * @return \TYPO3\CMS\Form\Domain\Model\Renderable\CompositeRenderableInterface
+    * @return null|\TYPO3\CMS\Form\Domain\Model\Renderable\CompositeRenderableInterface
     */
-   public function afterInitializeCurrentPage(\TYPO3\CMS\Form\Domain\Runtime\FormRuntime $formRuntime, \TYPO3\CMS\Form\Domain\Model\Renderable\CompositeRenderableInterface $currentPage, \TYPO3\CMS\Form\Domain\Model\Renderable\CompositeRenderableInterface $lastPage = null, array $requestArguments = []): \TYPO3\CMS\Form\Domain\Model\Renderable\CompositeRenderableInterface
+   public function afterInitializeCurrentPage(\TYPO3\CMS\Form\Domain\Runtime\FormRuntime $formRuntime, \TYPO3\CMS\Form\Domain\Model\Renderable\CompositeRenderableInterface $currentPage = null, \TYPO3\CMS\Form\Domain\Model\Renderable\CompositeRenderableInterface $lastPage = null, array $requestArguments = []): ?\TYPO3\CMS\Form\Domain\Model\Renderable\CompositeRenderableInterface
    {
        return $currentPage;
    }
@@ -2808,7 +2814,7 @@ elements.<formElementIdentifier>.dateFormat
       If the internal datatype is :php:`\DateTime` which is true for the form element types
       :yaml:`DatePicker` and :yaml:`Date`, the object needs to be converted into a string value.
       This option allows you to define the format of the date in case of such a conversion.
-      You can use every format accepted by the PHP :php:`date()` function (http://php.net/manual/en/function.date.php#refsect1-function.date-parameters).
+      You can use every format accepted by the PHP :php:`date()` function (https://php.net/manual/en/function.date.php#refsect1-function.date-parameters).
       The default value is "U" which leads to a Unix timestamp.
 
 

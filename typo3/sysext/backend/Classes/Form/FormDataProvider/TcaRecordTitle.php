@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Form\FormDataProvider;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Form\FormDataProvider;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Form\FormDataProvider;
 
 use TYPO3\CMS\Backend\Form\FormDataProviderInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
@@ -197,7 +198,7 @@ class TcaRecordTitle implements FormDataProviderInterface
             return '';
         }
         foreach ($fieldConfig['items'] as $item) {
-            list($itemLabel, $itemValue) = $item;
+            [$itemLabel, $itemValue] = $item;
             if ((string)$value === (string)$itemValue) {
                 return $itemLabel;
             }
@@ -288,7 +289,7 @@ class TcaRecordTitle implements FormDataProviderInterface
         } else {
             $labelParts = [];
             foreach ($fieldConfig['items'] as $key => $val) {
-                if ($value & pow(2, $key)) {
+                if ($value & 2 ** $key) {
                     $labelParts[] = $val[0];
                 }
             }
@@ -327,7 +328,7 @@ class TcaRecordTitle implements FormDataProviderInterface
                 if (!isset($fieldConfig['disableAgeDisplay']) || (bool)$fieldConfig['disableAgeDisplay'] === false) {
                     $ageDelta = $GLOBALS['EXEC_TIME'] - $value;
                     $calculatedAge = BackendUtility::calcAge(
-                        abs($ageDelta),
+                        (int)abs($ageDelta),
                         $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.minutesHoursDaysYears')
                     );
                     $ageSuffix = ' (' . ($ageDelta > 0 ? '-' : '') . $calculatedAge . ')';

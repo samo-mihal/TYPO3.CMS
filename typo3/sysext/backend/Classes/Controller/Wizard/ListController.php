@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Backend\Controller\Wizard;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Backend\Controller\Wizard;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Controller\Wizard;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -43,14 +45,10 @@ class ListController extends AbstractWizardController
 
         // Wizard parameters, coming from FormEngine linking to this wizard.
         $parameters = $parsedBody['P'] ?? $queryParams['P'] ?? null;
-        // Table to show, if none, then all tables are listed in list module.
-        $table = $parsedBody['table'] ?? $queryParams['table'] ?? null;
         $id = $parsedBody['id'] ?? $queryParams['id'] ?? null;
-        $origRow = BackendUtility::getRecord($parameters['table'], $parameters['uid']);
-        $tsConfig = BackendUtility::getTCEFORM_TSconfig(
-            $table,
-            is_array($origRow) ? $origRow : ['pid' => $parameters['pid']]
-        );
+        $table = $parameters['table'] ?? '';
+        $origRow = BackendUtility::getRecord($table, $parameters['uid']);
+        $tsConfig = BackendUtility::getTCEFORM_TSconfig($table, $origRow ?? ['pid' => $parameters['pid']]);
 
         if (strpos($parameters['params']['pid'], '###') === 0 && substr($parameters['params']['pid'], -3) === '###') {
             $keyword = substr($parameters['params']['pid'], 3, -3);

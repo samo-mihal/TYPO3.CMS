@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Extbase\Tests\Functional\Validation\Fixture\Validation\Validator;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,10 +15,14 @@ namespace TYPO3\CMS\Extbase\Tests\Functional\Validation\Fixture\Validation\Valid
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Tests\Functional\Validation\Fixture\Validation\Validator;
+
+use TYPO3\CMS\Extbase\Validation\Validator\AbstractValidator;
+
 /**
  * Fixture custom validator
  */
-class CustomValidator extends \TYPO3\CMS\Extbase\Validation\Validator\AbstractValidator
+class CustomValidator extends AbstractValidator
 {
     /**
      * @param mixed $value

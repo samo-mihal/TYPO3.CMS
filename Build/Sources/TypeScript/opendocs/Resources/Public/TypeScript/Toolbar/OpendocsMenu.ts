@@ -11,7 +11,9 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import * as $ from'jquery';
+import $ from'jquery';
+import {AjaxResponse} from 'TYPO3/CMS/Core/Ajax/AjaxResponse';
+import AjaxRequest = require('TYPO3/CMS/Core/Ajax/AjaxRequest');
 import Icons = require('TYPO3/CMS/Backend/Icons');
 import Viewport = require('TYPO3/CMS/Backend/Viewport');
 
@@ -61,15 +63,12 @@ class OpendocsMenu {
       $toolbarItemIcon.replaceWith(spinner);
     });
 
-    $.ajax({
-      url: TYPO3.settings.ajaxUrls.opendocs_menu,
-      type: 'post',
-      cache: false,
-      success: (data: string) => {
-        $(Selectors.containerSelector).find(Selectors.menuContainerSelector).html(data);
-        OpendocsMenu.updateNumberOfDocs();
-        $(Selectors.toolbarIconSelector, Selectors.containerSelector).replaceWith($existingIcon);
-      },
+    (new AjaxRequest(TYPO3.settings.ajaxUrls.opendocs_menu)).get().then(async (response: AjaxResponse): Promise<any> => {
+      $(Selectors.containerSelector).find(Selectors.menuContainerSelector).html(await response.resolve());
+      OpendocsMenu.updateNumberOfDocs();
+    }).finally((): void => {
+      // Re-open the menu after closing a document
+      $(Selectors.toolbarIconSelector, Selectors.containerSelector).replaceWith($existingIcon);
     });
   }
 
@@ -78,9 +77,7 @@ class OpendocsMenu {
     $(Selectors.containerSelector).on('click', Selectors.closeSelector, (evt: JQueryEventObject): void => {
       evt.preventDefault();
       const md5 = $(evt.currentTarget).data(this.hashDataAttributeName);
-      if (md5) {
-        this.closeDocument(md5);
-      }
+      this.closeDocument(md5);
     }).on('click', Selectors.entrySelector, (evt: JQueryEventObject): void => {
       evt.preventDefault();
 
@@ -94,20 +91,16 @@ class OpendocsMenu {
   /**
    * Closes an open document
    */
-  private closeDocument(md5sum: string): void {
-    $.ajax({
-      url: TYPO3.settings.ajaxUrls.opendocs_closedoc,
-      type: 'post',
-      cache: false,
-      data: {
-        md5sum: md5sum,
-      },
-      success: (data: string): void => {
-        $(Selectors.menuContainerSelector, Selectors.containerSelector).html(data);
-        OpendocsMenu.updateNumberOfDocs();
-        // Re-open the menu after closing a document
-        $(Selectors.containerSelector).toggleClass('open');
-      },
+  private closeDocument(md5sum?: string): void {
+    const payload: {[key: string]: string} = {};
+    if (md5sum) {
+      payload.md5sum = md5sum;
+    }
+    (new AjaxRequest(TYPO3.settings.ajaxUrls.opendocs_closedoc)).post(payload).then(async (response: AjaxResponse): Promise<any> => {
+      $(Selectors.menuContainerSelector, Selectors.containerSelector).html(await response.resolve());
+      OpendocsMenu.updateNumberOfDocs();
+      // Re-open the menu after closing a document
+      $(Selectors.containerSelector).toggleClass('open');
     });
   }
 

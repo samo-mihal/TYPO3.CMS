@@ -1,11 +1,9 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\Mvc\Configuration;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
- *
- * It originated from the Neos.Form package (www.neos.io)
  *
  * It is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, either version 2
@@ -16,6 +14,12 @@ namespace TYPO3\CMS\Form\Mvc\Configuration;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+/*
+ * Inspired by and partially taken from the Neos.Form package (www.neos.io)
+ */
+
+namespace TYPO3\CMS\Form\Mvc\Configuration;
 
 use Symfony\Component\Yaml\Exception\ParseException;
 use Symfony\Component\Yaml\Yaml;
@@ -83,7 +87,6 @@ class YamlSource
      *
      * @param File|string $fileToSave The file to write to.
      * @param array $configuration The configuration to save
-     * @return mixed
      * @throws FileWriteException if the file could not be written
      * @internal
      */
@@ -121,8 +124,6 @@ class YamlSource
                 throw new FileWriteException($error['message'], 1512582929);
             }
         }
-
-        return $return;
     }
 
     /**

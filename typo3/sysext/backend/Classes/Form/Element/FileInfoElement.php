@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Backend\Form\Element;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Backend\Form\Element;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Form\Element;
 
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Localization\LanguageService;
@@ -48,7 +50,7 @@ class FileInfoElement extends AbstractFormElement
 
         $fileObject = null;
         if ($fileUid > 0) {
-            $fileObject = ResourceFactory::getInstance()->getFileObject($fileUid);
+            $fileObject = GeneralUtility::makeInstance(ResourceFactory::class)->getFileObject($fileUid);
         }
         $resultArray['html'] = $this->renderFileInformationContent($fileObject);
         return $resultArray;
@@ -72,7 +74,7 @@ class FileInfoElement extends AbstractFormElement
                     . htmlspecialchars($lang->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:warning.file_missing'))
                     . '</span>';
             }
-            if (GeneralUtility::inList($GLOBALS['TYPO3_CONF_VARS']['GFX']['imagefile_ext'], $file->getExtension())) {
+            if ($file->isImage()) {
                 $processedFile = $file->process(ProcessedFile::CONTEXT_IMAGEPREVIEW, ['width' => 150, 'height' => 150]);
                 $previewImage = $processedFile->getPublicUrl(true);
                 if ($previewImage) {
@@ -83,8 +85,8 @@ class FileInfoElement extends AbstractFormElement
                 }
             }
             $content .= '<strong>' . htmlspecialchars($file->getName()) . '</strong>';
-            $content .= ' (' . htmlspecialchars(GeneralUtility::formatSize($file->getSize())) . 'bytes)<br />';
-            $content .= BackendUtility::getProcessedValue('sys_file', 'type', $file->getType()) . ' (' . $file->getMimeType() . ')<br />';
+            $content .= ' (' . htmlspecialchars(GeneralUtility::formatSize((int)$file->getSize())) . 'bytes)<br />';
+            $content .= BackendUtility::getProcessedValue('sys_file', 'type', (string)$file->getType()) . ' (' . $file->getMimeType() . ')<br />';
             $content .= htmlspecialchars($lang->sL('LLL:EXT:core/Resources/Private/Language/locallang_misc.xlf:fileMetaDataLocation')) . ': ';
             $content .= htmlspecialchars($file->getStorage()->getName()) . ' - ' . htmlspecialchars($file->getIdentifier()) . '<br />';
             $content .= '<br />';

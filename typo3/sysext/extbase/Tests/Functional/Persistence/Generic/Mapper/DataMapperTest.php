@@ -1,4 +1,18 @@
 <?php
+
+/*
+ * This file is part of the TYPO3 CMS project.
+ *
+ * It is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License, either version 2
+ * of the License, or any later version.
+ *
+ * For the full copyright and license information, please read the
+ * LICENSE.txt file that was distributed with this source code.
+ *
+ * The TYPO3 project - inspiring people to share!
+ */
+
 namespace TYPO3\CMS\Extbase\Tests\Functional\Persistence\Generic\Mapper;
 
 use ExtbaseTeam\BlogExample\Domain\Model\Comment;
@@ -6,8 +20,11 @@ use ExtbaseTeam\BlogExample\Domain\Model\DateExample;
 use ExtbaseTeam\BlogExample\Domain\Model\DateTimeImmutableExample;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Extbase\Object\ObjectManager;
+use TYPO3\CMS\Extbase\Persistence\Generic\PersistenceManager;
+use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
-class DataMapperTest extends \TYPO3\TestingFramework\Core\Functional\FunctionalTestCase
+class DataMapperTest extends FunctionalTestCase
 {
     /**
      * @var \TYPO3\CMS\Extbase\Persistence\Generic\PersistenceManager
@@ -36,8 +53,8 @@ class DataMapperTest extends \TYPO3\TestingFramework\Core\Functional\FunctionalT
     {
         parent::setUp();
 
-        $this->objectManager = GeneralUtility::makeInstance(\TYPO3\CMS\Extbase\Object\ObjectManager::class);
-        $this->persistenceManager = $this->objectManager->get(\TYPO3\CMS\Extbase\Persistence\Generic\PersistenceManager::class);
+        $this->objectManager = GeneralUtility::makeInstance(ObjectManager::class);
+        $this->persistenceManager = $this->objectManager->get(PersistenceManager::class);
 
         $GLOBALS['BE_USER'] = new BackendUserAuthentication();
     }

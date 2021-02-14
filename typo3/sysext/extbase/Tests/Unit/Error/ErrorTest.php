@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Tests\Unit\Error;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,9 @@ namespace TYPO3\CMS\Extbase\Tests\Unit\Error;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Tests\Unit\Error;
+
+use TYPO3\CMS\Extbase\Error\Error;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -27,7 +29,7 @@ class ErrorTest extends UnitTestCase
     public function theConstructorSetsTheErrorMessageCorrectly()
     {
         $errorMessage = 'The message';
-        $error = new \TYPO3\CMS\Extbase\Error\Error($errorMessage, 0);
+        $error = new Error($errorMessage, 0);
         self::assertEquals($errorMessage, $error->getMessage());
     }
 
@@ -37,7 +39,7 @@ class ErrorTest extends UnitTestCase
     public function theConstructorSetsTheErrorCodeCorrectly()
     {
         $errorCode = 123456789;
-        $error = new \TYPO3\CMS\Extbase\Error\Error('', $errorCode);
+        $error = new Error('', $errorCode);
         self::assertEquals($errorCode, $error->getCode());
     }
 }

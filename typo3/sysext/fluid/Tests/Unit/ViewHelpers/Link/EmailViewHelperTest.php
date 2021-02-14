@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\Tests\Unit\ViewHelpers\Link;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Fluid\Tests\Unit\ViewHelpers\Link;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Fluid\Tests\Unit\ViewHelpers\Link;
+
 use TYPO3\CMS\Fluid\ViewHelpers\Link\EmailViewHelper;
 use TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
 use TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController;
@@ -26,7 +27,7 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\TagBuilder;
 class EmailViewHelperTest extends ViewHelperBaseTestcase
 {
     /**
-     * @var \TYPO3\CMS\Fluid\ViewHelpers\Link\EmailViewHelper
+     * @var EmailViewHelper
      */
     protected $viewHelper;
 
@@ -39,10 +40,8 @@ class EmailViewHelperTest extends ViewHelperBaseTestcase
     {
         parent::setUp();
         $GLOBALS['TSFE'] = new \stdClass();
-        $GLOBALS['TSFE']->cObj = $this->createMock(\TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer::class);
-        $this->viewHelper = $this->getMockBuilder($this->buildAccessibleProxy(\TYPO3\CMS\Fluid\ViewHelpers\Link\EmailViewHelper::class))
-            ->setMethods(['renderChildren'])
-            ->getMock();
+        $GLOBALS['TSFE']->cObj = $this->createMock(ContentObjectRenderer::class);
+        $this->viewHelper = $this->getAccessibleMock(EmailViewHelper::class, ['renderChildren']);
         $this->injectDependenciesIntoViewHelper($this->viewHelper);
     }
 

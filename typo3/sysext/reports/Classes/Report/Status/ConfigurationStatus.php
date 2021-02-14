@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Reports\Report\Status;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,7 +13,11 @@ namespace TYPO3\CMS\Reports\Report\Status;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Reports\Report\Status;
+
+use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Cache\Backend\MemcachedBackend;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
@@ -73,7 +76,7 @@ class ConfigurationStatus implements StatusProviderInterface
         $registry = GeneralUtility::makeInstance(Registry::class);
         $lastRefIndexUpdate = $registry->get('core', 'sys_refindex_lastUpdate');
         /** @var \TYPO3\CMS\Backend\Routing\UriBuilder $uriBuilder */
-        $uriBuilder = GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Routing\UriBuilder::class);
+        $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
         if (!$count && $lastRefIndexUpdate) {
             $value = $this->getLanguageService()->getLL('status_empty');
             $severity = ReportStatus::WARNING;
@@ -110,7 +113,7 @@ class ConfigurationStatus implements StatusProviderInterface
         foreach ($configurations as $table => $conf) {
             if (is_array($conf)) {
                 foreach ($conf as $key => $value) {
-                    if ($value === \TYPO3\CMS\Core\Cache\Backend\MemcachedBackend::class) {
+                    if ($value === MemcachedBackend::class) {
                         $memcachedServers = $configurations[$table]['options']['servers'];
                         break;
                     }
@@ -144,7 +147,7 @@ class ConfigurationStatus implements StatusProviderInterface
                         $testServer = substr($testServer, 6);
                     }
                     if (strpos($testServer, ':') !== false) {
-                        list($host, $port) = explode(':', $testServer, 2);
+                        [$host, $port] = explode(':', $testServer, 2);
                     } else {
                         $host = $testServer;
                         $port = $defaultMemcachedPort;
@@ -222,6 +225,8 @@ class ConfigurationStatus implements StatusProviderInterface
      */
     protected function getMysqlDatabaseUtf8Status()
     {
+        $collationConstraint = null;
+        $charset = '';
         $connection = GeneralUtility::makeInstance(ConnectionPool::class)
             ->getConnectionByName(ConnectionPool::DEFAULT_CONNECTION_NAME);
         /** @var QueryBuilder $queryBuilder */

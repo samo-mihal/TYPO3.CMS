@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Adminpanel\Service;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Adminpanel\Service;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Adminpanel\Service;
 
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Adminpanel\ModuleApi\ConfigurableInterface;
@@ -111,7 +112,7 @@ class ConfigurationService implements SingletonInterface
     /**
      * @param array $modules
      * @param \Psr\Http\Message\ServerRequestInterface $request
-     * @param $configurationToSave
+     * @param array $configurationToSave
      */
     protected function triggerOnSubmitActors(
         array $modules,

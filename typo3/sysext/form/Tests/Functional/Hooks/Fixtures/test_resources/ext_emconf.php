@@ -1,9 +1,10 @@
 <?php
+
 $EM_CONF[$_EXTKEY] = [
     'title' => 'Test Resources',
     'description' => 'Test Resources',
     'category' => 'example',
-    'version' => '10.2.3',
+    'version' => '10.4.13',
     'state' => 'beta',
     'clearCacheOnLoad' => 0,
     'author' => 'Oliver Hader',
@@ -11,7 +12,7 @@ $EM_CONF[$_EXTKEY] = [
     'author_company' => '',
     'constraints' => [
         'depends' => [
-            'typo3' => '10.2.3'
+            'typo3' => '10.4.13'
         ],
         'conflicts' => [],
         'suggests' => [],

@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Backend\Form\Element;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,9 +15,12 @@ namespace TYPO3\CMS\Backend\Form\Element;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Form\Element;
+
 use TYPO3\CMS\Backend\Form\NodeFactory;
 use TYPO3\CMS\Core\Imaging\IconRegistry;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\StringUtility;
 
 /**
  * Generation of TCEform elements of the type "check"
@@ -180,7 +183,8 @@ class CheckboxToggleElement extends AbstractFormElement
             $numberOfItems,
             implode('', $additionalInformation['fieldChangeFunc'])
         );
-        $checkboxId = $additionalInformation['itemFormElID'] . '_' . $itemCounter;
+        $uniqueId = StringUtility::getUniqueId('_');
+        $checkboxId = $additionalInformation['itemFormElID'] . '_' . $itemCounter . $uniqueId;
         return '
             <div class="checkbox checkbox-type-toggle' . ($invert ? ' checkbox-invert' : '') . ($inline ? ' checkbox-inline' : '') . (!$disabled ? '' : ' disabled') . '">
                 <input type="checkbox"
@@ -188,7 +192,7 @@ class CheckboxToggleElement extends AbstractFormElement
                     value="1"
                     data-formengine-input-name="' . htmlspecialchars($additionalInformation['itemFormElName']) . '"
                     ' . $checkboxParameters . '
-                    ' . (!$disabled ?: ' disabled="disabled"') . '
+                    ' . (!$disabled ? '' : ' disabled="disabled"') . '
                     id="' . $checkboxId . '" />
                 <label class="checkbox-label" for="' . $checkboxId . '">
                     <span class="checkbox-label-text">' . $this->appendValueToLabelInDebugMode(($label ? htmlspecialchars($label) : '&nbsp;'), $formElementValue) . '</span>

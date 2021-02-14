@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\Hooks;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,9 @@ namespace TYPO3\CMS\Form\Hooks;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Form\Hooks;
+
+use TYPO3\CMS\Backend\View\PageLayoutView;
 use TYPO3\CMS\Backend\View\PageLayoutViewDrawItemHookInterface;
 use TYPO3\CMS\Core\Error\Exception;
 use TYPO3\CMS\Core\Localization\LanguageService;
@@ -52,7 +55,7 @@ class FormPagePreviewRenderer implements PageLayoutViewDrawItemHookInterface
      * @param array $row Record row of tt_content
      */
     public function preProcess(
-        \TYPO3\CMS\Backend\View\PageLayoutView &$parentObject,
+        PageLayoutView &$parentObject,
         &$drawItem,
         &$headerContent,
         &$itemContent,
@@ -139,8 +142,7 @@ class FormPagePreviewRenderer implements PageLayoutViewDrawItemHookInterface
             $e->getMessage()
         );
 
-        GeneralUtility::makeInstance(ObjectManager::class)
-            ->get(FlashMessageService::class)
+        GeneralUtility::makeInstance(FlashMessageService::class)
             ->getMessageQueueByIdentifier('core.template.flashMessages')
             ->enqueue(
                 GeneralUtility::makeInstance(

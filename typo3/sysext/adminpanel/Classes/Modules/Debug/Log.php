@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Adminpanel\Modules\Debug;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Adminpanel\Modules\Debug;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Adminpanel\Modules\Debug;
 
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Adminpanel\Log\InMemoryLogWriter;
@@ -142,7 +143,7 @@ class Log extends AbstractSubModule implements DataProviderInterface, ModuleSett
      */
     public function getContent(ModuleData $data): string
     {
-        $this->logLevel = $this->getConfigOption('startLevel');
+        $this->logLevel = (int)$this->getConfigOption('startLevel');
         $view = GeneralUtility::makeInstance(StandaloneView::class);
         $templateNameAndPath = 'EXT:adminpanel/Resources/Private/Templates/Modules/Debug/Log.html';
         $view->setTemplatePathAndFilename(GeneralUtility::getFileAbsFileName($templateNameAndPath));
@@ -179,7 +180,7 @@ class Log extends AbstractSubModule implements DataProviderInterface, ModuleSett
      */
     public function enrich(ServerRequestInterface $request): ServerRequestInterface
     {
-        $this->logLevel = $this->getConfigOption('startLevel');
+        $this->logLevel = (int)$this->getConfigOption('startLevel');
 
         // set inMemoryLogWriter recursively for all configured namespaces/areas so we don't lose log entries
         $configWithInMemoryWriter = $this->setLoggingConfigRecursive($GLOBALS['TYPO3_CONF_VARS']['LOG'] ?? []);

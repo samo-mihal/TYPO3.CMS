@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\ViewHelpers\Be\Widget\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,15 @@ namespace TYPO3\CMS\Fluid\ViewHelpers\Be\Widget\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Fluid\ViewHelpers\Be\Widget\Controller;
+
+use TYPO3\CMS\Core\Utility\ArrayUtility;
+use TYPO3\CMS\Fluid\Core\Widget\AbstractWidgetController;
+
 /**
  * Class PaginateController
  */
-class PaginateController extends \TYPO3\CMS\Fluid\Core\Widget\AbstractWidgetController
+class PaginateController extends AbstractWidgetController
 {
     /**
      * @var array
@@ -60,10 +64,10 @@ class PaginateController extends \TYPO3\CMS\Fluid\Core\Widget\AbstractWidgetCont
     public function initializeAction()
     {
         $this->objects = $this->widgetConfiguration['objects'];
-        \TYPO3\CMS\Core\Utility\ArrayUtility::mergeRecursiveWithOverrule($this->configuration, $this->widgetConfiguration['configuration'], false);
+        ArrayUtility::mergeRecursiveWithOverrule($this->configuration, $this->widgetConfiguration['configuration'], false);
         $this->numberOfObjects = count($this->objects);
         $itemsPerPage = (int)$this->configuration['itemsPerPage'];
-        $this->numberOfPages = $itemsPerPage > 0 ? ceil($this->numberOfObjects / $itemsPerPage) : 0;
+        $this->numberOfPages = $itemsPerPage > 0 ? (int)ceil($this->numberOfObjects / $itemsPerPage) : 0;
     }
 
     /**
@@ -72,12 +76,12 @@ class PaginateController extends \TYPO3\CMS\Fluid\Core\Widget\AbstractWidgetCont
     public function indexAction($currentPage = 1)
     {
         // set current page
-        $this->currentPage = (int)$currentPage;
-        if ($this->currentPage < 1) {
-            $this->currentPage = 1;
-        }
+        $this->currentPage = max((int)$currentPage, 1);
+        $this->currentPage = min($this->numberOfPages, $this->currentPage);
+
         if ($this->currentPage > $this->numberOfPages) {
             // set $modifiedObjects to NULL if the page does not exist
+            // (happens when numberOfPages is zero, not having any items)
             $modifiedObjects = null;
         } else {
             // modify query

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Domain\Repository\Module;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,19 +13,24 @@ namespace TYPO3\CMS\Backend\Domain\Repository\Module;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Domain\Repository\Module;
+
+use TYPO3\CMS\Backend\Domain\Model\Module\BackendModule;
 use TYPO3\CMS\Backend\Module\ModuleLoader;
+use TYPO3\CMS\Backend\Module\ModuleStorage;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Imaging\IconRegistry;
 use TYPO3\CMS\Core\Localization\LanguageService;
+use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Repository for backend module menu
  * compiles all data from $GLOBALS[TBE_MODULES]
  */
-class BackendModuleRepository implements \TYPO3\CMS\Core\SingletonInterface
+class BackendModuleRepository implements SingletonInterface
 {
     /**
      * @var \TYPO3\CMS\Backend\Module\ModuleStorage
@@ -38,7 +42,7 @@ class BackendModuleRepository implements \TYPO3\CMS\Core\SingletonInterface
      */
     public function __construct()
     {
-        $this->moduleStorage = GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Module\ModuleStorage::class);
+        $this->moduleStorage = GeneralUtility::makeInstance(ModuleStorage::class);
 
         $rawData = $this->getRawModuleMenuData();
 
@@ -61,7 +65,7 @@ class BackendModuleRepository implements \TYPO3\CMS\Core\SingletonInterface
         $modules = new \SplObjectStorage();
         foreach ($this->moduleStorage->getEntries() as $moduleGroup) {
             if (!in_array($moduleGroup->getName(), $excludeGroupNames, true)) {
-                if ($moduleGroup->getChildren()->count() > 0) {
+                if ($moduleGroup->getChildren()->count() > 0 || $moduleGroup->isStandalone()) {
                     $modules->attach($moduleGroup);
                 }
             }
@@ -150,7 +154,7 @@ class BackendModuleRepository implements \TYPO3\CMS\Core\SingletonInterface
     protected function createEntryFromRawData(array $module)
     {
         /** @var \TYPO3\CMS\Backend\Domain\Model\Module\BackendModule $entry */
-        $entry = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Domain\Model\Module\BackendModule::class);
+        $entry = GeneralUtility::makeInstance(BackendModule::class);
         if (!empty($module['name']) && is_string($module['name'])) {
             $entry->setName($module['name']);
         }
@@ -182,6 +186,9 @@ class BackendModuleRepository implements \TYPO3\CMS\Core\SingletonInterface
         if (!empty($module['navigationFrameScriptParam']) && is_string($module['navigationFrameScriptParam'])) {
             $entry->setNavigationFrameScriptParameters($module['navigationFrameScriptParam']);
         }
+        if (!empty($module['standalone'])) {
+            $entry->setStandalone((bool)$module['standalone']);
+        }
         $moduleMenuState = json_decode($this->getBackendUser()->uc['modulemenu'] ?? '{}', true);
         $entry->setCollapsed(isset($moduleMenuState[$module['name']]));
         return $entry;
@@ -194,7 +201,7 @@ class BackendModuleRepository implements \TYPO3\CMS\Core\SingletonInterface
     protected function createMenuEntriesForTbeModulesExt()
     {
         foreach ($GLOBALS['TBE_MODULES_EXT'] ?? [] as $mainModule => $tbeModuleExt) {
-            list($main) = explode('_', $mainModule);
+            [$main] = explode('_', $mainModule);
             $mainEntry = $this->findByModuleName($main);
             if ($mainEntry === false) {
                 continue;
@@ -239,7 +246,7 @@ class BackendModuleRepository implements \TYPO3\CMS\Core\SingletonInterface
         $dummyScript = (string)$uriBuilder->buildUriFromRoute('dummy');
         foreach ($loadedModules as $moduleName => $moduleData) {
             $moduleLink = '';
-            if (!is_array($moduleData['sub'])) {
+            if (!is_array($moduleData['sub'] ?? null)) {
                 $moduleLink = $moduleData['script'];
             }
             $moduleLink = GeneralUtility::resolveBackPath($moduleLink);
@@ -251,9 +258,10 @@ class BackendModuleRepository implements \TYPO3\CMS\Core\SingletonInterface
                 'onclick' => 'top.goToModule(' . GeneralUtility::quoteJSvalue($moduleName) . ');',
                 'icon' => $this->getModuleIcon($moduleKey, $moduleData),
                 'link' => $moduleLink,
-                'description' => $moduleLabels['shortdescription']
+                'description' => $moduleLabels['shortdescription'],
+                'standalone' => (bool)($moduleData['standalone'] ?? false)
             ];
-            if (!is_array($moduleData['sub']) && $moduleData['script'] !== $dummyScript) {
+            if ((($moduleData['standalone'] ?? false) === false) && !is_array($moduleData['sub']) && $moduleData['script'] !== $dummyScript) {
                 // Work around for modules with own main entry, but being self the only submodule
                 $modules[$moduleKey]['subitems'][$moduleKey] = [
                     'name' => $moduleName,
@@ -267,7 +275,7 @@ class BackendModuleRepository implements \TYPO3\CMS\Core\SingletonInterface
                     'navigationFrameScriptParam' => null,
                     'navigationComponentId' => null
                 ];
-            } elseif (is_array($moduleData['sub'])) {
+            } elseif (is_array($moduleData['sub'] ?? null)) {
                 foreach ($moduleData['sub'] as $submoduleName => $submoduleData) {
                     if (isset($submoduleData['script'])) {
                         $submoduleLink = GeneralUtility::resolveBackPath($submoduleData['script']);
@@ -278,7 +286,7 @@ class BackendModuleRepository implements \TYPO3\CMS\Core\SingletonInterface
                     $submoduleLabels = $moduleLoader->getLabelsForModule($submoduleKey);
                     $submoduleDescription = $submoduleLabels['shortdescription'];
                     $originalLink = $submoduleLink;
-                    $navigationFrameScript = $submoduleData['navFrameScript'];
+                    $navigationFrameScript = $submoduleData['navFrameScript'] ?? null;
                     $modules[$moduleKey]['subitems'][$submoduleKey] = [
                         'name' => $moduleName . '_' . $submoduleName,
                         'title' => $submoduleLabels['title'],
@@ -288,18 +296,30 @@ class BackendModuleRepository implements \TYPO3\CMS\Core\SingletonInterface
                         'originalLink' => $originalLink,
                         'description' => $submoduleDescription,
                         'navigationFrameScript' => $navigationFrameScript,
-                        'navigationFrameScriptParam' => $submoduleData['navFrameScriptParam'],
-                        'navigationComponentId' => $submoduleData['navigationComponentId']
+                        'navigationFrameScriptParam' => $submoduleData['navFrameScriptParam'] ?? null,
+                        'navigationComponentId' => $submoduleData['navigationComponentId'] ?? null
                     ];
                     // if the main module has a navframe script, inherit to the submodule,
                     // but only if it is not disabled explicitly (option is set to FALSE)
-                    if ($moduleData['navFrameScript'] && $submoduleData['inheritNavigationComponentFromMainModule'] !== false) {
+                    if (($moduleData['navFrameScript'] ?? false) && $submoduleData['inheritNavigationComponentFromMainModule'] !== false) {
                         $modules[$moduleKey]['subitems'][$submoduleKey]['parentNavigationFrameScript'] = $moduleData['navFrameScript'];
                     }
                 }
             }
         }
         return $modules;
+    }
+
+    public function modulesHaveNavigationComponent(): bool
+    {
+        /** @var BackendModule $module */
+        foreach ($this->moduleStorage->getEntries() as $module) {
+            if ($module->getNavigationComponentId() !== '') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

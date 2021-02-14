@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Cache\Backend;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,8 +13,11 @@ namespace TYPO3\CMS\Core\Cache\Backend;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Cache\Backend;
+
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
+use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
 use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -67,14 +69,12 @@ abstract class AbstractBackend implements BackendInterface, LoggerAwareInterface
     public function __construct($context, array $options = [])
     {
         $this->context = $context;
-        if (is_array($options) || $options instanceof \ArrayAccess) {
-            foreach ($options as $optionKey => $optionValue) {
-                $methodName = 'set' . ucfirst($optionKey);
-                if (method_exists($this, $methodName)) {
-                    $this->{$methodName}($optionValue);
-                } else {
-                    throw new \InvalidArgumentException('Invalid cache backend option "' . $optionKey . '" for backend of type "' . static::class . '"', 1231267498);
-                }
+        foreach ($options as $optionKey => $optionValue) {
+            $methodName = 'set' . ucfirst($optionKey);
+            if (method_exists($this, $methodName)) {
+                $this->{$methodName}($optionValue);
+            } else {
+                throw new \InvalidArgumentException('Invalid cache backend option "' . $optionKey . '" for backend of type "' . static::class . '"', 1231267498);
             }
         }
         if ($this->logger === null) {
@@ -90,7 +90,7 @@ abstract class AbstractBackend implements BackendInterface, LoggerAwareInterface
      *
      * @param \TYPO3\CMS\Core\Cache\Frontend\FrontendInterface $cache The frontend for this backend
      */
-    public function setCache(\TYPO3\CMS\Core\Cache\Frontend\FrontendInterface $cache)
+    public function setCache(FrontendInterface $cache)
     {
         $this->cache = $cache;
         $this->cacheIdentifier = $this->cache->getIdentifier();
@@ -122,6 +122,8 @@ abstract class AbstractBackend implements BackendInterface, LoggerAwareInterface
      */
     public function flushByTags(array $tags)
     {
+        // todo: flushByTag is not necessarily implemented since it's neither defined of the interface, nor defined in
+        //       this class as abstract method. Therefore this potentially triggers a fatal error during runtime.
         array_walk($tags, [$this, 'flushByTag']);
     }
 

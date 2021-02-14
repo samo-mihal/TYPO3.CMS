@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Cache\Backend;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Cache\Backend;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Cache\Backend;
 
 use TYPO3\CMS\Core\Cache\Exception;
 use TYPO3\CMS\Core\Cache\Exception\InvalidDataException;
@@ -113,7 +114,7 @@ class SimpleFileBackend extends AbstractBackend implements PhpCapableBackendInte
      */
     public function setCacheDirectory($cacheDirectory)
     {
-        // Skip handling if directory is a stream ressource
+        // Skip handling if directory is a stream resource
         // This is used by unit tests with vfs:// directories
         if (strpos($cacheDirectory, '://')) {
             $this->temporaryCacheDirectory = $cacheDirectory;
@@ -287,20 +288,31 @@ class SimpleFileBackend extends AbstractBackend implements PhpCapableBackendInte
         if ($entryIdentifier === '') {
             throw new \InvalidArgumentException('The specified entry identifier must not be empty.', 1334756961);
         }
-        try {
-            unlink($this->cacheDirectory . $entryIdentifier . $this->cacheEntryFileExtension);
-        } catch (\Exception $e) {
-            return false;
-        }
-        return true;
+        return @unlink($this->cacheDirectory . $entryIdentifier . $this->cacheEntryFileExtension);
     }
 
     /**
      * Removes all cache entries of this cache.
+     * Flushes a directory by first moving to a temporary resource, and then
+     * triggering the remove process. This way directories can be flushed faster
+     * to prevent race conditions on concurrent processes accessing the same directory.
      */
     public function flush()
     {
-        GeneralUtility::flushDirectory($this->cacheDirectory, true);
+        $directory = $this->cacheDirectory;
+        if (is_link($directory)) {
+            // Avoid attempting to rename the symlink see #87367
+            $directory = (string)realpath($directory);
+        }
+
+        if (is_dir($directory)) {
+            $temporaryDirectory = rtrim($directory, '/') . '.' . StringUtility::getUniqueId('remove');
+            if (rename($directory, $temporaryDirectory)) {
+                GeneralUtility::mkdir($directory);
+                clearstatcache();
+                GeneralUtility::rmdir($temporaryDirectory, true);
+            }
+        }
     }
 
     /**

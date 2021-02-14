@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Mail;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,8 +13,12 @@ namespace TYPO3\CMS\Core\Mail;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Mail;
+
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Mailer\SentMessage;
 use Symfony\Component\Mailer\Transport\AbstractTransport;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\Locking\LockFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -30,14 +33,29 @@ class MboxTransport extends AbstractTransport
     private $mboxFile;
 
     /**
+     * The logger instance.
+     *
+     * @var LoggerInterface
+     */
+    protected $logger;
+
+    /**
      * Create a new MailTransport
      *
      * @param string $mboxFile
+     * @param EventDispatcherInterface $dispatcher
+     * @param LoggerInterface $logger
      */
-    public function __construct($mboxFile)
-    {
-        parent::__construct();
+    public function __construct(
+        string $mboxFile,
+        EventDispatcherInterface $dispatcher = null,
+        LoggerInterface $logger = null
+    ) {
+        parent::__construct($dispatcher, $logger);
+
         $this->mboxFile = $mboxFile;
+        $this->logger = $logger;
+
         $this->setMaxPerSecond(0);
     }
 

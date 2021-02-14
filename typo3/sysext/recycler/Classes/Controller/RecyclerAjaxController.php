@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Recycler\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Recycler\Controller;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Recycler\Controller;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -122,7 +123,7 @@ class RecyclerAjaxController
                 $messageKey = 'flashmessage.undo.' . ($affectedRecords !== false ? 'success' : 'failure') . '.' . ((int)$affectedRecords === 1 ? 'singular' : 'plural');
                 $content = [
                     'success' => true,
-                    'message' => sprintf(LocalizationUtility::translate($messageKey, 'recycler'), $affectedRecords)
+                    'message' => sprintf((string)LocalizationUtility::translate($messageKey, 'recycler'), $affectedRecords)
                 ];
                 break;
             case 'deleteRecords':
@@ -136,12 +137,12 @@ class RecyclerAjaxController
 
                 /* @var DeletedRecords $model */
                 $model = GeneralUtility::makeInstance(DeletedRecords::class);
-                $success = $model->deleteData($this->conf['records']);
+                $success = $model->deleteData($this->conf['records'] ?? null);
                 $affectedRecords = count($this->conf['records']);
                 $messageKey = 'flashmessage.delete.' . ($success ? 'success' : 'failure') . '.' . ($affectedRecords === 1 ? 'singular' : 'plural');
                 $content = [
                     'success' => true,
-                    'message' => sprintf(LocalizationUtility::translate($messageKey, 'recycler'), $affectedRecords)
+                    'message' => sprintf((string)LocalizationUtility::translate($messageKey, 'recycler'), $affectedRecords)
                 ];
                 break;
         }

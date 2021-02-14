@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extensionmanager\Utility;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,12 +13,17 @@ namespace TYPO3\CMS\Extensionmanager\Utility;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extensionmanager\Utility;
+
+use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\Package\Event\PackagesMayHaveChangedEvent;
 use TYPO3\CMS\Core\Package\PackageInterface;
 use TYPO3\CMS\Core\Package\PackageManager;
-use TYPO3\CMS\Core\Type\File\ImageInfo;
+use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\PathUtility;
 use TYPO3\CMS\Core\Utility\VersionNumberUtility;
 use TYPO3\CMS\Extensionmanager\Domain\Model\Extension;
 use TYPO3\CMS\Extensionmanager\Domain\Repository\ExtensionRepository;
@@ -33,7 +37,7 @@ use TYPO3\CMS\Extensionmanager\Domain\Repository\ExtensionRepository;
  * - The name 'listUtility' is not good, the methods could be moved to some 'extensionInformationUtility', or a repository?
  * @internal This class is a specific ExtensionManager implementation and is not part of the Public TYPO3 API.
  */
-class ListUtility implements \TYPO3\CMS\Core\SingletonInterface
+class ListUtility implements SingletonInterface
 {
     /**
      * @var EmConfUtility
@@ -56,14 +60,19 @@ class ListUtility implements \TYPO3\CMS\Core\SingletonInterface
     protected $packageManager;
 
     /**
-     * @var \TYPO3\CMS\Extbase\SignalSlot\Dispatcher
-     */
-    protected $signalSlotDispatcher;
-
-    /**
      * @var array
      */
     protected $availableExtensions;
+
+    /**
+     * @var EventDispatcherInterface
+     */
+    protected $eventDispatcher;
+
+    public function injectEventDispatcher(EventDispatcherInterface $eventDispatcher)
+    {
+        $this->eventDispatcher = $eventDispatcher;
+    }
 
     /**
      * @param EmConfUtility $emConfUtility
@@ -98,31 +107,26 @@ class ListUtility implements \TYPO3\CMS\Core\SingletonInterface
     }
 
     /**
-     * @param \TYPO3\CMS\Extbase\SignalSlot\Dispatcher $signalSlotDispatcher
-     */
-    public function injectSignalSlotDispatcher(\TYPO3\CMS\Extbase\SignalSlot\Dispatcher $signalSlotDispatcher)
-    {
-        $this->signalSlotDispatcher = $signalSlotDispatcher;
-    }
-
-    /**
      * Returns the list of available, but not necessarily loaded extensions
      *
+     * @param string $filter
      * @return array[] All extensions with info
      */
-    public function getAvailableExtensions()
+    public function getAvailableExtensions(string $filter = ''): array
     {
         if ($this->availableExtensions === null) {
             $this->availableExtensions = [];
-            $this->emitPackagesMayHaveChangedSignal();
+            $this->eventDispatcher->dispatch(new PackagesMayHaveChangedEvent());
             foreach ($this->packageManager->getAvailablePackages() as $package) {
                 $installationType = $this->getInstallTypeForPackage($package);
-                $this->availableExtensions[$package->getPackageKey()] = [
-                    'siteRelPath' => str_replace(Environment::getPublicPath() . '/', '', $package->getPackagePath()),
-                    'type' => $installationType,
-                    'key' => $package->getPackageKey(),
-                    'ext_icon' => ExtensionManagementUtility::getExtensionIcon($package->getPackagePath()),
-                ];
+                if ($filter === '' || $filter === $installationType) {
+                    $this->availableExtensions[$package->getPackageKey()] = [
+                        'siteRelPath' => str_replace(Environment::getPublicPath() . '/', '', $package->getPackagePath()),
+                        'type' => $installationType,
+                        'key' => $package->getPackageKey(),
+                        'icon' => PathUtility::getAbsoluteWebPath($package->getPackagePath() . ExtensionManagementUtility::getExtensionIcon($package->getPackagePath())),
+                    ];
+                }
             }
         }
 
@@ -147,14 +151,6 @@ class ListUtility implements \TYPO3\CMS\Core\SingletonInterface
     public function getExtension($extensionKey)
     {
         return $this->packageManager->getPackage($extensionKey);
-    }
-
-    /**
-     * Emits packages may have changed signal
-     */
-    protected function emitPackagesMayHaveChangedSignal()
-    {
-        $this->signalSlotDispatcher->dispatch('PackageManagement', 'packagesMayHaveChanged');
     }
 
     /**
@@ -198,8 +194,8 @@ class ListUtility implements \TYPO3\CMS\Core\SingletonInterface
     public function enrichExtensionsWithEmConfInformation(array $extensions)
     {
         foreach ($extensions as $extensionKey => $properties) {
-            $emconf = $this->emConfUtility->includeEmConf($properties);
-            if ($emconf) {
+            $emconf = $this->emConfUtility->includeEmConf($extensionKey, $properties);
+            if (is_array($emconf)) {
                 $extensions[$extensionKey] = array_merge($emconf, $properties);
             } else {
                 unset($extensions[$extensionKey]);
@@ -265,39 +261,16 @@ class ListUtility implements \TYPO3\CMS\Core\SingletonInterface
     }
 
     /**
-     * Adds information about icon size to the extension information
-     *
-     * @param array $extensions
-     * @return array
-     */
-    public function enrichExtensionsWithIconInformation(array $extensions)
-    {
-        foreach ($extensions as &$properties) {
-            $extIconPath = Environment::getPublicPath() . '/' . $properties['siteRelPath'] . $properties['ext_icon'];
-            if (@is_file($extIconPath)) {
-                $imageInfo = GeneralUtility::makeInstance(ImageInfo::class, $extIconPath);
-                $properties['ext_icon_width'] = $imageInfo->getWidth();
-                $properties['ext_icon_height'] = $imageInfo->getHeight();
-            } else {
-                $properties['ext_icon_width'] = 0;
-                $properties['ext_icon_height'] = 0;
-            }
-        }
-        unset($properties);
-        return $extensions;
-    }
-
-    /**
      * Gets all available and installed extension with additional information
      * from em_conf and TER (if available)
      *
+     * @param string $filter
      * @return array
      */
-    public function getAvailableAndInstalledExtensionsWithAdditionalInformation()
+    public function getAvailableAndInstalledExtensionsWithAdditionalInformation(string $filter = ''): array
     {
-        $availableExtensions = $this->getAvailableExtensions();
+        $availableExtensions = $this->getAvailableExtensions($filter);
         $availableAndInstalledExtensions = $this->getAvailableAndInstalledExtensions($availableExtensions);
-        $availableAndInstalledExtensions = $this->enrichExtensionsWithIconInformation($availableAndInstalledExtensions);
         return $this->enrichExtensionsWithEmConfAndTerInformation($availableAndInstalledExtensions);
     }
 }

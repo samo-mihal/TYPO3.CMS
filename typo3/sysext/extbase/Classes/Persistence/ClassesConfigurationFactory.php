@@ -1,5 +1,6 @@
 <?php
-declare(strict_types = 1);
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,12 +14,15 @@ declare(strict_types = 1);
  *
  * The TYPO3 project - inspiring people to share!
  */
+
 namespace TYPO3\CMS\Extbase\Persistence;
 
 use TYPO3\CMS\Core\Cache\CacheManager;
+use TYPO3\CMS\Core\Cache\Exception\NoSuchCacheException;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
 use TYPO3\CMS\Core\Cache\Frontend\NullFrontend;
 use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\Information\Typo3Version;
 use TYPO3\CMS\Core\Package\PackageManager;
 use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Core\Utility\ArrayUtility;
@@ -47,7 +51,7 @@ final class ClassesConfigurationFactory implements SingletonInterface
         if ($cacheManager !== null) {
             try {
                 $cacheFrontend = $cacheManager->getCache($cacheIdentifier);
-            } catch (\TYPO3\CMS\Core\Cache\Exception\NoSuchCacheException $e) {
+            } catch (NoSuchCacheException $e) {
                 // Handling this exception is not needed as $cacheFrontend is
                 // a NullFrontend at this moment.
             }
@@ -61,10 +65,11 @@ final class ClassesConfigurationFactory implements SingletonInterface
      */
     public function createClassesConfiguration(): ClassesConfiguration
     {
-        $cacheEntryIdentifier = 'PersistenceClasses_' . sha1(TYPO3_version . Environment::getProjectPath());
+        $cacheEntryIdentifier = 'PersistenceClasses_' . sha1((new Typo3Version())->getVersion() . Environment::getProjectPath());
 
-        if ($this->cacheFrontend->has($cacheEntryIdentifier)) {
-            return new ClassesConfiguration($this->cacheFrontend->get($cacheEntryIdentifier));
+        $classesConfigurationCache = $this->cacheFrontend->get($cacheEntryIdentifier);
+        if ($classesConfigurationCache !== false) {
+            return new ClassesConfiguration($classesConfigurationCache);
         }
 
         $classes = [];

@@ -1,9 +1,9 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Composer;
+
+declare(strict_types=1);
 
 /*
- * This file is part of the TYPO3 project.
+ * This file is part of the TYPO3 CMS project.
  *
  * It is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, either version 2
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Composer;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Composer;
 
 use Composer\Script\Event;
 use Composer\Util\Filesystem as FilesystemUtility;
@@ -51,6 +53,9 @@ class CliEntryPoint implements InstallerScript
         $pluginConfig = Config::load($composer);
 
         $entryPointContent = file_get_contents($this->source);
+        if ($entryPointContent === false) {
+            return false;
+        }
         $targetFile = $pluginConfig->get('root-dir') . '/' . $this->target;
         $autoloadFile = $composer->getConfig()->get('vendor-dir') . '/autoload.php';
 

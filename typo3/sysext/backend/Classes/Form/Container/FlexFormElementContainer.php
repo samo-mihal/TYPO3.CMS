@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Form\Container;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,11 +13,12 @@ namespace TYPO3\CMS\Backend\Form\Container;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Form\Container;
+
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Type\Bitmask\JsConfirmation;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * The container handles single elements.
@@ -44,6 +44,8 @@ class FlexFormElementContainer extends AbstractContainer
 
         $languageService = $this->getLanguageService();
         $resultArray = $this->initializeResultArray();
+        $showFieldName = $GLOBALS['TYPO3_CONF_VARS']['BE']['debug'] && $this->getBackendUserAuthentication()->isAdmin();
+
         foreach ($flexFormDataStructureArray as $flexFormFieldName => $flexFormFieldArray) {
             if (
                 // No item array found at all
@@ -85,6 +87,25 @@ class FlexFormElementContainer extends AbstractContainer
                     $fakeParameterArray['fieldConf']['description'] = $flexFormFieldArray['description'];
                 }
 
+                $alertMsgOnChange = '';
+                if (isset($fakeParameterArray['fieldConf']['onChange']) && $fakeParameterArray['fieldConf']['onChange'] === 'reload') {
+                    if ($this->getBackendUserAuthentication()->jsConfirmation(JsConfirmation::TYPE_CHANGE)) {
+                        $alertMsgOnChange = 'Modal.confirm('
+                            . 'TYPO3.lang["FormEngine.refreshRequiredTitle"],'
+                            . ' TYPO3.lang["FormEngine.refreshRequiredContent"]'
+                            . ')'
+                            . '.on('
+                            . '"button.clicked",'
+                            . ' function(e) { if (e.target.name == "ok") { FormEngine.saveDocument(); } Modal.dismiss(); }'
+                            . ');';
+                    } else {
+                        $alertMsgOnChange = 'FormEngine.saveDocument();';
+                    }
+                }
+                if ($alertMsgOnChange) {
+                    $fakeParameterArray['fieldChangeFunc']['alert'] = 'require([\'TYPO3/CMS/Backend/FormEngine\', \'TYPO3/CMS/Backend/Modal\'], function (FormEngine, Modal) {' . $alertMsgOnChange . '});';
+                }
+
                 $originalFieldName = $parameterArray['itemFormElName'];
                 $fakeParameterArray['itemFormElName'] = $parameterArray['itemFormElName'] . $flexFormFormPrefix . '[' . $flexFormFieldName . '][vDEF]';
                 if ($fakeParameterArray['itemFormElName'] !== $originalFieldName) {
@@ -120,14 +141,6 @@ class FlexFormElementContainer extends AbstractContainer
                 }
                 $childResult = $this->nodeFactory->create($options)->render();
 
-                // Create a JavaScript code line which will ask the user to save/update the form due to changing the element.
-                // This is used for eg. "type" fields and others configured with "onChange"
-                if (isset($fakeParameterArray['fieldConf']['onChange']) && $fakeParameterArray['fieldConf']['onChange'] === 'reload') {
-                    $showConfirmation = $this->getBackendUserAuthentication()->jsConfirmation(JsConfirmation::TYPE_CHANGE) ? 'true' : 'false';
-
-                    $resultArray['requireJsModules'][] = ['TYPO3/CMS/Backend/FormEngine' => 'function (FormEngine) {FormEngine.requestConfirmationOnFieldChange(' . GeneralUtility::quoteJSvalue($parameterArray['itemFormElName']) . ', ' . $showConfirmation . ');}'];
-                }
-
                 if (!empty($childResult['html'])) {
                     // Possible line breaks in the label through xml: \n => <br/>, usage of nl2br() not possible, so it's done through str_replace (?!)
                     $processedTitle = str_replace('\\n', '<br />', htmlspecialchars($fakeParameterArray['fieldConf']['label']));
@@ -136,6 +149,7 @@ class FlexFormElementContainer extends AbstractContainer
                     $html[] =   '<div class="form-group t3js-formengine-palette-field t3js-formengine-validation-marker">';
                     $html[] =       '<label class="t3js-formengine-label">';
                     $html[] =           BackendUtility::wrapInHelp($parameterArray['_cshKey'], $flexFormFieldName, $processedTitle);
+                    $html[] =           $showFieldName ? ('<code>[' . htmlspecialchars($flexFormFieldName) . ']</code>') : '';
                     $html[] =       '</label>';
                     $html[] =       '<div class="formengine-field-item t3js-formengine-field-item">';
                     $html[] =           $childResult['html'];

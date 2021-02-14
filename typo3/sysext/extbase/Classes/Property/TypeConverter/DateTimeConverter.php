@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Extbase\Property\TypeConverter;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,13 @@ namespace TYPO3\CMS\Extbase\Property\TypeConverter;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Extbase\Property\TypeConverter;
+
+use TYPO3\CMS\Extbase\Error\Error;
+use TYPO3\CMS\Extbase\Property\Exception\InvalidPropertyMappingConfigurationException;
+use TYPO3\CMS\Extbase\Property\Exception\TypeConverterException;
+use TYPO3\CMS\Extbase\Property\PropertyMappingConfigurationInterface;
 
 /**
  * Converter which transforms from different input formats into DateTime objects.
@@ -54,7 +60,7 @@ namespace TYPO3\CMS\Extbase\Property\TypeConverter;
  *   'year' => '<year>', // integer
  *  );
  */
-class DateTimeConverter extends \TYPO3\CMS\Extbase\Property\TypeConverter\AbstractTypeConverter
+class DateTimeConverter extends AbstractTypeConverter
 {
     /**
      * @var string
@@ -95,6 +101,7 @@ class DateTimeConverter extends \TYPO3\CMS\Extbase\Property\TypeConverter\Abstra
     public function canConvertFrom($source, string $targetType): bool
     {
         if (!is_callable([$targetType, 'createFromFormat'])) {
+            // todo: this check does not make sense as this converter is only called on \DateTime targets
             return false;
         }
         if (is_array($source)) {
@@ -117,7 +124,7 @@ class DateTimeConverter extends \TYPO3\CMS\Extbase\Property\TypeConverter\Abstra
      * @throws \TYPO3\CMS\Extbase\Property\Exception\TypeConverterException
      * @internal only to be used within Extbase, not part of TYPO3 Core API.
      */
-    public function convertFrom($source, string $targetType, array $convertedChildProperties = [], \TYPO3\CMS\Extbase\Property\PropertyMappingConfigurationInterface $configuration = null): ?object
+    public function convertFrom($source, string $targetType, array $convertedChildProperties = [], PropertyMappingConfigurationInterface $configuration = null): ?object
     {
         $dateFormat = $this->getDefaultDateFormat($configuration);
         if (is_string($source)) {
@@ -131,11 +138,11 @@ class DateTimeConverter extends \TYPO3\CMS\Extbase\Property\TypeConverter\Abstra
                 $dateAsString = (string)$source['date'];
             } elseif ($this->isDatePartKeysProvided($source)) {
                 if ($source['day'] < 1 || $source['month'] < 1 || $source['year'] < 1) {
-                    return new \TYPO3\CMS\Extbase\Error\Error('Could not convert the given date parts into a DateTime object because one or more parts were 0.', 1333032779);
+                    return new Error('Could not convert the given date parts into a DateTime object because one or more parts were 0.', 1333032779);
                 }
                 $dateAsString = sprintf('%d-%d-%d', $source['year'], $source['month'], $source['day']);
             } else {
-                throw new \TYPO3\CMS\Extbase\Property\Exception\TypeConverterException('Could not convert the given source into a DateTime object because it was not an array with a valid date as a string', 1308003914);
+                throw new TypeConverterException('Could not convert the given source into a DateTime object because it was not an array with a valid date as a string', 1308003914);
             }
             if (isset($source['dateFormat']) && $source['dateFormat'] !== '') {
                 $dateFormat = $source['dateFormat'];
@@ -145,13 +152,14 @@ class DateTimeConverter extends \TYPO3\CMS\Extbase\Property\TypeConverter\Abstra
             return null;
         }
         if (ctype_digit($dateAsString) && $configuration === null && (!is_array($source) || !isset($source['dateFormat']))) {
+            // todo: type converters are never called without a property mapping configuration
             $dateFormat = 'U';
         }
         if (is_array($source) && isset($source['timezone']) && (string)$source['timezone'] !== '') {
             try {
                 $timezone = new \DateTimeZone($source['timezone']);
             } catch (\Exception $e) {
-                throw new \TYPO3\CMS\Extbase\Property\Exception\TypeConverterException('The specified timezone "' . $source['timezone'] . '" is invalid.', 1308240974);
+                throw new TypeConverterException('The specified timezone "' . $source['timezone'] . '" is invalid.', 1308240974);
             }
             $date = $targetType::createFromFormat($dateFormat, $dateAsString, $timezone);
         } else {
@@ -187,9 +195,10 @@ class DateTimeConverter extends \TYPO3\CMS\Extbase\Property\TypeConverter\Abstra
      * @return string
      * @throws \TYPO3\CMS\Extbase\Property\Exception\InvalidPropertyMappingConfigurationException
      */
-    protected function getDefaultDateFormat(\TYPO3\CMS\Extbase\Property\PropertyMappingConfigurationInterface $configuration = null): string
+    protected function getDefaultDateFormat(PropertyMappingConfigurationInterface $configuration = null): string
     {
         if ($configuration === null) {
+            // todo: type converters are never called without a property mapping configuration
             return self::DEFAULT_DATE_FORMAT;
         }
         $dateFormat = $configuration->getConfigurationValue(DateTimeConverter::class, self::CONFIGURATION_DATE_FORMAT);
@@ -197,7 +206,7 @@ class DateTimeConverter extends \TYPO3\CMS\Extbase\Property\TypeConverter\Abstra
             return self::DEFAULT_DATE_FORMAT;
         }
         if ($dateFormat !== null && !is_string($dateFormat)) {
-            throw new \TYPO3\CMS\Extbase\Property\Exception\InvalidPropertyMappingConfigurationException('CONFIGURATION_DATE_FORMAT must be of type string, "' . (is_object($dateFormat) ? get_class($dateFormat) : gettype($dateFormat)) . '" given', 1307719569);
+            throw new InvalidPropertyMappingConfigurationException('CONFIGURATION_DATE_FORMAT must be of type string, "' . (is_object($dateFormat) ? get_class($dateFormat) : gettype($dateFormat)) . '" given', 1307719569);
         }
         return $dateFormat;
     }

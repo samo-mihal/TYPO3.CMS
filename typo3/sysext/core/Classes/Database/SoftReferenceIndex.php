@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Database;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Database;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Database;
 
 use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\DataHandling\Event\AppendLinkHandlerElementsEvent;
@@ -101,7 +102,7 @@ class SoftReferenceIndex implements SingletonInterface
      * @param string $spKey The softlink parser key. This is only interesting if more than one parser is grouped in the same class. That is the case with this parser.
      * @param array $spParams Parameters of the softlink parser. Basically this is the content inside optional []-brackets after the softref keys. Parameters are exploded by ";
      * @param string $structurePath If running from inside a FlexForm structure, this is the path of the tag.
-     * @return array|bool Result array on positive matches, see description above. Otherwise FALSE
+     * @return array|bool|null Result array on positive matches, see description above. Otherwise FALSE or null
      */
     public function findRef($table, $field, $uid, $content, $spKey, $spParams, $structurePath = '')
     {
@@ -162,7 +163,7 @@ class SoftReferenceIndex implements SingletonInterface
      *
      * @param string $content The input content to analyze
      * @param array $spParams Parameters set for the softref parser key in TCA/columns. value "linkList" will split the string by comma before processing.
-     * @return array Result array on positive matches, see description above. Otherwise FALSE
+     * @return array|null Result array on positive matches, see description above. Otherwise null
      * @see \TYPO3\CMS\Frontend\ContentObject::typolink()
      * @see getTypoLinkParts()
      */
@@ -191,6 +192,8 @@ class SoftReferenceIndex implements SingletonInterface
             ];
             return $resultArray;
         }
+
+        return null;
     }
 
     /**
@@ -198,7 +201,7 @@ class SoftReferenceIndex implements SingletonInterface
      * Will search for <link ...> and <a> tags in the content string and process any found.
      *
      * @param string $content The input content to analyze
-     * @return array Result array on positive matches, see description above. Otherwise FALSE
+     * @return array|null Result array on positive matches, see description above. Otherwise null
      * @see \TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer::typolink()
      * @see getTypoLinkParts()
      */
@@ -297,6 +300,8 @@ class SoftReferenceIndex implements SingletonInterface
             ];
             return $resultArray;
         }
+
+        return null;
     }
 
     /**
@@ -304,10 +309,11 @@ class SoftReferenceIndex implements SingletonInterface
      *
      * @param string $content The input content to analyze
      * @param array $spParams Parameters set for the softref parser key in TCA/columns
-     * @return array Result array on positive matches, see description above. Otherwise FALSE
+     * @return array|null Result array on positive matches, see description above. Otherwise null
      */
     public function findRef_email($content, $spParams)
     {
+        $elements = [];
         // Email:
         $parts = preg_split('/([^[:alnum:]]+)([A-Za-z0-9\\._-]+[@][A-Za-z0-9\\._-]+[\\.].[A-Za-z0-9]+)/', ' ' . $content . ' ', 10000, PREG_SPLIT_DELIM_CAPTURE);
         foreach ($parts as $idx => $value) {
@@ -333,6 +339,8 @@ class SoftReferenceIndex implements SingletonInterface
             ];
             return $resultArray;
         }
+
+        return null;
     }
 
     /**
@@ -340,10 +348,11 @@ class SoftReferenceIndex implements SingletonInterface
      *
      * @param string $content The input content to analyze
      * @param array $spParams Parameters set for the softref parser key in TCA/columns
-     * @return array Result array on positive matches, see description above. Otherwise FALSE
+     * @return array|null Result array on positive matches, see description above. Otherwise null
      */
     public function findRef_url($content, $spParams)
     {
+        $elements = [];
         // URLs
         $parts = preg_split('/([^[:alnum:]"\']+)((https?|ftp):\\/\\/[^[:space:]"\'<>]*)([[:space:]])/', ' ' . $content . ' ', 10000, PREG_SPLIT_DELIM_CAPTURE);
         foreach ($parts as $idx => $value) {
@@ -372,21 +381,24 @@ class SoftReferenceIndex implements SingletonInterface
             ];
             return $resultArray;
         }
+
+        return null;
     }
 
     /**
      * Finding reference to files from extensions in content, but only to notify about their existence. No substitution
      *
      * @param string $content The input content to analyze
-     * @return array Result array on positive matches, see description above. Otherwise FALSE
+     * @return array|null Result array on positive matches, see description above. Otherwise null
      */
     public function findRef_extension_fileref($content)
     {
+        $elements = [];
         // Files starting with EXT:
-        $parts = preg_split('/([^[:alnum:]"\']+)(EXT:[[:alnum:]_]+\\/[^[:space:]"\',]*)/', ' ' . $content . ' ', 10000, PREG_SPLIT_DELIM_CAPTURE);
+        $parts = preg_split('/([^[:alnum:]"\']+)(EXT:[[:alnum:]_]+\\/[^[:space:]"\',]*)/', ' ' . $content . ' ', 10000, PREG_SPLIT_DELIM_CAPTURE) ?: [];
         foreach ($parts as $idx => $value) {
             if ($idx % 3 == 2) {
-                $this->makeTokenID($idx);
+                $this->makeTokenID((string)$idx);
                 $elements[$idx] = [];
                 $elements[$idx]['matchString'] = $value;
             }
@@ -399,6 +411,8 @@ class SoftReferenceIndex implements SingletonInterface
             ];
             return $resultArray;
         }
+
+        return null;
     }
 
     /*************************
@@ -539,7 +553,7 @@ class SoftReferenceIndex implements SingletonInterface
                     // Output content will be the token instead:
                     $content = '{softref:' . $tokenID . '}';
                 } elseif ($tLP['identifier']) {
-                    list($linkHandlerKeyword, $linkHandlerValue) = explode(':', trim($tLP['identifier']), 2);
+                    [$linkHandlerKeyword, $linkHandlerValue] = explode(':', trim($tLP['identifier']), 2);
                     if (MathUtility::canBeInterpretedAsInteger($linkHandlerValue)) {
                         // Token and substitute value
                         $elements[$tokenID . ':' . $idx]['subst'] = [

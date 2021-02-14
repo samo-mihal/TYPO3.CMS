@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Tree;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,12 +13,15 @@ namespace TYPO3\CMS\Backend\Tree;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Tree;
+
+use TYPO3\CMS\Core\Exception;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Tree Node
  */
-class TreeNode implements \TYPO3\CMS\Backend\Tree\ComparableNodeInterface, \Serializable
+class TreeNode implements ComparableNodeInterface, \Serializable
 {
     /**
      * Node Identifier
@@ -62,7 +64,7 @@ class TreeNode implements \TYPO3\CMS\Backend\Tree\ComparableNodeInterface, \Seri
      *
      * @param \TYPO3\CMS\Backend\Tree\TreeNodeCollection $childNodes
      */
-    public function setChildNodes(\TYPO3\CMS\Backend\Tree\TreeNodeCollection $childNodes)
+    public function setChildNodes(TreeNodeCollection $childNodes)
     {
         $this->childNodes = $childNodes;
     }
@@ -205,10 +207,14 @@ class TreeNode implements \TYPO3\CMS\Backend\Tree\ComparableNodeInterface, \Seri
     {
         $this->setId($data['id']);
         if (isset($data['parentNode']) && $data['parentNode'] !== '') {
-            $this->setParentNode(GeneralUtility::makeInstance($data['parentNode']['serializeClassName'], $data['parentNode']));
+            /** @var TreeNode $parentNode */
+            $parentNode = GeneralUtility::makeInstance($data['parentNode']['serializeClassName'], $data['parentNode']);
+            $this->setParentNode($parentNode);
         }
         if (isset($data['childNodes']) && $data['childNodes'] !== '') {
-            $this->setChildNodes(GeneralUtility::makeInstance($data['childNodes']['serializeClassName'], $data['childNodes']));
+            /** @var TreeNodeCollection $childNodes */
+            $childNodes = GeneralUtility::makeInstance($data['childNodes']['serializeClassName'], $data['childNodes']);
+            $this->setChildNodes($childNodes);
         }
     }
 
@@ -232,7 +238,7 @@ class TreeNode implements \TYPO3\CMS\Backend\Tree\ComparableNodeInterface, \Seri
     {
         $arrayRepresentation = unserialize($serializedString);
         if ($arrayRepresentation['serializeClassName'] !== static::class) {
-            throw new \TYPO3\CMS\Core\Exception('Deserialized object type is not identical!', 1294586646);
+            throw new Exception('Deserialized object type is not identical!', 1294586646);
         }
         $this->dataFromArray($arrayRepresentation);
     }

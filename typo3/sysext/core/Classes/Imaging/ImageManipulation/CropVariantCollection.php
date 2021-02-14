@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Imaging\ImageManipulation;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,8 @@ namespace TYPO3\CMS\Core\Imaging\ImageManipulation;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Imaging\ImageManipulation;
+
 use TYPO3\CMS\Core\Resource\FileInterface;
 
 class CropVariantCollection
@@ -25,7 +27,7 @@ class CropVariantCollection
     protected $cropVariants;
 
     /**
-     * @param CropVariant[] cropVariants
+     * @param CropVariant[] $cropVariants
      * @throws \TYPO3\CMS\Core\Imaging\ImageManipulation\InvalidConfigurationException
      */
     public function __construct(array $cropVariants)
@@ -154,7 +156,7 @@ class CropVariantCollection
     }
 
     /**
-     * @param CropVariant[] $cropVariants
+     * @param CropVariant ...$cropVariants
      * @throws \TYPO3\CMS\Core\Imaging\ImageManipulation\InvalidConfigurationException
      */
     protected function setCropVariants(CropVariant ...$cropVariants)

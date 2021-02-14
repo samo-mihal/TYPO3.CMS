@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Linkvalidator\Linktype;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Linkvalidator\Linktype;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Linkvalidator\Linktype;
 
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
@@ -51,7 +52,7 @@ class LinkHandler extends AbstractLinktype
             return $response;
         }
 
-        list(, $tableName, $rowid) = $parts;
+        [, $tableName, $rowid] = $parts;
         $rowid = (int)$rowid;
 
         $row = null;
@@ -153,7 +154,7 @@ class LinkHandler extends AbstractLinktype
     protected function getTranslatedErrorMessage($translationKey, $uid, $title = null)
     {
         $message = $this->getLanguageService()->getLL($translationKey);
-        $message = str_replace('###uid###', (int)$uid, $message);
+        $message = str_replace('###uid###', (string)(int)$uid, $message);
         if (isset($title)) {
             $message = str_replace('###title###', htmlspecialchars($title), $message);
         }

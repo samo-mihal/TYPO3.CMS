@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Routing\Aspect;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,11 +15,15 @@ namespace TYPO3\CMS\Core\Routing\Aspect;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Routing\Aspect;
+
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 
 /**
  * Delegate implementation in order to retrieve and generate values
  * using a database connection.
+ *
+ * @deprecated since TYPO3 v10.3, will be removed in TYPO3 v11.0
  */
 class PersistenceDelegate implements DelegateInterface
 {

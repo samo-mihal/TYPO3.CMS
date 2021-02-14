@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Tests\Unit\Controller\File;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Backend\Tests\Unit\Controller\File;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Tests\Unit\Controller\File;
+
 use Prophecy\Argument;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Controller\File\FileController;
@@ -21,6 +22,9 @@ use TYPO3\CMS\Core\Http\Response;
 use TYPO3\CMS\Core\Http\ServerRequest;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconFactory;
+use TYPO3\CMS\Core\Resource\File;
+use TYPO3\CMS\Core\Resource\Folder;
+use TYPO3\CMS\Core\Utility\File\ExtendedFileUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
@@ -59,15 +63,15 @@ class FileControllerTest extends UnitTestCase
      */
     protected function setUp(): void
     {
-        $this->fileResourceMock = $this->getMockBuilder(\TYPO3\CMS\Core\Resource\File::class)
+        $this->fileResourceMock = $this->getMockBuilder(File::class)
             ->setMethods(['toArray', 'getModificationTime', 'getExtension'])
             ->disableOriginalConstructor()
             ->getMock();
-        $this->folderResourceMock = $this->getMockBuilder(\TYPO3\CMS\Core\Resource\Folder::class)
+        $this->folderResourceMock = $this->getMockBuilder(Folder::class)
             ->setMethods(['getIdentifier'])
             ->disableOriginalConstructor()
             ->getMock();
-        $this->mockFileProcessor = $this->getMockBuilder(\TYPO3\CMS\Core\Utility\File\ExtendedFileUtility::class)
+        $this->mockFileProcessor = $this->getMockBuilder(ExtendedFileUtility::class)
             ->setMethods(['getErrorMessages'])
             ->disableOriginalConstructor()
             ->getMock();
@@ -123,7 +127,7 @@ class FileControllerTest extends UnitTestCase
      */
     public function processAjaxRequestDeleteProcessActuallyDoesNotChangeFileData()
     {
-        $subject = $this->getAccessibleMock(\TYPO3\CMS\Backend\Controller\File\FileController::class, ['init', 'main']);
+        $subject = $this->getAccessibleMock(FileController::class, ['init', 'main']);
 
         $fileData = ['delete' => [true]];
         $subject->_set('fileProcessor', $this->mockFileProcessor);
@@ -140,7 +144,7 @@ class FileControllerTest extends UnitTestCase
      */
     public function processAjaxRequestEditFileProcessActuallyDoesNotChangeFileData()
     {
-        $subject = $this->getAccessibleMock(\TYPO3\CMS\Backend\Controller\File\FileController::class, ['init', 'main']);
+        $subject = $this->getAccessibleMock(FileController::class, ['init', 'main']);
 
         $fileData = ['editfile' => [true]];
         $subject->_set('fileProcessor', $this->mockFileProcessor);
@@ -155,9 +159,9 @@ class FileControllerTest extends UnitTestCase
     /**
      * @test
      */
-    public function processAjaxRequestReturnsStatus200IfNoErrorOccures()
+    public function processAjaxRequestReturnsStatus200IfNoErrorOccurs()
     {
-        $subject = $this->getAccessibleMock(\TYPO3\CMS\Backend\Controller\File\FileController::class, ['init', 'main']);
+        $subject = $this->getAccessibleMock(FileController::class, ['init', 'main']);
 
         $fileData = ['editfile' => [true]];
         $subject->_set('fileProcessor', $this->mockFileProcessor);
@@ -174,7 +178,7 @@ class FileControllerTest extends UnitTestCase
     public function processAjaxRequestReturnsStatus500IfErrorOccurs()
     {
         $subject = $this->getAccessibleMock(FileController::class, ['init', 'main']);
-        $this->mockFileProcessor->expects(self::any())->method('getErrorMessages')->willReturn(['error occured']);
+        $this->mockFileProcessor->expects(self::any())->method('getErrorMessages')->willReturn(['error occurred']);
         $subject->_set('fileProcessor', $this->mockFileProcessor);
         $result = $subject->processAjaxRequest($this->request, $this->response);
         self::assertEquals(500, $result->getStatusCode());

@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Unit\Resource\Processing;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\Resource\Processing;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\Resource\Processing;
+
 use TYPO3\CMS\Core\Resource\Processing\AbstractTask;
 use TYPO3\CMS\Core\Resource\Processing\LocalImageProcessor;
 use TYPO3\CMS\Core\Resource\Processing\ProcessorRegistry;
@@ -25,39 +27,24 @@ use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
  */
 class ProcessorRegistryTest extends UnitTestCase
 {
+    protected $resetSingletonInstances = true;
+
     /**
      * @test
      */
-    public function getProcessorWhenOnlyOneIsRegistered()
+    public function getProcessorWhenOnlyOneIsRegistered(): void
     {
-        $subject = $this->getAccessibleMockForAbstractClass(
-            ProcessorRegistry::class,
-            [],
-            '',
-            false
-        );
-        $subject->_set('registeredProcessors', [
+        $GLOBALS['TYPO3_CONF_VARS']['SYS']['fal']['processors'] = [
             [
                 'className' => LocalImageProcessor::class,
             ]
-        ]);
-        $taskMock = $this->getAccessibleMockForAbstractClass(
-            AbstractTask::class,
-            [],
-            '',
-            false,
-            false,
-            false,
-            ['getType', 'getName']
-        );
-        $taskMock->expects(self::once())
-            ->method('getType')
-            ->willReturn('Image');
-        $taskMock->expects(self::once())
-            ->method('getName')
-            ->willReturn('CropScaleMask');
+        ];
+        $subject = new ProcessorRegistry();
+        $taskMock = $this->prophesize(AbstractTask::class);
+        $taskMock->getType()->willReturn('Image');
+        $taskMock->getName()->willReturn('CropScaleMask');
 
-        $processor = $subject->getProcessorByTask($taskMock);
+        $processor = $subject->getProcessorByTask($taskMock->reveal());
 
         self::assertInstanceOf(LocalImageProcessor::class, $processor);
     }
@@ -65,42 +52,21 @@ class ProcessorRegistryTest extends UnitTestCase
     /**
      * @test
      */
-    public function getProcessorWhenNoneIsRegistered()
+    public function getProcessorWhenNoneIsRegistered(): void
     {
         $this->expectExceptionCode(1560876294);
 
-        $subject = $this->getAccessibleMockForAbstractClass(
-            ProcessorRegistry::class,
-            [],
-            '',
-            false,
-            false,
-            false
-        );
-        $taskMock = $this->getAccessibleMockForAbstractClass(
-            AbstractTask::class,
-            [],
-            '',
-            false,
-            false,
-            false
-        );
-
+        $subject = new ProcessorRegistry();
+        $taskMock = $this->prophesize(AbstractTask::class)->reveal();
         $subject->getProcessorByTask($taskMock);
     }
 
     /**
      * @test
      */
-    public function getProcessorWhenSameProcessorIsRegisteredTwice()
+    public function getProcessorWhenSameProcessorIsRegisteredTwice(): void
     {
-        $subject = $this->getAccessibleMockForAbstractClass(
-            ProcessorRegistry::class,
-            [],
-            '',
-            false
-        );
-        $subject->_set('registeredProcessors', [
+        $GLOBALS['TYPO3_CONF_VARS']['SYS']['fal']['processors'] = [
             'LocalImageProcessor' => [
                 'className' => LocalImageProcessor::class,
             ],
@@ -108,24 +74,13 @@ class ProcessorRegistryTest extends UnitTestCase
                 'className' => LocalImageProcessor::class,
                 'after' => 'LocalImageProcessor',
             ],
-        ]);
-        $taskMock = $this->getAccessibleMockForAbstractClass(
-            AbstractTask::class,
-            [],
-            '',
-            false,
-            false,
-            false,
-            ['getType', 'getName']
-        );
-        $taskMock->expects(self::once())
-            ->method('getType')
-            ->willReturn('Image');
-        $taskMock->expects(self::once())
-            ->method('getName')
-            ->willReturn('CropScaleMask');
+        ];
+        $subject =  new ProcessorRegistry();
+        $taskMock = $this->prophesize(AbstractTask::class);
+        $taskMock->getType()->willReturn('Image');
+        $taskMock->getName()->willReturn('CropScaleMask');
 
-        $processor = $subject->getProcessorByTask($taskMock);
+        $processor = $subject->getProcessorByTask($taskMock->reveal());
 
         self::assertInstanceOf(LocalImageProcessor::class, $processor);
     }

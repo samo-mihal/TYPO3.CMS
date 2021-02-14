@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Persistence\Generic;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Extbase\Persistence\Generic;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Extbase\Persistence\Generic;
 
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Context\LanguageAspect;
@@ -74,7 +75,7 @@ class Typo3QuerySettings implements QuerySettingsInterface
     /**
      * Representing sys_language_overlay only valid for current context
      *
-     * @var mixed
+     * @var bool
      */
     protected $languageOverlayMode = true;
 

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Tests\Unit\Utility;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,9 @@ namespace TYPO3\CMS\Backend\Tests\Unit\Utility;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Tests\Unit\Utility;
+
+use Doctrine\DBAL\Driver\Statement;
 use Prophecy\Argument;
 use Prophecy\Prophecy\ObjectProphecy;
 use Psr\EventDispatcher\EventDispatcherInterface;
@@ -35,6 +37,8 @@ use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Database\Query\Restriction\DefaultRestrictionContainer;
 use TYPO3\CMS\Core\Database\RelationHandler;
 use TYPO3\CMS\Core\Localization\LanguageService;
+use TYPO3\CMS\Core\Site\Entity\Site;
+use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
@@ -147,7 +151,7 @@ class BackendUtilityTest extends UnitTestCase
     ///////////////////////////////////////
     /**
      * @test
-     * @see http://forge.typo3.org/issues/20994
+     * @see https://forge.typo3.org/issues/20994
      */
     public function getProcessedValueForZeroStringIsZero()
     {
@@ -287,7 +291,7 @@ class BackendUtilityTest extends UnitTestCase
         $relationHandlerInstance->tableArray['sys_category'] = [1, 2];
 
         [$queryBuilderProphet, $connectionPoolProphet] = $this->mockDatabaseConnection('sys_category');
-        $statementProphet = $this->prophesize(\Doctrine\DBAL\Driver\Statement::class);
+        $statementProphet = $this->prophesize(Statement::class);
         $statementProphet->fetch()->shouldBeCalled()->willReturn(
             [
                 'uid' => 1,
@@ -465,7 +469,7 @@ class BackendUtilityTest extends UnitTestCase
                 ]
             ]
         ];
-        $languageServiceProphecy = $this->prophesize(\TYPO3\CMS\Core\Localization\LanguageService::class);
+        $languageServiceProphecy = $this->prophesize(LanguageService::class);
         $languageServiceProphecy->sL('LLL:EXT:core/Resources/Private/Language/locallang_common.xlf:yes')->willReturn('Yes');
         $languageServiceProphecy->sL('LLL:EXT:core/Resources/Private/Language/locallang_common.xlf:no')->willReturn('No');
         $GLOBALS['LANG'] = $languageServiceProphecy->reveal();
@@ -495,7 +499,7 @@ class BackendUtilityTest extends UnitTestCase
                 ]
             ]
         ];
-        $languageServiceProphecy = $this->prophesize(\TYPO3\CMS\Core\Localization\LanguageService::class);
+        $languageServiceProphecy = $this->prophesize(LanguageService::class);
         $languageServiceProphecy->sL('LLL:EXT:core/Resources/Private/Language/locallang_common.xlf:yes')->willReturn('Yes');
         $languageServiceProphecy->sL('LLL:EXT:core/Resources/Private/Language/locallang_common.xlf:no')->willReturn('No');
         $GLOBALS['LANG'] = $languageServiceProphecy->reveal();
@@ -1049,6 +1053,12 @@ class BackendUtilityTest extends UnitTestCase
         $matcherProphecy = $this->prophesize(ConditionMatcher::class);
         GeneralUtility::addInstance(ConditionMatcher::class, $matcherProphecy->reveal());
 
+        $siteFinder = $this->prophesize(SiteFinder::class);
+        $siteFinder->getSiteByPageId($pageId)->willReturn(
+            new Site('dummy', $pageId, ['base' => 'https://example.com'])
+        );
+        GeneralUtility::addInstance(SiteFinder::class, $siteFinder->reveal());
+
         $cacheManagerProphecy = $this->prophesize(CacheManager::class);
         $cacheProphecy = $this->prophesize(FrontendInterface::class);
         $cacheManagerProphecy->getCache('runtime')->willReturn($cacheProphecy->reveal());
@@ -1087,6 +1097,7 @@ class BackendUtilityTest extends UnitTestCase
             'pid' => -1,
             't3ver_oid' => 7,
             't3ver_wsid' => 42,
+            't3ver_state' => 0
         ];
         $reference = $rr;
         BackendUtility::fixVersioningPid($tableName, $rr);

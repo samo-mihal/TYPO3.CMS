@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\View\BackendLayout;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,15 @@ namespace TYPO3\CMS\Backend\View\BackendLayout;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\View\BackendLayout;
+
+use TYPO3\CMS\Core\SingletonInterface;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+
 /**
  * Collection of backend layout data providers.
  */
-class DataProviderCollection implements \TYPO3\CMS\Core\SingletonInterface
+class DataProviderCollection implements SingletonInterface
 {
     /**
      * @var array|DataProviderInterface[]
@@ -51,12 +55,12 @@ class DataProviderCollection implements \TYPO3\CMS\Core\SingletonInterface
             $dataProvider = $classNameOrObject;
         } else {
             $className = $classNameOrObject;
-            $dataProvider = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance($classNameOrObject);
+            $dataProvider = GeneralUtility::makeInstance($classNameOrObject);
         }
 
         if (!$dataProvider instanceof DataProviderInterface) {
             throw new \LogicException(
-                $className . ' must implement interface ' . \TYPO3\CMS\Backend\View\BackendLayout\DataProviderInterface::class,
+                $className . ' must implement interface ' . DataProviderInterface::class,
                 1381269811
             );
         }
@@ -103,7 +107,7 @@ class DataProviderCollection implements \TYPO3\CMS\Core\SingletonInterface
             $dataProviderIdentifier = 'default';
             $backendLayoutIdentifier = $combinedIdentifier;
         } else {
-            list($dataProviderIdentifier, $backendLayoutIdentifier) = explode('__', $combinedIdentifier, 2);
+            [$dataProviderIdentifier, $backendLayoutIdentifier] = explode('__', $combinedIdentifier, 2);
         }
 
         if (isset($this->dataProviders[$dataProviderIdentifier])) {
@@ -121,7 +125,7 @@ class DataProviderCollection implements \TYPO3\CMS\Core\SingletonInterface
      */
     protected function createBackendLayoutCollection($identifier)
     {
-        return \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(
+        return GeneralUtility::makeInstance(
             BackendLayoutCollection::class,
             $identifier
         );

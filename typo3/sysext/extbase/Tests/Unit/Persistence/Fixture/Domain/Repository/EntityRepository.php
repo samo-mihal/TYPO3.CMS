@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Extbase\Tests\Unit\Persistence\Fixture\Domain\Repository;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,6 +15,10 @@ namespace TYPO3\CMS\Extbase\Tests\Unit\Persistence\Fixture\Domain\Repository;
  * The TYPO3 project - inspiring people to share!
  */
 
-class EntityRepository extends \TYPO3\CMS\Extbase\Persistence\Repository
+namespace TYPO3\CMS\Extbase\Tests\Unit\Persistence\Fixture\Domain\Repository;
+
+use TYPO3\CMS\Extbase\Persistence\Repository;
+
+class EntityRepository extends Repository
 {
 }

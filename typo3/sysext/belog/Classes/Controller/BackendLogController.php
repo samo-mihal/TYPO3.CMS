@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Belog\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,17 @@ namespace TYPO3\CMS\Belog\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
-use TYPO3\CMS\Backend\View\BackendTemplateView;
+namespace TYPO3\CMS\Belog\Controller;
+
+use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Belog\Domain\Model\Constraint;
 use TYPO3\CMS\Belog\Domain\Model\LogEntry;
+use TYPO3\CMS\Belog\Domain\Repository\LogEntryRepository;
+use TYPO3\CMS\Belog\Domain\Repository\WorkspaceRepository;
 use TYPO3\CMS\Core\Messaging\AbstractMessage;
+use TYPO3\CMS\Core\Page\PageRenderer;
+use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Mvc\Controller\ActionController;
 use TYPO3\CMS\Extbase\Persistence\QueryResultInterface;
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
@@ -69,14 +75,9 @@ class BackendLogController extends ActionController
     protected $logEntryRepository;
 
     /**
-     * @var BackendTemplateView
-     */
-    protected $view;
-
-    /**
      * @param \TYPO3\CMS\Belog\Domain\Repository\LogEntryRepository $logEntryRepository
      */
-    public function injectLogEntryRepository(\TYPO3\CMS\Belog\Domain\Repository\LogEntryRepository $logEntryRepository)
+    public function injectLogEntryRepository(LogEntryRepository $logEntryRepository)
     {
         $this->logEntryRepository = $logEntryRepository;
     }
@@ -87,13 +88,15 @@ class BackendLogController extends ActionController
     public function initializeListAction()
     {
         if (!isset($this->settings['dateFormat'])) {
-            $this->settings['dateFormat'] = $GLOBALS['TYPO3_CONF_VARS']['SYS']['USdateFormat'] ? 'm-d-Y' : 'd-m-Y';
+            $this->settings['dateFormat'] = $GLOBALS['TYPO3_CONF_VARS']['SYS']['ddmmyy'] ?: 'd-m-Y';
         }
         if (!isset($this->settings['timeFormat'])) {
             $this->settings['timeFormat'] = $GLOBALS['TYPO3_CONF_VARS']['SYS']['hhmm'];
         }
         $constraintConfiguration = $this->arguments->getArgument('constraint')->getPropertyMappingConfiguration();
         $constraintConfiguration->allowAllProperties();
+        GeneralUtility::makeInstance(PageRenderer::class)
+            ->loadRequireJsModule('TYPO3/CMS/Backend/GlobalEventHandler');
     }
 
     /**
@@ -140,11 +143,11 @@ class BackendLogController extends ActionController
         /** @var \TYPO3\CMS\Belog\Domain\Model\LogEntry $logEntry */
         $logEntry = $this->logEntryRepository->findByUid($errorUid);
         if (!$logEntry) {
-            $this->addFlashMessage(LocalizationUtility::translate('actions.delete.noRowFound', 'belog'), '', AbstractMessage::WARNING);
+            $this->addFlashMessage(LocalizationUtility::translate('actions.delete.noRowFound', 'belog') ?? '', '', AbstractMessage::WARNING);
             $this->redirect('list');
         }
         $numberOfDeletedRows = $this->logEntryRepository->deleteByMessageDetails($logEntry);
-        $this->addFlashMessage(sprintf(LocalizationUtility::translate('actions.delete.message', 'belog'), $numberOfDeletedRows));
+        $this->addFlashMessage(sprintf(LocalizationUtility::translate('actions.delete.message', 'belog') ?? '', $numberOfDeletedRows));
         $this->redirect('list');
     }
 
@@ -181,7 +184,7 @@ class BackendLogController extends ActionController
     protected function resetConstraintsOnMemoryExhaustionError()
     {
         $reservedMemory = new \SplFixedArray(187500); // 3M
-        register_shutdown_function(function () use (&$reservedMemory) {
+        register_shutdown_function(function () use (&$reservedMemory): void {
             $reservedMemory = null; // free the reserved memory
             $error = error_get_last();
             if (strpos($error['message'], 'Allowed memory size of') !== false) {
@@ -243,17 +246,17 @@ class BackendLogController extends ActionController
     {
         $userGroupArray = [];
         // Two meta entries: 'all' and 'self'
-        $userGroupArray[0] = \TYPO3\CMS\Extbase\Utility\LocalizationUtility::translate('allUsers', 'Belog');
-        $userGroupArray[-1] = \TYPO3\CMS\Extbase\Utility\LocalizationUtility::translate('self', 'Belog');
+        $userGroupArray[0] = LocalizationUtility::translate('allUsers', 'Belog');
+        $userGroupArray[-1] = LocalizationUtility::translate('self', 'Belog');
         // List of groups, key is gr-'uid'
-        $groups = \TYPO3\CMS\Backend\Utility\BackendUtility::getGroupNames();
+        $groups = BackendUtility::getGroupNames();
         foreach ($groups as $group) {
-            $userGroupArray['gr-' . $group['uid']] = \TYPO3\CMS\Extbase\Utility\LocalizationUtility::translate('group', 'Belog') . ' ' . $group['title'];
+            $userGroupArray['gr-' . $group['uid']] = LocalizationUtility::translate('group', 'Belog') . ' ' . $group['title'];
         }
         // List of users, key is us-'uid'
-        $users = \TYPO3\CMS\Backend\Utility\BackendUtility::getUserNames();
+        $users = BackendUtility::getUserNames();
         foreach ($users as $user) {
-            $userGroupArray['us-' . $user['uid']] = \TYPO3\CMS\Extbase\Utility\LocalizationUtility::translate('user', 'Belog') . ' ' . $user['username'];
+            $userGroupArray['us-' . $user['uid']] = LocalizationUtility::translate('user', 'Belog') . ' ' . $user['username'];
         }
         return $userGroupArray;
     }
@@ -265,14 +268,14 @@ class BackendLogController extends ActionController
      */
     protected function createWorkspaceListForSelectOptions()
     {
-        if (!\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::isLoaded('workspaces')) {
+        if (!ExtensionManagementUtility::isLoaded('workspaces')) {
             return [];
         }
         $workspaceArray = [];
         // Two meta entries: 'all' and 'live'
-        $workspaceArray[-99] = \TYPO3\CMS\Extbase\Utility\LocalizationUtility::translate('any', 'Belog');
-        $workspaceArray[0] = \TYPO3\CMS\Extbase\Utility\LocalizationUtility::translate('live', 'Belog');
-        $workspaces = $this->objectManager->get(\TYPO3\CMS\Belog\Domain\Repository\WorkspaceRepository::class)->findAll();
+        $workspaceArray[-99] = LocalizationUtility::translate('any', 'Belog');
+        $workspaceArray[0] = LocalizationUtility::translate('live', 'Belog');
+        $workspaces = $this->objectManager->get(WorkspaceRepository::class)->findAll();
         /** @var \TYPO3\CMS\Belog\Domain\Model\Workspace $workspace */
         foreach ($workspaces as $workspace) {
             $workspaceArray[$workspace->getUid()] = $workspace->getUid() . ': ' . $workspace->getTitle();
@@ -306,12 +309,12 @@ class BackendLogController extends ActionController
     protected function createPageDepthOptions()
     {
         $options = [
-            0 => \TYPO3\CMS\Extbase\Utility\LocalizationUtility::translate('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.depth_0', 'lang'),
-            1 => \TYPO3\CMS\Extbase\Utility\LocalizationUtility::translate('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.depth_1', 'lang'),
-            2 => \TYPO3\CMS\Extbase\Utility\LocalizationUtility::translate('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.depth_2', 'lang'),
-            3 => \TYPO3\CMS\Extbase\Utility\LocalizationUtility::translate('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.depth_3', 'lang'),
-            4 => \TYPO3\CMS\Extbase\Utility\LocalizationUtility::translate('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.depth_4', 'lang'),
-            999 => \TYPO3\CMS\Extbase\Utility\LocalizationUtility::translate('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.depth_infi', 'lang')
+            0 => LocalizationUtility::translate('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.depth_0', 'lang'),
+            1 => LocalizationUtility::translate('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.depth_1', 'lang'),
+            2 => LocalizationUtility::translate('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.depth_2', 'lang'),
+            3 => LocalizationUtility::translate('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.depth_3', 'lang'),
+            4 => LocalizationUtility::translate('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.depth_4', 'lang'),
+            999 => LocalizationUtility::translate('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.depth_infi', 'lang')
         ];
         return $options;
     }
@@ -344,12 +347,12 @@ class BackendLogController extends ActionController
                 break;
             case self::TIMEFRAME_THISMONTH:
                 // This month
-                $startTime = mktime(0, 0, 0, date('m'), 1);
+                $startTime = mktime(0, 0, 0, (int)date('m'), 1);
                 break;
             case self::TIMEFRAME_LASTMONTH:
                 // Last month
-                $startTime = mktime(0, 0, 0, date('m') - 1, 1);
-                $endTime = mktime(0, 0, 0, date('m'), 1);
+                $startTime = mktime(0, 0, 0, (int)date('m') - 1, 1);
+                $endTime = mktime(0, 0, 0, (int)date('m'), 1);
                 break;
             case self::TIMEFRAME_LAST31DAYS:
                 // Last 31 days

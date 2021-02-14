@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Resource\Service;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Resource\Service;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Resource\Service;
 
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Resource\Exception\InvalidUidException;
@@ -66,7 +67,7 @@ class UserFileInlineLabelService
                     }
                 }
 
-                $value = BackendUtility::getRecordTitlePrep(htmlspecialchars($fullTitle));
+                $value = BackendUtility::getRecordTitlePrep($fullTitle);
             } else {
                 if (isset($params['row'][$field])) {
                     $value = htmlspecialchars($params['row'][$field]);
@@ -77,7 +78,7 @@ class UserFileInlineLabelService
             if ((string)$value === '') {
                 continue;
             }
-            $labelText = LocalizationUtility::translate('LLL:EXT:core/Resources/Private/Language/locallang_tca.xlf:sys_file.' . $field, 'lang');
+            $labelText = (string)LocalizationUtility::translate('LLL:EXT:core/Resources/Private/Language/locallang_tca.xlf:sys_file.' . $field, 'lang');
             $title[] = '<dt>' . htmlspecialchars($labelText) . '</dt><dd>' . $value . '</dd>';
         }
         $params['title'] = '<dl>' . implode('', $title) . '</dl>';

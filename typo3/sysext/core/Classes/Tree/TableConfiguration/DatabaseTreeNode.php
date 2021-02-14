@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tree\TableConfiguration;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,14 @@ namespace TYPO3\CMS\Core\Tree\TableConfiguration;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tree\TableConfiguration;
+
+use TYPO3\CMS\Backend\Tree\TreeRepresentationNode;
+
 /**
  * Represents a node in a TCA database setup
  */
-class DatabaseTreeNode extends \TYPO3\CMS\Backend\Tree\TreeRepresentationNode
+class DatabaseTreeNode extends TreeRepresentationNode
 {
     /**
      * @var bool
@@ -47,7 +50,7 @@ class DatabaseTreeNode extends \TYPO3\CMS\Backend\Tree\TreeRepresentationNode
     /**
      * Sets the expand state
      *
-     * @param $expanded
+     * @param bool $expanded
      */
     public function setExpanded($expanded)
     {

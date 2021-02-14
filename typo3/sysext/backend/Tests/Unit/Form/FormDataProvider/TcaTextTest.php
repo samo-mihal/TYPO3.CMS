@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
 
 use TYPO3\CMS\Backend\Form\FormDataProvider\TcaText;
 use TYPO3\CMS\Core\Configuration\Richtext;
@@ -74,8 +76,8 @@ class TcaTextTest extends UnitTestCase
 
         $richtextConfigurationProphecy = $this->prophesize(Richtext::class);
         GeneralUtility::addInstance(Richtext::class, $richtextConfigurationProphecy->reveal());
-        $rteHtmlParserPropehy = $this->prophesize(RteHtmlParser::class);
-        GeneralUtility::addInstance(RteHtmlParser::class, $rteHtmlParserPropehy->reveal());
+        $rteHtmlParserProphecy = $this->prophesize(RteHtmlParser::class);
+        GeneralUtility::addInstance(RteHtmlParser::class, $rteHtmlParserProphecy->reveal());
 
         $richtextConfigurationProphecy
             ->getConfiguration(
@@ -88,14 +90,11 @@ class TcaTextTest extends UnitTestCase
                     'enableRichtext' => true,
                 ]
             )
-            ->willReturn([ 'aConfig' => 'option' ]);
-        $rteHtmlParserPropehy->init('aTable:aField', 42)->shouldBeCalled();
-        $rteHtmlParserPropehy
-            ->RTE_transform(
+            ->willReturn([ 'aConfig' => 'option']);
+        $rteHtmlParserProphecy
+            ->transformTextForRichTextEditor(
                 'notProcessedContent',
-                [],
-                'rte',
-                [ 'aConfig' => 'option']
+                []
             )
             ->willReturn('processedContent');
 

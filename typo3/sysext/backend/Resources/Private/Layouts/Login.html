@@ -1,3 +1,4 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
 <div class="typo3-login">
     <div class="typo3-login-inner">
         <div class="typo3-login-container">
@@ -22,6 +23,9 @@
                                 </noscript>
                                 <div class="hidden t3js-login-error-nocookies">
                                     <f:be.infobox message="{f:translate(key: 'login.error.cookies')}" state="2" />
+                                </div>
+                                <div class="hidden t3js-login-error-noreferrer">
+                                    <f:be.infobox message="{f:translate(key: 'login.error.referrer')}" state="2" />
                                 </div>
                                 <div class="typo3-login-form t3js-login-formfields">
                                     <form action="?loginProvider={loginProviderIdentifier}" method="post" name="loginform" id="typo3-login-form">
@@ -48,9 +52,15 @@
                                                 </f:if>
                                             </f:for>
                                         </ul>
+                                        <f:if condition="{enablePasswordReset}">
+                                            <f:render section="ResetPassword" arguments="{_all}" optional="true" />
+                                        </f:if>
                                     </form>
                                 </div>
                             </f:then>
+                            <f:else if="{enablePasswordReset}">
+                                <f:render section="ResetPassword" arguments="{_all}" />
+                            </f:else>
                             <f:else>
                                 <form action="index.php" method="post" name="loginform">
                                     <input type="hidden" name="login_status" value="logout" />
@@ -116,4 +126,7 @@
             </div>
         </f:if>
     </div>
+    <f:comment>This link is only used for protection of the backend.</f:comment>
+    <a href="{loginUrl}" id="t3js-login-url" data-referrer-check-enabled="{f:if(condition: '{referrerCheckEnabled}', then: '1', else: '0')}" aria-hidden="true" tabindex="-1"></a>
 </div>
+</html>

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Unit\Resource\Processing;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\Resource\Processing;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\Resource\Processing;
 
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\Processing\LocalPreviewHelper;
@@ -96,6 +97,7 @@ class LocalPreviewHelperTest extends UnitTestCase
             ->getMock();
         $expectedResult = ['width' => 20, 'height' => 20, 'filePath' => 'test/file'];
         $localPreviewHelper->expects(self::once())->method('generatePreviewFromFile')->willReturn($expectedResult);
+        $localPreviewHelper->expects(self::once())->method('getTemporaryFilePath')->willReturn('foo_file');
 
         self::assertEquals($expectedResult, $localPreviewHelper->process($task));
     }

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Workspaces\DataHandler;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Workspaces\DataHandler;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Workspaces\DataHandler;
 
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
@@ -254,7 +255,7 @@ class CommandMap
                 foreach ($commandCollection as $command => $properties) {
                     if ($command === 'version' && isset($properties['action']) && $properties['action'] === 'swap') {
                         if (isset($properties['swapWith']) && MathUtility::canBeInterpretedAsInteger($properties['swapWith'])) {
-                            call_user_func_array([$this, $callbackMethod], array_merge($arguments, [$table, $liveId, $properties]));
+                            $this->$callbackMethod(...array_merge($arguments, [$table, $liveId, $properties]));
                         }
                     }
                 }
@@ -300,7 +301,7 @@ class CommandMap
             }
         }
         if (!empty($elementList)) {
-            $this->remove($table, $liveId, 'version');
+            $this->remove($table, (string)$liveId, 'version');
             $this->mergeToBottom($extendedCommandMap);
         }
     }
@@ -344,7 +345,7 @@ class CommandMap
                 foreach ($commandCollection as $command => $properties) {
                     if ($command === 'version' && isset($properties['action']) && $properties['action'] === 'setStage') {
                         if (isset($properties['stageId']) && MathUtility::canBeInterpretedAsInteger($properties['stageId'])) {
-                            call_user_func_array([$this, $callbackMethod], array_merge($arguments, [$table, $versionIdList, $properties]));
+                            $this->$callbackMethod(...array_merge($arguments, [$table, $versionIdList, $properties]));
                         }
                     }
                 }
@@ -383,7 +384,8 @@ class CommandMap
         $elementList = [$table => $versionIds];
         if ($this->workspacesChangeStageMode === 'any' || $this->workspacesChangeStageMode === 'pages') {
             if (count($versionIds) === 1) {
-                $workspaceRecord = BackendUtility::getRecord($table, $versionIds[0], 't3ver_wsid');
+                $uid = (int)$versionIds[0];
+                $workspaceRecord = BackendUtility::getRecord($table, $uid, 't3ver_wsid');
                 $workspaceId = $workspaceRecord['t3ver_wsid'];
             } else {
                 $workspaceId = $this->getWorkspace();
@@ -809,6 +811,6 @@ class CommandMap
      */
     protected function processCallback($method, array $callbackArguments)
     {
-        return call_user_func_array([$this, $method], $callbackArguments);
+        return $this->$method(...$callbackArguments);
     }
 }

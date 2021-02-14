@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Tests\Unit\Html;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\Html;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\Html;
 
 use TYPO3\CMS\Core\Html\HtmlParser;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
@@ -226,11 +227,11 @@ class HtmlParserTest extends UnitTestCase
                 'testa<B>test1<I>test2</B>test3</I>testb',
                 'testa<B>test1<I>test2</B>test3</I>testb'
             ],
-            'Superflous tags are removed' => [
+            'Superfluous tags are removed' => [
                 '</B><B><I></B></I></B>',
                 '<B><I></B></I>'
             ],
-            'Superflous tags with content are removed' => [
+            'Superfluous tags with content are removed' => [
                 'test1</B>test2<B>test3<I>test4</B>test5</I>test6</B>test7',
                 'test1test2<B>test3<I>test4</B>test5</I>test6test7'
             ],

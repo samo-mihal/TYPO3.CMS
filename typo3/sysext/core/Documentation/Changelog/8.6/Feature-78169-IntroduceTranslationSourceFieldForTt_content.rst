@@ -39,18 +39,19 @@ Difference between `translationSource` and other existing fields
 
 See following test scenarios to see how data is handled in details.
 
-  - :code:`\TYPO3\CMS\Core\Tests\Functional\DataHandling\Regular\Modify\ActionTest::localizeContent`
-  - :code:`\TYPO3\CMS\Core\Tests\Functional\DataHandling\Regular\Modify\ActionTest::localizeContentFromNonDefaultLanguage`
-  - :code:`\TYPO3\CMS\Core\Tests\Functional\DataHandling\Regular\Modify\ActionTest::copyContentToLanguage`
-  - :code:`\TYPO3\CMS\Core\Tests\Functional\DataHandling\Regular\Modify\ActionTest::copyPage`
-  - :code:`\TYPO3\CMS\Core\Tests\Functional\DataHandling\Regular\Modify\ActionTest::copyPageFreeMode`
-  - :code:`\TYPO3\CMS\Core\Tests\Functional\DataHandling\Regular\Modify\ActionTest::localizePage`
+- :code:`\TYPO3\CMS\Core\Tests\Functional\DataHandling\Regular\Modify\ActionTest::localizeContent`
+- :code:`\TYPO3\CMS\Core\Tests\Functional\DataHandling\Regular\Modify\ActionTest::localizeContentFromNonDefaultLanguage`
+- :code:`\TYPO3\CMS\Core\Tests\Functional\DataHandling\Regular\Modify\ActionTest::copyContentToLanguage`
+- :code:`\TYPO3\CMS\Core\Tests\Functional\DataHandling\Regular\Modify\ActionTest::copyPage`
+- :code:`\TYPO3\CMS\Core\Tests\Functional\DataHandling\Regular\Modify\ActionTest::copyPageFreeMode`
+- :code:`\TYPO3\CMS\Core\Tests\Functional\DataHandling\Regular\Modify\ActionTest::localizePage`
 
 
 Impact
 ======
 
 Introduction of the new field is a base step for further refactorings, e.g.
+
 - it opens a way to implement features like "reconnecting" free-mode translations back to the "connected mode"
 - replace usage of the `t3_origuid` with the `l10n_source` where `t3_origuid` is misused for language handling purposes (e.g. in LocalizationRepository)
 

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Scheduler\Task;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Scheduler\Task;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Scheduler\Task;
 
 use TYPO3\CMS\Core\Cache\Backend\Typo3DatabaseBackend;
 use TYPO3\CMS\Core\Localization\LanguageService;
@@ -32,7 +33,7 @@ class CachingFrameworkGarbageCollectionAdditionalFieldProvider extends AbstractA
      * Add a multi select box with all available cache backends.
      *
      * @param array $taskInfo Reference to the array containing the info used in the add/edit form
-     * @param AbstractTask|null $task When editing, reference to the current task. NULL when adding.
+     * @param CachingFrameworkGarbageCollectionTask|null $task When editing, reference to the current task. NULL when adding.
      * @param SchedulerModuleController $schedulerModule Reference to the calling object (Scheduler's BE module)
      * @return array Array containing all the information pertaining to the additional fields
      */
@@ -57,6 +58,7 @@ class CachingFrameworkGarbageCollectionAdditionalFieldProvider extends AbstractA
         $fieldId = 'task_cachingFrameworkGarbageCollection_selectedBackends';
         $fieldOptions = $this->getCacheBackendOptions($taskInfo['scheduler_cachingFrameworkGarbageCollection_selectedBackends']);
         $fieldHtml = '<select class="form-control" name="' . $fieldName . '" id="' . $fieldId . '" class="from-control" size="10" multiple="multiple">' . $fieldOptions . '</select>';
+        $additionalFields = [];
         $additionalFields[$fieldId] = [
             'code' => $fieldHtml,
             'label' => 'LLL:EXT:scheduler/Resources/Private/Language/locallang.xlf:label.cachingFrameworkGarbageCollection.selectBackends',
@@ -94,7 +96,7 @@ class CachingFrameworkGarbageCollectionAdditionalFieldProvider extends AbstractA
      * Save selected backends in task object
      *
      * @param array $submittedData Contains data submitted by the user
-     * @param \TYPO3\CMS\Scheduler\Task\AbstractTask $task Reference to the current task object
+     * @param CachingFrameworkGarbageCollectionTask $task Reference to the current task object
      */
     public function saveAdditionalFields(array $submittedData, AbstractTask $task)
     {

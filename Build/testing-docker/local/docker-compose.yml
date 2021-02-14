@@ -3,46 +3,37 @@ services:
   chrome:
     image: selenium/standalone-chrome:3.12
 
-  mysql55:
-    image: mysql:5.5
+  mysql:
+    image: mysql:${MYSQL_VERSION}
     environment:
       MYSQL_ROOT_PASSWORD: funcp
     tmpfs:
       - /var/lib/mysql/:rw,noexec,nosuid
 
-  mariadb10:
-    image: mariadb:10.3
+  mariadb:
+    image: mariadb:${MARIADB_VERSION}
     environment:
       MYSQL_ROOT_PASSWORD: funcp
     tmpfs:
       - /var/lib/mysql/:rw,noexec,nosuid
 
-  mssql2017cu17:
-    image: mcr.microsoft.com/mssql/server:2017-CU17-ubuntu
-    environment:
-      ACCEPT_EULA: Y
-      SA_PASSWORD: "Test1234!"
-      MSSQL_PID: Developer
-    # No tmpfs setup here since mssql fails on tmpfs o_direct.
-    # This makes mssql sloooow for functionals.
-
-  mssql2017latest:
-    image: mcr.microsoft.com/mssql/server:2017-latest-ubuntu
+  mssql2019latest:
+    image: typo3/core-testing-mssql2019:latest
     environment:
       ACCEPT_EULA: Y
       SA_PASSWORD: "Test1234!"
       MSSQL_PID: Developer
 
-  postgres10:
-    image: postgres:10
+  postgres:
+    image: postgres:${POSTGRES_VERSION}-alpine
     environment:
       POSTGRES_PASSWORD: funcp
-      POSTGRES_USER: ${HOST_USER}
+      POSTGRES_USER: funcu
     tmpfs:
       - /var/lib/postgresql/data:rw,noexec,nosuid
 
   web:
-    image: typo3gmbh/${DOCKER_PHP_IMAGE}:latest
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
     user: ${HOST_UID}
     stop_grace_period: 1s
     volumes:
@@ -55,11 +46,18 @@ services:
   memcached1-5:
     image: memcached:1.5-alpine
 
+  acceptance_split:
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
+    user: ${HOST_UID}
+    volumes:
+      - ${CORE_ROOT}:${CORE_ROOT}
+    working_dir: ${CORE_ROOT}
+    command: php vendor/typo3/testing-framework/Resources/Core/Build/Scripts/splitAcceptanceTests.php -v ${CHUNKS}
 
-  prepare_acceptance_backend_mariadb10:
+  prepare_acceptance_backend_mariadb:
     image: alpine:3.8
     links:
-      - mariadb10
+      - mariadb
       - chrome
       - web
     command: >
@@ -68,19 +66,163 @@ services:
           set -x
         fi
         echo Waiting for database start...;
-        while ! nc -z mariadb10 3306; do
+        while ! nc -z mariadb 3306; do
           sleep 1;
         done;
         echo Database is up;
       "
-  acceptance_backend_mariadb10:
-    image: typo3gmbh/${DOCKER_PHP_IMAGE}:latest
+  acceptance_backend_mariadb:
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
     user: ${HOST_UID}
     environment:
       typo3DatabaseName: func_test
       typo3DatabaseUsername: root
       typo3DatabasePassword: funcp
-      typo3DatabaseHost: mariadb10
+      typo3DatabaseHost: mariadb
+    volumes:
+      - ${CORE_ROOT}:${CORE_ROOT}
+      - ${HOST_HOME}:${HOST_HOME}
+      - /etc/passwd:/etc/passwd:ro
+      - /etc/group:/etc/group:ro
+    working_dir: ${CORE_ROOT}
+    command: >
+      /bin/sh -c "
+        if [ ${SCRIPT_VERBOSE} -eq 1 ]; then
+          set -x
+        fi
+        php -v | grep '^PHP'
+        if [ ${CHUNKS} -gt 0 ]; then
+          echo \"Running chunk ${THISCHUNK}\"
+          COMMAND=\"bin/codecept run Backend -d -g AcceptanceTests-Job-${THISCHUNK} -c typo3/sysext/core/Tests/codeception.yml ${TEST_FILE} --xml reports.xml --html reports.html\"
+        else
+          COMMAND=\"bin/codecept run Backend -d -c typo3/sysext/core/Tests/codeception.yml ${TEST_FILE} --xml reports.xml --html reports.html\"
+        fi
+        mkdir -p typo3temp/var/tests/
+        $${COMMAND}
+      "
+
+  prepare_acceptance_backend_mysql:
+    image: alpine:3.8
+    links:
+      - mysql
+      - chrome
+      - web
+    command: >
+      /bin/sh -c "
+        if [ ${SCRIPT_VERBOSE} -eq 1 ]; then
+          set -x
+        fi
+        echo Waiting for database start...;
+        while ! nc -z mysql 3306; do
+          sleep 1;
+        done;
+        echo Database is up;
+      "
+  acceptance_backend_mysql:
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
+    user: ${HOST_UID}
+    environment:
+      typo3DatabaseName: func_test
+      typo3DatabaseUsername: root
+      typo3DatabasePassword: funcp
+      typo3DatabaseHost: mysql
+    volumes:
+      - ${CORE_ROOT}:${CORE_ROOT}
+      - ${HOST_HOME}:${HOST_HOME}
+      - /etc/passwd:/etc/passwd:ro
+      - /etc/group:/etc/group:ro
+    working_dir: ${CORE_ROOT}
+    command: >
+      /bin/sh -c "
+        if [ ${SCRIPT_VERBOSE} -eq 1 ]; then
+          set -x
+        fi
+        php -v | grep '^PHP'
+        if [ ${CHUNKS} -gt 0 ]; then
+          echo \"Running chunk ${THISCHUNK}\"
+          COMMAND=\"bin/codecept run Backend -d -g AcceptanceTests-Job-${THISCHUNK} -c typo3/sysext/core/Tests/codeception.yml ${TEST_FILE} --xml reports.xml --html reports.html\"
+        else
+          COMMAND=\"bin/codecept run Backend -d -c typo3/sysext/core/Tests/codeception.yml ${TEST_FILE} --xml reports.xml --html reports.html\"
+        fi
+        mkdir -p typo3temp/var/tests/
+        $${COMMAND}
+      "
+
+  prepare_acceptance_backend_postgres:
+    image: alpine:3.8
+    links:
+      - postgres
+      - chrome
+      - web
+    command: >
+      /bin/sh -c "
+        if [ ${SCRIPT_VERBOSE} -eq 1 ]; then
+          set -x
+        fi
+        echo Waiting for database start...;
+        while ! nc -z postgres 5432; do
+          sleep 1;
+        done;
+        echo Database is up;
+      "
+  acceptance_backend_postgres:
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
+    user: ${HOST_UID}
+    volumes:
+      - ${CORE_ROOT}:${CORE_ROOT}
+      - ${HOST_HOME}:${HOST_HOME}
+      - /etc/passwd:/etc/passwd:ro
+      - /etc/group:/etc/group:ro
+    environment:
+      typo3DatabaseDriver: pdo_pgsql
+      typo3DatabaseName: bamboo
+      typo3DatabaseUsername: funcu
+      typo3DatabaseHost: postgres
+      typo3DatabasePassword: funcp
+      typo3TestingRedisHost: redis4
+      typo3TestingMemcachedHost: memcached1-5
+    working_dir: ${CORE_ROOT}
+    command: >
+      /bin/sh -c "
+        if [ ${SCRIPT_VERBOSE} -eq 1 ]; then
+          set -x
+        fi
+        php -v | grep '^PHP'
+        if [ ${CHUNKS} -gt 0 ]; then
+          echo \"Running chunk ${THISCHUNK}\"
+          COMMAND=\"bin/codecept run Backend -d -g AcceptanceTests-Job-${THISCHUNK} -c typo3/sysext/core/Tests/codeception.yml ${TEST_FILE} --xml reports.xml --html reports.html\"
+        else
+          COMMAND=\"bin/codecept run Backend -d -c typo3/sysext/core/Tests/codeception.yml ${TEST_FILE} --xml reports.xml --html reports.html\"
+        fi
+        mkdir -p typo3temp/var/tests/
+        $${COMMAND}
+      "
+
+  prepare_acceptance_pagetree_mariadb:
+    image: alpine:3.8
+    links:
+      - mariadb
+      - chrome
+      - web
+    command: >
+      /bin/sh -c "
+        if [ ${SCRIPT_VERBOSE} -eq 1 ]; then
+          set -x
+        fi
+        echo Waiting for database start...;
+        while ! nc -z mariadb 3306; do
+          sleep 1;
+        done;
+        echo Database is up;
+      "
+  acceptance_pagetree_mariadb:
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
+    user: ${HOST_UID}
+    environment:
+      typo3DatabaseName: func_test
+      typo3DatabaseUsername: root
+      typo3DatabasePassword: funcp
+      typo3DatabaseHost: mariadb
     volumes:
       - ${CORE_ROOT}:${CORE_ROOT}
       - ${HOST_HOME}:${HOST_HOME}
@@ -93,13 +235,13 @@ services:
           set -x
         fi
         mkdir -p typo3temp/var/tests/ \
-          && ./bin/codecept run Backend -d -c typo3/sysext/core/Tests/codeception.yml ${TEST_FILE} --html reports.html
+          && ./bin/codecept run PageTree -d -c typo3/sysext/core/Tests/codeception.yml ${TEST_FILE} --xml reports.xml --html reports.html
       "
 
-  prepare_acceptance_install_mariadb10:
+  prepare_acceptance_installtool_mariadb:
     image: alpine:3.8
     links:
-      - mariadb10
+      - mariadb
       - chrome
       - web
     command: >
@@ -108,16 +250,56 @@ services:
           set -x
         fi
         echo Waiting for database start...;
-        while ! nc -z mariadb10 3306; do
+        while ! nc -z mariadb 3306; do
           sleep 1;
         done;
         echo Database is up;
       "
-  acceptance_install_mariadb10:
-    image: typo3gmbh/${DOCKER_PHP_IMAGE}:latest
+  acceptance_installtool_mariadb:
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
     user: ${HOST_UID}
     environment:
-      typo3InstallMysqlDatabaseHost: mariadb10
+      typo3DatabaseName: func_test
+      typo3DatabaseUsername: root
+      typo3DatabasePassword: funcp
+      typo3DatabaseHost: mariadb
+    volumes:
+      - ${CORE_ROOT}:${CORE_ROOT}
+      - ${HOST_HOME}:${HOST_HOME}
+      - /etc/passwd:/etc/passwd:ro
+      - /etc/group:/etc/group:ro
+    working_dir: ${CORE_ROOT}
+    command: >
+      /bin/sh -c "
+        if [ ${SCRIPT_VERBOSE} -eq 1 ]; then
+          set -x
+        fi
+        mkdir -p typo3temp/var/tests/ \
+          && ./bin/codecept run InstallTool -d -c typo3/sysext/core/Tests/codeception.yml ${TEST_FILE} --xml reports.xml --html reports.html
+      "
+
+  prepare_acceptance_install_mysql:
+    image: alpine:3.8
+    links:
+      - mysql
+      - chrome
+      - web
+    command: >
+      /bin/sh -c "
+        if [ ${SCRIPT_VERBOSE} -eq 1 ]; then
+          set -x
+        fi
+        echo Waiting for database start...;
+        while ! nc -z mysql 3306; do
+          sleep 1;
+        done;
+        echo Database is up;
+      "
+  acceptance_install_mysql:
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
+    user: ${HOST_UID}
+    environment:
+      typo3InstallMysqlDatabaseHost: mysql
       typo3InstallMysqlDatabaseName: func_test
       typo3InstallMysqlDatabaseUsername: root
       typo3InstallMysqlDatabasePassword: funcp
@@ -133,13 +315,13 @@ services:
           set -x
         fi
         mkdir -p typo3temp/var/tests/ \
-          && ./bin/codecept run Install -d -c typo3/sysext/core/Tests/codeception.yml --env=mysql --html reports.html
+          && ./bin/codecept run Install -d -c typo3/sysext/core/Tests/codeception.yml --env=mysql --xml reports.xml --html reports.html
       "
 
-  prepare_acceptance_install_postgres10:
+  prepare_acceptance_install_mariadb:
     image: alpine:3.8
     links:
-      - postgres10
+      - mariadb
       - chrome
       - web
     command: >
@@ -148,18 +330,58 @@ services:
           set -x
         fi
         echo Waiting for database start...;
-        while ! nc -z postgres10 5432; do
+        while ! nc -z mariadb 3306; do
           sleep 1;
         done;
         echo Database is up;
       "
-  acceptance_install_postgres10:
-    image: typo3gmbh/${DOCKER_PHP_IMAGE}:latest
+  acceptance_install_mariadb:
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
     user: ${HOST_UID}
     environment:
-      typo3InstallPostgresqlDatabaseHost: postgres10
+      typo3InstallMysqlDatabaseHost: mariadb
+      typo3InstallMysqlDatabaseName: func_test
+      typo3InstallMysqlDatabaseUsername: root
+      typo3InstallMysqlDatabasePassword: funcp
+    volumes:
+      - ${CORE_ROOT}:${CORE_ROOT}
+      - ${HOST_HOME}:${HOST_HOME}
+      - /etc/passwd:/etc/passwd:ro
+      - /etc/group:/etc/group:ro
+    working_dir: ${CORE_ROOT}
+    command: >
+      /bin/sh -c "
+        if [ ${SCRIPT_VERBOSE} -eq 1 ]; then
+          set -x
+        fi
+        mkdir -p typo3temp/var/tests/ \
+          && ./bin/codecept run Install -d -c typo3/sysext/core/Tests/codeception.yml --env=mysql --xml reports.xml --html reports.html
+      "
+
+  prepare_acceptance_install_postgres:
+    image: alpine:3.8
+    links:
+      - postgres
+      - chrome
+      - web
+    command: >
+      /bin/sh -c "
+        if [ ${SCRIPT_VERBOSE} -eq 1 ]; then
+          set -x
+        fi
+        echo Waiting for database start...;
+        while ! nc -z postgres 5432; do
+          sleep 1;
+        done;
+        echo Database is up;
+      "
+  acceptance_install_postgres:
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
+    user: ${HOST_UID}
+    environment:
+      typo3InstallPostgresqlDatabaseHost: postgres
       typo3InstallPostgresqlDatabaseName: ${HOST_USER}
-      typo3InstallPostgresqlDatabaseUsername: ${HOST_USER}
+      typo3InstallPostgresqlDatabaseUsername: funcu
       typo3InstallPostgresqlDatabasePassword: funcp
     working_dir: ${CORE_ROOT}
     volumes:
@@ -173,7 +395,7 @@ services:
           set -x
         fi
         mkdir -p typo3temp/var/tests/ \
-          && ./bin/codecept run Install -d -c typo3/sysext/core/Tests/codeception.yml --env=postgresql --html reports.html
+          && ./bin/codecept run Install -d -c typo3/sysext/core/Tests/codeception.yml --env=postgresql --xml reports.xml --html reports.html
       "
 
   prepare_acceptance_install_sqlite:
@@ -186,7 +408,7 @@ services:
         sleep 1;
       "
   acceptance_install_sqlite:
-    image: typo3gmbh/${DOCKER_PHP_IMAGE}:latest
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
     user: ${HOST_UID}
     volumes:
       - ${CORE_ROOT}:${CORE_ROOT}
@@ -200,11 +422,11 @@ services:
           set -x
         fi
         mkdir -p typo3temp/var/tests/ \
-          && ./bin/codecept run Install -d -c typo3/sysext/core/Tests/codeception.yml --env=sqlite --html reports.html
+          && ./bin/codecept run Install -d -c typo3/sysext/core/Tests/codeception.yml --env=sqlite --xml reports.xml --html reports.html
       "
 
   build_css:
-    image: typo3gmbh/${DOCKER_JS_IMAGE}:latest
+    image: typo3/core-testing-js:latest
     user: ${HOST_UID}
     volumes:
     - ${CORE_ROOT}:${CORE_ROOT}
@@ -217,12 +439,12 @@ services:
         if [ ${SCRIPT_VERBOSE} -eq 1 ]; then
           set -x
         fi
-        yarn install \
-          && ./node_modules/grunt/bin/grunt css
+        YARN_CACHE_FOLDER="../.cache/yarn" yarn install || exit 1
+        node_modules/grunt/bin/grunt css
       "
 
   build_javascript:
-    image: typo3gmbh/${DOCKER_JS_IMAGE}:latest
+    image: typo3/core-testing-js:latest
     user: ${HOST_UID}
     volumes:
     - ${CORE_ROOT}:${CORE_ROOT}
@@ -235,12 +457,12 @@ services:
         if [ ${SCRIPT_VERBOSE} -eq 1 ]; then
           set -x
         fi
-        yarn install \
-          && ./node_modules/grunt/bin/grunt scripts
+        YARN_CACHE_FOLDER="../.cache/yarn" yarn install || exit 1
+        node_modules/grunt/bin/grunt scripts
       "
 
   cgl_git:
-    image: typo3gmbh/${DOCKER_PHP_IMAGE}:latest
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
     user: ${HOST_UID}
     volumes:
     - ${CORE_ROOT}:${CORE_ROOT}
@@ -257,7 +479,7 @@ services:
       "
 
   cgl_all:
-    image: typo3gmbh/${DOCKER_PHP_IMAGE}:latest
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
     user: ${HOST_UID}
     volumes:
     - ${CORE_ROOT}:${CORE_ROOT}
@@ -275,7 +497,7 @@ services:
       "
 
   check_annotations:
-    image: typo3gmbh/${DOCKER_PHP_IMAGE}:latest
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
     user: ${HOST_UID}
     volumes:
     - ${CORE_ROOT}:${CORE_ROOT}
@@ -292,7 +514,7 @@ services:
       "
 
   check_bom:
-    image: typo3gmbh/${DOCKER_PHP_IMAGE}:latest
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
     user: ${HOST_UID}
     volumes:
     - ${CORE_ROOT}:${CORE_ROOT}
@@ -309,7 +531,7 @@ services:
       "
 
   check_composer:
-    image: typo3gmbh/${DOCKER_PHP_IMAGE}:latest
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
     user: ${HOST_UID}
     volumes:
     - ${CORE_ROOT}:${CORE_ROOT}
@@ -326,7 +548,7 @@ services:
       "
 
   check_csv_fixtures:
-    image: typo3gmbh/${DOCKER_PHP_IMAGE}:latest
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
     user: ${HOST_UID}
     volumes:
     - ${CORE_ROOT}:${CORE_ROOT}
@@ -342,8 +564,25 @@ services:
         Build/Scripts/checkIntegrityCsvFixtures.php;
       "
 
+  fix_csv_fixtures:
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
+    user: ${HOST_UID}
+    volumes:
+    - ${CORE_ROOT}:${CORE_ROOT}
+    - ${HOST_HOME}:${HOST_HOME}
+    - /etc/passwd:/etc/passwd:ro
+    - /etc/group:/etc/group:ro
+    working_dir: ${CORE_ROOT}
+    command: >
+      /bin/sh -c "
+        if [ ${SCRIPT_VERBOSE} -eq 1 ]; then
+          set -x
+        fi
+        Build/Scripts/checkIntegrityCsvFixtures.php --fix;
+      "
+
   check_exception_codes:
-    image: typo3gmbh/${DOCKER_PHP_IMAGE}:latest
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
     user: ${HOST_UID}
     volumes:
     - ${CORE_ROOT}:${CORE_ROOT}
@@ -360,7 +599,7 @@ services:
       "
 
   check_extension_scanner_rst:
-    image: typo3gmbh/${DOCKER_PHP_IMAGE}:latest
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
     user: ${HOST_UID}
     volumes:
     - ${CORE_ROOT}:${CORE_ROOT}
@@ -377,7 +616,7 @@ services:
       "
 
   check_file_path_length:
-    image: typo3gmbh/${DOCKER_PHP_IMAGE}:latest
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
     user: ${HOST_UID}
     volumes:
     - ${CORE_ROOT}:${CORE_ROOT}
@@ -394,7 +633,7 @@ services:
       "
 
   check_git_submodule:
-    image: typo3gmbh/${DOCKER_PHP_IMAGE}:latest
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
     user: ${HOST_UID}
     volumes:
     - ${CORE_ROOT}:${CORE_ROOT}
@@ -413,8 +652,30 @@ services:
         fi
       "
 
+  check_grunt_clean:
+    image: typo3/core-testing-js:latest
+    user: ${HOST_UID}
+    volumes:
+      - ${CORE_ROOT}:${CORE_ROOT}
+      - ${HOST_HOME}:${HOST_HOME}
+      - /etc/passwd:/etc/passwd:ro
+      - /etc/group:/etc/group:ro
+    working_dir: ${CORE_ROOT}/Build
+    command: >
+      /bin/sh -c "
+        if [ ${SCRIPT_VERBOSE} -eq 1 ]; then
+          set -x
+        fi
+        YARN_CACHE_FOLDER="../.cache/yarn" yarn install || exit 1
+        node_modules/grunt/bin/grunt build;
+        cd ..;
+        git add *;
+        git status;
+        git status | grep -q \"nothing to commit, working tree clean\"
+      "
+
   check_permissions:
-    image: typo3gmbh/${DOCKER_PHP_IMAGE}:latest
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
     user: ${HOST_UID}
     volumes:
     - ${CORE_ROOT}:${CORE_ROOT}
@@ -431,7 +692,7 @@ services:
       "
 
   check_rst:
-    image: typo3gmbh/${DOCKER_PHP_IMAGE}:latest
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
     user: ${HOST_UID}
     volumes:
     - ${CORE_ROOT}:${CORE_ROOT}
@@ -448,7 +709,7 @@ services:
       "
 
   check_xlf:
-    image: typo3gmbh/${DOCKER_PHP_IMAGE}:latest
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
     user: ${HOST_UID}
     volumes:
     - ${CORE_ROOT}:${CORE_ROOT}
@@ -465,7 +726,7 @@ services:
       "
 
   composer_install:
-    image: typo3gmbh/${DOCKER_PHP_IMAGE}:latest
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
     user: ${HOST_UID}
     volumes:
     - ${CORE_ROOT}:${CORE_ROOT}
@@ -478,11 +739,49 @@ services:
         if [ ${SCRIPT_VERBOSE} -eq 1 ]; then
           set -x
         fi
-        composer install;
+        COMPOSER_CACHE_DIR=".cache/composer" composer install --no-progress --no-interaction;
+      "
+
+  composer_install_max:
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
+    user: ${HOST_UID}
+    volumes:
+      - ${CORE_ROOT}:${CORE_ROOT}
+      - ${HOST_HOME}:${HOST_HOME}
+      - /etc/passwd:/etc/passwd:ro
+      - /etc/group:/etc/group:ro
+    working_dir: ${CORE_ROOT}
+    command: >
+      /bin/sh -c "
+        if [ ${SCRIPT_VERBOSE} -eq 1 ]; then
+          set -x
+        fi
+        composer config --unset platform.php;
+        COMPOSER_CACHE_DIR=".cache/composer" composer update --no-progress --no-interaction;
+        composer dumpautoload;
+      "
+
+  composer_install_min:
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
+    user: ${HOST_UID}
+    volumes:
+      - ${CORE_ROOT}:${CORE_ROOT}
+      - ${HOST_HOME}:${HOST_HOME}
+      - /etc/passwd:/etc/passwd:ro
+      - /etc/group:/etc/group:ro
+    working_dir: ${CORE_ROOT}
+    command: >
+      /bin/sh -c "
+        if [ ${SCRIPT_VERBOSE} -eq 1 ]; then
+          set -x
+        fi
+        composer config platform.php ${PHP_VERSION}.0;
+        COMPOSER_CACHE_DIR=".cache/composer" composer update --prefer-lowest --no-progress --no-interaction;
+        composer dumpautoload;
       "
 
   composer_validate:
-    image: typo3gmbh/${DOCKER_PHP_IMAGE}:latest
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
     user: ${HOST_UID}
     volumes:
     - ${CORE_ROOT}:${CORE_ROOT}
@@ -498,10 +797,32 @@ services:
         composer validate;
       "
 
-  prepare_functional_mariadb10:
+  doc_block_check:
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
+    user: ${HOST_UID}
+    volumes:
+    - ${CORE_ROOT}:${CORE_ROOT}
+    working_dir: ${CORE_ROOT}
+    command: >
+      /bin/sh -c "
+        if [ ${SCRIPT_VERBOSE} -eq 1 ]; then
+          set -x
+        fi
+        Build/Scripts/docBlockChecker.php;
+      "
+
+  functional_split:
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
+    user: ${HOST_UID}
+    volumes:
+      - ${CORE_ROOT}:${CORE_ROOT}
+    working_dir: ${CORE_ROOT}
+    command: php vendor/typo3/testing-framework/Resources/Core/Build/Scripts/splitFunctionalTests.php -v ${CHUNKS}
+
+  prepare_functional_mariadb:
     image: alpine:3.8
     links:
-      - mariadb10
+      - mariadb
       - redis4
       - memcached1-5
     command: >
@@ -510,13 +831,13 @@ services:
           set -x
         fi
         echo Waiting for database start...;
-        while ! nc -z mariadb10 3306; do
+        while ! nc -z mariadb 3306; do
           sleep 1;
         done;
         echo Database is up;
       "
-  functional_mariadb10:
-    image: typo3gmbh/${DOCKER_PHP_IMAGE}:latest
+  functional_mariadb:
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
     user: ${HOST_UID}
     volumes:
       - ${CORE_ROOT}:${CORE_ROOT}
@@ -528,7 +849,7 @@ services:
       typo3DatabaseName: func_test
       typo3DatabaseUsername: root
       typo3DatabasePassword: funcp
-      typo3DatabaseHost: mariadb10
+      typo3DatabaseHost: mariadb
       typo3TestingRedisHost: redis4
       typo3TestingMemcachedHost: memcached1-5
     working_dir: ${CORE_ROOT}
@@ -538,20 +859,24 @@ services:
           set -x
         fi
         php -v | grep '^PHP'
+        if [ ${CHUNKS} -gt 0 ]; then
+          echo \"Running chunk ${THISCHUNK}\"
+          COMMAND=\"vendor/phpunit/phpunit/phpunit -c vendor/typo3/testing-framework/Resources/Core/Build/FunctionalTests-Job-${THISCHUNK}.xml ${EXTRA_TEST_OPTIONS} ${TEST_FILE}\"
+        else
+          COMMAND=\"vendor/phpunit/phpunit/phpunit -c vendor/typo3/testing-framework/Resources/Core/Build/FunctionalTests.xml ${EXTRA_TEST_OPTIONS} ${TEST_FILE}\"
+        fi
         if [ ${PHP_XDEBUG_ON} -eq 0 ]; then
-          php -n -c /etc/php/cli-no-xdebug/php.ini \
-            vendor/phpunit/phpunit/phpunit -c vendor/typo3/testing-framework/Resources/Core/Build/FunctionalTests.xml ${EXTRA_TEST_OPTIONS} ${TEST_FILE};
+          php -n -c /etc/php/cli-no-xdebug/php.ini $${COMMAND};
         else
           DOCKER_HOST=`route -n | awk '/^0.0.0.0/ { print $$2 }'`
-          XDEBUG_CONFIG=\"remote_port=${PHP_XDEBUG_PORT} remote_enable=1 remote_host=$${DOCKER_HOST}\" \
-            vendor/phpunit/phpunit/phpunit -c vendor/typo3/testing-framework/Resources/Core/Build/FunctionalTests.xml ${EXTRA_TEST_OPTIONS} ${TEST_FILE};
+          XDEBUG_CONFIG=\"remote_port=${PHP_XDEBUG_PORT} remote_enable=1 remote_host=$${DOCKER_HOST}\" $${COMMAND};
         fi
       "
 
-  prepare_functional_mysql55:
+  prepare_functional_mysql:
     image: alpine:3.8
     links:
-      - mysql55
+      - mysql
       - redis4
       - memcached1-5
     command: >
@@ -560,13 +885,13 @@ services:
           set -x
         fi
         echo Waiting for database start...;
-        while ! nc -z mysql55 3306; do
+        while ! nc -z mysql 3306; do
           sleep 1;
         done;
         echo Database is up;
       "
-  functional_mysql55:
-    image: typo3gmbh/${DOCKER_PHP_IMAGE}:latest
+  functional_mysql:
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
     user: ${HOST_UID}
     volumes:
       - ${CORE_ROOT}:${CORE_ROOT}
@@ -578,7 +903,7 @@ services:
       typo3DatabaseName: func_test
       typo3DatabaseUsername: root
       typo3DatabasePassword: funcp
-      typo3DatabaseHost: mysql55
+      typo3DatabaseHost: mysql
       typo3TestingRedisHost: redis4
       typo3TestingMemcachedHost: memcached1-5
     working_dir: ${CORE_ROOT}
@@ -588,20 +913,24 @@ services:
           set -x
         fi
         php -v | grep '^PHP'
+        if [ ${CHUNKS} -gt 0 ]; then
+          echo \"Running chunk ${THISCHUNK}\"
+          COMMAND=\"vendor/phpunit/phpunit/phpunit -c vendor/typo3/testing-framework/Resources/Core/Build/FunctionalTests-Job-${THISCHUNK}.xml ${EXTRA_TEST_OPTIONS} ${TEST_FILE}\"
+        else
+          COMMAND=\"vendor/phpunit/phpunit/phpunit -c vendor/typo3/testing-framework/Resources/Core/Build/FunctionalTests.xml ${EXTRA_TEST_OPTIONS} ${TEST_FILE}\"
+        fi
         if [ ${PHP_XDEBUG_ON} -eq 0 ]; then
-          php -n -c /etc/php/cli-no-xdebug/php.ini \
-            vendor/phpunit/phpunit/phpunit -c vendor/typo3/testing-framework/Resources/Core/Build/FunctionalTests.xml ${EXTRA_TEST_OPTIONS} ${TEST_FILE};
+          php -n -c /etc/php/cli-no-xdebug/php.ini $${COMMAND};
         else
           DOCKER_HOST=`route -n | awk '/^0.0.0.0/ { print $$2 }'`
-          XDEBUG_CONFIG=\"remote_port=${PHP_XDEBUG_PORT} remote_enable=1 remote_host=$${DOCKER_HOST}\" \
-            vendor/phpunit/phpunit/phpunit -c vendor/typo3/testing-framework/Resources/Core/Build/FunctionalTests.xml ${EXTRA_TEST_OPTIONS} ${TEST_FILE};
+          XDEBUG_CONFIG=\"remote_port=${PHP_XDEBUG_PORT} remote_enable=1 remote_host=$${DOCKER_HOST}\" $${COMMAND};
         fi
       "
 
-  prepare_functional_mssql2017cu17:
+  prepare_functional_mssql2019latest:
     image: alpine:3.8
     links:
-      - mssql2017cu17
+      - mssql2019latest
       - redis4
       - memcached1-5
     command: >
@@ -610,13 +939,14 @@ services:
           set -x
         fi
         echo Waiting for database start...;
-        while ! nc -z mssql2017cu17 1433; do
+        while ! nc -z mssql2019latest 1433; do
           sleep 1;
         done;
         echo Database is up;
       "
-  functional_mssql2017cu17:
-    image: typo3gmbh/${DOCKER_PHP_IMAGE}:latest
+
+  functional_mssql2019latest:
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
     user: ${HOST_UID}
     volumes:
       - ${CORE_ROOT}:${CORE_ROOT}
@@ -630,7 +960,7 @@ services:
       typo3DatabaseUsername: SA
       typo3DatabasePort: 1433
       typo3DatabaseCharset: utf-8
-      typo3DatabaseHost: mssql2017cu17
+      typo3DatabaseHost: mssql2019latest
       typo3TestingRedisHost: redis4
       typo3TestingMemcachedHost: memcached1-5
     working_dir: ${CORE_ROOT}
@@ -640,20 +970,24 @@ services:
           set -x
         fi
         php -v | grep '^PHP'
+        if [ ${CHUNKS} -gt 0 ]; then
+          echo \"Running chunk ${THISCHUNK}\"
+          COMMAND=\"vendor/phpunit/phpunit/phpunit -c vendor/typo3/testing-framework/Resources/Core/Build/FunctionalTests-Job-${THISCHUNK}.xml ${EXTRA_TEST_OPTIONS} --exclude-group not-mssql ${TEST_FILE}\"
+        else
+          COMMAND=\"vendor/phpunit/phpunit/phpunit -c vendor/typo3/testing-framework/Resources/Core/Build/FunctionalTests.xml ${EXTRA_TEST_OPTIONS} --exclude-group not-mssql ${TEST_FILE}\"
+        fi
         if [ ${PHP_XDEBUG_ON} -eq 0 ]; then
-          php -n -c /etc/php/cli-no-xdebug/php.ini \
-            vendor/phpunit/phpunit/phpunit -c vendor/typo3/testing-framework/Resources/Core/Build/FunctionalTests.xml ${EXTRA_TEST_OPTIONS} --exclude-group not-mssql ${TEST_FILE};
+          php -n -c /etc/php/cli-no-xdebug/php.ini $${COMMAND};
         else
           DOCKER_HOST=`route -n | awk '/^0.0.0.0/ { print $$2 }'`
-          XDEBUG_CONFIG=\"remote_port=${PHP_XDEBUG_PORT} remote_enable=1 remote_host=$${DOCKER_HOST}\" \
-            vendor/phpunit/phpunit/phpunit -c vendor/typo3/testing-framework/Resources/Core/Build/FunctionalTests.xml ${EXTRA_TEST_OPTIONS} --exclude-group not-mssql ${TEST_FILE};
+          XDEBUG_CONFIG=\"remote_port=${PHP_XDEBUG_PORT} remote_enable=1 remote_host=$${DOCKER_HOST}\" $${COMMAND};
         fi
       "
 
-  prepare_functional_mssql2017latest:
+  prepare_functional_postgres:
     image: alpine:3.8
     links:
-      - mssql2017latest
+      - postgres
       - redis4
       - memcached1-5
     command: >
@@ -662,66 +996,13 @@ services:
           set -x
         fi
         echo Waiting for database start...;
-        while ! nc -z mssql2017latest 1433; do
+        while ! nc -z postgres 5432; do
           sleep 1;
         done;
         echo Database is up;
       "
-
-  functional_mssql2017latest:
-    image: typo3gmbh/${DOCKER_PHP_IMAGE}:latest
-    user: ${HOST_UID}
-    volumes:
-      - ${CORE_ROOT}:${CORE_ROOT}
-      - ${HOST_HOME}:${HOST_HOME}
-      - /etc/passwd:/etc/passwd:ro
-      - /etc/group:/etc/group:ro
-    environment:
-      typo3DatabaseDriver: "${DATABASE_DRIVER:-sqlsrv}"
-      typo3DatabaseName: func
-      typo3DatabasePassword: "Test1234!"
-      typo3DatabaseUsername: SA
-      typo3DatabasePort: 1433
-      typo3DatabaseCharset: utf-8
-      typo3DatabaseHost: mssql2017latest
-      typo3TestingRedisHost: redis4
-      typo3TestingMemcachedHost: memcached1-5
-    working_dir: ${CORE_ROOT}
-    command: >
-      /bin/sh -c "
-        if [ ${SCRIPT_VERBOSE} -eq 1 ]; then
-          set -x
-        fi
-        php -v | grep '^PHP'
-        if [ ${PHP_XDEBUG_ON} -eq 0 ]; then
-          php -n -c /etc/php/cli-no-xdebug/php.ini \
-            vendor/phpunit/phpunit/phpunit -c vendor/typo3/testing-framework/Resources/Core/Build/FunctionalTests.xml ${EXTRA_TEST_OPTIONS} --exclude-group not-mssql ${TEST_FILE};
-        else
-          DOCKER_HOST=`route -n | awk '/^0.0.0.0/ { print $$2 }'`
-          XDEBUG_CONFIG=\"remote_port=${PHP_XDEBUG_PORT} remote_enable=1 remote_host=$${DOCKER_HOST}\" \
-            vendor/phpunit/phpunit/phpunit -c vendor/typo3/testing-framework/Resources/Core/Build/FunctionalTests.xml ${EXTRA_TEST_OPTIONS} --exclude-group not-mssql ${TEST_FILE};
-        fi
-      "
-
-  prepare_functional_postgres10:
-    image: alpine:3.8
-    links:
-      - postgres10
-      - redis4
-      - memcached1-5
-    command: >
-      /bin/sh -c "
-        if [ ${SCRIPT_VERBOSE} -eq 1 ]; then
-          set -x
-        fi
-        echo Waiting for database start...;
-        while ! nc -z postgres10 5432; do
-          sleep 1;
-        done;
-        echo Database is up;
-      "
-  functional_postgres10:
-    image: typo3gmbh/${DOCKER_PHP_IMAGE}:latest
+  functional_postgres:
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
     user: ${HOST_UID}
     volumes:
       - ${CORE_ROOT}:${CORE_ROOT}
@@ -731,8 +1012,8 @@ services:
     environment:
       typo3DatabaseDriver: pdo_pgsql
       typo3DatabaseName: bamboo
-      typo3DatabaseUsername: ${HOST_USER}
-      typo3DatabaseHost: postgres10
+      typo3DatabaseUsername: funcu
+      typo3DatabaseHost: postgres
       typo3DatabasePassword: funcp
       typo3TestingRedisHost: redis4
       typo3TestingMemcachedHost: memcached1-5
@@ -743,13 +1024,17 @@ services:
           set -x
         fi
         php -v | grep '^PHP'
+        if [ ${CHUNKS} -gt 0 ]; then
+          echo \"Running chunk ${THISCHUNK}\"
+          COMMAND=\"vendor/phpunit/phpunit/phpunit -c vendor/typo3/testing-framework/Resources/Core/Build/FunctionalTests-Job-${THISCHUNK}.xml ${EXTRA_TEST_OPTIONS} --exclude-group not-postgres ${TEST_FILE}\"
+        else
+          COMMAND=\"vendor/phpunit/phpunit/phpunit -c vendor/typo3/testing-framework/Resources/Core/Build/FunctionalTests.xml ${EXTRA_TEST_OPTIONS} --exclude-group not-postgres ${TEST_FILE}\"
+        fi
         if [ ${PHP_XDEBUG_ON} -eq 0 ]; then
-          php -n -c /etc/php/cli-no-xdebug/php.ini \
-            vendor/phpunit/phpunit/phpunit -c vendor/typo3/testing-framework/Resources/Core/Build/FunctionalTests.xml ${EXTRA_TEST_OPTIONS} --exclude-group not-postgres ${TEST_FILE};
+          php -n -c /etc/php/cli-no-xdebug/php.ini $${COMMAND};
         else
           DOCKER_HOST=`route -n | awk '/^0.0.0.0/ { print $$2 }'`
-          XDEBUG_CONFIG=\"remote_port=${PHP_XDEBUG_PORT} remote_enable=1 remote_host=$${DOCKER_HOST}\" \
-            vendor/phpunit/phpunit/phpunit -c vendor/typo3/testing-framework/Resources/Core/Build/FunctionalTests.xml ${EXTRA_TEST_OPTIONS} --exclude-group not-postgres ${TEST_FILE};
+          XDEBUG_CONFIG=\"remote_port=${PHP_XDEBUG_PORT} remote_enable=1 remote_host=$${DOCKER_HOST}\" $${COMMAND};
         fi
       "
 
@@ -763,17 +1048,13 @@ services:
         sleep 1;
       "
   functional_sqlite:
-    image: typo3gmbh/${DOCKER_PHP_IMAGE}:latest
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
     user: ${HOST_UID}
     volumes:
       - ${CORE_ROOT}:${CORE_ROOT}
       - ${HOST_HOME}:${HOST_HOME}
       - /etc/passwd:/etc/passwd:ro
       - /etc/group:/etc/group:ro
-      # @todo: sqlite DB is currently written to functional-doc-root (typo3temp/var/test-functional-xy/) /test.sqlite
-      # This directory is mapped to the local dir, so it is hard disk and not a tmpfs. sqlite functionals would speed
-      # up significantly if typo3/testing-framework would accept an environment variable to locate test.sqlite file on
-      # some tmpfs mount. Note this is not an issue within bamboo since in bamboo the entire core checkout is a tmpfs already.
     environment:
       typo3DatabaseDriver: pdo_sqlite
       typo3TestingRedisHost: redis4
@@ -785,18 +1066,22 @@ services:
           set -x
         fi
         php -v | grep '^PHP'
+        if [ ${CHUNKS} -gt 0 ]; then
+          echo \"Running chunk ${THISCHUNK}\"
+          COMMAND=\"vendor/phpunit/phpunit/phpunit -c vendor/typo3/testing-framework/Resources/Core/Build/FunctionalTests-Job-${THISCHUNK}.xml ${EXTRA_TEST_OPTIONS} --exclude-group not-sqlite ${TEST_FILE}\"
+        else
+          COMMAND=\"vendor/phpunit/phpunit/phpunit -c vendor/typo3/testing-framework/Resources/Core/Build/FunctionalTests.xml ${EXTRA_TEST_OPTIONS} --exclude-group not-sqlite ${TEST_FILE}\"
+        fi
         if [ ${PHP_XDEBUG_ON} -eq 0 ]; then
-          php -n -c /etc/php/cli-no-xdebug/php.ini \
-            vendor/phpunit/phpunit/phpunit -c vendor/typo3/testing-framework/Resources/Core/Build/FunctionalTests.xml ${EXTRA_TEST_OPTIONS} --exclude-group not-sqlite ${TEST_FILE};
+          php -n -c /etc/php/cli-no-xdebug/php.ini $${COMMAND};
         else
           DOCKER_HOST=`route -n | awk '/^0.0.0.0/ { print $$2 }'`
-          XDEBUG_CONFIG=\"remote_port=${PHP_XDEBUG_PORT} remote_enable=1 remote_host=$${DOCKER_HOST}\" \
-            vendor/phpunit/phpunit/phpunit -c vendor/typo3/testing-framework/Resources/Core/Build/FunctionalTests.xml ${EXTRA_TEST_OPTIONS} --exclude-group not-sqlite ${TEST_FILE};
+          XDEBUG_CONFIG=\"remote_port=${PHP_XDEBUG_PORT} remote_enable=1 remote_host=$${DOCKER_HOST}\" $${COMMAND};
         fi
       "
 
-  lint:
-    image: typo3gmbh/${DOCKER_PHP_IMAGE}:latest
+  lint_php:
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
     user: ${HOST_UID}
     volumes:
     - ${CORE_ROOT}:${CORE_ROOT}
@@ -813,7 +1098,7 @@ services:
       "
 
   lint_scss:
-    image: typo3gmbh/${DOCKER_JS_IMAGE}:latest
+    image: typo3/core-testing-js:latest
     user: ${HOST_UID}
     volumes:
     - ${CORE_ROOT}:${CORE_ROOT}
@@ -826,12 +1111,30 @@ services:
         if [ ${SCRIPT_VERBOSE} -eq 1 ]; then
           set -x
         fi
-        yarn install \
-          && ./node_modules/grunt/bin/grunt stylelint;
+        YARN_CACHE_FOLDER="../.cache/yarn" yarn install || exit 1
+        node_modules/grunt/bin/grunt stylelint;
+      "
+
+  lint_html:
+    image: typo3/core-testing-js:latest
+    user: ${HOST_UID}
+    volumes:
+    - ${CORE_ROOT}:${CORE_ROOT}
+    - ${HOST_HOME}:${HOST_HOME}
+    - /etc/passwd:/etc/passwd:ro
+    - /etc/group:/etc/group:ro
+    working_dir: ${CORE_ROOT}/Build
+    command: >
+      /bin/sh -c "
+        if [ ${SCRIPT_VERBOSE} -eq 1 ]; then
+          set -x
+        fi
+        YARN_CACHE_FOLDER="../.cache/yarn" yarn install || exit 1
+        node_modules/grunt/bin/grunt lintspaces;
       "
 
   lint_typescript:
-    image: typo3gmbh/${DOCKER_JS_IMAGE}:latest
+    image: typo3/core-testing-js:latest
     user: ${HOST_UID}
     volumes:
     - ${CORE_ROOT}:${CORE_ROOT}
@@ -844,12 +1147,27 @@ services:
         if [ ${SCRIPT_VERBOSE} -eq 1 ]; then
           set -x
         fi
-        yarn install \
-          && ./node_modules/grunt/bin/grunt tslint;
+        YARN_CACHE_FOLDER="../.cache/yarn" yarn install || exit 1
+        node_modules/grunt/bin/grunt eslint;
+      "
+
+  phpstan:
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
+    user: ${HOST_UID}
+    volumes:
+      - ${CORE_ROOT}:${CORE_ROOT}
+    working_dir: ${CORE_ROOT}
+    command: >
+      /bin/sh -c "
+        if [ ${SCRIPT_VERBOSE} -eq 1 ]; then
+          set -x
+        fi
+        mkdir -p .cache
+        bin/phpstan analyse --no-progress --no-interaction --memory-limit 4G
       "
 
   unit:
-    image: typo3gmbh/${DOCKER_PHP_IMAGE}:latest
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
     user: ${HOST_UID}
     volumes:
       - ${CORE_ROOT}:${CORE_ROOT}
@@ -874,7 +1192,7 @@ services:
       "
 
   unitDeprecated:
-    image: typo3gmbh/${DOCKER_PHP_IMAGE}:latest
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
     user: ${HOST_UID}
     volumes:
       - ${CORE_ROOT}:${CORE_ROOT}
@@ -899,7 +1217,7 @@ services:
       "
 
   unitJavascript:
-    image: typo3gmbh/${DOCKER_JS_IMAGE}:latest
+    image: typo3/core-testing-js-chrome:latest
     user: ${HOST_UID}
     volumes:
       - ${CORE_ROOT}:${CORE_ROOT}
@@ -912,14 +1230,13 @@ services:
         if [ ${SCRIPT_VERBOSE} -eq 1 ]; then
           set -x
         fi
-        yarn install \
-          && cd .. \
-          && Build/node_modules/karma/bin/karma start \
-            vendor/typo3/testing-framework/Resources/Core/Build/Configuration/JSUnit/karma.conf.ci.js --single-run
+        YARN_CACHE_FOLDER="../.cache/yarn" yarn install || exit 1
+        cd ..;
+        Build/node_modules/karma/bin/karma start vendor/typo3/testing-framework/Resources/Core/Build/Configuration/JSUnit/karma.conf.ci.js --single-run
       "
 
   unitRandom:
-    image: typo3gmbh/${DOCKER_PHP_IMAGE}:latest
+    image: typo3/core-testing-${DOCKER_PHP_IMAGE}:latest
     user: ${HOST_UID}
     volumes:
       - ${CORE_ROOT}:${CORE_ROOT}

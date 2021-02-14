@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Tests\Unit\Utility;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,10 @@ namespace TYPO3\CMS\Extbase\Tests\Unit\Utility;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Extbase\Tests\Unit\Utility;
+
+use TYPO3\CMS\Extbase\Persistence\ObjectStorage;
 use TYPO3\CMS\Extbase\Utility\DebuggerUtility;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
@@ -27,7 +30,7 @@ class DebuggerUtilityTest extends UnitTestCase
     public function debuggerRewindsInstancesOfIterator()
     {
         /** @var $objectStorage \TYPO3\CMS\Extbase\Persistence\ObjectStorage */
-        $objectStorage = $this->getMockBuilder(\TYPO3\CMS\Extbase\Persistence\ObjectStorage::class)
+        $objectStorage = $this->getMockBuilder(ObjectStorage::class)
             ->setMethods(['dummy'])
             ->getMock();
         for ($i = 0; $i < 5; $i++) {
@@ -61,7 +64,12 @@ class DebuggerUtilityTest extends UnitTestCase
         $testObject = new \stdClass();
         $testObject->foo = 'bar';
         $result = DebuggerUtility::var_dump($testObject, null, 8, true, false, true);
-        self::assertRegExp('/foo.*bar/', $result);
+        // @todo remove condition and else branch as soon as phpunit v8 goes out of support
+        if (method_exists($this, 'assertMatchesRegularExpression')) {
+            self::assertMatchesRegularExpression('/foo.*bar/', $result);
+        } else {
+            self::assertRegExp('/foo.*bar/', $result);
+        }
     }
 
     /**

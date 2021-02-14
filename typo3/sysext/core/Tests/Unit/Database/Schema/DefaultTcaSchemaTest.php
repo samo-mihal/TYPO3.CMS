@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\Tests\Unit\Database\Schema;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\Database\Schema;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\Database\Schema;
 
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Index;
@@ -34,11 +35,16 @@ class DefaultTcaSchemaTest extends UnitTestCase
      */
     protected $subject;
 
+    /**
+     * @var Table
+     */
+    protected $defaultTable;
+
     public function setUp(): void
     {
         parent::setUp();
-        $this->subject = $this->getAccessibleMock(DefaultTcaSchema::class, ['tableRunsOnSqlite']);
-        $this->subject->method('tableRunsOnSqlite')->willReturn(false);
+        $this->subject = new DefaultTcaSchema();
+        $this->defaultTable = new Table('aTable');
     }
 
     /**
@@ -47,7 +53,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
     public function enrichKeepsGivenTablesArrayWithEmptyTca()
     {
         $GLOBALS['TCA'] = [];
-        self::assertEquals([], $this->subject->enrich([]));
+        self::assertEquals([$this->defaultTable], $this->subject->enrich([$this->defaultTable]));
     }
 
     /**
@@ -60,11 +66,13 @@ class DefaultTcaSchemaTest extends UnitTestCase
         $table = new Table('aTable');
         $table->addColumn('uid', 'integer');
         $table->addColumn('pid', 'integer');
+        $input = [];
         $input[] = $table;
 
         $table = new Table('aTable');
         $table->addColumn('uid', 'integer');
         $table->addColumn('pid', 'integer');
+        $expected = [];
         $expected[] = $table;
 
         self::assertEquals($expected, $this->subject->enrich($input));
@@ -79,6 +87,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
 
         $table = new Table('aTable');
         $table->addColumn('foo', 'integer');
+        $input = [];
         $input[] = $table;
         $table = new Table('aTable');
         $table->addColumn('uid', 'integer');
@@ -87,6 +96,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
 
         $table = new Table('aTable');
         $table->addColumn('foo', 'integer');
+        $expected = [];
         $expected[] = $table;
         $table = new Table('aTable');
         $table->addColumn('uid', 'integer');
@@ -105,6 +115,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
 
         $table = new Table('aTable');
         $table->addColumn('foo', 'integer');
+        $input = [];
         $input[] = $table;
         $table = new Table('aTable');
         $table->addColumn('bar', 'integer');
@@ -121,9 +132,9 @@ class DefaultTcaSchemaTest extends UnitTestCase
     public function enrichAddsUidAndPrimaryKey()
     {
         $GLOBALS['TCA']['aTable']['ctrl'] = [];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $expectedUidColumn = new Column(
-            'uid',
+            '`uid`',
             Type::getType('integer'),
             [
                 'notnull' => true,
@@ -142,9 +153,9 @@ class DefaultTcaSchemaTest extends UnitTestCase
     public function enrichAddsPid()
     {
         $GLOBALS['TCA']['aTable']['ctrl'] = [];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $expectedPidColumn = new Column(
-            'pid',
+            '`pid`',
             Type::getType('integer'),
             [
                 'default' => 0,
@@ -163,9 +174,9 @@ class DefaultTcaSchemaTest extends UnitTestCase
         $GLOBALS['TCA']['aTable']['ctrl'] = [
             'versioningWS' => true,
         ];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $expectedPidColumn = new Column(
-            'pid',
+            '`pid`',
             Type::getType('integer'),
             [
                 'default' => 0,
@@ -184,7 +195,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
         $GLOBALS['TCA']['aTable']['ctrl'] = [
             'tstamp' => 'updatedon',
         ];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $expectedColumn = new Column(
             '`updatedon`',
             Type::getType('integer'),
@@ -205,7 +216,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
         $GLOBALS['TCA']['aTable']['ctrl'] = [
             'crdate' => 'createdon',
         ];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $expectedColumn = new Column(
             '`createdon`',
             Type::getType('integer'),
@@ -226,7 +237,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
         $GLOBALS['TCA']['aTable']['ctrl'] = [
             'cruser_id' => 'createdby',
         ];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $expectedColumn = new Column(
             '`createdby`',
             Type::getType('integer'),
@@ -247,7 +258,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
         $GLOBALS['TCA']['aTable']['ctrl'] = [
             'delete' => 'deleted',
         ];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $expectedColumn = new Column(
             '`deleted`',
             Type::getType('smallint'),
@@ -270,7 +281,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
                 'disabled' => 'disabled',
             ]
         ];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $expectedColumn = new Column(
             '`disabled`',
             Type::getType('smallint'),
@@ -293,7 +304,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
                 'starttime' => 'starttime',
             ]
         ];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $expectedColumn = new Column(
             '`starttime`',
             Type::getType('integer'),
@@ -316,7 +327,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
                 'endtime' => 'endtime',
             ]
         ];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $expectedColumn = new Column(
             '`endtime`',
             Type::getType('integer'),
@@ -339,7 +350,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
                 'fe_group' => 'fe_group',
             ]
         ];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $expectedColumn = new Column(
             '`fe_group`',
             Type::getType('string'),
@@ -360,7 +371,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
         $GLOBALS['TCA']['aTable']['ctrl'] = [
             'sortby' => 'sorting',
         ];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $expectedColumn = new Column(
             '`sorting`',
             Type::getType('integer'),
@@ -379,7 +390,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
     public function enrichAddsParentKey()
     {
         $GLOBALS['TCA']['aTable']['ctrl'] = [];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $expectedIndex = new Index('parent', ['pid']);
         self::assertEquals($expectedIndex, $result[0]->getIndex('parent'));
     }
@@ -392,7 +403,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
         $GLOBALS['TCA']['aTable']['ctrl'] = [
             'delete' => 'deleted',
         ];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $expectedIndex = new Index('parent', ['pid', 'deleted']);
         self::assertEquals($expectedIndex, $result[0]->getIndex('parent'));
     }
@@ -407,7 +418,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
                 'disabled' => 'disabled',
             ],
         ];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $expectedIndex = new Index('parent', ['pid', 'disabled']);
         self::assertEquals($expectedIndex, $result[0]->getIndex('parent'));
     }
@@ -423,7 +434,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
                 'disabled' => 'disabled',
             ],
         ];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $expectedIndex = new Index('parent', ['pid', 'deleted', 'disabled']);
         self::assertEquals($expectedIndex, $result[0]->getIndex('parent'));
     }
@@ -436,7 +447,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
         $GLOBALS['TCA']['aTable']['ctrl'] = [
             'languageField' => 'sys_language_uid',
         ];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $expectedColumn = new Column(
             '`sys_language_uid`',
             Type::getType('integer'),
@@ -458,7 +469,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
             'languageField' => 'sys_language_uid',
             'transOrigPointerField' => 'l10n_parent',
         ];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $expectedColumn = new Column(
             '`l10n_parent`',
             Type::getType('integer'),
@@ -479,7 +490,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
         $GLOBALS['TCA']['aTable']['ctrl'] = [
             'transOrigPointerField' => 'l10n_parent',
         ];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $this->expectException(SchemaException::class);
         $result[0]->getColumn('l10n_parent');
     }
@@ -492,7 +503,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
         $GLOBALS['TCA']['aTable']['ctrl'] = [
             'descriptionColumn' => 'rowDescription',
         ];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $expectedColumn = new Column(
             '`rowDescription`',
             Type::getType('text'),
@@ -512,7 +523,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
         $GLOBALS['TCA']['aTable']['ctrl'] = [
             'editlock' => 'editlock'
         ];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $expectedColumn = new Column(
             '`editlock`',
             Type::getType('smallint'),
@@ -534,7 +545,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
             'languageField' => 'sys_language_uid',
             'translationSource' => 'l10n_source',
         ];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $expectedColumn = new Column(
             '`l10n_source`',
             Type::getType('integer'),
@@ -555,7 +566,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
         $GLOBALS['TCA']['aTable']['ctrl'] = [
             'translationSource' => 'l10n_source',
         ];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $this->expectException(SchemaException::class);
         $result[0]->getColumn('l10n_source');
     }
@@ -569,7 +580,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
             'languageField' => 'sys_language_uid',
             'transOrigPointerField' => 'l10n_parent',
         ];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $expectedColumn = new Column(
             '`l10n_state`',
             Type::getType('text'),
@@ -589,7 +600,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
         $GLOBALS['TCA']['aTable']['ctrl'] = [
             'transOrigPointerField' => 'l10n_parent',
         ];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $this->expectException(SchemaException::class);
         $result[0]->getColumn('l10n_state');
     }
@@ -602,7 +613,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
         $GLOBALS['TCA']['aTable']['ctrl'] = [
             'languageField' => 'sys_language_uid',
         ];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $this->expectException(SchemaException::class);
         $result[0]->getColumn('l10n_state');
     }
@@ -615,7 +626,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
         $GLOBALS['TCA']['aTable']['ctrl'] = [
             'origUid' => 't3_origuid',
         ];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $expectedColumn = new Column(
             '`t3_origuid`',
             Type::getType('integer'),
@@ -636,7 +647,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
         $GLOBALS['TCA']['aTable']['ctrl'] = [
             'transOrigDiffSourceField' => 'l18n_diffsource',
         ];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $expectedColumn = new Column(
             '`l18n_diffsource`',
             Type::getType('blob'),
@@ -656,7 +667,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
         $GLOBALS['TCA']['aTable']['ctrl'] = [
             'versioningWS' => true,
         ];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $expectedColumn = new Column(
             '`t3ver_oid`',
             Type::getType('integer'),
@@ -677,7 +688,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
         $GLOBALS['TCA']['aTable']['ctrl'] = [
             'versioningWS' => true,
         ];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $expectedColumn = new Column(
             '`t3ver_wsid`',
             Type::getType('integer'),
@@ -698,7 +709,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
         $GLOBALS['TCA']['aTable']['ctrl'] = [
             'versioningWS' => true,
         ];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $expectedColumn = new Column(
             '`t3ver_state`',
             Type::getType('smallint'),
@@ -719,7 +730,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
         $GLOBALS['TCA']['aTable']['ctrl'] = [
             'versioningWS' => true,
         ];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $expectedColumn = new Column(
             '`t3ver_stage`',
             Type::getType('integer'),
@@ -740,7 +751,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
         $GLOBALS['TCA']['aTable']['ctrl'] = [
             'versioningWS' => true,
         ];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $expectedColumn = new Column(
             '`t3ver_count`',
             Type::getType('integer'),
@@ -761,7 +772,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
         $GLOBALS['TCA']['aTable']['ctrl'] = [
             'versioningWS' => true,
         ];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $expectedColumn = new Column(
             '`t3ver_tstamp`',
             Type::getType('integer'),
@@ -782,7 +793,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
         $GLOBALS['TCA']['aTable']['ctrl'] = [
             'versioningWS' => true,
         ];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $expectedColumn = new Column(
             '`t3ver_move_id`',
             Type::getType('integer'),
@@ -803,7 +814,7 @@ class DefaultTcaSchemaTest extends UnitTestCase
         $GLOBALS['TCA']['aTable']['ctrl'] = [
             'versioningWS' => true,
         ];
-        $result = $this->subject->enrich([]);
+        $result = $this->subject->enrich([$this->defaultTable]);
         $expectedIndex = new Index('t3ver_oid', ['t3ver_oid', 't3ver_wsid']);
         self::assertEquals($expectedIndex, $result[0]->getIndex('t3ver_oid'));
     }

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Frontend\Imaging;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,8 +13,13 @@ namespace TYPO3\CMS\Frontend\Imaging;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Frontend\Imaging;
+
+use TYPO3\CMS\Core\Context\Context;
+use TYPO3\CMS\Core\Context\FileProcessingAspect;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Imaging\GraphicalFunctions;
+use TYPO3\CMS\Core\Resource\Exception;
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\ProcessedFile;
 use TYPO3\CMS\Core\Utility\ArrayUtility;
@@ -125,7 +129,8 @@ class GifBuilder extends GraphicalFunctions
             // line as TEXT obj, see extension julle_gifbconf
             foreach ($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['tslib/class.tslib_gifbuilder.php']['gifbuilder-ConfPreProcess'] ?? [] as $_funcRef) {
                 $_params = $this->setup;
-                $this->setup = GeneralUtility::callUserFunction($_funcRef, $_params, $this);
+                $ref = $this; // introduced for phpstan to not lose type information when passing $this into callUserFunction
+                $this->setup = GeneralUtility::callUserFunction($_funcRef, $_params, $ref);
             }
             // Initializing global Char Range Map
             $this->charRangeMap = [];
@@ -381,7 +386,11 @@ class GifBuilder extends GraphicalFunctions
         // Reset internal properties
         $this->saveAlphaLayer = false;
         // Gif-start
-        $this->im = imagecreatetruecolor($XY[0], $XY[1]);
+        $im = imagecreatetruecolor($XY[0], $XY[1]);
+        if ($im === false) {
+            throw new \RuntimeException('imagecreatetruecolor returned false', 1598350445);
+        }
+        $this->im = $im;
         $this->w = $XY[0];
         $this->h = $XY[1];
         // Transparent layer as background if set and requirements are met
@@ -526,7 +535,7 @@ class GifBuilder extends GraphicalFunctions
                 // Multiple transparent colors are set. This is done via the trick that all transparent colors get
                 // converted to one color and then this one gets set as transparent as png/gif can just have one
                 // transparent color.
-                $Tcolor = $this->unifyColors($this->im, $this->setup['transparentColor_array'], (int)$this->setup['transparentColor.']['closest']);
+                $Tcolor = $this->unifyColors($this->im, $this->setup['transparentColor_array'], (bool)$this->setup['transparentColor.']['closest']);
                 if ($Tcolor >= 0) {
                     imagecolortransparent($this->im, $Tcolor);
                 }
@@ -673,13 +682,20 @@ class GifBuilder extends GraphicalFunctions
      */
     public function getResource($file, $fileArray)
     {
-        if (!in_array($fileArray['ext'], $this->imageFileExt, true)) {
-            $fileArray['ext'] = $this->gifExtension;
+        $context = GeneralUtility::makeInstance(Context::class);
+        $deferProcessing = !$context->hasAspect('fileProcessing') || $context->getPropertyFromAspect('fileProcessing', 'deferProcessing');
+        $context->setAspect('fileProcessing', new FileProcessingAspect(false));
+        try {
+            if (!in_array($fileArray['ext'], $this->imageFileExt, true)) {
+                $fileArray['ext'] = $this->gifExtension;
+            }
+            /** @var ContentObjectRenderer $cObj */
+            $cObj = GeneralUtility::makeInstance(ContentObjectRenderer::class);
+            $cObj->start($this->data);
+            return $cObj->getImgResource($file, $fileArray);
+        } finally {
+            $context->setAspect('fileProcessing', new FileProcessingAspect($deferProcessing));
         }
-        /** @var ContentObjectRenderer $cObj */
-        $cObj = GeneralUtility::makeInstance(ContentObjectRenderer::class);
-        $cObj->start($this->data);
-        return $cObj->getImgResource($file, $fileArray);
     }
 
     /**
@@ -694,7 +710,7 @@ class GifBuilder extends GraphicalFunctions
     {
         try {
             return GeneralUtility::makeInstance(FilePathSanitizer::class)->sanitize($file);
-        } catch (\TYPO3\CMS\Core\Resource\Exception $e) {
+        } catch (Exception $e) {
             return null;
         }
     }
@@ -732,7 +748,7 @@ class GifBuilder extends GraphicalFunctions
             $this->combinedFileNames,
             $this->data
         ];
-        return 'typo3temp/' . $pre . $filePrefix . '_' . GeneralUtility::shortMD5(json_encode($hashInputForFileName)) . '.' . $this->extension();
+        return 'typo3temp/' . $pre . $filePrefix . '_' . GeneralUtility::shortMD5((string)json_encode($hashInputForFileName)) . '.' . $this->extension();
     }
 
     /**
@@ -816,7 +832,7 @@ class GifBuilder extends GraphicalFunctions
     {
         if (preg_match_all('#max\\(([^)]+)\\)#', $string, $matches)) {
             foreach ($matches[1] as $index => $maxExpression) {
-                $string = str_replace($matches[0][$index], $this->calculateMaximum($maxExpression), $string);
+                $string = str_replace($matches[0][$index], (string)$this->calculateMaximum($maxExpression), $string);
             }
         }
         return $string;

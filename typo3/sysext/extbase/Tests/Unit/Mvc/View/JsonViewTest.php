@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Extbase\Tests\Unit\Mvc\View;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,10 +15,14 @@ namespace TYPO3\CMS\Extbase\Tests\Unit\Mvc\View;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Tests\Unit\Mvc\View;
+
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\CMS\Extbase\Mvc\Controller\ControllerContext;
 use TYPO3\CMS\Extbase\Mvc\View\JsonView;
 use TYPO3\CMS\Extbase\Mvc\Web\Response;
 use TYPO3\CMS\Extbase\Persistence\Generic\PersistenceManager;
+use TYPO3\CMS\Extbase\Reflection\ReflectionService;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -256,7 +259,7 @@ class JsonViewTest extends UnitTestCase
      */
     public function exposeClassNameSettingsAndResults(): array
     {
-        $className = $this->getUniqueId('DummyClass');
+        $className = StringUtility::getUniqueId('DummyClass');
         $namespace = 'TYPO3\CMS\Extbase\Tests\Unit\Mvc\View\\' . $className;
         return [
             [
@@ -308,14 +311,14 @@ class JsonViewTest extends UnitTestCase
                 ],
             ],
         ];
-        $reflectionService = $this->getMockBuilder(\TYPO3\CMS\Extbase\Reflection\ReflectionService::class)
+        $reflectionService = $this->getMockBuilder(ReflectionService::class)
             ->setMethods([ 'getClassNameByObject' ])
             ->getMock();
         $reflectionService->expects(self::any())->method('getClassNameByObject')->willReturnCallback(function ($object) {
             return get_class($object);
         });
 
-        $jsonView = $this->getAccessibleMock(\TYPO3\CMS\Extbase\Mvc\View\JsonView::class, ['dummy'], [], '', false);
+        $jsonView = $this->getAccessibleMock(JsonView::class, ['dummy'], [], '', false);
         $jsonView->injectReflectionService($reflectionService);
         $actual = $jsonView->_call('transformValue', $object, $configuration);
         self::assertSame($expected, $actual);

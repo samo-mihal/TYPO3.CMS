@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Workspaces\Preview;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,19 +15,22 @@ namespace TYPO3\CMS\Workspaces\Preview;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Workspaces\Preview;
+
 use Psr\Http\Message\UriInterface;
 use TYPO3\CMS\Backend\Configuration\TranslationConfigurationProvider;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\ConnectionPool;
-use TYPO3\CMS\Core\Database\Query\Restriction\BackendWorkspaceRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
+use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Routing\InvalidRouteArgumentsException;
 use TYPO3\CMS\Core\Routing\UnableToLinkToPageException;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\CMS\Core\Versioning\VersionState;
 use TYPO3\CMS\Workspaces\Service\WorkspaceService;
 
@@ -48,9 +51,15 @@ class PreviewUriBuilder
      */
     protected $workspaceService;
 
+    /**
+     * @var int
+     */
+    protected $previewLinkLifetime;
+
     public function __construct()
     {
         $this->workspaceService = GeneralUtility::makeInstance(WorkspaceService::class);
+        $this->previewLinkLifetime = $this->workspaceService->getPreviewLinkLifetime();
     }
 
     /**
@@ -63,7 +72,7 @@ class PreviewUriBuilder
     public function buildUriForPage(int $uid, int $languageId = 0): string
     {
         $previewKeyword = $this->compilePreviewKeyword(
-            $this->getPreviewLinkLifetime() * 3600,
+            $this->previewLinkLifetime * 3600,
             $this->workspaceService->getCurrentWorkspace()
         );
 
@@ -132,8 +141,9 @@ class PreviewUriBuilder
      */
     public function buildUriForElement(string $table, int $uid, array $liveRecord = null, array $versionRecord = null): string
     {
+        $movePlaceholder = [];
         if ($table === 'pages') {
-            return BackendUtility::viewOnClick(BackendUtility::getLiveVersionIdOfRecord('pages', $uid));
+            return BackendUtility::viewOnClick((int)BackendUtility::getLiveVersionIdOfRecord('pages', $uid));
         }
 
         if ($liveRecord === null) {
@@ -171,7 +181,7 @@ class PreviewUriBuilder
                 $previewConfiguration = $pageTsConfig['options.']['workspaces.']['previewPageId'];
             }
             // Extract possible settings (e.g. "field:pid")
-            list($previewKey, $previewValue) = explode(':', $previewConfiguration, 2);
+            [$previewKey, $previewValue] = explode(':', $previewConfiguration, 2);
             if ($previewKey === 'field') {
                 $previewPageId = (int)$liveRecord[$previewValue];
             } else {
@@ -204,7 +214,7 @@ class PreviewUriBuilder
      */
     protected function compilePreviewKeyword(int $ttl = 172800, int $workspaceId = null): string
     {
-        $keyword = md5(uniqid(microtime(), true));
+        $keyword = md5(StringUtility::getUniqueId());
         GeneralUtility::makeInstance(ConnectionPool::class)
             ->getConnectionForTable('sys_preview')
             ->insert(
@@ -220,19 +230,6 @@ class PreviewUriBuilder
             );
 
         return $keyword;
-    }
-
-    /**
-     * easy function to just return the number of hours
-     * a preview link is valid, based on the TSconfig value "options.workspaces.previewLinkTTLHours"
-     * by default, it's 48hs
-     *
-     * @return int The hours as a number
-     */
-    protected function getPreviewLinkLifetime(): int
-    {
-        $ttlHours = (int)($this->getBackendUser()->getTSConfig()['options.']['workspaces.']['previewLinkTTLHours'] ?? 0);
-        return $ttlHours ?: 24 * 2;
     }
 
     /**
@@ -278,7 +275,7 @@ class PreviewUriBuilder
         $queryBuilder->getRestrictions()
             ->removeAll()
             ->add(GeneralUtility::makeInstance(DeletedRestriction::class))
-            ->add(GeneralUtility::makeInstance(BackendWorkspaceRestriction::class));
+            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, (int)$this->getBackendUser()->workspace));
 
         $result = $queryBuilder->select('sys_language_uid')
             ->from('pages')

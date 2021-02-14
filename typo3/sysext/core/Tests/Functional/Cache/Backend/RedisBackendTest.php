@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Functional\Cache\Backend;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,13 @@ namespace TYPO3\CMS\Core\Tests\Functional\Cache\Backend;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Functional\Cache\Backend;
+
 use Psr\Log\LoggerInterface;
 use TYPO3\CMS\Core\Cache\Backend\RedisBackend;
 use TYPO3\CMS\Core\Cache\Exception\InvalidDataException;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
 /**
@@ -183,7 +185,7 @@ class RedisBackendTest extends FunctionalTestCase
         $this->expectExceptionCode(1279469941);
 
         $subject = $this->setUpSubject();
-        $subject->set($this->getUniqueId('identifier'), []);
+        $subject->set(StringUtility::getUniqueId('identifier'), []);
     }
 
     /**
@@ -195,7 +197,7 @@ class RedisBackendTest extends FunctionalTestCase
         $this->expectExceptionCode(1279487573);
 
         $subject = $this->setUpSubject();
-        $subject->set($this->getUniqueId('identifier'), 'data', [], -42);
+        $subject->set(StringUtility::getUniqueId('identifier'), 'data', [], -42);
     }
 
     /**
@@ -207,7 +209,7 @@ class RedisBackendTest extends FunctionalTestCase
         $this->expectExceptionCode(1279488008);
 
         $subject = $this->setUpSubject();
-        $subject->set($this->getUniqueId('identifier'), 'data', [], []);
+        $subject->set(StringUtility::getUniqueId('identifier'), 'data', [], []);
     }
 
     /**
@@ -218,7 +220,7 @@ class RedisBackendTest extends FunctionalTestCase
         $redis = $this->setUpRedis();
         $redis->select(1);
         $subject = $this->setUpSubject(['database' => 1]);
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $subject->set($identifier, 'data');
         $result = $redis->exists('identData:' . $identifier);
         if (is_int($result)) {
@@ -235,7 +237,7 @@ class RedisBackendTest extends FunctionalTestCase
     {
         $subject = $this->setUpSubject();
         $redis = $this->setUpRedis();
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $subject->set($identifier, 'data');
         self::assertSame(\Redis::REDIS_STRING, $redis->type('identData:' . $identifier));
     }
@@ -247,7 +249,7 @@ class RedisBackendTest extends FunctionalTestCase
     {
         $subject = $this->setUpSubject();
         $redis = $this->setUpRedis();
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $defaultLifetime = 42;
         $subject->setDefaultLifetime($defaultLifetime);
         $subject->set($identifier, 'data');
@@ -262,7 +264,7 @@ class RedisBackendTest extends FunctionalTestCase
     {
         $subject = $this->setUpSubject();
         $redis = $this->setUpRedis();
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $lifetime = 43;
         $subject->set($identifier, 'data', [], $lifetime);
         $lifetimeRegisteredInBackend = $redis->ttl('identData:' . $identifier);
@@ -276,7 +278,7 @@ class RedisBackendTest extends FunctionalTestCase
     {
         $subject = $this->setUpSubject();
         $redis = $this->setUpRedis();
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $subject->set($identifier, 'data', [], 0);
         $lifetimeRegisteredInBackend = $redis->ttl('identData:' . $identifier);
         self::assertSame(31536000, $lifetimeRegisteredInBackend);
@@ -289,7 +291,7 @@ class RedisBackendTest extends FunctionalTestCase
     {
         $subject = $this->setUpSubject();
         $data = 'data 1';
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $subject->set($identifier, $data);
         $otherData = 'data 2';
         $subject->set($identifier, $otherData);
@@ -305,7 +307,7 @@ class RedisBackendTest extends FunctionalTestCase
         $subject = $this->setUpSubject();
         $redis = $this->setUpRedis();
         $data = 'data';
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $subject->set($identifier, $data);
         $lifetime = 42;
         $subject->set($identifier, $data, [], $lifetime);
@@ -321,7 +323,7 @@ class RedisBackendTest extends FunctionalTestCase
         $subject = $this->setUpSubject();
         $redis = $this->setUpRedis();
         $data = 'data';
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $lifetime = 42;
         $subject->set($identifier, $data, [], $lifetime);
         $newDefaultLifetime = 43;
@@ -339,7 +341,7 @@ class RedisBackendTest extends FunctionalTestCase
         $subject = $this->setUpSubject();
         $redis = $this->setUpRedis();
         $data = 'data';
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $lifetime = 42;
         $subject->set($identifier, $data, [], $lifetime);
         $subject->set($identifier, $data, [], 0);
@@ -354,7 +356,7 @@ class RedisBackendTest extends FunctionalTestCase
     {
         $subject = $this->setUpSubject();
         $redis = $this->setUpRedis();
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $subject->set($identifier, 'data', ['tag']);
         self::assertSame(\Redis::REDIS_SET, $redis->type('identTags:' . $identifier));
     }
@@ -366,7 +368,7 @@ class RedisBackendTest extends FunctionalTestCase
     {
         $subject = $this->setUpSubject();
         $redis = $this->setUpRedis();
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $tags = ['thatTag', 'thisTag'];
         $subject->set($identifier, 'data', $tags);
         $savedTags = $redis->sMembers('identTags:' . $identifier);
@@ -381,7 +383,7 @@ class RedisBackendTest extends FunctionalTestCase
     {
         $subject = $this->setUpSubject();
         $redis = $this->setUpRedis();
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $tags = ['fooTag', 'barTag'];
         $subject->set($identifier, 'data', $tags);
         $subject->set($identifier, 'data', []);
@@ -395,7 +397,7 @@ class RedisBackendTest extends FunctionalTestCase
     {
         $subject = $this->setUpSubject();
         $redis = $this->setUpRedis();
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $firstTagSet = ['tag1', 'tag2', 'tag3', 'tag4'];
         $subject->set($identifier, 'data', $firstTagSet);
         $secondTagSet = ['tag1', 'tag3'];
@@ -412,7 +414,7 @@ class RedisBackendTest extends FunctionalTestCase
     {
         $subject = $this->setUpSubject();
         $redis = $this->setUpRedis();
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $tag = 'tag';
         $subject->set($identifier, 'data', [$tag]);
         self::assertSame(\Redis::REDIS_SET, $redis->type('tagIdents:' . $tag));
@@ -425,7 +427,7 @@ class RedisBackendTest extends FunctionalTestCase
     {
         $subject = $this->setUpSubject();
         $redis = $this->setUpRedis();
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $tag = 'thisTag';
         $subject->set($identifier, 'data', [$tag]);
         $savedTagToIdentifiersMemberArray = $redis->sMembers('tagIdents:' . $tag);
@@ -439,10 +441,10 @@ class RedisBackendTest extends FunctionalTestCase
     {
         $subject = $this->setUpSubject();
         $redis = $this->setUpRedis();
-        $firstIdentifier = $this->getUniqueId('identifier1-');
+        $firstIdentifier = StringUtility::getUniqueId('identifier1-');
         $tag = 'thisTag';
         $subject->set($firstIdentifier, 'data', [$tag]);
-        $secondIdentifier = $this->getUniqueId('identifier2-');
+        $secondIdentifier = StringUtility::getUniqueId('identifier2-');
         $subject->set($secondIdentifier, 'data', [$tag]);
         $savedTagToIdentifiersMemberArray = $redis->sMembers('tagIdents:' . $tag);
         sort($savedTagToIdentifiersMemberArray);
@@ -458,7 +460,7 @@ class RedisBackendTest extends FunctionalTestCase
     {
         $subject = $this->setUpSubject();
         $redis = $this->setUpRedis();
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $tag = 'thisTag';
         $subject->set($identifier, 'data', [$tag]);
         $subject->set($identifier, 'data', []);
@@ -473,7 +475,7 @@ class RedisBackendTest extends FunctionalTestCase
     {
         $subject = $this->setUpSubject();
         $redis = $this->setUpRedis();
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $subject->set($identifier, 'data');
         $tag = 'thisTag';
         $subject->set($identifier, 'data', [$tag]);
@@ -490,15 +492,15 @@ class RedisBackendTest extends FunctionalTestCase
             'compression' => true
         ]);
         $redis = $this->setUpRedis();
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $data = 'some data ' . microtime();
         $subject->set($identifier, $data);
-        $uncompresedStoredData = '';
+        $uncompressedStoredData = '';
         try {
-            $uncompresedStoredData = @gzuncompress($redis->get('identData:' . $identifier));
+            $uncompressedStoredData = @gzuncompress($redis->get('identData:' . $identifier));
         } catch (\Exception $e) {
         }
-        self::assertEquals($data, $uncompresedStoredData, 'Original and compressed data don\'t match');
+        self::assertEquals($data, $uncompressedStoredData, 'Original and compressed data don\'t match');
     }
 
     /**
@@ -511,7 +513,7 @@ class RedisBackendTest extends FunctionalTestCase
             'compressionLevel' => 0
         ]);
         $redis = $this->setUpRedis();
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $data = 'some data ' . microtime();
         $subject->set($identifier, $data);
         self::assertGreaterThan(0, substr_count($redis->get('identData:' . $identifier), $data), 'Plaintext data not found');
@@ -535,7 +537,7 @@ class RedisBackendTest extends FunctionalTestCase
     public function hasReturnsFalseForNotExistingEntry()
     {
         $subject = $this->setUpSubject();
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         self::assertFalse($subject->has($identifier));
     }
 
@@ -545,7 +547,7 @@ class RedisBackendTest extends FunctionalTestCase
     public function hasReturnsTrueForPreviouslySetEntry()
     {
         $subject = $this->setUpSubject();
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $subject->set($identifier, 'data');
         self::assertTrue($subject->has($identifier));
     }
@@ -556,7 +558,7 @@ class RedisBackendTest extends FunctionalTestCase
     public function getThrowsExceptionIfIdentifierIsNotAString()
     {
         $this->expectException(\InvalidArgumentException::class);
-        //@todo Add exception code with redis extension
+        // @todo Add exception code with redis extension
 
         $subject = $this->setUpSubject();
         $subject->get([]);
@@ -571,7 +573,7 @@ class RedisBackendTest extends FunctionalTestCase
             'compression' => true
         ]);
         $data = 'data';
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $subject->set($identifier, $data);
         $fetchedData = $subject->get($identifier);
         self::assertSame($data, $fetchedData);
@@ -584,7 +586,7 @@ class RedisBackendTest extends FunctionalTestCase
     {
         $subject = $this->setUpSubject();
         $data = 'data';
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $subject->set($identifier, $data);
         $fetchedData = $subject->get($identifier);
         self::assertSame($data, $fetchedData);
@@ -608,7 +610,7 @@ class RedisBackendTest extends FunctionalTestCase
     public function removeReturnsFalseIfNoEntryWasDeleted()
     {
         $subject = $this->setUpSubject();
-        self::assertFalse($subject->remove($this->getUniqueId('identifier')));
+        self::assertFalse($subject->remove(StringUtility::getUniqueId('identifier')));
     }
 
     /**
@@ -617,7 +619,7 @@ class RedisBackendTest extends FunctionalTestCase
     public function removeReturnsTrueIfAnEntryWasDeleted()
     {
         $subject = $this->setUpSubject();
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $subject->set($identifier, 'data');
         self::assertTrue($subject->remove($identifier));
     }
@@ -628,7 +630,7 @@ class RedisBackendTest extends FunctionalTestCase
     public function removeDeletesEntryFromCache()
     {
         $subject = $this->setUpSubject();
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $subject->set($identifier, 'data');
         $subject->remove($identifier);
         self::assertFalse($subject->has($identifier));
@@ -641,7 +643,7 @@ class RedisBackendTest extends FunctionalTestCase
     {
         $subject = $this->setUpSubject();
         $redis = $this->setUpRedis();
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $tag = 'thisTag';
         $subject->set($identifier, 'data', [$tag]);
         $subject->remove($identifier);
@@ -660,7 +662,7 @@ class RedisBackendTest extends FunctionalTestCase
     {
         $subject = $this->setUpSubject();
         $redis = $this->setUpRedis();
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $tag = 'thisTag';
         $subject->set($identifier, 'data', [$tag]);
         $subject->remove($identifier);
@@ -675,8 +677,8 @@ class RedisBackendTest extends FunctionalTestCase
     {
         $subject = $this->setUpSubject();
         $redis = $this->setUpRedis();
-        $firstIdentifier = $this->getUniqueId('identifier');
-        $secondIdentifier = $this->getUniqueId('identifier');
+        $firstIdentifier = StringUtility::getUniqueId('identifier');
+        $secondIdentifier = StringUtility::getUniqueId('identifier');
         $tag = 'thisTag';
         $subject->set($firstIdentifier, 'data', [$tag]);
         $subject->set($secondIdentifier, 'data', [$tag]);
@@ -712,9 +714,9 @@ class RedisBackendTest extends FunctionalTestCase
     public function findIdentifiersByTagReturnsAllIdentifiersTagedWithSpecifiedTag()
     {
         $subject = $this->setUpSubject();
-        $firstIdentifier = $this->getUniqueId('identifier1-');
-        $secondIdentifier = $this->getUniqueId('identifier2-');
-        $thirdIdentifier = $this->getUniqueId('identifier3-');
+        $firstIdentifier = StringUtility::getUniqueId('identifier1-');
+        $secondIdentifier = StringUtility::getUniqueId('identifier2-');
+        $thirdIdentifier = StringUtility::getUniqueId('identifier3-');
         $tagsForFirstIdentifier = ['thisTag'];
         $tagsForSecondIdentifier = ['thatTag'];
         $tagsForThirdIdentifier = ['thisTag', 'thatTag'];
@@ -734,7 +736,7 @@ class RedisBackendTest extends FunctionalTestCase
     {
         $subject = $this->setUpSubject();
         $redis = $this->setUpRedis();
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $subject->set($identifier, 'data');
         $subject->flush();
         self::assertSame([], $redis->getKeys('*'));
@@ -758,7 +760,7 @@ class RedisBackendTest extends FunctionalTestCase
     public function flushByTagRemovesEntriesTaggedWithSpecifiedTag()
     {
         $subject = $this->setUpSubject();
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $subject->set($identifier . 'A', 'data', ['tag1']);
         $subject->set($identifier . 'B', 'data', ['tag2']);
         $subject->set($identifier . 'C', 'data', ['tag1', 'tag2']);
@@ -778,7 +780,7 @@ class RedisBackendTest extends FunctionalTestCase
     public function flushByTagsRemovesEntriesTaggedWithSpecifiedTags()
     {
         $subject = $this->setUpSubject();
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $subject->set($identifier . 'A', 'data', ['tag1']);
         $subject->set($identifier . 'B', 'data', ['tag2']);
         $subject->set($identifier . 'C', 'data', ['tag1', 'tag2']);
@@ -801,7 +803,7 @@ class RedisBackendTest extends FunctionalTestCase
     {
         $subject = $this->setUpSubject();
         $redis = $this->setUpRedis();
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $subject->set($identifier . 'A', 'data', ['tag1']);
         $subject->set($identifier . 'C', 'data', ['tag1', 'tag2']);
         $subject->flushByTag('tag1');
@@ -815,7 +817,7 @@ class RedisBackendTest extends FunctionalTestCase
     {
         $subject = $this->setUpSubject();
         $redis = $this->setUpRedis();
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $tag = 'tag1';
         $subject->set($identifier, 'data', [$tag]);
         $subject->flushByTag($tag);
@@ -834,10 +836,10 @@ class RedisBackendTest extends FunctionalTestCase
     {
         $subject = $this->setUpSubject();
         $redis = $this->setUpRedis();
-        $identifierToBeRemoved = $this->getUniqueId('identifier');
+        $identifierToBeRemoved = StringUtility::getUniqueId('identifier');
         $tagToRemove = 'tag1';
         $subject->set($identifierToBeRemoved, 'data', [$tagToRemove]);
-        $identifierNotToBeRemoved = $this->getUniqueId('identifier');
+        $identifierNotToBeRemoved = StringUtility::getUniqueId('identifier');
         $tagNotToRemove = 'tag2';
         $subject->set($identifierNotToBeRemoved, 'data', [$tagNotToRemove]);
         $subject->flushByTag($tagToRemove);
@@ -851,7 +853,7 @@ class RedisBackendTest extends FunctionalTestCase
     {
         $subject = $this->setUpSubject();
         $redis = $this->setUpRedis();
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $tag = 'tag1';
         $subject->set($identifier, 'data', [$tag]);
         $subject->flushByTag($tag);
@@ -870,7 +872,7 @@ class RedisBackendTest extends FunctionalTestCase
     {
         $subject = $this->setUpSubject();
         $redis = $this->setUpRedis();
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $subject->set($identifier . 'A', 'data', ['tag1', 'tag2']);
         $subject->set($identifier . 'B', 'data', ['tag1', 'tag2']);
         $subject->set($identifier . 'C', 'data', ['tag2']);
@@ -885,7 +887,7 @@ class RedisBackendTest extends FunctionalTestCase
     {
         $subject = $this->setUpSubject();
         $redis = $this->setUpRedis();
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $subject->set($identifier . 'A', 'data', ['tag']);
         $subject->set($identifier . 'B', 'data', ['tag']);
         $redis->del('identData:' . $identifier . 'A');
@@ -905,7 +907,7 @@ class RedisBackendTest extends FunctionalTestCase
     {
         $subject = $this->setUpSubject();
         $redis = $this->setUpRedis();
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $subject->set($identifier . 'A', 'data', ['tag']);
         $subject->set($identifier . 'B', 'data', ['tag']);
         $redis->del('identData:' . $identifier . 'A');
@@ -935,7 +937,7 @@ class RedisBackendTest extends FunctionalTestCase
     {
         $subject = $this->setUpSubject();
         $redis = $this->setUpRedis();
-        $identifier = $this->getUniqueId('identifier');
+        $identifier = StringUtility::getUniqueId('identifier');
         $subject->set($identifier . 'A', 'data', ['tag1', 'tag2']);
         $subject->set($identifier . 'B', 'data', ['tag2']);
         $redis->del('identData:' . $identifier . 'A');

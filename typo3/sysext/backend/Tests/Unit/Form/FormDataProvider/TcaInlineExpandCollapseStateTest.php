@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Tests\Unit\Form\FormDataProvider;
 
 use TYPO3\CMS\Backend\Form\FormDataProvider\TcaInlineExpandCollapseState;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
@@ -57,7 +58,7 @@ class TcaInlineExpandCollapseStateTest extends UnitTestCase
         ];
         $expected = $input;
         $expected['inlineExpandCollapseStateArray'] = $inlineState['aParentTable'][5];
-        self::assertSame($expected, (new TcaInlineExpandCollapseState)->addData($input));
+        self::assertSame($expected, (new TcaInlineExpandCollapseState())->addData($input));
     }
 
     /**
@@ -101,7 +102,7 @@ class TcaInlineExpandCollapseStateTest extends UnitTestCase
         ];
         $expected = $input;
         $expected['inlineExpandCollapseStateArray'] = $inlineState['aParentTable'][5];
-        self::assertSame($expected, (new TcaInlineExpandCollapseState)->addData($input));
+        self::assertSame($expected, (new TcaInlineExpandCollapseState())->addData($input));
     }
 
     /**
@@ -334,6 +335,6 @@ class TcaInlineExpandCollapseStateTest extends UnitTestCase
 
         $expected = $input;
         $expected['isInlineChildExpanded'] = $expectedIsInlineChildExpanded;
-        self::assertSame($expected, (new TcaInlineExpandCollapseState)->addData($input));
+        self::assertSame($expected, (new TcaInlineExpandCollapseState())->addData($input));
     }
 }

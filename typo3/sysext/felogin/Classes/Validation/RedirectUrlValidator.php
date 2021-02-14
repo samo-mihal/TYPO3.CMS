@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\FrontendLogin\Validation;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,9 +15,10 @@ namespace TYPO3\CMS\FrontendLogin\Validation;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\FrontendLogin\Validation;
+
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
-use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -38,18 +38,11 @@ class RedirectUrlValidator implements LoggerAwareInterface
     protected $siteFinder;
 
     /**
-     * @var int
-     */
-    protected $pageId;
-
-    /**
      * @param SiteFinder|null $siteFinder
-     * @param int $currentPageId
      */
-    public function __construct(?SiteFinder $siteFinder, int $currentPageId)
+    public function __construct(?SiteFinder $siteFinder)
     {
         $this->siteFinder = $siteFinder ?? GeneralUtility::makeInstance(SiteFinder::class);
-        $this->pageId = $currentPageId;
     }
 
     /**
@@ -81,8 +74,8 @@ class RedirectUrlValidator implements LoggerAwareInterface
      */
     protected function isInCurrentDomain(string $url): bool
     {
-        $urlWithoutSchema = preg_replace('#^https?://#', '', $url);
-        $siteUrlWithoutSchema = preg_replace('#^https?://#', '', GeneralUtility::getIndpEnv('TYPO3_SITE_URL'));
+        $urlWithoutSchema = preg_replace('#^https?://#', '', $url) ?? '';
+        $siteUrlWithoutSchema = preg_replace('#^https?://#', '', GeneralUtility::getIndpEnv('TYPO3_SITE_URL')) ?? '';
         return strpos($urlWithoutSchema . '/', GeneralUtility::getIndpEnv('HTTP_HOST') . '/') === 0
             && strpos($urlWithoutSchema, $siteUrlWithoutSchema) === 0;
     }
@@ -101,11 +94,10 @@ class RedirectUrlValidator implements LoggerAwareInterface
         $parsedUrl = parse_url($url);
         if ($parsedUrl['scheme'] === 'http' || $parsedUrl['scheme'] === 'https') {
             $host = $parsedUrl['host'];
-            try {
-                $site = $this->siteFinder->getSiteByPageId($this->pageId);
-                return $site->getBase()->getHost() === $host;
-            } catch (SiteNotFoundException $e) {
-                // nothing found
+            foreach ($this->siteFinder->getAllSites() as $site) {
+                if ($site->getBase()->getHost() === $host) {
+                    return true;
+                }
             }
         }
         return false;

@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Adminpanel\Log;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,6 +15,8 @@ namespace TYPO3\CMS\Adminpanel\Log;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Adminpanel\Log;
+
 use TYPO3\CMS\Adminpanel\Utility\MemoryUtility;
 use TYPO3\CMS\Core\Log\LogLevel;
 use TYPO3\CMS\Core\Log\LogRecord;
@@ -28,8 +29,14 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  */
 class InMemoryLogWriter extends AbstractWriter
 {
+    /**
+     * @var LogRecord[]
+     */
     public static $log = [];
 
+    /**
+     * @var bool
+     */
     private static $memoryLock = false;
 
     /**
@@ -47,7 +54,7 @@ class InMemoryLogWriter extends AbstractWriter
         }
 
         // Guard: Memory Usage
-        if (!self::$memoryLock && MemoryUtility::isMemoryConsumptionTooHigh()) {
+        if (MemoryUtility::isMemoryConsumptionTooHigh()) {
             $this->lockWriter();
             return $this;
         }

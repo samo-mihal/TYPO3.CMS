@@ -1,4 +1,5 @@
 <?php
+
 return [
     'ctrl' => [
         'title' => 'LLL:EXT:core/Resources/Private/Language/locallang_tca.xlf:sys_file_reference',
@@ -35,9 +36,6 @@ return [
         ],
         'searchFields' => 'uid_local,uid_foreign,tablenames,fieldname,title,description'
     ],
-    'interface' => [
-        'showRecordFieldList' => 'hidden,uid_local,uid_foreign,tablenames,fieldname,sorting_foreign,table_local,title,description'
-    ],
     'columns' => [
         'sys_language_uid' => [
             'label' => 'LLL:EXT:core/Resources/Private/Language/locallang_general.xlf:LGL.language',
@@ -61,13 +59,12 @@ return [
             'displayCond' => 'FIELD:sys_language_uid:>:0',
             'label' => 'LLL:EXT:core/Resources/Private/Language/locallang_general.xlf:LGL.l18n_parent',
             'config' => [
-                'type' => 'select',
-                'renderType' => 'selectSingle',
-                'items' => [
-                    ['', 0]
-                ],
-                'foreign_table' => 'sys_file_reference',
-                'foreign_table_where' => 'AND sys_file_reference.uid=###REC_FIELD_l10n_parent### AND sys_file_reference.sys_language_uid IN (-1,0)',
+                'type' => 'group',
+                'internal_type' => 'db',
+                'allowed' => 'sys_file_reference',
+                'size' => 1,
+                'maxitems' => 1,
+                'minitems' => 0,
                 'default' => 0
             ]
         ],

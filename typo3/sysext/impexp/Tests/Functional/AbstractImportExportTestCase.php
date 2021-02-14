@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Impexp\Tests\Functional;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Impexp\Tests\Functional;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Impexp\Tests\Functional;
 
 use TYPO3\CMS\Backend\Tree\View\PageTreeView;
 use TYPO3\CMS\Core\Core\Bootstrap;
@@ -91,6 +92,7 @@ abstract class AbstractImportExportTestCase extends FunctionalTestCase
             $tree->getTree($pidToStart, $depth, '');
         }
 
+        $idH = [];
         $idH[$pidToStart]['uid'] = $pidToStart;
         if (!empty($tree->buffer_idH)) {
             $idH[$pidToStart]['subrow'] = $tree->buffer_idH;
@@ -133,7 +135,7 @@ abstract class AbstractImportExportTestCase extends FunctionalTestCase
                         );
 
                     foreach (QueryHelper::parseOrderBy((string)$orderBy) as $orderPair) {
-                        list($fieldName, $order) = $orderPair;
+                        [$fieldName, $order] = $orderPair;
                         $queryBuilder->addOrderBy($fieldName, $order);
                     }
                     $queryBuilder->addOrderBy('uid', 'ASC');

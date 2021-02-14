@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Felogin\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Felogin\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Felogin\Controller;
+
 use Symfony\Component\Mime\Address;
 use TYPO3\CMS\Core\Authentication\LoginType;
 use TYPO3\CMS\Core\Context\Context;
@@ -25,6 +26,7 @@ use TYPO3\CMS\Core\Database\Query\Restriction\FrontendRestrictionContainer;
 use TYPO3\CMS\Core\Mail\MailMessage;
 use TYPO3\CMS\Core\Session\SessionManager;
 use TYPO3\CMS\Core\Site\SiteFinder;
+use TYPO3\CMS\Core\Utility\ArrayUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\HttpUtility;
 use TYPO3\CMS\Core\Utility\MailUtility;
@@ -35,6 +37,7 @@ use TYPO3\CMS\FrontendLogin\Validation\RedirectUrlValidator;
  * Plugin 'Website User Login' for the 'felogin' extension.
  *
  * @internal this is a concrete TYPO3 implementation and solely used for EXT:felogin and not part of TYPO3's Core API.
+ * @deprecated The pibase felogin plugin is deprecated since TYPO3 10.4 and will be removed in version 11.0
  */
 class FrontendLoginController extends AbstractPlugin
 {
@@ -51,16 +54,6 @@ class FrontendLoginController extends AbstractPlugin
      * @var string
      */
     public $extKey = 'felogin';
-
-    /**
-     * @var bool
-     */
-    public $pi_checkCHash = false;
-
-    /**
-     * @var bool
-     */
-    public $pi_USER_INT_obj = true;
 
     /**
      * Is user logged in?
@@ -123,13 +116,17 @@ class FrontendLoginController extends AbstractPlugin
      * @param array $conf The PlugIn configuration
      * @return string The content that is displayed on the website
      * @throws \RuntimeException when no storage PID was configured.
+     * @deprecated The pibase felogin plugin is deprecated since TYPO3 10.4 and will be removed in version 11.0
      */
     public function main($content, $conf)
     {
+        trigger_error(
+            'The pibase felogin plugin is deprecated since TYPO3 10.4 and will be removed in version 11.0',
+            E_USER_DEPRECATED
+        );
         $this->urlValidator = GeneralUtility::makeInstance(
             RedirectUrlValidator::class,
-            GeneralUtility::makeInstance(SiteFinder::class),
-            (int)$this->frontendController->id
+            GeneralUtility::makeInstance(SiteFinder::class)
         );
 
         // Loading TypoScript array into object variable:
@@ -142,7 +139,9 @@ class FrontendLoginController extends AbstractPlugin
         $this->pi_initPIflexForm();
         $this->mergeflexFormValuesIntoConf();
         // Get storage PIDs:
-        if ($this->conf['storagePid']) {
+        if ((bool)($GLOBALS['TYPO3_CONF_VARS']['FE']['checkFeUserPid'] ?? false) === false) {
+            $this->spid = 0;
+        } elseif ($this->conf['storagePid']) {
             if ((int)$this->conf['recursive']) {
                 $this->spid = $this->pi_getPidList($this->conf['storagePid'], (int)$this->conf['recursive']);
             } else {
@@ -205,18 +204,36 @@ class FrontendLoginController extends AbstractPlugin
                 ];
                 foreach ($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['felogin']['beforeRedirect'] ?? [] as $_funcRef) {
                     if ($_funcRef) {
-                        GeneralUtility::callUserFunction($_funcRef, $_params, $this);
+                        trigger_error(
+                            sprintf(
+                                'Hook "%s" got called by "%s" which is deprecated since TYPO3 10.4 and will be removed in version 11.0',
+                                '$GLOBALS[\'TYPO3_CONF_VARS\'][\'EXTCONF\'][\'felogin\'][\'beforeRedirect\']',
+                                $_funcRef
+                            ),
+                            E_USER_DEPRECATED
+                        );
+                        $ref = $this; // introduced for phpstan to not lose type information when passing $this into callUserFunction
+                        GeneralUtility::callUserFunction($_funcRef, $_params, $ref);
                     }
                 }
-                \TYPO3\CMS\Core\Utility\HttpUtility::redirect($this->redirectUrl);
+                HttpUtility::redirect($this->redirectUrl);
             }
         }
         // Adds hook for processing of extra item markers / special
-        $_params = [
-            'content' => $content
-        ];
         foreach ($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['felogin']['postProcContent'] ?? [] as $_funcRef) {
-            $content = GeneralUtility::callUserFunction($_funcRef, $_params, $this);
+            trigger_error(
+                sprintf(
+                    'Hook "%s" got called by "%s" which is deprecated since TYPO3 10.4 and will be removed in version 11.0',
+                    '$GLOBALS[\'TYPO3_CONF_VARS\'][\'EXTCONF\'][\'felogin\'][\'postProcContent\']',
+                    $_funcRef
+                ),
+                E_USER_DEPRECATED
+            );
+            $_params = [
+                'content' => $content
+            ];
+            $ref = $this; // introduced for phpstan to not lose type information when passing $this into callUserFunction
+            $content = GeneralUtility::callUserFunction($_funcRef, $_params, $ref);
         }
         return $this->conf['wrapContentInBaseClass'] ? $this->pi_wrapInBaseClass($content) : $content;
     }
@@ -228,6 +245,7 @@ class FrontendLoginController extends AbstractPlugin
      */
     protected function showForgot()
     {
+        $markerArray = [];
         $subpart = $this->templateService->getSubpart($this->template, '###TEMPLATE_FORGOT###');
         $subpartArray = ($linkpartArray = []);
         $postData = GeneralUtility::_POST($this->prefixId);
@@ -316,6 +334,7 @@ class FrontendLoginController extends AbstractPlugin
      */
     protected function changePassword()
     {
+        $markerArray = [];
         $subpartArray = ($linkpartArray = []);
         $done = false;
         $minLength = (int)$this->conf['newPasswordMinLength'] ?: 6;
@@ -340,13 +359,15 @@ class FrontendLoginController extends AbstractPlugin
             $user = $this->pi_getRecord('fe_users', (int)$uid);
             $userHash = $user['felogin_forgotHash'];
             $compareHash = explode('|', $userHash);
-            if (strlen($compareHash[1]) === 40) {
+            if (!$compareHash || !$compareHash[1] || $compareHash[0] < time() || !hash_equals($compareHash[0], $hash[0])) {
+                $hashEquals = false;
+            } elseif (strlen($compareHash[1]) === 40) {
                 $hashEquals = hash_equals($compareHash[1], GeneralUtility::hmac((string)$hash[1]));
             } else {
                 // backward-compatibility for previous MD5 hashes
                 $hashEquals = hash_equals($compareHash[1], md5($hash[1]));
             }
-            if (!$compareHash || !$compareHash[1] || $compareHash[0] < time() || !hash_equals($compareHash[0], $hash[0]) || !$hashEquals) {
+            if (!$hashEquals) {
                 $markerArray['###STATUS_MESSAGE###'] = $this->getDisplayText(
                     'change_password_notvalid_message',
                     $this->conf['changePasswordNotValidMessage_stdWrap.']
@@ -388,6 +409,14 @@ class FrontendLoginController extends AbstractPlugin
                                 'passwordInvalidMessage' => '',
                             ];
                             foreach ($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['felogin']['password_changed'] as $_funcRef) {
+                                trigger_error(
+                                    sprintf(
+                                        'Hook "%s" got called by "%s" which is deprecated since TYPO3 10.4 and will be removed in version 11.0',
+                                        '$GLOBALS[\'TYPO3_CONF_VARS\'][\'EXTCONF\'][\'felogin\'][\'password_changed\']',
+                                        $_funcRef
+                                    ),
+                                    E_USER_DEPRECATED
+                                );
                                 if ($_funcRef) {
                                     GeneralUtility::callUserFunction($_funcRef, $_params, $this);
                                 }
@@ -486,7 +515,7 @@ class FrontendLoginController extends AbstractPlugin
         $isAbsRefPrefix = !empty($this->frontendController->absRefPrefix);
         $isBaseURL = !empty($this->frontendController->baseUrl);
         $isFeloginBaseURL = !empty($this->conf['feloginBaseURL']);
-        $link = $this->pi_getPageLink($this->frontendController->id, '', [
+        $link = $this->pi_getPageLink((int)$this->frontendController->id, '', [
             $this->prefixId . '[user]' => $user['uid'],
             $this->prefixId . '[forgothash]' => $randHash
         ]);
@@ -517,6 +546,14 @@ class FrontendLoginController extends AbstractPlugin
             'user' => &$user
         ];
         foreach ($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['felogin']['forgotPasswordMail'] ?? [] as $reference) {
+            trigger_error(
+                sprintf(
+                    'Hook "%s" got called by "%s" which is deprecated since TYPO3 10.4 and will be removed in version 11.0',
+                    '$GLOBALS[\'TYPO3_CONF_VARS\'][\'EXTCONF\'][\'felogin\'][\'forgotPasswordMail\']',
+                    $reference
+                ),
+                E_USER_DEPRECATED
+            );
             if ($reference) {
                 GeneralUtility::callUserFunction($reference, $params, $this);
             }
@@ -535,6 +572,7 @@ class FrontendLoginController extends AbstractPlugin
      */
     protected function showLogout()
     {
+        $markerArray = [];
         $subpart = $this->templateService->getSubpart($this->template, '###TEMPLATE_LOGOUT###');
         $subpartArray = ($linkpartArray = []);
         $markerArray['###STATUS_HEADER###'] = $this->getDisplayText('status_header', $this->conf['logoutHeader_stdWrap.']);
@@ -579,6 +617,14 @@ class FrontendLoginController extends AbstractPlugin
                 // Hook for general actions after after login has been confirmed (by Thomas Danzl <thomas@danzl.org>)
                 foreach ($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['felogin']['login_confirmed'] ?? [] as $_funcRef) {
                     $_params = [];
+                    trigger_error(
+                        sprintf(
+                            'Hook "%s" got called by "%s" which is deprecated since TYPO3 10.4 and will be removed in version 11.0',
+                            '$GLOBALS[\'TYPO3_CONF_VARS\'][\'EXTCONF\'][\'felogin\'][\'login_confirmed\']',
+                            $_funcRef
+                        ),
+                        E_USER_DEPRECATED
+                    );
                     if ($_funcRef) {
                         GeneralUtility::callUserFunction($_funcRef, $_params, $this);
                     }
@@ -592,6 +638,14 @@ class FrontendLoginController extends AbstractPlugin
                 // Hook for general actions on login error
                 $params = [];
                 foreach ($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['felogin']['login_error'] ?? [] as $funcRef) {
+                    trigger_error(
+                        sprintf(
+                            'Hook "%s" got called by "%s" which is deprecated since TYPO3 10.4 and will be removed in version 11.0',
+                            '$GLOBALS[\'TYPO3_CONF_VARS\'][\'EXTCONF\'][\'felogin\'][\'login_error\']',
+                            $funcRef
+                        ),
+                        E_USER_DEPRECATED
+                    );
                     if ($funcRef) {
                         GeneralUtility::callUserFunction($funcRef, $params, $this);
                     }
@@ -631,7 +685,15 @@ class FrontendLoginController extends AbstractPlugin
         }
         $_params = [];
         foreach ($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['felogin']['loginFormOnSubmitFuncs'] ?? [] as $funcRef) {
-            list($onSub, $hid) = GeneralUtility::callUserFunction($funcRef, $_params, $this);
+            trigger_error(
+                sprintf(
+                    'Hook "%s" got called by "%s" which is deprecated since TYPO3 10.4 and will be removed in version 11.0',
+                    '$GLOBALS[\'TYPO3_CONF_VARS\'][\'EXTCONF\'][\'felogin\'][\'loginFormOnSubmitFuncs\']',
+                    $funcRef
+                ),
+                E_USER_DEPRECATED
+            );
+            [$onSub, $hid] = GeneralUtility::callUserFunction($funcRef, $_params, $this);
             $onSubmitAr[] = $onSub;
             $extraHiddenAr[] = $hid;
         }
@@ -833,9 +895,18 @@ class FrontendLoginController extends AbstractPlugin
                     // after logout
                     // Hook for general actions after after logout has been confirmed
                     foreach ($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['felogin']['logout_confirmed'] ?? [] as $_funcRef) {
+                        trigger_error(
+                            sprintf(
+                                'Hook "%s" got called by "%s" which is deprecated since TYPO3 10.4 and will be removed in version 11.0',
+                                '$GLOBALS[\'TYPO3_CONF_VARS\'][\'EXTCONF\'][\'felogin\'][\'logout_confirmed\']',
+                                $_funcRef
+                            ),
+                            E_USER_DEPRECATED
+                        );
                         $_params = [];
                         if ($_funcRef) {
-                            GeneralUtility::callUserFunction($_funcRef, $_params, $this);
+                            $ref = $this; // introduced for phpstan to not lose type information when passing $this into callUserFunction
+                            GeneralUtility::callUserFunction($_funcRef, $_params, $ref);
                         }
                     }
                     switch ($redirMethod) {
@@ -859,7 +930,9 @@ class FrontendLoginController extends AbstractPlugin
         }
         // Remove empty values, but keep "0" as value (that's why "strlen" is used as second parameter)
         if (!empty($redirect_url)) {
-            return array_filter($redirect_url, 'strlen');
+            return array_filter($redirect_url, static function (string $value) {
+                return $value !== '';
+            });
         }
         return [];
     }
@@ -903,7 +976,7 @@ class FrontendLoginController extends AbstractPlugin
         if ($this->flexFormValue('redirectPageLogout', 's_redirect')) {
             $flex['redirectPageLogout'] = $this->flexFormValue('redirectPageLogout', 's_redirect');
         }
-        $pid = $flex['pages'] ? $this->pi_getPidList($flex['pages'], $flex['recursive']) : 0;
+        $pid = $flex['pages'] ? $this->pi_getPidList($flex['pages'], (int)$flex['recursive']) : 0;
         if ($pid > 0) {
             $flex['storagePid'] = $pid;
         }
@@ -972,7 +1045,7 @@ class FrontendLoginController extends AbstractPlugin
             $preserveQueryStringProperties = GeneralUtility::trimExplode(',', $this->conf['preserveGETvars']);
             $preserveQueryParts = [];
             parse_str(implode('=1&', $preserveQueryStringProperties) . '=1', $preserveQueryParts);
-            $preserveQueryParts = \TYPO3\CMS\Core\Utility\ArrayUtility::intersectRecursive($getVars, $preserveQueryParts);
+            $preserveQueryParts = ArrayUtility::intersectRecursive($getVars, $preserveQueryParts);
         }
         return $preserveQueryParts;
     }
@@ -986,7 +1059,7 @@ class FrontendLoginController extends AbstractPlugin
     {
         $pass = '';
         while ($len--) {
-            $char = rand(0, 35);
+            $char = random_int(0, 35);
             if ($char < 10) {
                 $pass .= '' . $char;
             } else {
@@ -1069,7 +1142,7 @@ class FrontendLoginController extends AbstractPlugin
         }
         $parsedReplyTo = MailUtility::parseAddresses($replyTo);
         if (!empty($parsedReplyTo)) {
-            $mail->replyTo($parsedReplyTo);
+            $mail->replyTo(...$parsedReplyTo);
         }
         // First line is subject
         $messageParts = explode(LF, trim($message), 2);

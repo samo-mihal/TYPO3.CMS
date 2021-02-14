@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Functional\DataHandling\FAL;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,14 @@ namespace TYPO3\CMS\Core\Tests\Functional\DataHandling\FAL;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Functional\DataHandling\FAL;
+
+use TYPO3\CMS\Core\Tests\Functional\DataHandling\AbstractDataHandlerActionTestCase;
+
 /**
  * Functional test for the DataHandler
  */
-abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\DataHandling\AbstractDataHandlerActionTestCase
+abstract class AbstractActionTestCase extends AbstractDataHandlerActionTestCase
 {
     const VALUE_PageId = 89;
     const VALUE_PageIdTarget = 90;
@@ -63,24 +66,18 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
      */
 
     /**
-     * See Modify/DataSet/modifyContent.csv
+     * Modify a content element
      */
     public function modifyContent()
     {
         $this->actionService->modifyRecord(self::TABLE_Content, self::VALUE_ContentIdLast, ['header' => 'Testing #1']);
     }
 
-    /**
-     * See Modify/DataSet/deleteContent.csv
-     */
     public function deleteContent()
     {
         $this->actionService->deleteRecord(self::TABLE_Content, self::VALUE_ContentIdLast);
     }
 
-    /**
-     * See Modify/DataSet/copyContent.csv
-     */
     public function copyContent()
     {
         $newTableIds = $this->actionService->copyRecord(self::TABLE_Content, self::VALUE_ContentIdLast, self::VALUE_PageId);
@@ -96,47 +93,28 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         $this->recordIds['localizedContentId'] = $newTableIds[self::TABLE_Content][self::VALUE_ContentIdLast];
     }
 
-    /**
-     * See Modify/DataSet/localizeContent.csv
-     */
     public function localizeContent()
     {
         $newTableIds = $this->actionService->localizeRecord(self::TABLE_Content, self::VALUE_ContentIdLast, self::VALUE_LanguageId);
         $this->recordIds['localizedContentId'] = $newTableIds[self::TABLE_Content][self::VALUE_ContentIdLast];
     }
 
-    /**
-     * See Modify/DataSet/changeContentSorting.csv
-     */
     public function changeContentSorting()
     {
         $this->actionService->moveRecord(self::TABLE_Content, self::VALUE_ContentIdFirst, -self::VALUE_ContentIdLast);
     }
 
-    /**
-     * See Modify/DataSet/moveContentToDifferentPage.csv
-     */
     public function moveContentToDifferentPage()
     {
-        $this->actionService->moveRecord(self::TABLE_Content, self::VALUE_ContentIdLast, self::VALUE_PageIdTarget);
+        return $this->actionService->moveRecord(self::TABLE_Content, self::VALUE_ContentIdLast, self::VALUE_PageIdTarget);
     }
 
-    /**
-     * See Modify/DataSet/moveContentToDifferentPageNChangeSorting.csv
-     */
     public function moveContentToDifferentPageAndChangeSorting()
     {
         $this->actionService->moveRecord(self::TABLE_Content, self::VALUE_ContentIdLast, self::VALUE_PageIdTarget);
         $this->actionService->moveRecord(self::TABLE_Content, self::VALUE_ContentIdFirst, -self::VALUE_ContentIdLast);
     }
 
-    /**
-     * File references
-     */
-
-    /**
-     * See Modify/DataSet/createContentWFileReference.csv
-     */
     public function createContentWithFileReference()
     {
         $newTableIds = $this->actionService->createNewRecords(
@@ -149,9 +127,6 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         $this->recordIds['newContentId'] = $newTableIds[self::TABLE_Content][0];
     }
 
-    /**
-     * See Modify/DataSet/modifyContentWFileReference.csv
-     */
     public function modifyContentWithFileReference()
     {
         $this->actionService->modifyRecords(
@@ -163,9 +138,6 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         );
     }
 
-    /**
-     * See Modify/DataSet/modifyContentNAddFileReference.csv
-     */
     public function modifyContentAndAddFileReference()
     {
         $this->actionService->modifyRecords(
@@ -177,9 +149,6 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         );
     }
 
-    /**
-     * See Modify/DataSet/modifyContentNDeleteFileReference.csv
-     */
     public function modifyContentAndDeleteFileReference()
     {
         $this->actionService->modifyRecord(
@@ -190,9 +159,6 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
         );
     }
 
-    /**
-     * See Modify/DataSet/modifyContentNDeleteAllFileReference.csv
-     */
     public function modifyContentAndDeleteAllFileReference()
     {
         $this->actionService->modifyRecord(
@@ -200,6 +166,27 @@ abstract class AbstractActionTestCase extends \TYPO3\CMS\Core\Tests\Functional\D
             self::VALUE_ContentIdLast,
             [self::FIELD_ContentImage => ''],
             [self::TABLE_FileReference => [self::VALUE_FileReferenceContentLastFileFirst, self::VALUE_FileReferenceContentLastFileLast]]
+        );
+    }
+
+    protected function createContentWithFileReferenceAndDeleteFileReference()
+    {
+        // Create content element with a file reference
+        $newTableIds = $this->actionService->createNewRecords(
+            self::VALUE_PageId,
+            [
+                self::TABLE_Content => ['header' => 'Testing #1', self::FIELD_ContentImage => '__nextUid'],
+                self::TABLE_FileReference => ['title' => 'Image #1', self::FIELD_FileReferenceImage => self::VALUE_FileIdFirst],
+            ]
+        );
+        $this->recordIds['newContentId'] = $newTableIds[self::TABLE_Content][0];
+        $this->recordIds['newSysFileReference'] = $newTableIds[self::TABLE_FileReference][0];
+        // Delete the file reference again, but keep the content element
+        $this->actionService->modifyRecord(
+            self::TABLE_Content,
+            $this->recordIds['newContentId'],
+            [self::FIELD_ContentImage => ''],
+            [self::TABLE_FileReference => [$this->recordIds['newSysFileReference']]]
         );
     }
 }

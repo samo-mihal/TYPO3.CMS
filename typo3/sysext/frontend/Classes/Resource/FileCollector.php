@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Frontend\Resource;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,9 +13,12 @@ namespace TYPO3\CMS\Frontend\Resource;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Frontend\Resource;
+
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use TYPO3\CMS\Core\LinkHandling\LinkService;
+use TYPO3\CMS\Core\Resource\Collection\AbstractFileCollection;
 use TYPO3\CMS\Core\Resource\Exception;
 use TYPO3\CMS\Core\Resource\Exception\FileDoesNotExistException;
 use TYPO3\CMS\Core\Resource\FileCollectionRepository;
@@ -113,6 +115,9 @@ class FileCollector implements \Countable, LoggerAwareInterface
     {
         foreach ($fileReferenceUids as $fileReferenceUid) {
             $fileObject = $this->getFileRepository()->findFileReferenceByUid($fileReferenceUid);
+            if (!$fileObject instanceof FileInterface) {
+                continue;
+            }
             $this->addFileObject($fileObject);
         }
     }
@@ -140,7 +145,7 @@ class FileCollector implements \Countable, LoggerAwareInterface
             try {
                 $fileCollection = $this->getFileCollectionRepository()->findByUid($fileCollectionUid);
 
-                if ($fileCollection instanceof \TYPO3\CMS\Core\Resource\Collection\AbstractFileCollection) {
+                if ($fileCollection instanceof AbstractFileCollection) {
                     $fileCollection->loadContents();
                     $files = $fileCollection->getItems();
 

@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Unit\Cache\Backend;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,10 +15,13 @@ namespace TYPO3\CMS\Core\Tests\Unit\Cache\Backend;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\Cache\Backend;
+
 use TYPO3\CMS\Core\Cache\Backend\PdoBackend;
 use TYPO3\CMS\Core\Cache\Exception;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
 /**
@@ -136,7 +139,7 @@ class PdoBackendTest extends UnitTestCase
     {
         $backend = $this->setUpBackend();
         $data1 = 'data1';
-        $entryIdentifier = $this->getUniqueId('test');
+        $entryIdentifier = StringUtility::getUniqueId('test');
         $backend->set($entryIdentifier, $data1, [], 1);
         $data2 = 'data2';
         $GLOBALS['EXEC_TIME'] += 2;

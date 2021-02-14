@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Form\Element;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Form\Element;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Form\Element;
 
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Imaging\Icon;
@@ -246,8 +247,8 @@ class GroupElement extends AbstractFormElement
             'id' => $fieldId,
             'data-formengine-input-name' => htmlspecialchars($elementName),
             'data-formengine-validation-rules' => $this->getValidationDataAsJsonString($config),
-            'data-maxitems' => $maxItems,
-            'size' => $size,
+            'data-maxitems' => (string)$maxItems,
+            'size' => (string)$size,
         ];
         $selectorClasses = [
             'form-control',
@@ -286,9 +287,9 @@ class GroupElement extends AbstractFormElement
             $html[] =                   ' data-tablename="' . htmlspecialchars($table) . '"';
             $html[] =                   ' data-field="' . htmlspecialchars($elementName) . '"';
             $html[] =                   ' data-uid="' . htmlspecialchars($this->data['databaseRow']['uid']) . '"';
-            $html[] =                   ' data-pid="' . htmlspecialchars($this->data['effectivePid']) . '"';
+            $html[] =                   ' data-pid="' . htmlspecialchars($this->data['parentPageRow']['uid'] ?? 0) . '"';
             $html[] =                   ' data-fieldtype="' . htmlspecialchars($config['type']) . '"';
-            $html[] =                   ' data-minchars="' . htmlspecialchars($suggestMinimumCharacters) . '"';
+            $html[] =                   ' data-minchars="' . htmlspecialchars((string)$suggestMinimumCharacters) . '"';
             $html[] =                   ' data-datastructureidentifier="' . htmlspecialchars($dataStructureIdentifier) . '"';
             $html[] =                   ' data-flexformsheetname="' . htmlspecialchars($flexFormSheetName) . '"';
             $html[] =                   ' data-flexformfieldname="' . htmlspecialchars($flexFormFieldName) . '"';

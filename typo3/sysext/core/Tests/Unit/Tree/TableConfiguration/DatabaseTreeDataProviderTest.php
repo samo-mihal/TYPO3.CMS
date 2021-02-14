@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Unit\Tree\TableConfiguration;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\Tree\TableConfiguration;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\Tree\TableConfiguration;
 
 use Doctrine\DBAL\Driver\Statement;
 use Prophecy\Argument;
@@ -187,8 +188,7 @@ class DatabaseTreeDataProviderTest extends UnitTestCase
 
         $this->initializeSubjectMock(['getRelatedRecords', 'getRootUid']);
         $this->subject->_set('levelMaximum', 2);
-        $this->subject->expects(self::at(0))->method('getRelatedRecords')->willReturn([1]);
-        $this->subject->expects(self::at(1))->method('getRelatedRecords')->willReturn([2]);
+        $this->subject->expects(self::exactly(2))->method('getRelatedRecords')->willReturnOnConsecutiveCalls([1], [2]);
         $storage = $this->subject->_call('getChildrenOf', $this->treeData, 1);
 
         self::assertEquals($expectedStorage, $storage);

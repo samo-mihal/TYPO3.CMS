@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Tests\Functional\DataHandling\DataHandler;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Functional\DataHandling\DataHandler;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Functional\DataHandling\DataHandler;
 
 use TYPO3\CMS\Core\Tests\Functional\DataHandling\AbstractDataHandlerActionTestCase;
 use TYPO3\CMS\Core\Tests\Functional\DataHandling\DataHandler\Fixtures\HookFixture;
@@ -32,6 +34,11 @@ class HookTest extends AbstractDataHandlerActionTestCase
     const TABLE_Category = 'sys_category';
     const FIELD_ContentHotel = 'tx_irretutorial_1nff_hotels';
     const FIELD_Categories = 'categories';
+
+    /**
+     * @var bool Reference index testing is not relevant here
+     */
+    protected $assertCleanReferenceIndex = false;
 
     /**
      * @var HookFixture

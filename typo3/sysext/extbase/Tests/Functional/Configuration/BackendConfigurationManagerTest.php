@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Tests\Functional\Configuration;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,15 +13,18 @@ namespace TYPO3\CMS\Extbase\Tests\Functional\Configuration;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Tests\Functional\Configuration;
+
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\TypoScript\TypoScriptService;
 use TYPO3\CMS\Extbase\Configuration\AbstractConfigurationManager;
 use TYPO3\CMS\Extbase\Configuration\BackendConfigurationManager;
+use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
 /**
  * Test case
  */
-class BackendConfigurationManagerTest extends \TYPO3\TestingFramework\Core\Functional\FunctionalTestCase
+class BackendConfigurationManagerTest extends FunctionalTestCase
 {
     /**
      * Warning: white box test

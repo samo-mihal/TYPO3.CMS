@@ -8,10 +8,11 @@ CREATE TABLE be_groups (
 	allowed_languages varchar(255) DEFAULT '' NOT NULL,
 	custom_options text,
 	db_mountpoints text,
-	pagetypes_select varchar(255) DEFAULT '' NOT NULL,
+	pagetypes_select text,
 	tables_select text,
 	tables_modify text,
 	groupMods text,
+	availableWidgets text,
 	file_mountpoints text,
 	file_permissions text,
 	lockToDomain varchar(50) DEFAULT '' NOT NULL,
@@ -25,7 +26,7 @@ CREATE TABLE be_groups (
 # Table structure for table 'be_sessions'
 #
 CREATE TABLE be_sessions (
-	ses_id varchar(32) DEFAULT '' NOT NULL,
+	ses_id varchar(190) DEFAULT '' NOT NULL,
 	ses_iplock varchar(39) DEFAULT '' NOT NULL,
 	ses_userid int(11) unsigned DEFAULT '0' NOT NULL,
 	ses_tstamp int(11) unsigned DEFAULT '0' NOT NULL,
@@ -115,7 +116,9 @@ CREATE TABLE pages (
 	legacy_overlay_uid int(11) unsigned DEFAULT '0' NOT NULL,
 
 	KEY determineSiteRoot (is_siteroot),
-	KEY language_identifier (l10n_parent,sys_language_uid)
+	KEY language_identifier (l10n_parent,sys_language_uid),
+	KEY legacy_overlay (legacy_overlay_uid),
+	KEY slug (slug(127))
 );
 
 #
@@ -244,7 +247,8 @@ CREATE TABLE sys_file_processedfile (
 	original int(11) DEFAULT '0' NOT NULL,
 	identifier varchar(512) DEFAULT '' NOT NULL,
 	name tinytext,
-	configuration text,
+	processing_url text,
+	configuration blob,
 	configurationsha1 char(40) DEFAULT '' NOT NULL,
 	originalfilesha1 char(40) DEFAULT '' NOT NULL,
 	task_type varchar(200) DEFAULT '' NOT NULL,

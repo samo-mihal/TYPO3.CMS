@@ -1,11 +1,9 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Form\Domain\Runtime;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
- *
- * It originated from the Neos.Form package (www.neos.io)
  *
  * It is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, either version 2
@@ -17,8 +15,15 @@ namespace TYPO3\CMS\Form\Domain\Runtime;
  * The TYPO3 project - inspiring people to share!
  */
 
+/*
+ * Inspired by and partially taken from the Neos.Form package (www.neos.io)
+ */
+
+namespace TYPO3\CMS\Form\Domain\Runtime;
+
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Context\Context;
+use TYPO3\CMS\Core\Error\Http\BadRequestException;
 use TYPO3\CMS\Core\ExpressionLanguage\Resolver;
 use TYPO3\CMS\Core\Http\ServerRequest;
 use TYPO3\CMS\Core\Site\Entity\Site;
@@ -32,7 +37,11 @@ use TYPO3\CMS\Extbase\Mvc\Controller\ControllerContext;
 use TYPO3\CMS\Extbase\Mvc\Web\Request;
 use TYPO3\CMS\Extbase\Mvc\Web\Response;
 use TYPO3\CMS\Extbase\Mvc\Web\Routing\UriBuilder;
+use TYPO3\CMS\Extbase\Object\ObjectManagerInterface;
 use TYPO3\CMS\Extbase\Property\Exception as PropertyException;
+use TYPO3\CMS\Extbase\Security\Cryptography\HashService;
+use TYPO3\CMS\Extbase\Security\Exception\InvalidArgumentForHashGenerationException;
+use TYPO3\CMS\Extbase\Security\Exception\InvalidHashException;
 use TYPO3\CMS\Form\Domain\Exception\RenderingException;
 use TYPO3\CMS\Form\Domain\Finishers\FinisherContext;
 use TYPO3\CMS\Form\Domain\Finishers\FinisherInterface;
@@ -158,7 +167,7 @@ class FormRuntime implements RootRenderableInterface, \ArrayAccess
      * @param \TYPO3\CMS\Extbase\Security\Cryptography\HashService $hashService
      * @internal
      */
-    public function injectHashService(\TYPO3\CMS\Extbase\Security\Cryptography\HashService $hashService)
+    public function injectHashService(HashService $hashService)
     {
         $this->hashService = $hashService;
     }
@@ -167,7 +176,7 @@ class FormRuntime implements RootRenderableInterface, \ArrayAccess
      * @param \TYPO3\CMS\Extbase\Object\ObjectManagerInterface $objectManager
      * @internal
      */
-    public function injectObjectManager(\TYPO3\CMS\Extbase\Object\ObjectManagerInterface $objectManager)
+    public function injectObjectManager(ObjectManagerInterface $objectManager)
     {
         $this->objectManager = $objectManager;
     }
@@ -210,6 +219,7 @@ class FormRuntime implements RootRenderableInterface, \ArrayAccess
 
     /**
      * Initializes the current state of the form, based on the request
+     * @throws BadRequestException
      */
     protected function initializeFormStateFromRequest()
     {
@@ -217,7 +227,11 @@ class FormRuntime implements RootRenderableInterface, \ArrayAccess
         if ($serializedFormStateWithHmac === null) {
             $this->formState = GeneralUtility::makeInstance(FormState::class);
         } else {
-            $serializedFormState = $this->hashService->validateAndStripHmac($serializedFormStateWithHmac);
+            try {
+                $serializedFormState = $this->hashService->validateAndStripHmac($serializedFormStateWithHmac);
+            } catch (InvalidHashException | InvalidArgumentForHashGenerationException $e) {
+                throw new BadRequestException('The HMAC of the form could not be validated.', 1581862823);
+            }
             $this->formState = unserialize(base64_decode($serializedFormState));
         }
     }
@@ -349,15 +363,15 @@ class FormRuntime implements RootRenderableInterface, \ArrayAccess
             }
 
             $elementsCount = count($this->currentPage->getElements());
-            $randomElementNumber = mt_rand(0, $elementsCount - 1);
-            $honeypotName = substr(str_shuffle('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'), 0, mt_rand(5, 26));
+            $randomElementNumber = random_int(0, $elementsCount - 1);
+            $honeypotName = substr(str_shuffle('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'), 0, random_int(5, 26));
 
             $referenceElement = $this->currentPage->getElements()[$randomElementNumber];
             $honeypotElement = $this->currentPage->createElement($honeypotName, $renderingOptions['honeypot']['formElementToUse']);
             $validator = $this->objectManager->get(EmptyValidator::class);
 
             $honeypotElement->addValidator($validator);
-            if (mt_rand(0, 1) === 1) {
+            if (random_int(0, 1) === 1) {
                 $this->currentPage->moveElementAfter($honeypotElement, $referenceElement);
             } else {
                 $this->currentPage->moveElementBefore($honeypotElement, $referenceElement);
@@ -994,7 +1008,7 @@ class FormRuntime implements RootRenderableInterface, \ArrayAccess
             $pageId = 0;
             $languageId = (int)GeneralUtility::makeInstance(Context::class)->getPropertyFromAspect('language', 'id', 0);
 
-            if (TYPO3_MODE === 'FE') {
+            if ($this->getTypoScriptFrontendController() !== null) {
                 $pageId = $this->getTypoScriptFrontendController()->id;
             }
 
@@ -1074,10 +1088,10 @@ class FormRuntime implements RootRenderableInterface, \ArrayAccess
     }
 
     /**
-     * @return TypoScriptFrontendController
+     * @return TypoScriptFrontendController|null
      */
-    protected function getTypoScriptFrontendController(): TypoScriptFrontendController
+    protected function getTypoScriptFrontendController(): ?TypoScriptFrontendController
     {
-        return $GLOBALS['TSFE'];
+        return $GLOBALS['TSFE'] ?? null;
     }
 }

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Unit\Cache\Backend;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,9 +13,12 @@ namespace TYPO3\CMS\Core\Tests\Unit\Cache\Backend;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\Cache\Backend;
+
 use TYPO3\CMS\Core\Cache\Backend\ApcuBackend;
 use TYPO3\CMS\Core\Cache\Exception;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\TestingFramework\Core\AccessibleObjectInterface;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
@@ -51,7 +53,7 @@ class ApcuBackendTest extends UnitTestCase
     {
         $backend = new ApcuBackend('Testing');
         $data = 'Some data';
-        $identifier = $this->getUniqueId('MyIdentifier');
+        $identifier = StringUtility::getUniqueId('MyIdentifier');
         $this->expectException(Exception::class);
         $this->expectExceptionCode(1232986118);
         $backend->set($identifier, $data);
@@ -64,7 +66,7 @@ class ApcuBackendTest extends UnitTestCase
     {
         $backend = $this->setUpBackend();
         $data = 'Some data';
-        $identifier = $this->getUniqueId('MyIdentifier');
+        $identifier = StringUtility::getUniqueId('MyIdentifier');
         $backend->set($identifier, $data);
         self::assertTrue($backend->has($identifier));
     }
@@ -76,7 +78,7 @@ class ApcuBackendTest extends UnitTestCase
     {
         $backend = $this->setUpBackend();
         $data = 'Some data';
-        $identifier = $this->getUniqueId('MyIdentifier');
+        $identifier = StringUtility::getUniqueId('MyIdentifier');
         $backend->set($identifier, $data);
         $fetchedData = $backend->get($identifier);
         self::assertEquals($data, $fetchedData);
@@ -89,7 +91,7 @@ class ApcuBackendTest extends UnitTestCase
     {
         $backend = $this->setUpBackend();
         $data = 'Some data';
-        $identifier = $this->getUniqueId('MyIdentifier');
+        $identifier = StringUtility::getUniqueId('MyIdentifier');
         $backend->set($identifier, $data);
         $backend->remove($identifier);
         self::assertFalse($backend->has($identifier));
@@ -102,7 +104,7 @@ class ApcuBackendTest extends UnitTestCase
     {
         $backend = $this->setUpBackend();
         $data = 'Some data';
-        $identifier = $this->getUniqueId('MyIdentifier');
+        $identifier = StringUtility::getUniqueId('MyIdentifier');
         $backend->set($identifier, $data);
         $otherData = 'some other data';
         $backend->set($identifier, $otherData);
@@ -117,7 +119,7 @@ class ApcuBackendTest extends UnitTestCase
     {
         $backend = $this->setUpBackend();
         $data = 'Some data';
-        $identifier = $this->getUniqueId('MyIdentifier');
+        $identifier = StringUtility::getUniqueId('MyIdentifier');
         $backend->set($identifier, $data, ['UnitTestTag%tag1', 'UnitTestTag%tag2']);
         $retrieved = $backend->findIdentifiersByTag('UnitTestTag%tag1');
         self::assertEquals($identifier, $retrieved[0]);
@@ -132,7 +134,7 @@ class ApcuBackendTest extends UnitTestCase
     {
         $backend = $this->setUpBackend();
         $data = 'Some data';
-        $identifier = $this->getUniqueId('MyIdentifier');
+        $identifier = StringUtility::getUniqueId('MyIdentifier');
         $backend->set($identifier, $data, ['UnitTestTag%tag1', 'UnitTestTag%tagX']);
         $backend->set($identifier, $data, ['UnitTestTag%tag3']);
         $retrieved = $backend->findIdentifiersByTag('UnitTestTag%tagX');
@@ -145,7 +147,7 @@ class ApcuBackendTest extends UnitTestCase
     public function hasReturnsFalseIfTheEntryDoesNotExist()
     {
         $backend = $this->setUpBackend();
-        $identifier = $this->getUniqueId('NonExistingIdentifier');
+        $identifier = StringUtility::getUniqueId('NonExistingIdentifier');
         self::assertFalse($backend->has($identifier));
     }
 
@@ -155,7 +157,7 @@ class ApcuBackendTest extends UnitTestCase
     public function removeReturnsFalseIfTheEntryDoesntExist()
     {
         $backend = $this->setUpBackend();
-        $identifier = $this->getUniqueId('NonExistingIdentifier');
+        $identifier = StringUtility::getUniqueId('NonExistingIdentifier');
         self::assertFalse($backend->remove($identifier));
     }
 
@@ -239,7 +241,7 @@ class ApcuBackendTest extends UnitTestCase
     {
         $backend = $this->setUpBackend();
         $data = str_repeat('abcde', 1024 * 1024);
-        $identifier = $this->getUniqueId('tooLargeData');
+        $identifier = StringUtility::getUniqueId('tooLargeData');
         $backend->set($identifier, $data);
         self::assertTrue($backend->has($identifier));
         self::assertEquals($backend->get($identifier), $data);
@@ -250,7 +252,7 @@ class ApcuBackendTest extends UnitTestCase
      */
     public function setTagsOnlyOnceToIdentifier()
     {
-        $identifier = $this->getUniqueId('MyIdentifier');
+        $identifier = StringUtility::getUniqueId('MyIdentifier');
         $tags = ['UnitTestTag%test', 'UnitTestTag%boring'];
 
         $backend = $this->setUpBackend(true);
@@ -278,8 +280,7 @@ class ApcuBackendTest extends UnitTestCase
         /** @var \PHPUnit\Framework\MockObject\MockObject|FrontendInterface $cache */
         $cache = $this->createMock(FrontendInterface::class);
         if ($accessible) {
-            $accessibleClassName = $this->buildAccessibleProxy(ApcuBackend::class);
-            $backend = new $accessibleClassName('Testing');
+            $backend = $this->getAccessibleMock(ApcuBackend::class, ['dummy'], ['Testing']);
         } else {
             $backend = new ApcuBackend('Testing');
         }

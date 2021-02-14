@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Persistence;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,10 +13,14 @@ namespace TYPO3\CMS\Extbase\Persistence;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Extbase\Persistence;
+
 use TYPO3\CMS\Extbase\Persistence\Generic\Qom\AndInterface;
 use TYPO3\CMS\Extbase\Persistence\Generic\Qom\ComparisonInterface;
 use TYPO3\CMS\Extbase\Persistence\Generic\Qom\ConstraintInterface;
 use TYPO3\CMS\Extbase\Persistence\Generic\Qom\OrInterface;
+use TYPO3\CMS\Extbase\Persistence\Generic\Qom\SourceInterface;
+use TYPO3\CMS\Extbase\Persistence\Generic\QuerySettingsInterface;
 
 /**
  * A persistence query interface
@@ -281,7 +284,7 @@ interface QueryInterface
      * @param \TYPO3\CMS\Extbase\Persistence\Generic\QuerySettingsInterface $querySettings The Query Settings
      * @todo decide whether this can be deprecated somewhen
      */
-    public function setQuerySettings(Generic\QuerySettingsInterface $querySettings);
+    public function setQuerySettings(QuerySettingsInterface $querySettings);
 
     /**
      * Returns the Query Settings.
@@ -345,7 +348,7 @@ interface QueryInterface
      *
      * @param \TYPO3\CMS\Extbase\Persistence\Generic\Qom\SourceInterface $source
      */
-    public function setSource(Generic\Qom\SourceInterface $source);
+    public function setSource(SourceInterface $source);
 
     /**
      * Returns the statement of this query.

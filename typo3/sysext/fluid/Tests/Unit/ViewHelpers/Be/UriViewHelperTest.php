@@ -1,7 +1,5 @@
 <?php
 
-namespace TYPO3\CMS\Fluid\Tests\Unit\ViewHelpers\Be;
-
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -14,6 +12,8 @@ namespace TYPO3\CMS\Fluid\Tests\Unit\ViewHelpers\Be;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Fluid\Tests\Unit\ViewHelpers\Be;
 
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -59,10 +59,11 @@ class UriViewHelperTest extends ViewHelperBaseTestcase
             ->setMethods(['registerArgument'])
             ->getMock();
 
-        $viewHelper->expects(self::at(0))->method('registerArgument')->with('route', 'string', self::anything());
-        $viewHelper->expects(self::at(1))->method('registerArgument')->with('parameters', 'array', self::anything());
-        $viewHelper->expects(self::at(2))->method('registerArgument')
-            ->with('referenceType', 'string', self::anything(), false, UriBuilder::ABSOLUTE_PATH);
+        $viewHelper->expects(self::exactly(3))->method('registerArgument')->withConsecutive(
+            ['route', 'string', self::anything()],
+            ['parameters', 'array', self::anything()],
+            ['referenceType', 'string', self::anything(), false, UriBuilder::ABSOLUTE_PATH]
+        );
         $viewHelper->initializeArguments();
     }
 

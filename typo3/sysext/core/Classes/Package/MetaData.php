@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Package;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,10 @@ namespace TYPO3\CMS\Core\Package;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Package;
+
+use TYPO3\CMS\Core\Package\MetaData\PackageConstraint;
 
 /**
  * The default TYPO3 Package MetaData implementation
@@ -173,7 +176,7 @@ class MetaData
      *
      * @param MetaData\PackageConstraint $constraint The constraint to add
      */
-    public function addConstraint(MetaData\PackageConstraint $constraint)
+    public function addConstraint(PackageConstraint $constraint)
     {
         $this->constraints[$constraint->getConstraintType()][] = $constraint;
     }

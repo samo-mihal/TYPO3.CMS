@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Extbase\Persistence;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,10 @@ namespace TYPO3\CMS\Extbase\Persistence;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Extbase\Persistence;
+
+use TYPO3\CMS\Extbase\Persistence\Generic\QuerySettingsInterface;
 
 /**
  * Contract for a repository
@@ -93,7 +96,7 @@ interface RepositoryInterface
      *
      * @param \TYPO3\CMS\Extbase\Persistence\Generic\QuerySettingsInterface $defaultQuerySettings The query settings to be used by default
      */
-    public function setDefaultQuerySettings(\TYPO3\CMS\Extbase\Persistence\Generic\QuerySettingsInterface $defaultQuerySettings);
+    public function setDefaultQuerySettings(QuerySettingsInterface $defaultQuerySettings);
 
     /**
      * Returns a query for objects of this repository

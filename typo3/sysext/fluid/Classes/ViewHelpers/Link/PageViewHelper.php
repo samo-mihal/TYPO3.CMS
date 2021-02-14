@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\ViewHelpers\Link;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Fluid\ViewHelpers\Link;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Fluid\ViewHelpers\Link;
 
 use TYPO3\CMS\Core\Utility\MathUtility;
 use TYPO3\CMS\Extbase\Mvc\Web\Routing\UriBuilder;
@@ -82,6 +83,7 @@ class PageViewHelper extends AbstractTagBasedViewHelper
         $this->registerArgument('pageUid', 'int', 'Target page. See TypoLink destination');
         $this->registerArgument('pageType', 'int', 'Type of the target page. See typolink.parameter');
         $this->registerArgument('noCache', 'bool', 'Set this to disable caching for the target page. You should not need this.');
+        $this->registerArgument('language', 'string', 'link to a specific language - defaults to the current language, use a language ID or "current" to enforce a specific language', false, null);
         // @deprecated
         $this->registerArgument('noCacheHash', 'bool', 'Deprecated: Set this to suppress the cHash query parameter created by TypoLink. You should not need this.', false);
         $this->registerArgument('section', 'string', 'The anchor to be added to the URI');
@@ -105,6 +107,7 @@ class PageViewHelper extends AbstractTagBasedViewHelper
         $pageType = isset($this->arguments['pageType']) ? (int)$this->arguments['pageType'] : 0;
         $noCache = isset($this->arguments['noCache']) ? (bool)$this->arguments['noCache'] : false;
         $section = isset($this->arguments['section']) ? (string)$this->arguments['section'] : '';
+        $language = $this->arguments['language'] ?? null;
         $linkAccessRestrictedPages = isset($this->arguments['linkAccessRestrictedPages']) ? (bool)$this->arguments['linkAccessRestrictedPages'] : false;
         $additionalParams = isset($this->arguments['additionalParams']) ? (array)$this->arguments['additionalParams'] : [];
         $absolute = isset($this->arguments['absolute']) ? (bool)$this->arguments['absolute'] : false;
@@ -117,6 +120,7 @@ class PageViewHelper extends AbstractTagBasedViewHelper
             ->setTargetPageType($pageType)
             ->setNoCache($noCache)
             ->setSection($section)
+            ->setLanguage($language)
             ->setLinkAccessRestrictedPages($linkAccessRestrictedPages)
             ->setArguments($additionalParams)
             ->setCreateAbsoluteUri($absolute)

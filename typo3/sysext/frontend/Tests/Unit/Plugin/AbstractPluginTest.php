@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Frontend\Tests\Unit\Plugin;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,10 +15,12 @@ namespace TYPO3\CMS\Frontend\Tests\Unit\Plugin;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Frontend\Tests\Unit\Plugin;
+
 use Prophecy\Argument;
-use TYPO3\CMS\Core\Http\Uri;
-use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
+use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
 use TYPO3\CMS\Frontend\ContentObject\TextContentObject;
 use TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController;
@@ -50,7 +52,9 @@ class AbstractPluginTest extends UnitTestCase
 
         $tsfe = $this->prophesize(TypoScriptFrontendController::class);
         $tsfe->cObjectDepthCounter = 100;
-        $tsfe->getLanguage(Argument::cetera())->willReturn(new SiteLanguage(0, 'en_US', new Uri('/'), ['typo3Language' => 'en']));
+        $tsfe->getLanguage(Argument::cetera())->willReturn(
+            $this->createSiteWithDefaultLanguage()->getLanguageById(0)
+        );
 
         $this->abstractPlugin = new AbstractPlugin(null, $tsfe->reveal());
         $contentObjectRenderer = new ContentObjectRenderer($tsfe->reveal());
@@ -201,42 +205,42 @@ class AbstractPluginTest extends UnitTestCase
     {
         return [
             'Result browser returning false' => [
-                'className' => $this->getUniqueId('tx_coretest'),
+                'className' => StringUtility::getUniqueId('tx_coretest'),
                 'returnValue' => false,
                 'expected' => ''
             ],
             'Result browser returning null' => [
-                'className' => $this->getUniqueId('tx_coretest'),
+                'className' => StringUtility::getUniqueId('tx_coretest'),
                 'returnValue' => null,
                 'expected' => ''
             ],
             'Result browser returning whitespace string' => [
-                'className' => $this->getUniqueId('tx_coretest'),
+                'className' => StringUtility::getUniqueId('tx_coretest'),
                 'returnValue' => '   ',
                 'expected' => ''
             ],
             'Result browser returning HTML' => [
-                'className' => $this->getUniqueId('tx_coretest'),
+                'className' => StringUtility::getUniqueId('tx_coretest'),
                 'returnValue' => '<div><a href="index.php?id=1&pointer=1">1</a><a href="index.php?id=1&pointer=2">2</a><a href="index.php?id=1&pointer=3">3</a><a href="index.php?id=1&pointer=4">4</a></div>',
                 'expected' => '<div><a href="index.php?id=1&pointer=1">1</a><a href="index.php?id=1&pointer=2">2</a><a href="index.php?id=1&pointer=3">3</a><a href="index.php?id=1&pointer=4">4</a></div>'
             ],
             'Result browser returning a truthy integer as string' => [
-                'className' => $this->getUniqueId('tx_coretest'),
+                'className' => StringUtility::getUniqueId('tx_coretest'),
                 'returnValue' => '1',
                 'expected' => '1'
             ],
             'Result browser returning a falsy integer' => [
-                'className' => $this->getUniqueId('tx_coretest'),
+                'className' => StringUtility::getUniqueId('tx_coretest'),
                 'returnValue' => 0,
                 'expected' => ''
             ],
             'Result browser returning a truthy integer' => [
-                'className' => $this->getUniqueId('tx_coretest'),
+                'className' => StringUtility::getUniqueId('tx_coretest'),
                 'returnValue' => 1,
                 'expected' => ''
             ],
             'Result browser returning a positive integer' => [
-                'className' => $this->getUniqueId('tx_coretest'),
+                'className' => StringUtility::getUniqueId('tx_coretest'),
                 'returnValue' => 42,
                 'expected' => ''
             ]
@@ -273,5 +277,22 @@ class AbstractPluginTest extends UnitTestCase
         self::assertSame($expected, $actualReturnValue);
 
         unset($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS'][AbstractPlugin::class]['pi_list_browseresults']);
+    }
+
+    private function createSiteWithDefaultLanguage(): Site
+    {
+        return new Site('test', 1, [
+            'identifier' => 'test',
+            'rootPageId' => 1,
+            'base' => '/',
+            'languages' => [
+                [
+                    'base' => '/',
+                    'languageId' => 0,
+                    'locale' => 'en_US',
+                    'typo3Language' => 'en'
+                ],
+            ]
+        ]);
     }
 }

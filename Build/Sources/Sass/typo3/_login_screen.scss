@@ -99,6 +99,16 @@ $login-input-padding-horizontal: $padding-large-horizontal;
     }
 }
 
+#t3js-login-url {
+    width: 0;
+    height: 0;
+    border: 0;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    cursor: default;
+}
+
 //
 // Logo
 //
@@ -106,7 +116,7 @@ $login-input-padding-horizontal: $padding-large-horizontal;
     padding-top: 1em;
     margin-bottom: 2.5em;
 
-    > img {
+    img {
         display: block;
         max-width: 100%;
         height: auto;
@@ -174,6 +184,7 @@ $login-input-padding-horizontal: $padding-large-horizontal;
     @include button-variant($login-btn-text, $login-btn-bg, rgba(0, 0, 0, 0.1));
 
     line-height: 1.3em;
+    white-space: normal;
 
     &:active,
     &:active:focus,
@@ -184,9 +195,13 @@ $login-input-padding-horizontal: $padding-large-horizontal;
         background-color: $login-btn-bg;
     }
 
+    &:active,
     &:active:focus,
+    &:active:hover,
+    &:hover,
     &:focus {
-        outline: none;
+        outline: 1px solid #000;
+        outline-offset: -1px;
     }
 
     &:hover {
@@ -196,10 +211,6 @@ $login-input-padding-horizontal: $padding-large-horizontal;
     &:active:focus,
     &:active:hover {
         box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
-    }
-
-    &:focus {
-        @include box-shadow(none);
     }
 }
 

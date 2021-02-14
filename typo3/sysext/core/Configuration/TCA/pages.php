@@ -1,4 +1,5 @@
 <?php
+
 return [
     'ctrl' => [
         'label' => 'title',
@@ -61,10 +62,9 @@ return [
             'page-contentFromPid-hideinmenu' => 'apps-pagetree-page-content-from-page-hideinmenu',
             'default' => 'apps-pagetree-page-default'
         ],
-        'searchFields' => 'title,nav_title,subtitle,url,keywords,description,abstract,author,author_email'
+        'searchFields' => 'title,nav_title,subtitle,url,slug,keywords,description,abstract,author,author_email'
     ],
     'interface' => [
-        'showRecordFieldList' => 'doktype,title,rowDescription,hidden,starttime,endtime,fe_group,url,target,shortcut,keywords,description,abstract,newUntil,lastUpdated,cache_timeout,cache_tags,backend_layout,backend_layout_next_level',
         'maxDBListItems' => 30,
         'maxSingleDBListItems' => 50
     ],
@@ -78,56 +78,75 @@ return [
                 'items' => [
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:pages.doktype.div.page',
-                        '--div--'
+                        '--div--',
+                        null,
+                        'default'
                     ],
                     [
                         'LLL:EXT:core/Resources/Private/Language/locallang_tca.xlf:doktype.I.0',
                         (string)\TYPO3\CMS\Core\Domain\Repository\PageRepository::DOKTYPE_DEFAULT,
-                        'apps-pagetree-page-default'
+                        'apps-pagetree-page-default',
+                        'default'
                     ],
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:pages.doktype.I.4',
                         (string)\TYPO3\CMS\Core\Domain\Repository\PageRepository::DOKTYPE_BE_USER_SECTION,
-                        'apps-pagetree-page-backend-users'
+                        'apps-pagetree-page-backend-users',
+                        'default'
                     ],
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:pages.doktype.div.link',
-                        '--div--'
+                        '--div--',
+                        null,
+                        'link'
                     ],
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:pages.doktype.I.2',
                         (string)\TYPO3\CMS\Core\Domain\Repository\PageRepository::DOKTYPE_SHORTCUT,
-                        'apps-pagetree-page-shortcut'
+                        'apps-pagetree-page-shortcut',
+                        'link'
                     ],
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:pages.doktype.I.5',
                         (string)\TYPO3\CMS\Core\Domain\Repository\PageRepository::DOKTYPE_MOUNTPOINT,
-                        'apps-pagetree-page-mountpoint'
+                        'apps-pagetree-page-mountpoint',
+                        'link'
                     ],
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:pages.doktype.I.8',
                         (string)\TYPO3\CMS\Core\Domain\Repository\PageRepository::DOKTYPE_LINK,
-                        'apps-pagetree-page-shortcut-external'
+                        'apps-pagetree-page-shortcut-external',
+                        'link'
                     ],
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:pages.doktype.div.special',
-                        '--div--'
+                        '--div--',
+                        null,
+                        'special'
                     ],
                     [
                         'LLL:EXT:core/Resources/Private/Language/locallang_tca.xlf:doktype.I.folder',
                         (string)\TYPO3\CMS\Core\Domain\Repository\PageRepository::DOKTYPE_SYSFOLDER,
-                        'apps-pagetree-folder-default'
+                        'apps-pagetree-folder-default',
+                        'special'
                     ],
                     [
                         'LLL:EXT:core/Resources/Private/Language/locallang_tca.xlf:doktype.I.2',
                         (string)\TYPO3\CMS\Core\Domain\Repository\PageRepository::DOKTYPE_RECYCLER,
-                        'apps-filetree-folder-recycler'
+                        'apps-filetree-folder-recycler',
+                        'special'
                     ],
                     [
                         'LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:pages.doktype.I.7',
                         (string)\TYPO3\CMS\Core\Domain\Repository\PageRepository::DOKTYPE_SPACER,
-                        'apps-pagetree-spacer'
+                        'apps-pagetree-spacer',
+                        'special'
                     ]
+                ],
+                'itemGroups' => [
+                    'default' => 'LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:pages.doktype.div.page',
+                    'link' => 'LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:pages.doktype.div.link',
+                    'special' => 'LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:pages.doktype.div.special',
                 ],
                 'default' => (string)\TYPO3\CMS\Core\Domain\Repository\PageRepository::DOKTYPE_DEFAULT,
             ]
@@ -176,7 +195,7 @@ return [
             'config' => [
                 'type' => 'text',
                 'cols' => 40,
-                'rows' => 5,
+                'rows' => 15,
                 'enableTabulator' => true,
                 'fixedFont' => true,
             ],
@@ -198,6 +217,7 @@ return [
         ],
         'editlock' => [
             'exclude' => true,
+            'displayCond' => 'HIDE_FOR_NON_ADMINS',
             'l10n_mode' => 'exclude',
             'label' => 'LLL:EXT:core/Resources/Private/Language/locallang_tca.xlf:editlock',
             'config' => [
@@ -257,7 +277,6 @@ return [
             ]
         ],
         'l10n_parent' => [
-            'exclude' => true,
             'displayCond' => 'FIELD:sys_language_uid:>:0',
             'label' => 'LLL:EXT:core/Resources/Private/Language/locallang_general.xlf:LGL.l18n_parent',
             'config' => [
@@ -430,7 +449,7 @@ return [
             'label' => 'LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:pages.url',
             'config' => [
                 'type' => 'input',
-                'size' => 23,
+                'size' => 50,
                 'max' => 255,
                 'eval' => 'trim,required',
                 'softref' => 'url',
@@ -930,6 +949,38 @@ return [
                 --div--;LLL:EXT:core/Resources/Private/Language/Form/locallang_tabs.xlf:extended,
             '
         ],
+        (string)\TYPO3\CMS\Core\Domain\Repository\PageRepository::DOKTYPE_BE_USER_SECTION => [
+            'showitem' => '
+                --div--;LLL:EXT:core/Resources/Private/Language/Form/locallang_tabs.xlf:general,
+                    --palette--;;standard,
+                    --palette--;;title,
+                --div--;LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:pages.tabs.metadata,
+                    --palette--;;abstract,
+                    --palette--;;metatags,
+                    --palette--;;editorial,
+                --div--;LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:pages.tabs.appearance,
+                    --palette--;;layout,
+                    --palette--;;replace,
+                --div--;LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:pages.tabs.behaviour,
+                    --palette--;;links,
+                    --palette--;;caching,
+                    --palette--;;miscellaneous,
+                    --palette--;;module,
+                --div--;LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:pages.tabs.resources,
+                    --palette--;;media,
+                    --palette--;;config,
+                --div--;LLL:EXT:core/Resources/Private/Language/Form/locallang_tabs.xlf:language,
+                    --palette--;;language,
+                --div--;LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:pages.tabs.access,
+                    --palette--;;visibility,
+                    --palette--;;access,
+                --div--;LLL:EXT:core/Resources/Private/Language/Form/locallang_tabs.xlf:categories,
+                    categories,
+                --div--;LLL:EXT:core/Resources/Private/Language/Form/locallang_tabs.xlf:notes,
+                    rowDescription,
+                --div--;LLL:EXT:core/Resources/Private/Language/Form/locallang_tabs.xlf:extended,
+            '
+        ],
         // external URL
         (string)\TYPO3\CMS\Core\Domain\Repository\PageRepository::DOKTYPE_LINK => [
             'showitem' => '
@@ -943,7 +994,6 @@ return [
                 --div--;LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:pages.tabs.appearance,
                     --palette--;;layout,
                 --div--;LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:pages.tabs.behaviour,
-                    --palette--;;links,
                     --palette--;;miscellaneous,
                 --div--;LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:pages.tabs.resources,
                     --palette--;;media,
@@ -1121,7 +1171,7 @@ return [
             'showitem' => 'mount_pid;LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:pages.mount_pid_formlabel',
         ],
         'external' => [
-            'showitem' => 'url;LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:pages.url_formlabel',
+            'showitem' => 'url;LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:pages.url_formlabel, target',
         ],
         'title' => [
             'label' => 'LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:pages.palettes.title',

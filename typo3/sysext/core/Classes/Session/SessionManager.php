@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Session;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,7 +15,10 @@ namespace TYPO3\CMS\Core\Session;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Session;
+
 use TYPO3\CMS\Core\Authentication\AbstractUserAuthentication;
+use TYPO3\CMS\Core\Session\Backend\HashableSessionBackendInterface;
 use TYPO3\CMS\Core\Session\Backend\SessionBackendInterface;
 use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -73,15 +76,21 @@ class SessionManager implements SingletonInterface
     public function invalidateAllSessionsByUserId(SessionBackendInterface $backend, int $userId, AbstractUserAuthentication $userAuthentication = null)
     {
         $sessionToRenew = '';
+        $hashedSessionToRenew = '';
         // Prevent destroying the session of the current user session, but renew session id
         if ($userAuthentication !== null && (int)$userAuthentication->user['uid'] === $userId) {
             $sessionToRenew = $userAuthentication->getSessionId();
         }
+        if ($sessionToRenew !== '' && $backend instanceof HashableSessionBackendInterface) {
+            $hashedSessionToRenew = $backend->hash($sessionToRenew);
+        }
 
         foreach ($backend->getAll() as $session) {
-            if ($userAuthentication !== null && $session['ses_id'] === $sessionToRenew) {
-                $userAuthentication->enforceNewSessionId();
-                continue;
+            if ($userAuthentication !== null) {
+                if ($session['ses_id'] === $sessionToRenew || $session['ses_id'] === $hashedSessionToRenew) {
+                    $userAuthentication->enforceNewSessionId();
+                    continue;
+                }
             }
             if ((int)$session['ses_userid'] === $userId) {
                 $backend->remove($session['ses_id']);
@@ -93,7 +102,7 @@ class SessionManager implements SingletonInterface
      * Creates a session backend from configuration
      *
      * @param string $identifier the identifier
-     * @param array $configuration The session configuration array
+     * @param array<string, class-string> $configuration The session configuration array
      * @return SessionBackendInterface
      * @throws \InvalidArgumentException
      */

@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Unit\Log\Processor;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,7 +12,15 @@ namespace TYPO3\CMS\Core\Tests\Unit\Log\Processor;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Tests\Unit\Log\Processor;
+
 use TYPO3\CMS\Core\Log\Exception\InvalidLogProcessorConfigurationException;
+use TYPO3\CMS\Core\Log\Logger;
+use TYPO3\CMS\Core\Log\LogLevel;
+use TYPO3\CMS\Core\Log\LogRecord;
+use TYPO3\CMS\Core\Log\Processor\ProcessorInterface;
+use TYPO3\CMS\Core\Log\Writer\NullWriter;
 use TYPO3\CMS\Core\Tests\Unit\Log\Fixtures\ProcessorFixture;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
@@ -42,11 +49,11 @@ class AbstractProcessorTest extends UnitTestCase
      */
     public function loggerExecutesProcessors()
     {
-        $logger = new \TYPO3\CMS\Core\Log\Logger('test.core.log');
-        $writer = new \TYPO3\CMS\Core\Log\Writer\NullWriter();
-        $level = \TYPO3\CMS\Core\Log\LogLevel::DEBUG;
-        $logRecord = new \TYPO3\CMS\Core\Log\LogRecord('dummy', $level, 'message');
-        $processor = $this->getMockBuilder(\TYPO3\CMS\Core\Log\Processor\ProcessorInterface::class)
+        $logger = new Logger('test.core.log');
+        $writer = new NullWriter();
+        $level = LogLevel::DEBUG;
+        $logRecord = new LogRecord('dummy', $level, 'message');
+        $processor = $this->getMockBuilder(ProcessorInterface::class)
             ->setMethods(['processLogRecord'])
             ->getMock();
         $processor->expects(self::once())->method('processLogRecord')->willReturn($logRecord);

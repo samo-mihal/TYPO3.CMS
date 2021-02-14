@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Tstemplate\Controller;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,7 +13,10 @@ namespace TYPO3\CMS\Tstemplate\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Tstemplate\Controller;
+
 use Psr\Http\Message\ServerRequestInterface;
+use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\TypoScript\ExtendedTemplateService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -90,7 +92,7 @@ class TypoScriptTemplateInformationModuleFunctionController
             'returnUrl' => GeneralUtility::getIndpEnv('REQUEST_URI')
         ];
         /** @var \TYPO3\CMS\Backend\Routing\UriBuilder $uriBuilder */
-        $uriBuilder = GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Routing\UriBuilder::class);
+        $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
         $url = (string)$uriBuilder->buildUriFromRoute('record_edit', $urlParameters);
 
         return [
@@ -143,7 +145,7 @@ class TypoScriptTemplateInformationModuleFunctionController
             $saveId = $this->templateRow['_ORIG_uid'] ?: $this->templateRow['uid'];
         }
         /** @var \TYPO3\CMS\Backend\Routing\UriBuilder $uriBuilder */
-        $uriBuilder = GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Routing\UriBuilder::class);
+        $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
         // Create extension template
         $newId = $this->pObj->createTemplate($this->id, (int)$saveId);
         if ($newId) {

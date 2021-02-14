@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Form\FormDataProvider;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Form\FormDataProvider;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Form\FormDataProvider;
 
 use TYPO3\CMS\Backend\Form\FormDataProviderInterface;
 
@@ -99,7 +100,7 @@ class TcaCheckboxItems extends AbstractItemProvider implements FormDataProviderI
     /**
      * @param string $fieldName
      * @param string $tableName
-     * @param $checkboxEntry
+     * @param mixed $checkboxEntry
      * @param int $checkboxKey
      * @throws \UnexpectedValueException
      */
@@ -128,7 +129,7 @@ class TcaCheckboxItems extends AbstractItemProvider implements FormDataProviderI
     private function sanitizeToggleCheckbox(array $item, int $itemKey, array $newItems)
     {
         if (array_key_exists('invertStateDisplay', $item)) {
-            $newItems[$itemKey]['invertStateDisplay'] = $item['invertStateDisplay'];
+            $newItems[$itemKey]['invertStateDisplay'] = (bool)$item['invertStateDisplay'];
         } else {
             $newItems[$itemKey]['invertStateDisplay'] = false;
         }
@@ -150,7 +151,7 @@ class TcaCheckboxItems extends AbstractItemProvider implements FormDataProviderI
             $newItems[$itemKey]['labelUnchecked'] = $this->getLanguageService()->sL($item['labelUnchecked']);
         }
         if (array_key_exists('invertStateDisplay', $item)) {
-            $newItems[$itemKey]['invertStateDisplay'] = $item['invertStateDisplay'];
+            $newItems[$itemKey]['invertStateDisplay'] = (bool)$item['invertStateDisplay'];
         } else {
             $newItems[$itemKey]['invertStateDisplay'] = false;
         }
@@ -172,7 +173,7 @@ class TcaCheckboxItems extends AbstractItemProvider implements FormDataProviderI
             $newItems[$itemKey]['iconIdentifierUnchecked'] = $item['iconIdentifierUnchecked'];
         }
         if (array_key_exists('invertStateDisplay', $item)) {
-            $newItems[$itemKey]['invertStateDisplay'] = $item['invertStateDisplay'];
+            $newItems[$itemKey]['invertStateDisplay'] = (bool)$item['invertStateDisplay'];
         } else {
             $newItems[$itemKey]['invertStateDisplay'] = false;
         }

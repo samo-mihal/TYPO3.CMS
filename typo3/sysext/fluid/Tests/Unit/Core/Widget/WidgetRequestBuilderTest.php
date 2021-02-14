@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\Tests\Unit\Core\Widget;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Fluid\Tests\Unit\Core\Widget;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Fluid\Tests\Unit\Core\Widget;
 
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Object\ObjectManagerInterface;
@@ -59,7 +60,7 @@ class WidgetRequestBuilderTest extends UnitTestCase
         $this->widgetRequestBuilder = $this->getAccessibleMock(WidgetRequestBuilder::class, ['setArgumentsFromRawRequestData']);
         $this->mockWidgetRequest = $this->createMock(WidgetRequest::class);
         $this->mockObjectManager = $this->createMock(ObjectManagerInterface::class);
-        $this->mockObjectManager->expects(self::once())->method('get')->with(WidgetRequest::class)->willReturn($this->mockWidgetRequest);
+        $this->mockObjectManager->expects(self::any())->method('get')->with(WidgetRequest::class)->willReturn($this->mockWidgetRequest);
         $this->widgetRequestBuilder->_set('objectManager', $this->mockObjectManager);
         $this->mockWidgetContext = $this->createMock(WidgetContext::class);
         $this->mockAjaxWidgetContextHolder = $this->createMock(AjaxWidgetContextHolder::class);

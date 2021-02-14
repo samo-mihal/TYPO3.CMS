@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Core\Migrations;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Migrations;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Core\Migrations;
 
 /**
  * Migrate TCA from old to new syntax. Used in bootstrap and Flex Form Data Structures.
@@ -53,6 +55,8 @@ class TcaMigration
         $tca = $this->removeSetToDefaultOnCopy($tca);
         $tca = $this->sanitizeControlSectionIntegrity($tca);
         $tca = $this->removeEnableMultiSelectFilterTextfieldConfiguration($tca);
+        $tca = $this->removeExcludeFieldForTransOrigPointerField($tca);
+        $tca = $this->removeShowRecordFieldListField($tca);
 
         return $tca;
     }
@@ -270,6 +274,53 @@ class TcaMigration
                 ];
             }
         }
+        return $tca;
+    }
+
+    /**
+     * Removes $TCA[$mytable][columns][_transOrigPointerField_][exclude] if defined
+     *
+     * @param array $tca
+     *
+     * @return array
+     */
+    protected function removeExcludeFieldForTransOrigPointerField(array $tca): array
+    {
+        foreach ($tca as $table => &$configuration) {
+            if (isset($configuration['ctrl']['transOrigPointerField'],
+                $configuration['columns'][$configuration['ctrl']['transOrigPointerField']]['exclude'])
+            ) {
+                $this->messages[] = 'The \'' . $table . '\' TCA tables transOrigPointerField '
+                    . '\'' . $configuration['ctrl']['transOrigPointerField'] . '\' is defined '
+                    . ' as excluded field which is no longer needed and should therefore be removed. ';
+                unset($configuration['columns'][$configuration['ctrl']['transOrigPointerField']]['exclude']);
+            }
+        }
+
+        return $tca;
+    }
+
+    /**
+     * Removes $TCA[$mytable]['interface']['showRecordFieldList'] and also $TCA[$mytable]['interface']
+     * if `showRecordFieldList` was the only key in the array.
+     *
+     * @param array $tca
+     * @return array
+     */
+    protected function removeShowRecordFieldListField(array $tca): array
+    {
+        foreach ($tca as $table => &$configuration) {
+            if (!isset($configuration['interface']['showRecordFieldList'])) {
+                continue;
+            }
+            $this->messages[] = 'The \'' . $table . '\' TCA configuration \'showRecordFieldList\''
+                . ' inside the section \'interface\' is not evaluated anymore and should therefore be removed.';
+            unset($configuration['interface']['showRecordFieldList']);
+            if ($configuration['interface'] === []) {
+                unset($configuration['interface']);
+            }
+        }
+
         return $tca;
     }
 }

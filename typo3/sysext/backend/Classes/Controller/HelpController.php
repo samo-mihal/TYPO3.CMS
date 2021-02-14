@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Backend\Controller;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,8 @@ namespace TYPO3\CMS\Backend\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Backend\Controller;
+
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Domain\Repository\TableManualRepository;
@@ -24,7 +26,7 @@ use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Http\HtmlResponse;
 use TYPO3\CMS\Core\Http\RedirectResponse;
 use TYPO3\CMS\Core\Imaging\Icon;
-use TYPO3\CMS\Core\Information\Typo3Copyright;
+use TYPO3\CMS\Core\Information\Typo3Information;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Fluid\View\StandaloneView;
@@ -36,6 +38,8 @@ use TYPO3Fluid\Fluid\View\ViewInterface;
  */
 class HelpController
 {
+    protected const ALLOWED_ACTIONS = ['index', 'all', 'detail'];
+
     /**
      * Section identifiers
      */
@@ -56,21 +60,22 @@ class HelpController
 
     /** @var ViewInterface */
     protected $view;
+
     /**
-     * @var Typo3Copyright
+     * @var Typo3Information
      */
-    private $copyright;
+    protected $typo3Information;
 
     /**
      * Instantiate the report controller
      *
-     * @param Typo3Copyright $copyright
+     * @param Typo3Information $typo3Information
      */
-    public function __construct(Typo3Copyright $copyright)
+    public function __construct(Typo3Information $typo3Information)
     {
         $this->moduleTemplate = GeneralUtility::makeInstance(ModuleTemplate::class);
         $this->tableManualRepository = GeneralUtility::makeInstance(TableManualRepository::class);
-        $this->copyright = $copyright;
+        $this->typo3Information = $typo3Information;
     }
 
     /**
@@ -93,9 +98,13 @@ class HelpController
             }
         }
 
+        if (!in_array($action, self::ALLOWED_ACTIONS, true)) {
+            return new HtmlResponse('Action not allowed', 400);
+        }
+
         $this->initializeView($action);
 
-        $result = call_user_func_array([$this, $action . 'Action'], [$request]);
+        $result = $this->{$action . 'Action'}($request);
         if ($result instanceof ResponseInterface) {
             return $result;
         }
@@ -117,7 +126,7 @@ class HelpController
         $this->view->setPartialRootPaths(['EXT:backend/Resources/Private/Partials']);
         $this->view->setLayoutRootPaths(['EXT:backend/Resources/Private/Layouts']);
         $this->view->getRequest()->setControllerExtensionName('Backend');
-        $this->view->assign('copyright', $this->copyright->getCopyrightNotice());
+        $this->view->assign('copyright', $this->typo3Information->getCopyrightNotice());
     }
 
     /**
@@ -147,27 +156,6 @@ class HelpController
         $field = $request->getQueryParams()['field'] ?? $request->getParsedBody()['field'] ?? '*';
 
         $mainKey = $table;
-        $identifierParts = GeneralUtility::trimExplode('.', $field);
-        // The field is the second one
-        if (count($identifierParts) > 1) {
-            array_shift($field);
-            // There's at least one extra part
-            $extraIdentifierInformation = [];
-            $extraIdentifierInformation[] = array_shift($identifierParts);
-            // If the ds_pointerField contains a comma, it means the choice of FlexForm DS
-            // is determined by 2 parameters. In this case we have an extra identifier part
-            if (strpos($GLOBALS['TCA'][$table]['columns'][$field]['config']['ds_pointerField'], ',') !== false) {
-                $extraIdentifierInformation[] = array_shift($identifierParts);
-            }
-            // The remaining parts make up the FlexForm field name itself (reassembled with dots)
-            $flexFormField = implode('.', $identifierParts);
-            // Assemble a different main key and switch field to use FlexForm field name
-            $mainKey .= '.' . $field;
-            foreach ($extraIdentifierInformation as $extraKey) {
-                $mainKey .= '.' . $extraKey;
-            }
-            $field = $flexFormField;
-        }
 
         $this->view->assignMultiple([
             'table' => $table,

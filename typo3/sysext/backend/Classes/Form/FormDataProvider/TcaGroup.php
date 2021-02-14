@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Backend\Form\FormDataProvider;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Backend\Form\FormDataProvider;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Backend\Form\FormDataProvider;
 
 use TYPO3\CMS\Backend\Clipboard\Clipboard;
 use TYPO3\CMS\Backend\Form\FormDataProviderInterface;
@@ -104,13 +105,11 @@ class TcaGroup implements FormDataProviderInterface
                 if ($allowed[0] !== '*') {
                     // Only some tables, filter them:
                     foreach ($allowed as $tablename) {
-                        $elementValue = key($clipboard->elFromTable($tablename));
-                        if ($elementValue) {
-                            list($elementTable, $elementUid) = explode('|', $elementValue);
-                            $record = BackendUtility::getRecordWSOL($elementTable, $elementUid);
+                        foreach ($clipboard->elFromTable($tablename) as $recordUid) {
+                            $record = BackendUtility::getRecordWSOL($tablename, $recordUid);
                             $sanitizedClipboardElements[] = [
-                                'title' => BackendUtility::getRecordTitle($elementTable, $record),
-                                'value' => $elementTable . '_' . $elementUid,
+                                'title' => BackendUtility::getRecordTitle($tablename, $record),
+                                'value' => $tablename . '_' . $recordUid,
                             ];
                         }
                     }
@@ -118,8 +117,8 @@ class TcaGroup implements FormDataProviderInterface
                     // All tables allowed for relation:
                     $clipboardElements = array_keys($clipboard->elFromTable(''));
                     foreach ($clipboardElements as $elementValue) {
-                        list($elementTable, $elementUid) = explode('|', $elementValue);
-                        $record = BackendUtility::getRecordWSOL($elementTable, $elementUid);
+                        [$elementTable, $elementUid] = explode('|', $elementValue);
+                        $record = BackendUtility::getRecordWSOL($elementTable, (int)$elementUid);
                         $sanitizedClipboardElements[] = [
                             'title' => BackendUtility::getRecordTitle($elementTable, $record),
                             'value' => $elementTable . '_' . $elementUid,
@@ -134,7 +133,7 @@ class TcaGroup implements FormDataProviderInterface
                         continue;
                     }
                     try {
-                        $folderObject = ResourceFactory::getInstance()->retrieveFileOrFolderObject($folder);
+                        $folderObject = GeneralUtility::makeInstance(ResourceFactory::class)->retrieveFileOrFolderObject($folder);
                         if ($folderObject instanceof Folder) {
                             $items[] = [
                                 'folder' => $folder,

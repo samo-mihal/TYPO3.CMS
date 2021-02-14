@@ -1,4 +1,5 @@
 <?php
+
 defined('TYPO3_MODE') or die();
 
 $GLOBALS['TYPO3_CONF_VARS']['BE']['toolbarItems'][1435433106] = \TYPO3\CMS\Backend\Backend\ToolbarItems\ClearCacheToolbarItem::class;
@@ -28,8 +29,33 @@ $GLOBALS['TYPO3_CONF_VARS']['SYS']['formEngine']['nodeRegistry'][1460321142] = [
 // Register search key shortcuts
 $GLOBALS['TYPO3_CONF_VARS']['SYS']['livesearch']['page'] = 'pages';
 
+// Register standard preview renderer resolver implementation.
+// Resolves PreviewRendererInterface implementations for a given table and record.
+// Can be replaced with custom implementation by overriding this value in extensions.
+$GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['backend']['previewRendererResolver'] = \TYPO3\CMS\Backend\Preview\StandardPreviewRendererResolver::class;
+
 // Include base TSconfig setup
-\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addPageTSConfig('<INCLUDE_TYPOSCRIPT: source="FILE:EXT:backend/Configuration/TSconfig/Page/Mod/Wizards/NewContentElement.tsconfig">');
+\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addPageTSConfig(
+    "@import 'EXT:backend/Configuration/TSconfig/Page/Mod/Wizards/NewContentElement.tsconfig'"
+);
+
+// Register icons not being part of TYPO3.Icons repository
+$iconRegistry = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Core\Imaging\IconRegistry::class);
+$iconRegistry->registerIcon(
+    'status-edit-read-only',
+    \TYPO3\CMS\Core\Imaging\IconProvider\BitmapIconProvider::class,
+    ['source' => 'EXT:backend/Resources/Public/Icons/status-edit-read-only.png']
+);
+$iconRegistry->registerIcon(
+    'warning-in-use',
+    \TYPO3\CMS\Core\Imaging\IconProvider\BitmapIconProvider::class,
+    ['source' => 'EXT:backend/Resources/Public/Icons/warning-in-use.png']
+);
+$iconRegistry->registerIcon(
+    'warning-lock',
+    \TYPO3\CMS\Core\Imaging\IconProvider\BitmapIconProvider::class,
+    ['source' => 'EXT:backend/Resources/Public/Icons/warning-lock.png']
+);
 
 // Register BackendLayoutDataProvider for PageTs
 $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['BackendLayoutDataProvider']['pagets'] = \TYPO3\CMS\Backend\Provider\PageTsBackendLayoutDataProvider::class;

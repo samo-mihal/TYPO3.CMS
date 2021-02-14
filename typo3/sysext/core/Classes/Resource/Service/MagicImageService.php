@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Resource\Service;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,7 +13,11 @@ namespace TYPO3\CMS\Core\Resource\Service;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Resource\Service;
+
 use TYPO3\CMS\Core\Resource;
+use TYPO3\CMS\Core\Resource\File;
+use TYPO3\CMS\Core\Resource\ProcessedFile;
 use TYPO3\CMS\Core\Utility\MathUtility;
 
 /**
@@ -43,7 +46,7 @@ class MagicImageService
      * @param array $fileConfiguration (width, height)
      * @return Resource\ProcessedFile
      */
-    public function createMagicImage(Resource\File $imageFileObject, array $fileConfiguration)
+    public function createMagicImage(File $imageFileObject, array $fileConfiguration)
     {
         // Process dimensions
         $maxWidth = MathUtility::forceIntegerInRange($fileConfiguration['width'], 0, $this->magicImageMaximumWidth);
@@ -56,7 +59,7 @@ class MagicImageService
         }
         // Create the magic image
         $magicImage = $imageFileObject->process(
-            Resource\ProcessedFile::CONTEXT_IMAGECROPSCALEMASK,
+            ProcessedFile::CONTEXT_IMAGECROPSCALEMASK,
             [
                 'width' => $maxWidth . 'm',
                 'height' => $maxHeight . 'm'
@@ -68,7 +71,7 @@ class MagicImageService
     /**
      * Set maximum dimensions of magic images based on RTE configuration
      *
-     * @param array $rteConfiguration: RTE configuration probably coming from PageTSConfig
+     * @param array $rteConfiguration RTE configuration probably coming from PageTSConfig
      */
     public function setMagicImageMaximumDimensions(array $rteConfiguration)
     {

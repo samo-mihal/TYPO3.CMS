@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Form\Mvc\Property\Exception;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,12 +13,14 @@ namespace TYPO3\CMS\Form\Mvc\Property\Exception;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Form\Mvc\Property\Exception;
+
 use TYPO3\CMS\Extbase\Error\Error;
 
 /**
  * A "Type Converter" Exception
  */
-class TypeConverterException extends \TYPO3\CMS\Extbase\Property\Exception\TypeConverterException
+final class TypeConverterException extends \TYPO3\CMS\Extbase\Property\Exception\TypeConverterException
 {
     /**
      * @var Error
@@ -28,6 +29,8 @@ class TypeConverterException extends \TYPO3\CMS\Extbase\Property\Exception\TypeC
 
     public static function fromError(Error $error): TypeConverterException
     {
+        // [phpstan] Unsafe usage of new static()
+        // todo: Either mark this class or its constructor final or use new self instead.
         $exception = new static($error->getMessage(), $error->getCode());
         $exception->error = $error;
 

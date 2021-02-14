@@ -1,4 +1,5 @@
 <?php
+
 return [
     'ctrl' => [
         'title' => 'LLL:EXT:extensionmanager/Resources/Private/Language/locallang_db.xlf:tx_extensionmanager_domain_model_extension',
@@ -10,9 +11,6 @@ return [
         'typeicon_classes' => [
             'default' => 'empty-icon'
         ]
-    ],
-    'interface' => [
-        'showRecordFieldList' => 'extension_key,version,integer_version,title,description,state,category,last_updated,update_comment,author_name,author_email,md5hash,serialized_dependencies,documentation_link'
     ],
     'columns' => [
         'extension_key' => [

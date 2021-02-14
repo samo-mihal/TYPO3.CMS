@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Cache\Exception;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,9 +13,13 @@ namespace TYPO3\CMS\Core\Cache\Exception;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Cache\Exception;
+
+use TYPO3\CMS\Core\Cache\Exception;
+
 /**
  * An "Invalid Data" exception
  */
-class InvalidDataException extends \TYPO3\CMS\Core\Cache\Exception
+class InvalidDataException extends Exception
 {
 }

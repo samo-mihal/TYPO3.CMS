@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Beuser\Domain\Model;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Beuser\Domain\Model;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Beuser\Domain\Model;
 
 /**
  * Module data object
@@ -33,7 +34,7 @@ class ModuleData
     /**
      * @param \TYPO3\CMS\Beuser\Domain\Model\Demand $demand
      */
-    public function injectDemand(\TYPO3\CMS\Beuser\Domain\Model\Demand $demand)
+    public function injectDemand(Demand $demand)
     {
         $this->demand = $demand;
     }
@@ -49,7 +50,7 @@ class ModuleData
     /**
      * @param \TYPO3\CMS\Beuser\Domain\Model\Demand $demand
      */
-    public function setDemand(\TYPO3\CMS\Beuser\Domain\Model\Demand $demand)
+    public function setDemand(Demand $demand)
     {
         $this->demand = $demand;
     }

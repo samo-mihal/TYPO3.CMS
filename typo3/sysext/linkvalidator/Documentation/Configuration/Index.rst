@@ -75,24 +75,21 @@ searchFields.[key]
 
             Examples for working fields:
 
-                * `pages.canonical_link`
-                * `pages.url`
+            * `pages.canonical_link`
+            * `pages.url`
 
-            Examples for not working fields:
+            Example for not working fields:
 
             * `pages.media`
 
+   Example
+         ::
 
-    Examples
-
-          Only check for `bodytext` in `tt_content`:
-
-          .. code-block:: typoscript
-
-             tt_content = bodytext
+            # Only check for "bodytext" in "tt_content":
+            tt_content = bodytext
 
    Default
-         .. code-block:: typoscript
+         ::
 
             pages = media,url
             tt_content = bodytext,header_link,records
@@ -147,7 +144,7 @@ linktypesConfig.external.httpAgentName
          string
 
    Description
-         Add descriptive name to be used as 'User-Agent' when crawling
+         Add descriptive name to be used as 'User-Agent' header when crawling
          external URLs.
 
    Default
@@ -169,11 +166,11 @@ linktypesConfig.external.httpAgentUrl
          string
 
    Description
-         Add URL to be used in 'User-Agent' when crawling
+         Add URL to be used in 'User-Agent' header when crawling
          external URLs.
 
    Default
-
+         (empty string)
 
 
 linktypesConfig.external.httpAgentEmail
@@ -188,12 +185,11 @@ linktypesConfig.external.httpAgentEmail
          string
 
    Description
-         Add descriptive email used in 'User-Agent' when crawling
-         external URLs. If none is set here,
-         :php:`$GLOBALS['TYPO3_CONF_VARS']['MAIL']['defaultMailFromAddress']`
-         is used.
+         Add descriptive email used in 'User-Agent' header when crawling
+         external URLs.
 
    Default
+         $GLOBALS['TYPO3_CONF_VARS']['MAIL']['defaultMailFromAddress']
 
 
 
@@ -259,6 +255,37 @@ showCheckLinkTab
    Default
          1
 
+
+
+.. _actionAfterEditRecord:
+
+actionAfterEditRecord
+"""""""""""""""""""""
+
+.. container:: table-row
+
+   Property
+         actionAfterEditRecord
+
+   Data type
+         string
+
+   Default
+         recheck
+
+   Possible values
+         recheck | setNeedsRecheck
+
+   Description
+         After a record is edited, the list of broken links may no longer be correct,
+         because broken links were changed or removed or new broken links added. Due
+         to this, the list of broken links should be updated.
+
+         Possible values are:
+
+         * **recheck**: The field is rechecked. (Warning: an RTE field may contain a number
+           of links, rechecking may lead to delays.)
+         * **setNeedsRecheck**: The entries in the list are marked as needing a recheck
 
 
 .. _mail-fromname:
@@ -386,6 +413,7 @@ linktypesConfig.external.headers
          Additional set of HTTP headers to be passed when crawling URLs.
 
    Default
+         (empty array)
 
 
 linktypesConfig.external.method
@@ -435,13 +463,45 @@ linktypesConfig.external.range
    Default
          0-4048
 
+linktypesConfig.external.timeout
+""""""""""""""""""""""""""""""""
+
+.. container:: table-row
+
+   Property
+        linktypesConfig.external.timeout
+
+   Data type
+        integer
+
+   Description
+        HTTP request option. This is the total timeout of the request in
+        seconds.
+
+        If set, this overrides the timeout in
+        :php:`$GLOBALS['TYPO3_CONF_VARS']['HTTP']['timeout']`
+        which defaults to 0.
+
+        .. important::
+
+           A value of 0 means no timeout, which may result in the request
+           not terminating in some edge cases and can also result in scheduler
+           tasks to run indefinitely. There is an additional
+           :php:`$GLOBALS['TYPO3_CONF_VARS']['HTTP']['connect_timeout']`
+           which defaults to 10 seconds, but this may not be enough to lead to a request
+           terminating in some edge cases.
+
+   Default
+         20
+
+
 
 .. _configuration-example:
 
 Example
 ^^^^^^^
 
-.. code-block:: typoscript
+::
 
    mod.linkvalidator {
            searchFields {

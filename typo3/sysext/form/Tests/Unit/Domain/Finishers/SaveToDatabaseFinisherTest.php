@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Form\Tests\Unit\Domain\Finishers;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Form\Tests\Unit\Domain\Finishers;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Form\Tests\Unit\Domain\Finishers;
 
 use TYPO3\CMS\Form\Domain\Finishers\Exception\FinisherException;
 use TYPO3\CMS\Form\Domain\Finishers\FinisherContext;
@@ -189,7 +190,7 @@ class SaveToDatabaseFinisherTest extends UnitTestCase
 
         $saveToDatabaseFinisher = $this->getAccessibleMock(SaveToDatabaseFinisher::class, ['getFormValues', 'getElementByIdentifier']);
         $saveToDatabaseFinisher->method('getFormValues')->willReturn([
-            'date' => new \DateTime,
+            'date' => new \DateTime(),
         ]);
         $saveToDatabaseFinisher->method('getElementByIdentifier')->willReturn($this->prophesize(FormElementInterface::class)->reveal());
         $databaseData = $saveToDatabaseFinisher->_call('prepareData', $elementsConfiguration, []);

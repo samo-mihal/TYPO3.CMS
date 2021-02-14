@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Impexp;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,11 +13,14 @@ namespace TYPO3\CMS\Impexp;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Impexp;
+
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Database\ReferenceIndex;
 use TYPO3\CMS\Core\Exception;
 use TYPO3\CMS\Core\Html\HtmlParser;
+use TYPO3\CMS\Core\Information\Typo3Version;
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -184,7 +186,7 @@ class Export extends ImportExport
             'packager_username' => $packager_username,
             'packager_name' => $packager_name,
             'packager_email' => $packager_email,
-            'TYPO3_version' => TYPO3_version,
+            'TYPO3_version' => (string)GeneralUtility::makeInstance(Typo3Version::class),
             'created' => strftime('%A %e. %B %Y', $GLOBALS['EXEC_TIME'])
         ];
     }
@@ -303,8 +305,6 @@ class Export extends ImportExport
                     // Initialize reference index object:
                     $refIndexObj = GeneralUtility::makeInstance(ReferenceIndex::class);
                     $refIndexObj->enableRuntimeCache();
-                    // Yes to workspace overlays for exporting....
-                    $refIndexObj->WSOL = true;
                     $relations = $refIndexObj->getRelations($table, $row);
                     $relations = $this->fixFileIDsInRelations($relations);
                     $relations = $this->removeSoftrefsHavingTheSameDatabaseRelation($relations);
@@ -381,7 +381,7 @@ class Export extends ImportExport
                         if (isset($newRelation['softrefs']['keys']['typolink'])) {
                             foreach ($newRelation['softrefs']['keys']['typolink'] as $softrefKey => $softRefData) {
                                 if ($softRefData['subst']['type'] === 'file') {
-                                    $file = ResourceFactory::getInstance()->retrieveFileOrFolderObject($softRefData['subst']['relFileName']);
+                                    $file = GeneralUtility::makeInstance(ResourceFactory::class)->retrieveFileOrFolderObject($softRefData['subst']['relFileName']);
                                     if ($file instanceof File) {
                                         if ($file->getUid() == $dbRelationData['id']) {
                                             unset($newRelation['softrefs']['keys']['typolink'][$softrefKey]);
@@ -446,7 +446,7 @@ class Export extends ImportExport
                             foreach ($subList['keys'] as $spKey => $elements) {
                                 foreach ($elements as $el) {
                                     if ($el['subst']['type'] === 'db' && $this->includeSoftref($el['subst']['tokenID'])) {
-                                        list($tempTable, $tempUid) = explode(':', $el['subst']['recordRef']);
+                                        [$tempTable, $tempUid] = explode(':', $el['subst']['recordRef']);
                                         $fI = [
                                             'table' => $tempTable,
                                             'id' => $tempUid
@@ -463,7 +463,7 @@ class Export extends ImportExport
                     foreach ($vR['softrefs']['keys'] as $spKey => $elements) {
                         foreach ($elements as $el) {
                             if ($el['subst']['type'] === 'db' && $this->includeSoftref($el['subst']['tokenID'])) {
-                                list($tempTable, $tempUid) = explode(':', $el['subst']['recordRef']);
+                                [$tempTable, $tempUid] = explode(':', $el['subst']['recordRef']);
                                 $fI = [
                                     'table' => $tempTable,
                                     'id' => $tempUid
@@ -481,14 +481,14 @@ class Export extends ImportExport
             foreach ($addR as $fI) {
                 // Get and set record:
                 $row = BackendUtility::getRecord($fI['table'], $fI['id']);
-                // Depending on db driver, int fields may or may not be returned as integer or as string. The
-                // loop aligns that detail and forces strings for everything to have exports more db agnostic.
-                foreach ($row as $fieldName => $value) {
-                    // Keep null but force everything else to string
-                    $row[$fieldName] = $value === null ? $value : (string)$value;
-                }
 
                 if (is_array($row)) {
+                    // Depending on db driver, int fields may or may not be returned as integer or as string. The
+                    // loop aligns that detail and forces strings for everything to have exports more db agnostic.
+                    foreach ($row as $fieldName => $value) {
+                        // Keep null but force everything else to string
+                        $row[$fieldName] = $value === null ? $value : (string)$value;
+                    }
                     $this->export_addRecord($fI['table'], $row, $relationLevel + 1);
                 }
                 // Set status message
@@ -631,7 +631,7 @@ class Export extends ImportExport
         }
         foreach ($this->dat['header']['records']['sys_file'] as $sysFileUid => $_) {
             $recordData = $this->dat['records']['sys_file:' . $sysFileUid]['data'];
-            $file = ResourceFactory::getInstance()->createFileObject($recordData);
+            $file = GeneralUtility::makeInstance(ResourceFactory::class)->createFileObject($recordData);
             $this->export_addSysFile($file);
         }
     }
@@ -720,7 +720,7 @@ class Export extends ImportExport
         $fileMd5 = md5_file($fI['ID_absFile']);
         if (!$this->saveFilesOutsideExportFile) {
             // ... and finally add the heavy stuff:
-            $fileRec['content'] = file_get_contents($fI['ID_absFile']);
+            $fileRec['content'] = (string)file_get_contents($fI['ID_absFile']);
         } else {
             GeneralUtility::upload_copy_move($fI['ID_absFile'], $this->getTemporaryFilesPathForExport() . $fileMd5);
         }
@@ -734,7 +734,7 @@ class Export extends ImportExport
             if ($this->includeExtFileResources && GeneralUtility::inList($this->extFileResourceExtensions, strtolower($html_fI['extension']))) {
                 $uniquePrefix = '###' . md5($GLOBALS['EXEC_TIME']) . '###';
                 if (strtolower($html_fI['extension']) === 'css') {
-                    $prefixedMedias = explode($uniquePrefix, preg_replace('/(url[[:space:]]*\\([[:space:]]*["\']?)([^"\')]*)(["\']?[[:space:]]*\\))/i', '\\1' . $uniquePrefix . '\\2' . $uniquePrefix . '\\3', $fileRec['content']));
+                    $prefixedMedias = explode($uniquePrefix, (string)preg_replace('/(url[[:space:]]*\\([[:space:]]*["\']?)([^"\')]*)(["\']?[[:space:]]*\\))/i', '\\1' . $uniquePrefix . '\\2' . $uniquePrefix . '\\3', $fileRec['content']));
                 } else {
                     // html, htm:
                     $htmlParser = GeneralUtility::makeInstance(HtmlParser::class);
@@ -762,7 +762,7 @@ class Export extends ImportExport
                                 // Setting this data in the header
                                 $this->dat['header']['files'][$EXTres_ID] = $fileRec;
                                 // ... and finally add the heavy stuff:
-                                $fileRec['content'] = file_get_contents($EXTres_absPath);
+                                $fileRec['content'] = (string)file_get_contents($EXTres_absPath);
                                 $fileRec['content_md5'] = md5($fileRec['content']);
                                 $this->dat['files'][$EXTres_ID] = $fileRec;
                             }
@@ -1033,15 +1033,15 @@ class Export extends ImportExport
     /**
      * Returns a content part for a filename being build.
      *
-     * @param array $data Data to store in part
+     * @param string $data Data to store in part
      * @param bool $compress Compress file?
      * @return string Content stream.
      */
     public function addFilePart($data, $compress = false)
     {
         if ($compress) {
-            $data = gzcompress($data);
+            $data = (string)gzcompress($data);
         }
-        return md5($data) . ':' . ($compress ? '1' : '0') . ':' . str_pad(strlen($data), 10, '0', STR_PAD_LEFT) . ':' . $data . ':';
+        return md5($data) . ':' . ($compress ? '1' : '0') . ':' . str_pad((string)strlen($data), 10, '0', STR_PAD_LEFT) . ':' . $data . ':';
     }
 }

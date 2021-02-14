@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Install\ViewHelpers\Uri;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Install\ViewHelpers\Uri;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Install\ViewHelpers\Uri;
 
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\HttpUtility;
@@ -42,7 +43,7 @@ class ActionViewHelper extends AbstractViewHelper
      */
     public function initializeArguments()
     {
-        $this->registerArgument('action', 'string', 'Target action', '');
+        $this->registerArgument('action', 'string', 'Target action', false);
         $this->registerArgument('controller', 'string', 'Target controller.', false, 'maintenance');
         $this->registerArgument('arguments', 'array', 'Arguments', false, []);
         $this->registerArgument('section', 'string', 'The anchor to be added to the URI', false, '');

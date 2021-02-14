@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Fluid\ViewHelpers\Be\Menus;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -13,6 +12,8 @@ namespace TYPO3\CMS\Fluid\ViewHelpers\Be\Menus;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
+namespace TYPO3\CMS\Fluid\ViewHelpers\Be\Menus;
 
 use TYPO3Fluid\Fluid\Core\Compiler\TemplateCompiler;
 use TYPO3Fluid\Fluid\Core\Parser\SyntaxTree\ViewHelperNode;
@@ -69,7 +70,7 @@ class ActionMenuViewHelper extends AbstractTagBasedViewHelper
     public function initializeArguments()
     {
         parent::initializeArguments();
-        $this->registerArgument('defaultController', 'string', 'defaultController');
+        $this->registerArgument('defaultController', 'string', 'The default controller to be used');
     }
 
     /**

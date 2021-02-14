@@ -1,7 +1,6 @@
 <?php
-declare(strict_types = 1);
 
-namespace TYPO3\CMS\Core\PageTitle;
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -16,6 +15,8 @@ namespace TYPO3\CMS\Core\PageTitle;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\PageTitle;
+
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use TYPO3\CMS\Core\Service\DependencyOrderingService;
@@ -29,6 +30,11 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 class PageTitleProviderManager implements SingletonInterface, LoggerAwareInterface
 {
     use LoggerAwareTrait;
+
+    /**
+     * @var array
+     */
+    private $pageTitleCache = [];
 
     /**
      * @return string
@@ -52,11 +58,14 @@ class PageTitleProviderManager implements SingletonInterface, LoggerAwareInterfa
             if (class_exists($configuration['provider']) && is_subclass_of($configuration['provider'], PageTitleProviderInterface::class)) {
                 /** @var PageTitleProviderInterface $titleProviderObject */
                 $titleProviderObject = GeneralUtility::makeInstance($configuration['provider']);
-                if ($pageTitle = $titleProviderObject->getTitle()) {
+                if (($pageTitle = $titleProviderObject->getTitle())
+                    || ($pageTitle = $this->pageTitleCache[$configuration['provider']] ?? '') !== ''
+                ) {
                     $this->logger->debug(
                         'Page title provider ' . $configuration['provider'] . ' used',
                         ['title' => $pageTitle, 'providerUsed' => $configuration['provider']]
                     );
+                    $this->pageTitleCache[$configuration['provider']] = $pageTitle;
                     break;
                 }
                 $this->logger->debug(
@@ -67,6 +76,24 @@ class PageTitleProviderManager implements SingletonInterface, LoggerAwareInterfa
         }
 
         return $pageTitle;
+    }
+
+    /**
+     * @return array
+     * @internal
+     */
+    public function getPageTitleCache(): array
+    {
+        return $this->pageTitleCache;
+    }
+
+    /**
+     * @param array $pageTitleCache
+     * @internal
+     */
+    public function setPageTitleCache(array $pageTitleCache): void
+    {
+        $this->pageTitleCache = $pageTitleCache;
     }
 
     /**

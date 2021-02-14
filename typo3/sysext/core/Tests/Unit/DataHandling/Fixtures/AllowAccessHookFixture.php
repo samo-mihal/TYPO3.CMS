@@ -1,5 +1,4 @@
 <?php
-namespace TYPO3\CMS\Core\Tests\Unit\DataHandling\Fixtures;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -14,6 +13,8 @@ namespace TYPO3\CMS\Core\Tests\Unit\DataHandling\Fixtures;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Core\Tests\Unit\DataHandling\Fixtures;
+
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\DataHandling\DataHandlerCheckModifyAccessListHookInterface;
 
@@ -25,7 +26,7 @@ class AllowAccessHookFixture implements DataHandlerCheckModifyAccessListHookInte
     /**
      *  Check modify access list
      *
-     * @param bool &$accessAllowed
+     * @param bool $accessAllowed
      * @param string $table
      * @param DataHandler $parent
      */

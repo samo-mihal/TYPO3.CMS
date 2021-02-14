@@ -1,6 +1,6 @@
 <?php
-declare(strict_types = 1);
-namespace TYPO3\CMS\Workspaces\Controller;
+
+declare(strict_types=1);
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -15,6 +15,8 @@ namespace TYPO3\CMS\Workspaces\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+namespace TYPO3\CMS\Workspaces\Controller;
+
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
@@ -23,6 +25,7 @@ use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Http\HtmlResponse;
+use TYPO3\CMS\Core\Information\Typo3Information;
 use TYPO3\CMS\Core\Routing\InvalidRouteArgumentsException;
 use TYPO3\CMS\Core\Routing\UnableToLinkToPageException;
 use TYPO3\CMS\Core\Site\SiteFinder;
@@ -111,6 +114,7 @@ class PreviewController
      */
     public function handleRequest(ServerRequestInterface $request): ResponseInterface
     {
+        $liveUrl = false;
         $this->initializeView('Index');
 
         // Get all the GET parameters to pass them on to the frames
@@ -131,8 +135,8 @@ class PreviewController
             $recursionLevel = 0,
             $selectionType = 'tables_modify'
         );
-        list(, $nextStage) = $this->stageService->getNextStageForElementCollection($workspaceItemsArray);
-        list(, $previousStage) = $this->stageService->getPreviousStageForElementCollection($workspaceItemsArray);
+        [, $nextStage] = $this->stageService->getNextStageForElementCollection($workspaceItemsArray);
+        [, $previousStage] = $this->stageService->getPreviousStageForElementCollection($workspaceItemsArray);
         $availableWorkspaces = $this->workspaceService->getAvailableWorkspaces();
         $activeWorkspace = $this->getBackendUser()->workspace;
         if ($previewWS !== null && array_key_exists($previewWS, $availableWorkspaces) && $activeWorkspace != $previewWS) {
@@ -148,28 +152,18 @@ class PreviewController
                 $queryParameters['_language'] = $site->getLanguageById((int)$queryParameters['L']);
                 unset($queryParameters['L']);
             }
+            $parameters = $queryParameters;
             if (!WorkspaceService::isNewPage($this->pageId)) {
-                $parameters = $queryParameters;
-                $parameters['ADMCMD_noBeUser'] = 1;
-                $parameters['ADMCMD_prev'] = 'IGNORE';
+                $parameters['ADMCMD_prev'] = 'LIVE';
                 $liveUrl = (string)$site->getRouter()->generateUri($this->pageId, $parameters);
             }
 
             $parameters = $queryParameters;
-            $parameters['ADMCMD_view'] = 1;
-            $parameters['ADMCMD_editIcons'] = 1;
             $parameters['ADMCMD_prev'] = 'IGNORE';
             $wsUrl = (string)$site->getRouter()->generateUri($this->pageId, $parameters);
         } catch (SiteNotFoundException | InvalidRouteArgumentsException $e) {
             throw new UnableToLinkToPageException('The page ' . $this->pageId . ' had no proper connection to a site, no link could be built.', 1559794913);
         }
-
-        // Build the "list view" link to the review controller
-        $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
-        $wsSettingsUrl = $uriBuilder->buildUriFromRoute('web_WorkspacesWorkspaces', [
-            'tx_workspaces_web_workspacesworkspaces' => ['action' => 'singleIndex'],
-            'id' => $this->pageId
-        ], UriBuilder::ABSOLUTE_URL);
 
         // Evaluate available preview modes
         $splitPreviewModes = GeneralUtility::trimExplode(
@@ -186,10 +180,9 @@ class PreviewController
         $this->moduleTemplate->getPageRenderer()->addInlineSetting('Workspaces', 'id', $this->pageId);
 
         $this->view->assignMultiple([
-            'logoLink' => TYPO3_URL_GENERAL,
+            'logoLink' => Typo3Information::URL_COMMUNITY,
             'liveUrl' => $liveUrl ?? false,
             'wsUrl' => $wsUrl,
-            'wsSettingsUrl' => $wsSettingsUrl,
             'activeWorkspace' => $availableWorkspaces[$activeWorkspace],
             'splitPreviewModes' => $splitPreviewModes,
             'firstPreviewMode' => current($splitPreviewModes),

@@ -1,16 +1,21 @@
 <?php
+
+/*
+ * This file is part of the TYPO3 CMS project.
+ *
+ * It is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License, either version 2
+ * of the License, or any later version.
+ *
+ * For the full copyright and license information, please read the
+ * LICENSE.txt file that was distributed with this source code.
+ *
+ * The TYPO3 project - inspiring people to share!
+ */
+
 namespace TYPO3\CMS\Fluid\Tests\Unit\ViewHelpers\Form;
 
-/*                                                                        *
-     * This script is backported from the TYPO3 Flow package "TYPO3.Fluid".   *
-     *                                                                        *
-     * It is free software; you can redistribute it and/or modify it under    *
-     * the terms of the GNU Lesser General Public License, either version 3   *
-     *  of the License, or (at your option) any later version.                *
-     *                                                                        *
-     * The TYPO3 project - inspiring people to share!                         *
-     *                                                                        */
-
+use TYPO3\CMS\Fluid\Tests\Unit\ViewHelpers\Form\Fixtures\ClassWithTwoGetters;
 use TYPO3\CMS\Fluid\ViewHelpers\Form\AbstractFormFieldViewHelper;
 use TYPO3\CMS\Fluid\ViewHelpers\FormViewHelper;
 
@@ -69,7 +74,7 @@ class AbstractFormFieldViewHelperTest extends FormFieldViewHelperBaseTestcase
         $this->injectDependenciesIntoViewHelper($formViewHelper);
         $formViewHelper->_set('respectSubmittedDataValue', false);
 
-        $mockObject = new \TYPO3\CMS\Fluid\Tests\Unit\ViewHelpers\Form\Fixtures\ClassWithTwoGetters('testing', 1476108385);
+        $mockObject = new ClassWithTwoGetters('testing', 1476108385);
 
         $formViewHelper->expects(self::any())->method('isObjectAccessorMode')->willReturn(true);
         $this->viewHelperVariableContainer->get(FormViewHelper::class, 'formObject')
@@ -260,7 +265,7 @@ class AbstractFormFieldViewHelperTest extends FormFieldViewHelperBaseTestcase
      */
     public function addAdditionalIdentityPropertiesIfNeededCallsRenderIdentityFieldWithTheRightParameters()
     {
-        $mockFormObject = new \TYPO3\CMS\Fluid\Tests\Unit\ViewHelpers\Form\Fixtures\ClassWithTwoGetters();
+        $mockFormObject = new ClassWithTwoGetters();
 
         $property = 'value.something';
         $objectName = 'myObject';
@@ -308,7 +313,7 @@ class AbstractFormFieldViewHelperTest extends FormFieldViewHelperBaseTestcase
      */
     public function addAdditionalIdentityPropertiesIfNeededCallsRenderIdentityFieldWithTheRightParametersWithMoreHierarchyLevels(
     ) {
-        $mockFormObject = new \TYPO3\CMS\Fluid\Tests\Unit\ViewHelpers\Form\Fixtures\ClassWithTwoGetters();
+        $mockFormObject = new ClassWithTwoGetters();
         $property = 'value.value.something';
         $objectName = 'myObject';
         $expectedProperty1 = 'myObject[value]';
@@ -348,13 +353,9 @@ class AbstractFormFieldViewHelperTest extends FormFieldViewHelperBaseTestcase
             [$expectedProperty2 => null]
         )->willReturn();
 
-        $formFieldViewHelper->expects(self::at(1))->method('renderHiddenIdentityField')->with(
-            $mockFormObject,
-            $expectedProperty1
-        );
-        $formFieldViewHelper->expects(self::at(2))->method('renderHiddenIdentityField')->with(
-            $mockFormObject,
-            $expectedProperty2
+        $formFieldViewHelper->expects(self::exactly(2))->method('renderHiddenIdentityField')->withConsecutive(
+            [$mockFormObject, $expectedProperty1],
+            [$mockFormObject, $expectedProperty2]
         );
 
         $formFieldViewHelper->_call('addAdditionalIdentityPropertiesIfNeeded');
