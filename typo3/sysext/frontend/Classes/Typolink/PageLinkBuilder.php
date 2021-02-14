@@ -61,7 +61,7 @@ class PageLinkBuilder extends AbstractTypolinkBuilder
         if (isset($conf['linkAccessRestrictedPages'])) {
             $disableGroupAccessCheck = (bool)$conf['linkAccessRestrictedPages'];
         } else {
-            $disableGroupAccessCheck = (bool)($tsfe->config['config']['typolinkLinkAccessRestrictedPages'] ?? false);
+            $disableGroupAccessCheck = (bool)$tsfe->config['config']['typolinkLinkAccessRestrictedPages'];
         }
 
         // Looking up the page record to verify its existence:
@@ -98,7 +98,7 @@ class PageLinkBuilder extends AbstractTypolinkBuilder
         }
         // MountPoints, look for closest MPvar:
         $MPvarAcc = [];
-        if (!($tsfe->config['config']['MP_disableTypolinkClosestMPvalue'] ?? false)) {
+        if (!$tsfe->config['config']['MP_disableTypolinkClosestMPvalue']) {
             $temp_MP = $this->getClosestMountPointValueForPage($page['uid']);
             if ($temp_MP) {
                 $MPvarAcc['closest'] = $temp_MP;
@@ -114,8 +114,8 @@ class PageLinkBuilder extends AbstractTypolinkBuilder
             $MPvarAcc['re-map'] = $mount_info['MPvar'];
         }
         // Query Params:
-        $addQueryParams = $conf['addQueryString'] ? $this->contentObjectRenderer->getQueryArguments($conf['addQueryString.'] ?? []) : '';
-        $addQueryParams .= isset($conf['additionalParams.']) ? trim((string)$this->contentObjectRenderer->stdWrap($conf['additionalParams'] ?? '', $conf['additionalParams.'])) : trim((string)($conf['additionalParams'] ?? ''));
+        $addQueryParams = $conf['addQueryString'] ? $this->contentObjectRenderer->getQueryArguments($conf['addQueryString.']) : '';
+        $addQueryParams .= isset($conf['additionalParams.']) ? trim((string)$this->contentObjectRenderer->stdWrap($conf['additionalParams'], $conf['additionalParams.'])) : trim((string)$conf['additionalParams']);
         if ($addQueryParams === '&' || $addQueryParams[0] !== '&') {
             $addQueryParams = '';
         }
@@ -261,7 +261,7 @@ class PageLinkBuilder extends AbstractTypolinkBuilder
 
         // If link is to an access restricted page which should be redirected, then find new URL:
         if (empty($conf['linkAccessRestrictedPages'])
-            && ($tsfe->config['config']['typolinkLinkAccessRestrictedPages'] ?? false)
+            && $tsfe->config['config']['typolinkLinkAccessRestrictedPages']
             && $tsfe->config['config']['typolinkLinkAccessRestrictedPages'] !== 'NONE'
             && !$tsfe->checkPageGroupAccess($page)
         ) {
@@ -400,7 +400,7 @@ class PageLinkBuilder extends AbstractTypolinkBuilder
         $targetPageId = (int)($page['l10n_parent'] > 0 ? $page['l10n_parent'] : $page['uid']);
         $queryParameters['_language'] = $siteLanguageOfTargetPage;
 
-        if ($conf['no_cache'] ?? false) {
+        if ($conf['no_cache']) {
             $queryParameters['no_cache'] = 1;
         }
 
@@ -411,7 +411,7 @@ class PageLinkBuilder extends AbstractTypolinkBuilder
             && (empty($conf['addQueryString']) || !isset($conf['addQueryString.']))
             && !$GLOBALS['TSFE']->config['config']['baseURL']
             && count($queryParameters) === 1 // _language is always set
-            ) {
+        ) {
             $uri = (new Uri())->withFragment($fragment);
         } else {
             try {
@@ -594,7 +594,7 @@ class PageLinkBuilder extends AbstractTypolinkBuilder
                 ->removeAll()
                 ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
             $queryResult = $queryBuilder
-                ->select('uid', 'pid', 'doktype', 'mount_pid', 'mount_pid_ol', 't3ver_state', 'l10n_parent')
+                ->select('uid', 'pid', 'doktype', 'mount_pid', 'mount_pid_ol', 't3ver_state')
                 ->from('pages')
                 ->where(
                     $queryBuilder->expr()->eq(
